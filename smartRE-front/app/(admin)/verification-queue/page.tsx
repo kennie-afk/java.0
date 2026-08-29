@@ -241,8 +241,40 @@ function VerifQueuePageInner() {
             <div className="p-3 bg-gray-50 dark:bg-[#2E2518] rounded-lg text-[13px] space-y-1">
               <p>User: {modal.userId}</p>
               <p>AI Score: <strong>{modal.identityScore}/100</strong></p>
+              {!!modal.faceMatchSource && modal.faceMatchSource !== 'NONE' && (
+                <p className={modal.faceMatchPassed ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}>
+                  Face match ({modal.faceMatchSource}): <strong>{modal.faceMatchPassed ? 'Matched' : 'Did not match'}</strong>
+                  {typeof modal.faceMatchScore === 'number' ? ` — ${modal.faceMatchScore}% confidence` : ''}
+                </p>
+              )}
             </div>
             <DocumentThumbnailGrid documents={(modal.documents ?? []).map(d => ({ id: d.id, url: d.documentUrl, label: d.documentCategory }))}/>
+            {(modal.documents ?? []).filter(d => typeof d.aiAuthenticityScore === 'number').map(d => (
+              <div key={'screen-' + d.id} className="text-[11px] text-muted flex flex-wrap gap-x-3 gap-y-0.5">
+                <span><strong>{(d.documentCategory || 'Document').replace(/_/g, ' ')}</strong> — authenticity {d.aiAuthenticityScore}%</span>
+                {d.aiTamperDetected && <span className="text-red-600 dark:text-red-400">tamper detected</span>}
+                {d.aiMetadataClean === false && <span className="text-amber-600 dark:text-amber-400">metadata inconsistent</span>}
+                {d.aiFontConsistency === false && <span className="text-amber-600 dark:text-amber-400">font inconsistent</span>}
+                {d.aiSignatureDetected === false && <span className="text-amber-600 dark:text-amber-400">no signature</span>}
+                {d.aiSealDetected === false && <span className="text-amber-600 dark:text-amber-400">no seal</span>}
+              </div>
+            ))}
+            {(modal.documents ?? []).some(d => d.aiCategoryMismatch || d.extractedIdNumber) && (
+              <div className="space-y-1.5">
+                {(modal.documents ?? []).map(d => (
+                  (d.aiCategoryMismatch || d.extractedIdNumber) && (
+                    <div key={d.id} className={cn('text-[12px] p-2 rounded-md border',
+                      d.aiCategoryMismatch ? 'border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400'
+                        : 'border-base text-gray-600 dark:text-gray-400')}>
+                      <strong>{(d.documentCategory || 'Document').replace(/_/g, ' ')}:</strong>{' '}
+                      {d.aiCategoryMismatch
+                        ? `AI thinks this is ${(d.aiDetectedCategory || 'not the claimed document').replace(/_/g, ' ').toLowerCase()}${typeof d.aiCategoryConfidence === 'number' ? ` (${d.aiCategoryConfidence}% confidence)` : ''}`
+                        : `ID number read: ${d.extractedIdNumber}`}
+                    </div>
+                  )
+                ))}
+              </div>
+            )}
             <Select label="Decision" required options={[{ value: 'APPROVED', label: 'Approve' }, { value: 'REJECTED', label: 'Reject' }]}
               value={form.decision} onChange={e => setForm(f => ({ ...f, decision: e.target.value }))}/>
             <Textarea label="Review notes" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}/>
@@ -278,6 +310,45 @@ function VerifQueuePageInner() {
             </div>
             {modal.status !== 'LEGAL_REVIEW' && (
               <DocumentThumbnailGrid documents={(modal.documents ?? []).map(d => ({ id: d.id, url: d.documentUrl, label: d.documentCategory }))}/>
+            )}
+            {modal.status !== 'LEGAL_REVIEW' && (modal.documents ?? []).filter(d => typeof d.aiAuthenticityScore === 'number').map(d => (
+              <div key={'screen-' + d.id} className="text-[11px] text-muted flex flex-wrap gap-x-3 gap-y-0.5">
+                <span><strong>{d.documentCategory.replace(/_/g, ' ')}</strong> — authenticity {d.aiAuthenticityScore}%</span>
+                {d.aiTamperDetected && <span className="text-red-600 dark:text-red-400">tamper detected</span>}
+                {d.aiAlterationDetected && <span className="text-red-600 dark:text-red-400">alteration detected</span>}
+                {d.aiMetadataClean === false && <span className="text-amber-600 dark:text-amber-400">metadata inconsistent</span>}
+                {d.aiFontConsistency === false && <span className="text-amber-600 dark:text-amber-400">font inconsistent</span>}
+                {d.aiDateSequenceValid === false && <span className="text-amber-600 dark:text-amber-400">date sequence invalid</span>}
+                {d.aiSignatureDetected === false && <span className="text-amber-600 dark:text-amber-400">no signature</span>}
+                {d.aiSealDetected === false && <span className="text-amber-600 dark:text-amber-400">no seal</span>}
+              </div>
+            ))}
+            {modal.status !== 'LEGAL_REVIEW' && (modal.documents ?? []).some(d => d.aiCategoryMismatch || d.aiExtractedFields) && (
+              <div className="space-y-1.5">
+                {(modal.documents ?? []).map(d => {
+                  if (!d.aiCategoryMismatch && !d.aiExtractedFields) return null
+                  let fields: Record<string, string> = {}
+                  try { fields = d.aiExtractedFields ? JSON.parse(d.aiExtractedFields) : {} } catch {}
+                  return (
+                    <div key={d.id} className={cn('text-[12px] p-2 rounded-md border',
+                      d.aiCategoryMismatch ? 'border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400'
+                        : 'border-base text-gray-600 dark:text-gray-400')}>
+                      <strong>{d.documentCategory.replace(/_/g, ' ')}:</strong>
+                      {d.aiCategoryMismatch && (
+                        <span> AI thinks this is {(d.aiDetectedCategory || 'not the claimed document').replace(/_/g, ' ').toLowerCase()}
+                          {typeof d.aiCategoryConfidence === 'number' ? ` (${d.aiCategoryConfidence}% confidence)` : ''}.</span>
+                      )}
+                      {Object.keys(fields).length > 0 && (
+                        <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5">
+                          {Object.entries(fields).map(([k, v]) => (
+                            <span key={k}><span className="text-muted">{k}:</span> {v}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
             )}
 
             {modal.status === 'MINISTRY_LANDS_CHECK' && (

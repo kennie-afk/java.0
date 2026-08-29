@@ -91,7 +91,14 @@ export interface IdentityDocumentResponse {
   aiTamperDetected?: boolean
   aiSignatureDetected?: boolean
   aiSealDetected?: boolean
+  aiMetadataClean?: boolean
+  aiFontConsistency?: boolean
   aiScreeningNotes?: string
+  extractedIdNumber?: string
+  aiDetectedCategory?: string
+  aiCategoryConfidence?: number
+  aiCategoryMismatch?: boolean
+  aiSideDetected?: string
   humanVerified?: boolean
   humanReviewNotes?: string
   uploadedAt?: string
@@ -115,6 +122,9 @@ export interface IdentityVerificationResponse {
   missingRequiredDocuments?: string[]
   fraudStrikeCount: number
   permanentlyBanned: boolean
+  faceMatchScore?: number
+  faceMatchSource?: string
+  faceMatchPassed?: boolean
 }
 
 export type OwnershipVerifStatus =
@@ -151,7 +161,15 @@ export interface OwnershipDocumentResponse {
   aiAlterationDetected?: boolean
   aiFontConsistency?: boolean
   aiDateSequenceValid?: boolean
+  aiMetadataClean?: boolean
+  aiSignatureDetected?: boolean
+  aiSealDetected?: boolean
   aiScreeningNotes?: string
+  aiDetectedCategory?: string
+  aiCategoryConfidence?: number
+  aiCategoryMismatch?: boolean
+  aiSideDetected?: string
+  aiExtractedFields?: string
   humanLegalApproved?: boolean
   humanReviewNotes?: string
   uploadedAt?: string

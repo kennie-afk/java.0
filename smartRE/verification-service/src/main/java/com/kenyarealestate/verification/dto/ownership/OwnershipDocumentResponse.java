@@ -26,7 +26,15 @@ public class OwnershipDocumentResponse {
     private Boolean aiAlterationDetected;
     private Boolean aiFontConsistency;
     private Boolean aiDateSequenceValid;
+    private Boolean aiMetadataClean;
+    private Boolean aiSignatureDetected;
+    private Boolean aiSealDetected;
     private String aiScreeningNotes;
+    private String aiDetectedCategory;
+    private Integer aiCategoryConfidence;
+    private Boolean aiCategoryMismatch;
+    private String aiSideDetected;
+    private String aiExtractedFields;
     private Boolean humanLegalApproved;
     private String humanReviewNotes;
     private LocalDateTime uploadedAt;

@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
 
@@ -20,7 +22,14 @@ import java.util.UUID;
 @Component
 public class PropertyServiceClient {
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
+
+    public PropertyServiceClient() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(Duration.ofSeconds(3));
+        factory.setReadTimeout(Duration.ofSeconds(3));
+        this.restTemplate = new RestTemplate(factory);
+    }
 
     @Value("${services.property-url}")
     private String propertyUrl;
@@ -55,6 +64,20 @@ public class PropertyServiceClient {
     @SuppressWarnings("unused")
     private UUID getSellerIdFallback(UUID propertyId, Exception ex) {
         log.warn("Could not fetch seller for property {}: {}. Skipping seller cross-check.", propertyId, ex.getMessage());
+        return null;
+    }
+
+    @CircuitBreaker(name = "property-service", fallbackMethod = "getPriceFallback")
+    public java.math.BigDecimal getPrice(UUID propertyId) {
+        Map<?, ?> body = restTemplate.getForObject(
+                propertyUrl + "/api/properties/" + propertyId, Map.class);
+        if (body == null || body.get("price") == null) return null;
+        return new java.math.BigDecimal(String.valueOf(body.get("price")));
+    }
+
+    @SuppressWarnings("unused")
+    private java.math.BigDecimal getPriceFallback(UUID propertyId, Exception ex) {
+        log.warn("Could not fetch price for property {}: {}. Failing closed on amount validation.", propertyId, ex.getMessage());
         return null;
     }
 

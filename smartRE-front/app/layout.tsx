@@ -20,12 +20,7 @@ export default function RootLayout({ children }:{ children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{__html:`
-          (function(){
-            const t = localStorage.getItem('sre-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-            if(t==='dark') document.documentElement.classList.add('dark');
-          })()
-        `}} />
+        <script src="/theme-init.js" />
       </head>
       <body>
         <ErrorTracking />

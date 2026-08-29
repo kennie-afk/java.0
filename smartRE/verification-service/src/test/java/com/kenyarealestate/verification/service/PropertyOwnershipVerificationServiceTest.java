@@ -42,7 +42,7 @@ class PropertyOwnershipVerificationServiceTest {
     @Mock private AuditService auditService;
     @Mock private ScoringEngine scoringEngine;
     @Mock private PropertyServiceClient propertyClient;
-    @Mock private DocumentAnalysisService documentAnalysisService;
+    @Mock private DocumentIntelligenceService documentIntelligenceService;
     @Mock private ArdhisasaClient ardhisasaClient;
     @Mock private VerificationEventPublisher eventPublisher;
     @Mock private TrustStatusService trustStatusService;
@@ -57,7 +57,7 @@ class PropertyOwnershipVerificationServiceTest {
     void setup() {
         service = new PropertyOwnershipVerificationService(
                 ownershipRepo, docRepo, identityRepo, requirementRepo, fraudRepo,
-                auditService, scoringEngine, propertyClient, documentAnalysisService,
+                auditService, scoringEngine, propertyClient, documentIntelligenceService,
                 ardhisasaClient, eventPublisher, trustStatusService, fraudFlagService);
         lenient().when(ownershipRepo.save(any(PropertyOwnershipVerification.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
@@ -165,7 +165,7 @@ class PropertyOwnershipVerificationServiceTest {
 
         assertTrue(ex.getMessage().contains("does not belong to you"));
         verify(docRepo, never()).existsByFileHashSha256(any());
-        verifyNoInteractions(documentAnalysisService);
+        verifyNoInteractions(documentIntelligenceService);
     }
 
     @Test
@@ -194,7 +194,7 @@ class PropertyOwnershipVerificationServiceTest {
         SellerIdentityVerification identity = approvedIdentity();
         PropertyOwnershipVerification verif = verification(identity, OwnershipVerificationStatus.DRAFT);
         when(ownershipRepo.findById(verif.getId())).thenReturn(Optional.of(verif));
-        when(documentAnalysisService.computeSha256FromUrl(anyString())).thenReturn("a".repeat(64));
+        when(documentIntelligenceService.computeSha256FromUrl(anyString())).thenReturn("a".repeat(64));
         when(docRepo.existsByFileHashSha256(anyString())).thenReturn(false);
         when(fraudRepo.existsByDocumentHash(anyString())).thenReturn(false);
         when(requirementRepo.findByPropertyTypeAndIsMandatoryTrue("FREEHOLD")).thenReturn(List.of());
@@ -216,7 +216,7 @@ class PropertyOwnershipVerificationServiceTest {
         SellerIdentityVerification identity = approvedIdentity();
         PropertyOwnershipVerification verif = verification(identity, OwnershipVerificationStatus.DRAFT);
         when(ownershipRepo.findById(verif.getId())).thenReturn(Optional.of(verif));
-        when(documentAnalysisService.computeSha256FromUrl(anyString())).thenReturn("b".repeat(64));
+        when(documentIntelligenceService.computeSha256FromUrl(anyString())).thenReturn("b".repeat(64));
         when(docRepo.existsByFileHashSha256(anyString())).thenReturn(true);
         when(fraudFlagService.flagOwnershipFraud(any(), any(), any(), any(), any(), any())).thenReturn(1);
 
@@ -236,7 +236,7 @@ class PropertyOwnershipVerificationServiceTest {
         SellerIdentityVerification identity = approvedIdentity();
         PropertyOwnershipVerification verif = verification(identity, OwnershipVerificationStatus.DRAFT);
         when(ownershipRepo.findById(verif.getId())).thenReturn(Optional.of(verif));
-        when(documentAnalysisService.computeSha256FromUrl(anyString())).thenReturn(null);
+        when(documentIntelligenceService.computeSha256FromUrl(anyString())).thenReturn(null);
 
         UploadOwnershipDocumentRequest req = new UploadOwnershipDocumentRequest();
         req.setDocumentCategory(OwnershipDocumentCategory.TITLE_DEED);
@@ -257,7 +257,7 @@ class PropertyOwnershipVerificationServiceTest {
         req.setDocumentUrl("http://localhost:8080/api/documents/files/documents/title_deed/abc.pdf");
 
         assertThrows(VerificationException.class, () -> service.uploadDocument(SELLER_ID, verif.getId(), req));
-        verifyNoInteractions(documentAnalysisService);
+        verifyNoInteractions(documentIntelligenceService);
     }
 
     // ---------- submitForReview ----------
@@ -282,7 +282,7 @@ class PropertyOwnershipVerificationServiceTest {
         PropertyOwnershipVerification verif = verification(identity, OwnershipVerificationStatus.DRAFT);
         when(ownershipRepo.findById(verif.getId())).thenReturn(Optional.of(verif));
         when(requirementRepo.findByPropertyTypeAndIsMandatoryTrue("FREEHOLD")).thenReturn(List.of());
-        when(documentAnalysisService.isEnabled()).thenReturn(false);
+        when(documentIntelligenceService.isEnabled()).thenReturn(false);
 
         var res = service.submitForReview(SELLER_ID, verif.getId());
 
@@ -315,10 +315,11 @@ class PropertyOwnershipVerificationServiceTest {
 
         when(ownershipRepo.findById(verif.getId())).thenReturn(Optional.of(verif));
         when(requirementRepo.findByPropertyTypeAndIsMandatoryTrue("FREEHOLD")).thenReturn(List.of());
-        when(documentAnalysisService.isEnabled()).thenReturn(true);
-        when(documentAnalysisService.analyseDocument(anyString(), anyString()))
-                .thenReturn(new DocumentAnalysisService.DocumentAnalysisResult(
-                        "hash", 20, true, false, false, false, false, false, false, "tampered"));
+        when(documentIntelligenceService.isEnabled()).thenReturn(true);
+        when(documentIntelligenceService.analyseAndClassify(anyString(), any(), anyString(), eq(false)))
+                .thenReturn(new DocumentIntelligenceService.DocumentIntelligenceResult(
+                        true, "TITLE_DEED", 90, "N/A", 20, true, false, false, false, false, false, false,
+                        null, java.util.Map.of(), "tampered"));
         when(fraudFlagService.flagOwnershipFraud(any(), any(), any(), any(), any(), any())).thenReturn(1);
 
         var res = service.submitForReview(SELLER_ID, verif.getId());
@@ -327,6 +328,34 @@ class PropertyOwnershipVerificationServiceTest {
         assertTrue(res.getRejectionReason().contains("TAMPERING"));
         verify(fraudFlagService).flagOwnershipFraud(eq(verif.getId()), eq(SELLER_ID),
                 eq("DOCUMENT_TAMPERING"), any(), any(), any());
+    }
+
+    @Test
+    void submitForReview_flagsCategoryMismatch_evenWhenModelReportsZeroConfidence() {
+        SellerIdentityVerification identity = approvedIdentity();
+        PropertyOwnershipVerification verif = verification(identity, OwnershipVerificationStatus.DRAFT);
+        PropertyOwnershipDocument doc = PropertyOwnershipDocument.builder()
+                .id(UUID.randomUUID())
+                .propertyOwnershipVerification(verif)
+                .documentCategory(OwnershipDocumentCategory.TITLE_DEED)
+                .documentUrl("http://localhost:8080/api/documents/files/documents/title_deed/abc.pdf")
+                .isRequired(true)
+                .build();
+        verif.getDocuments().add(doc);
+
+        when(ownershipRepo.findById(verif.getId())).thenReturn(Optional.of(verif));
+        when(requirementRepo.findByPropertyTypeAndIsMandatoryTrue("FREEHOLD")).thenReturn(List.of());
+        when(documentIntelligenceService.isEnabled()).thenReturn(true);
+        when(documentIntelligenceService.analyseAndClassify(anyString(), any(), anyString(), eq(false)))
+                .thenReturn(new DocumentIntelligenceService.DocumentIntelligenceResult(
+                        false, "UNKNOWN_OR_UNRELATED", 0, "N/A", 0, false, false, true, false, false, false, false,
+                        null, java.util.Map.of(), "Does not look like a title deed."));
+
+        var res = service.submitForReview(SELLER_ID, verif.getId());
+
+        assertEquals(OwnershipVerificationStatus.REQUIRES_RESUBMISSION, res.getStatus());
+        assertTrue(res.getRejectionReason().contains("doesn't look like the right document"));
+        assertTrue(res.getDocuments().get(0).getAiCategoryMismatch());
     }
 
     // ---------- admin final decision ----------

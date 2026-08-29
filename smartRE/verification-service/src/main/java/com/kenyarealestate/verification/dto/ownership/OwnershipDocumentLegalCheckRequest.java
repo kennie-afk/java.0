@@ -12,6 +12,8 @@ public class OwnershipDocumentLegalCheckRequest {
     private Boolean aiFontConsistency;
     private Boolean aiDateSequenceValid;
     private Boolean aiMetadataClean;
+    private Boolean aiSignatureDetected;
+    private Boolean aiSealDetected;
     private String aiScreeningNotes;
     private Boolean lcAdvocateStampPresent;
     private Boolean lcAdvocateSignaturePresent;

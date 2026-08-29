@@ -1,5 +1,6 @@
 'use client'
-import { useEffect, ReactNode } from 'react'
+import { useEffect, useState, ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import Button from './Button'
 
@@ -10,6 +11,8 @@ interface ModalProps {
   size?:'sm'|'md'|'lg'|'xl'; footer?:ReactNode
 }
 export function Modal({ open, onClose, title, children, size='md', footer }: ModalProps) {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
@@ -18,8 +21,8 @@ export function Modal({ open, onClose, title, children, size='md', footer }: Mod
     const h = (e:KeyboardEvent) => { if (e.key==='Escape') onClose() }
     window.addEventListener('keydown',h); return () => window.removeEventListener('keydown',h)
   }, [onClose])
-  if (!open) return null
-  return (
+  if (!open || !mounted) return null
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.55)',backdropFilter:'blur(4px)'}} onClick={e=>{if(e.target===e.currentTarget)onClose()}}>
       <div className="animate-slide-up card flex flex-col overflow-hidden w-full" style={{maxWidth:sizes[size],maxHeight:'90vh'}}>
         {title && (
@@ -31,7 +34,8 @@ export function Modal({ open, onClose, title, children, size='md', footer }: Mod
         <div className="flex-1 overflow-auto p-6">{children}</div>
         {footer && <div className="flex gap-3 justify-end px-6 py-4 border-t border-gray-200 dark:border-[#1E1E3A] shrink-0">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 

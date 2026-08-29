@@ -20,6 +20,7 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -34,7 +35,7 @@ public class SellerIdentityVerificationService {
     private final AuditService auditService;
     private final ScoringEngine scoringEngine;
     private final PropertyServiceClient propertyClient;
-    private final DocumentAnalysisService documentAnalysisService;
+    private final DocumentIntelligenceService documentIntelligenceService;
     private final SmileIdentityClient smileIdentityClient;
     private final VerificationEventPublisher eventPublisher;
     private final TrustStatusService trustStatusService;
@@ -74,7 +75,7 @@ public class SellerIdentityVerificationService {
             AuditService auditService,
             ScoringEngine scoringEngine,
             PropertyServiceClient propertyClient,
-            DocumentAnalysisService documentAnalysisService,
+            DocumentIntelligenceService documentIntelligenceService,
             SmileIdentityClient smileIdentityClient,
             VerificationEventPublisher eventPublisher,
             TrustStatusService trustStatusService,
@@ -85,7 +86,7 @@ public class SellerIdentityVerificationService {
         this.auditService            = auditService;
         this.scoringEngine           = scoringEngine;
         this.propertyClient          = propertyClient;
-        this.documentAnalysisService = documentAnalysisService;
+        this.documentIntelligenceService = documentIntelligenceService;
         this.smileIdentityClient     = smileIdentityClient;
         this.eventPublisher          = eventPublisher;
         this.trustStatusService      = trustStatusService;
@@ -120,7 +121,7 @@ public class SellerIdentityVerificationService {
                 || verif.getStatus() == IdentityVerificationStatus.AI_SCREENING)
             throw new VerificationException("Cannot upload while status is " + verif.getStatus() + ".");
 
-        String serverHash = documentAnalysisService.computeSha256FromUrl(req.getDocumentUrl());
+        String serverHash = documentIntelligenceService.computeSha256FromUrl(req.getDocumentUrl());
         if (serverHash == null)
             throw new VerificationException(
                     "Could not retrieve document from URL. Ensure the URL is publicly accessible.");
@@ -230,7 +231,7 @@ public class SellerIdentityVerificationService {
 
         String prev = verif.getStatus().name();
 
-        if (!documentAnalysisService.isEnabled()) {
+        if (!documentIntelligenceService.isEnabled()) {
             verif.setStatus(IdentityVerificationStatus.HUMAN_REVIEW);
             verif = identityRepo.save(verif);
             auditService.log(verif.getId(), "IDENTITY", "SUBMITTED_NO_AI_ANALYSIS", userId, "SELLER",
@@ -244,12 +245,34 @@ public class SellerIdentityVerificationService {
         auditService.log(verif.getId(), "IDENTITY", "SUBMITTED_FOR_AI_ANALYSIS", userId, "SELLER",
                 prev, "AI_SCREENING", null);
 
+        List<String> categoryMismatches = new java.util.ArrayList<>();
 
-        for (SellerIdentityDocument doc : List.copyOf(verif.getDocuments())) {
-            if (!Boolean.TRUE.equals(doc.getIsRequired())) continue;
+        List<SellerIdentityDocument> requiredDocs = List.copyOf(verif.getDocuments()).stream()
+                .filter(d -> Boolean.TRUE.equals(d.getIsRequired())).toList();
+        Map<UUID, java.util.concurrent.CompletableFuture<DocumentIntelligenceService.DocumentIntelligenceResult>> pending =
+                requiredDocs.stream().collect(Collectors.toMap(
+                        SellerIdentityDocument::getId,
+                        d -> documentIntelligenceService.analyseAndClassifyAsync(
+                                d.getDocumentUrl(), d.getMimeType(), d.getDocumentCategory().name(), true)));
+        Map<UUID, DocumentIntelligenceService.DocumentIntelligenceResult> analysisByDocId = pending.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().join()));
 
-            DocumentAnalysisService.DocumentAnalysisResult analysis =
-                    documentAnalysisService.analyseDocument(doc.getDocumentUrl(), doc.getDocumentCategory().name());
+        for (SellerIdentityDocument doc : requiredDocs) {
+            DocumentIntelligenceService.DocumentIntelligenceResult analysis = analysisByDocId.get(doc.getId());
+
+            doc.setAiDetectedCategory(analysis.detectedCategory());
+            doc.setAiCategoryConfidence(analysis.categoryConfidence());
+            doc.setAiSideDetected(analysis.sideDetected());
+
+            boolean mismatch = !analysis.categoryMatchesClaim();
+            doc.setAiCategoryMismatch(mismatch);
+            if (mismatch) {
+                categoryMismatches.add(doc.getDocumentCategory().name() + ": doesn't look like the right "
+                        + "document (AI detected " + analysis.detectedCategory()
+                        + (analysis.categoryConfidence() != null ? ", confidence " + analysis.categoryConfidence() + "%" : "")
+                        + "). Please re-upload the correct document."
+                        + (analysis.notes() != null ? " " + analysis.notes() : ""));
+            }
 
             AiScreeningRequest screeningReq = new AiScreeningRequest();
             screeningReq.setDocumentId(doc.getId());
@@ -261,14 +284,23 @@ public class SellerIdentityVerificationService {
             screeningReq.setAiSealDetected(analysis.sealDetected());
             screeningReq.setAiScreeningNotes(analysis.notes());
 
-
             if (ID_NUMBER_EXTRACTABLE.contains(doc.getDocumentCategory())) {
-                String extractedId = documentAnalysisService.extractIdNumber(doc.getDocumentUrl(), doc.getMimeType());
-                screeningReq.setExtractedIdNumber(extractedId);
+                screeningReq.setExtractedIdNumber(analysis.extractedIdNumber());
             }
 
             applyAiScreeningResult(verif, doc, screeningReq);
             if (verif.getStatus() == IdentityVerificationStatus.REJECTED) break;
+        }
+
+        if (verif.getStatus() != IdentityVerificationStatus.REJECTED) checkIdNumberConsistency(verif);
+        if (verif.getStatus() != IdentityVerificationStatus.REJECTED) checkExtractedIdNumberDuplicate(verif, userId);
+
+        if (!categoryMismatches.isEmpty() && verif.getStatus() != IdentityVerificationStatus.REJECTED) {
+            verif.setStatus(IdentityVerificationStatus.REQUIRES_RESUBMISSION);
+            verif.setResubmissionNotes(String.join(" | ", categoryMismatches));
+            verif = identityRepo.save(verif);
+            auditService.log(verif.getId(), "IDENTITY", "AI_CATEGORY_MISMATCH", userId, "SYSTEM",
+                    "AI_SCREENING", "REQUIRES_RESUBMISSION", String.join(" | ", categoryMismatches));
         }
 
         return toResponse(verif);
@@ -415,16 +447,54 @@ public class SellerIdentityVerificationService {
 
         if (idFront == null || selfie == null) return;
 
-        SmileIdentityClient.BiometricVerificationResult result =
-                smileIdentityClient.verifyNationalId(null, selfie.getDocumentUrl(), idFront.getDocumentUrl());
+        if (smileIdentityClient.isEnabled()) {
+            SmileIdentityClient.BiometricVerificationResult result =
+                    smileIdentityClient.verifyNationalId(null, selfie.getDocumentUrl(), idFront.getDocumentUrl());
 
-        if (result.resultCode() == null
-                || result.resultCode().equals("PENDING")
-                || result.resultCode().equals("ERROR")) {
+            if (result.resultCode() != null
+                    && !result.resultCode().equals("PENDING")
+                    && !result.resultCode().equals("ERROR")) {
+                applySmileIdentityResult(verif, userId, result);
+                return;
+            }
             auditService.log(verif.getId(), "IDENTITY", "BIOMETRIC_CHECK_SKIPPED", userId, "SYSTEM",
-                    null, null, "Smile Identity unavailable: " + result.resultText());
+                    null, null, "Smile Identity unavailable: " + result.resultText()
+                            + " — falling back to vision face-match");
+        }
+
+        if (!documentIntelligenceService.isEnabled()) {
+            auditService.log(verif.getId(), "IDENTITY", "BIOMETRIC_CHECK_SKIPPED", userId, "SYSTEM",
+                    null, null, "No biometric provider available (Smile Identity and vision analysis both disabled)");
             return;
         }
+
+        DocumentIntelligenceService.FaceMatchResult faceResult =
+                documentIntelligenceService.compareFaces(selfie.getDocumentUrl(), idFront.getDocumentUrl());
+
+        verif.setFaceMatchScore(faceResult.confidence());
+        verif.setFaceMatchSource("VISION_LLM_FALLBACK");
+        verif.setFaceMatchPassed(faceResult.samePerson());
+
+        if (!faceResult.samePerson()) {
+            flagFraud(verif, "FACE_MISMATCH", "SELFIE_WITH_ID", null,
+                    "Vision face-match: face does not appear to match ID. Confidence: " + faceResult.confidence()
+                            + (faceResult.livenessConcern() ? " | Liveness concern flagged" : ""));
+            checkAndApplyBan(verif);
+        }
+
+        auditService.log(verif.getId(), "IDENTITY", "BIOMETRIC_CHECK_COMPLETE_FALLBACK", userId, "SYSTEM",
+                null, null,
+                "Source: VISION_LLM_FALLBACK | Same person: " + faceResult.samePerson()
+                        + " | Confidence: " + faceResult.confidence()
+                        + " | Liveness concern: " + faceResult.livenessConcern()
+                        + " | Notes: " + faceResult.notes());
+    }
+
+    private void applySmileIdentityResult(SellerIdentityVerification verif, UUID userId,
+                                          SmileIdentityClient.BiometricVerificationResult result) {
+        verif.setFaceMatchScore((int) Math.round(result.faceMatchConfidence()));
+        verif.setFaceMatchSource("SMILE_IDENTITY");
+        verif.setFaceMatchPassed(result.faceMatch());
 
         boolean biometricPassed = result.idValid() && result.faceMatch();
 
@@ -460,11 +530,65 @@ public class SellerIdentityVerificationService {
 
         auditService.log(verif.getId(), "IDENTITY", "BIOMETRIC_CHECK_COMPLETE", userId, "SYSTEM",
                 null, null,
-                "ID valid: " + result.idValid()
+                "Source: SMILE_IDENTITY | ID valid: " + result.idValid()
                         + " | Face match: " + result.faceMatch()
                         + " | Duplicate national ID: " + duplicateNationalId
                         + " | Confidence: " + result.faceMatchConfidence()
                         + " | Blocked: " + ((!biometricPassed || duplicateNationalId) && biometricHardBlock));
+    }
+
+    private void checkIdNumberConsistency(SellerIdentityVerification verif) {
+        Set<String> distinctIds = verif.getDocuments().stream()
+                .map(SellerIdentityDocument::getExtractedIdNumber)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.toSet());
+        if (distinctIds.size() > 1) {
+            verif.setIdentityScore(Math.max(0, verif.getIdentityScore() - 5));
+            auditService.log(verif.getId(), "IDENTITY", "ID_NUMBER_INCONSISTENT", null, "SYSTEM",
+                    null, null, "Extracted ID numbers disagree across documents: " + distinctIds);
+        }
+    }
+
+    private void checkExtractedIdNumberDuplicate(SellerIdentityVerification verif, UUID userId) {
+        if (StringUtils.hasText(verif.getExtractedIdNumberHash())) return;
+
+        String candidate = verif.getDocuments().stream()
+                .filter(d -> ID_NUMBER_EXTRACTABLE.contains(d.getDocumentCategory()))
+                .map(SellerIdentityDocument::getExtractedIdNumber)
+                .filter(StringUtils::hasText)
+                .findFirst().orElse(null);
+        if (candidate == null) return;
+
+        String hash = documentIntelligenceService.sha256Hex(candidate);
+        if (hash == null) return;
+
+        if (identityRepo.existsByExtractedIdNumberHashAndUserIdNot(hash, userId)) {
+            flagFraud(verif, "DUPLICATE_EXTRACTED_ID_NUMBER", "IDENTITY_DOCUMENT", hash,
+                    "AI-extracted ID number matches a document already registered to a different account");
+            checkAndApplyBan(verif);
+            verif.setStatus(IdentityVerificationStatus.REJECTED);
+            verif.setRejectionReason(
+                    "This ID number is already registered to a different account. If you believe this is a "
+                            + "mistake, contact support.");
+            identityRepo.save(verif);
+            auditService.log(verif.getId(), "IDENTITY", "AUTO_REJECTED_DUPLICATE_ID", null, "SYSTEM",
+                    "AI_SCREENING", "REJECTED", "Duplicate AI-extracted ID number detected");
+            return;
+        }
+
+        verif.setExtractedIdNumberHash(hash);
+        try {
+            identityRepo.saveAndFlush(verif);
+        } catch (DataIntegrityViolationException e) {
+            String msg = e.getMostSpecificCause().getMessage();
+            if (msg == null || !msg.contains("uk_siv_extracted_id_hash")) throw e;
+            flagFraud(verif, "DUPLICATE_EXTRACTED_ID_NUMBER", "IDENTITY_DOCUMENT", hash,
+                    "AI-extracted ID number matches another account (race-condition-safe check)");
+            checkAndApplyBan(verif);
+            verif.setStatus(IdentityVerificationStatus.REJECTED);
+            verif.setRejectionReason("This ID number is already registered to a different account.");
+            identityRepo.save(verif);
+        }
     }
 
     private boolean isDuplicateNationalIdViolation(DataIntegrityViolationException e) {
@@ -516,7 +640,14 @@ public class SellerIdentityVerificationService {
                         .aiTamperDetected(d.getAiTamperDetected())
                         .aiSignatureDetected(d.getAiSignatureDetected())
                         .aiSealDetected(d.getAiSealDetected())
+                        .aiMetadataClean(d.getAiMetadataClean())
+                        .aiFontConsistency(d.getAiFontConsistency())
                         .aiScreeningNotes(d.getAiScreeningNotes())
+                        .extractedIdNumber(d.getExtractedIdNumber())
+                        .aiDetectedCategory(d.getAiDetectedCategory())
+                        .aiCategoryConfidence(d.getAiCategoryConfidence())
+                        .aiCategoryMismatch(d.getAiCategoryMismatch())
+                        .aiSideDetected(d.getAiSideDetected())
                         .humanVerified(d.getHumanVerified())
                         .humanReviewNotes(d.getHumanReviewNotes())
                         .uploadedAt(d.getUploadedAt()).build())
@@ -532,6 +663,8 @@ public class SellerIdentityVerificationService {
                 .createdAt(v.getCreatedAt()).updatedAt(v.getUpdatedAt())
                 .documents(docs).missingRequiredDocuments(getMissingRequiredDocs(v))
                 .fraudStrikeCount(v.getFraudStrikeCount()).permanentlyBanned(v.isPermanentlyBanned())
+                .faceMatchScore(v.getFaceMatchScore()).faceMatchSource(v.getFaceMatchSource())
+                .faceMatchPassed(v.getFaceMatchPassed())
                 .build();
     }
 }

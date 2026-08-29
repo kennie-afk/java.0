@@ -6,16 +6,25 @@ import io.github.resilience4j.retry.annotation.Retry;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Duration;
 import java.util.UUID;
 
 @Slf4j
 @Component
 public class VerificationClient {
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
+
+    public VerificationClient() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(Duration.ofSeconds(3));
+        factory.setReadTimeout(Duration.ofSeconds(3));
+        this.restTemplate = new RestTemplate(factory);
+    }
 
     @Value("${services.verification-url}")
     private String verifUrl;

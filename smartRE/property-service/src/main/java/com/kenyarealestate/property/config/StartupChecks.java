@@ -1,4 +1,4 @@
-package com.kenyarealestate.verification.config;
+package com.kenyarealestate.property.config;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,15 +14,6 @@ public class StartupChecks implements CommandLineRunner {
     private static final String KNOWN_DEFAULT_INTERNAL_SECRET = "smartre-internal-secret-2026";
     private static final int MIN_INTERNAL_SECRET_LENGTH = 20;
 
-    @Value("${services.smile-identity-enabled}")
-    private boolean smileIdentityEnabled;
-
-    @Value("${services.ardhisasa-enabled}")
-    private boolean ardhisasaEnabled;
-
-    @Value("${services.document-analysis-enabled}")
-    private boolean documentAnalysisEnabled;
-
     @Value("${services.internal-secret}")
     private String internalSecret;
 
@@ -35,19 +26,6 @@ public class StartupChecks implements CommandLineRunner {
     @Override
     public void run(String... args) {
         checkInternalSecret();
-        if (!smileIdentityEnabled || !ardhisasaEnabled || !documentAnalysisEnabled) {
-            log.warn("############################################################");
-            log.warn("# VERIFICATION-SERVICE: MANUAL-REVIEW-ONLY MODE");
-            log.warn("# One or more automated verification providers are disabled:");
-            log.warn("#   smile-identity (biometric ID check): {}", smileIdentityEnabled ? "enabled" : "DISABLED");
-            log.warn("#   ardhisasa (land registry check):     {}", ardhisasaEnabled ? "enabled" : "DISABLED");
-            log.warn("#   document-analysis (forgery AI):      {}", documentAnalysisEnabled ? "enabled" : "DISABLED");
-            log.warn("# All submissions with a disabled check route straight to");
-            log.warn("# HUMAN_REVIEW with no automated screening. This is NOT");
-            log.warn("# production-ready trust assurance until real credentials");
-            log.warn("# are configured for these providers.");
-            log.warn("############################################################");
-        }
     }
 
     private void checkInternalSecret() {
@@ -61,14 +39,14 @@ public class StartupChecks implements CommandLineRunner {
 
         if (isLocalOrDevProfile()) {
             log.warn("############################################################");
-            log.warn("# VERIFICATION-SERVICE: services.internal-secret {}", reason);
+            log.warn("# PROPERTY-SERVICE: services.internal-secret {}", reason);
             log.warn("# This is only acceptable for local development. Anything that");
             log.warn("# can reach this secret could forge internal service-to-service");
-            log.warn("# requests to verification-service.");
+            log.warn("# requests to property-service.");
             log.warn("############################################################");
         } else {
             log.error("############################################################");
-            log.error("# VERIFICATION-SERVICE: services.internal-secret {}", reason);
+            log.error("# PROPERTY-SERVICE: services.internal-secret {}", reason);
             log.error("# Set INTERNAL_SECRET to a unique, randomly generated value of");
             log.error("# at least {} characters before running outside local", MIN_INTERNAL_SECRET_LENGTH);
             log.error("# development - every internal-only endpoint trusts this secret.");

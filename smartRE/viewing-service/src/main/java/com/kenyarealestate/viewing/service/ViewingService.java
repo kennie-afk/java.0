@@ -190,6 +190,8 @@ public class ViewingService {
             throw new RuntimeException("Viewing already completed");
         if (!v.isBuyerConfirmed() || !v.isSellerConfirmed())
             throw new RuntimeException("Both parties must confirm before completing");
+        if (LocalDateTime.now().isBefore(v.getScheduledAt()))
+            throw new RuntimeException("Cannot mark a viewing completed before the scheduled viewing time");
         String prevStatus = v.getStatus().name();
         v.setStatus(ViewingStatus.COMPLETED);
         v.setCompletedAt(LocalDateTime.now());

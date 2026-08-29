@@ -50,8 +50,16 @@ public class PropertyOwnershipDocument {
     @Column(name = "ai_font_consistency")    private Boolean aiFontConsistency;
     @Column(name = "ai_date_sequence_valid") private Boolean aiDateSequenceValid;
     @Column(name = "ai_metadata_clean")      private Boolean aiMetadataClean;
+    @Column(name = "ai_signature_detected")  private Boolean aiSignatureDetected;
+    @Column(name = "ai_seal_detected")       private Boolean aiSealDetected;
     @Column(name = "ai_screening_notes", columnDefinition = "TEXT") private String aiScreeningNotes;
     @Column(name = "ai_screened_at")         private LocalDateTime aiScreenedAt;
+
+    @Column(name = "ai_detected_category")   private String aiDetectedCategory;
+    @Column(name = "ai_category_confidence") private Integer aiCategoryConfidence;
+    @Builder.Default @Column(name = "ai_category_mismatch") private Boolean aiCategoryMismatch = false;
+    @Column(name = "ai_side_detected")       private String aiSideDetected;
+    @Column(name = "ai_extracted_fields", columnDefinition = "TEXT") private String aiExtractedFields;
 
     @Column(name = "human_legal_approved")   private Boolean humanLegalApproved;
     @Column(name = "human_reviewer_id")      private UUID humanReviewerId;

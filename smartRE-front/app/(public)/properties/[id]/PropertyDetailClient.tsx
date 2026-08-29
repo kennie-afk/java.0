@@ -413,8 +413,11 @@ export default function PropertyDetailClient() {
             </div>
           </div>
           <Input label="Amount (KES)" type="number" required value={payForm.amount}
-            onChange={e => setPF(f => ({ ...f, amount: e.target.value }))}
-            hint={payForm.paymentType === 'FULL_PAYMENT' ? `Listed price: ${fmt.currency(prop.price)}` : 'Enter your deposit amount'}/>
+            readOnly={payForm.paymentType === 'FULL_PAYMENT'}
+            onChange={e => payForm.paymentType === 'DEPOSIT' && setPF(f => ({ ...f, amount: e.target.value }))}
+            hint={payForm.paymentType === 'FULL_PAYMENT'
+              ? `Fixed at the listed price: ${fmt.currency(prop.price)}`
+              : `Deposit must be between 10% and 100% of the listed price (${fmt.currency(prop.price)})`}/>
           <Input label="M-Pesa phone number" placeholder="254708374149" required value={payForm.phoneNumber}
             onChange={e => setPF(f => ({ ...f, phoneNumber: e.target.value }))}/>
         </div>

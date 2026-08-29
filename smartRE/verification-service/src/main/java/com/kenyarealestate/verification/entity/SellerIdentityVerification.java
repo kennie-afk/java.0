@@ -68,6 +68,18 @@ public class SellerIdentityVerification {
     @Column(name = "ban_reason", columnDefinition = "TEXT")
     private String banReason;
 
+    @Column(name = "face_match_score")
+    private Integer faceMatchScore;
+
+    @Column(name = "face_match_source")
+    private String faceMatchSource;
+
+    @Column(name = "face_match_passed")
+    private Boolean faceMatchPassed;
+
+    @Column(name = "extracted_id_number_hash")
+    private String extractedIdNumberHash;
+
     @OneToMany(mappedBy = "sellerIdentityVerification", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     @ToString.Exclude

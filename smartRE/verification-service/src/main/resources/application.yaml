@@ -69,14 +69,11 @@ services:
   # via this env var in every real deployment.
   document-url-allowed-hosts: ${DOCUMENT_URL_ALLOWED_HOSTS:localhost,user-service}
   document-analysis-enabled: ${DOCUMENT_ANALYSIS_ENABLED:false}
-  document-analysis-url: ${DOCUMENT_ANALYSIS_URL:https://api.yourdocumentai.com}
-  document-analysis-key: ${DOCUMENT_ANALYSIS_KEY:placeholder}
-  # Separate OpenAI-compatible chat-completions endpoint used only for single-field
-  # ID number OCR extraction (DocumentAnalysisService.extractIdNumber()). Reuses
-  # document-analysis-enabled as the master on/off switch, but points at a
-  # different server/API shape than document-analysis-url above.
-  ocr-model-url: ${OCR_MODEL_URL:http://localhost:11434/v1}
-  ocr-model-name: ${OCR_MODEL_NAME:qwen3.6:latest}
+  gemini-api-key: ${GEMINI_API_KEY:}
+  gemini-model: ${GEMINI_MODEL:gemini-3.6-flash}
+  gemini-connect-timeout-ms: ${GEMINI_CONNECT_TIMEOUT_MS:5000}
+  gemini-read-timeout-ms: ${GEMINI_READ_TIMEOUT_MS:25000}
+  gemini-hard-timeout-ms: ${GEMINI_HARD_TIMEOUT_MS:30000}
   smile-identity-enabled: ${SMILE_IDENTITY_ENABLED:false}
   smile-identity-url: ${SMILE_IDENTITY_URL:https://testapi.smileidentity.com/v1}
   smile-identity-partner-id: ${SMILE_IDENTITY_PARTNER_ID:placeholder}

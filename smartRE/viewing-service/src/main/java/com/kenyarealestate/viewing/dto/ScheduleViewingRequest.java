@@ -1,5 +1,6 @@
 package com.kenyarealestate.viewing.dto;
 
+import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -11,7 +12,7 @@ import java.util.UUID;
 public class ScheduleViewingRequest {
     @NotNull  private UUID propertyId;
     @NotNull  private UUID sellerId;
-    @NotNull  private LocalDateTime scheduledAt;
+    @NotNull @Future private LocalDateTime scheduledAt;
     @NotBlank private String buyerPhone;
     private String notes;
 }

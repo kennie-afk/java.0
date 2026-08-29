@@ -50,6 +50,11 @@ public class SellerIdentityDocument {
     // and also stays null if the OCR model returned UNREADABLE or an implausible result.
     @Column(name = "extracted_id_number") private String extractedIdNumber;
 
+    @Column(name = "ai_detected_category")  private String aiDetectedCategory;
+    @Column(name = "ai_category_confidence") private Integer aiCategoryConfidence;
+    @Builder.Default @Column(name = "ai_category_mismatch") private Boolean aiCategoryMismatch = false;
+    @Column(name = "ai_side_detected")      private String aiSideDetected;
+
     @Column(name = "human_verified")        private Boolean humanVerified;
     @Column(name = "human_reviewer_id")     private UUID humanReviewerId;
     @Column(name = "human_review_notes", columnDefinition = "TEXT") private String humanReviewNotes;

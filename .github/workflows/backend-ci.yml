@@ -3,8 +3,10 @@ name: Backend CI
 on:
   push:
     branches: [main]
+    paths: ['smartRE/**']
   pull_request:
     branches: [main]
+    paths: ['smartRE/**']
 
 jobs:
   test:
@@ -30,7 +32,7 @@ jobs:
           cache: maven
 
       - name: Build and test ${{ matrix.service }}
-        working-directory: ${{ matrix.service }}
+        working-directory: smartRE/${{ matrix.service }}
         run: mvn -B verify
 
       - name: Upload test results
@@ -38,5 +40,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: surefire-reports-${{ matrix.service }}
-          path: ${{ matrix.service }}/target/surefire-reports
+          path: smartRE/${{ matrix.service }}/target/surefire-reports
           if-no-files-found: ignore

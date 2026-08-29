@@ -1,5 +1,6 @@
 package com.kenyarealestate.verification.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kenyarealestate.verification.client.ArdhisasaClient;
 import com.kenyarealestate.verification.kafka.VerificationEventPublisher;
 import com.kenyarealestate.verification.client.PropertyServiceClient;
@@ -16,7 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -33,11 +36,12 @@ public class PropertyOwnershipVerificationService {
     private final AuditService auditService;
     private final ScoringEngine scoringEngine;
     private final PropertyServiceClient propertyClient;
-    private final DocumentAnalysisService documentAnalysisService;
+    private final DocumentIntelligenceService documentIntelligenceService;
     private final ArdhisasaClient ardhisasaClient;
     private final VerificationEventPublisher eventPublisher;
     private final TrustStatusService trustStatusService;
     private final FraudFlagService fraudFlagService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public PropertyOwnershipVerificationService(
             PropertyOwnershipVerificationRepository ownershipRepo,
@@ -48,7 +52,7 @@ public class PropertyOwnershipVerificationService {
             AuditService auditService,
             ScoringEngine scoringEngine,
             PropertyServiceClient propertyClient,
-            DocumentAnalysisService documentAnalysisService,
+            DocumentIntelligenceService documentIntelligenceService,
             ArdhisasaClient ardhisasaClient,
             VerificationEventPublisher eventPublisher,
             TrustStatusService trustStatusService,
@@ -61,7 +65,7 @@ public class PropertyOwnershipVerificationService {
         this.auditService            = auditService;
         this.scoringEngine           = scoringEngine;
         this.propertyClient          = propertyClient;
-        this.documentAnalysisService = documentAnalysisService;
+        this.documentIntelligenceService = documentIntelligenceService;
         this.ardhisasaClient         = ardhisasaClient;
         this.eventPublisher          = eventPublisher;
         this.trustStatusService      = trustStatusService;
@@ -129,7 +133,7 @@ public class PropertyOwnershipVerificationService {
         if (isUnderReview(verif.getStatus()))
             throw new VerificationException("Cannot upload while status is: " + verif.getStatus());
 
-        String serverHash = documentAnalysisService.computeSha256FromUrl(req.getDocumentUrl());
+        String serverHash = documentIntelligenceService.computeSha256FromUrl(req.getDocumentUrl());
         if (serverHash == null)
             throw new VerificationException(
                     "Could not retrieve document from URL. Ensure the URL is publicly accessible.");
@@ -226,7 +230,7 @@ public class PropertyOwnershipVerificationService {
 
         String prev = verif.getStatus().name();
 
-        if (!documentAnalysisService.isEnabled()) {
+        if (!documentIntelligenceService.isEnabled()) {
             verif.setStatus(OwnershipVerificationStatus.MINISTRY_LANDS_CHECK);
             verif = ownershipRepo.save(verif);
             auditService.log(verif.getId(), "OWNERSHIP", "SUBMITTED_NO_AI_ANALYSIS", userId, "SELLER",
@@ -240,14 +244,35 @@ public class PropertyOwnershipVerificationService {
         auditService.log(verif.getId(), "OWNERSHIP", "SUBMITTED_FOR_AI_ANALYSIS", userId, "SELLER",
                 prev, "AI_SCREENING", null);
 
-        // Run screening synchronously against every required document instead of
-        // parking at SUBMITTED and waiting for an external caller to hit the
-        // internal /ai-screening endpoint — nothing in this system ever did.
-        for (PropertyOwnershipDocument doc : List.copyOf(verif.getDocuments())) {
-            if (!Boolean.TRUE.equals(doc.getIsRequired())) continue;
+        List<String> categoryMismatches = new ArrayList<>();
 
-            DocumentAnalysisService.DocumentAnalysisResult analysis =
-                    documentAnalysisService.analyseDocument(doc.getDocumentUrl(), doc.getDocumentCategory().name());
+        List<PropertyOwnershipDocument> requiredDocs = List.copyOf(verif.getDocuments()).stream()
+                .filter(d -> Boolean.TRUE.equals(d.getIsRequired())).toList();
+        Map<UUID, java.util.concurrent.CompletableFuture<DocumentIntelligenceService.DocumentIntelligenceResult>> pending =
+                requiredDocs.stream().collect(Collectors.toMap(
+                        PropertyOwnershipDocument::getId,
+                        d -> documentIntelligenceService.analyseAndClassifyAsync(
+                                d.getDocumentUrl(), d.getMimeType(), d.getDocumentCategory().name(), false)));
+        Map<UUID, DocumentIntelligenceService.DocumentIntelligenceResult> analysisByDocId = pending.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().join()));
+
+        for (PropertyOwnershipDocument doc : requiredDocs) {
+            DocumentIntelligenceService.DocumentIntelligenceResult analysis = analysisByDocId.get(doc.getId());
+
+            doc.setAiDetectedCategory(analysis.detectedCategory());
+            doc.setAiCategoryConfidence(analysis.categoryConfidence());
+            doc.setAiSideDetected(analysis.sideDetected());
+            doc.setAiExtractedFields(toJson(analysis.extractedFields()));
+
+            boolean mismatch = !analysis.categoryMatchesClaim();
+            doc.setAiCategoryMismatch(mismatch);
+            if (mismatch) {
+                categoryMismatches.add(doc.getDocumentCategory().name() + ": doesn't look like the right "
+                        + "document (AI detected " + analysis.detectedCategory()
+                        + (analysis.categoryConfidence() != null ? ", confidence " + analysis.categoryConfidence() + "%" : "")
+                        + "). Please re-upload the correct document."
+                        + (analysis.notes() != null ? " " + analysis.notes() : ""));
+            }
 
             OwnershipDocumentLegalCheckRequest screeningReq = new OwnershipDocumentLegalCheckRequest();
             screeningReq.setDocumentId(doc.getId());
@@ -257,13 +282,36 @@ public class PropertyOwnershipVerificationService {
             screeningReq.setAiFontConsistency(analysis.fontConsistency());
             screeningReq.setAiDateSequenceValid(analysis.dateSequenceValid());
             screeningReq.setAiMetadataClean(analysis.metadataClean());
+            screeningReq.setAiSignatureDetected(analysis.signatureDetected());
+            screeningReq.setAiSealDetected(analysis.sealDetected());
             screeningReq.setAiScreeningNotes(analysis.notes());
 
             applyAiScreeningResult(verif, doc, screeningReq);
             if (verif.getStatus() == OwnershipVerificationStatus.REJECTED) break;
+
+            checkExtractedIdentifierDuplicate(verif, doc, analysis.extractedFields(), userId);
+            if (verif.getStatus() == OwnershipVerificationStatus.REJECTED) break;
+        }
+
+        if (!categoryMismatches.isEmpty()
+                && verif.getStatus() != OwnershipVerificationStatus.REJECTED) {
+            verif.setStatus(OwnershipVerificationStatus.REQUIRES_RESUBMISSION);
+            verif.setRejectionReason(String.join(" | ", categoryMismatches));
+            verif = ownershipRepo.save(verif);
+            auditService.log(verif.getId(), "OWNERSHIP", "AI_CATEGORY_MISMATCH", userId, "SYSTEM",
+                    "AI_SCREENING", "REQUIRES_RESUBMISSION", String.join(" | ", categoryMismatches));
         }
 
         return toResponse(verif);
+    }
+
+    private String toJson(java.util.Map<String, String> fields) {
+        if (fields == null || fields.isEmpty()) return null;
+        try {
+            return objectMapper.writeValueAsString(fields);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public OwnershipVerificationResponse processAiScreening(UUID verificationId,
@@ -288,6 +336,8 @@ public class PropertyOwnershipVerificationService {
         doc.setAiFontConsistency(req.getAiFontConsistency());
         doc.setAiDateSequenceValid(req.getAiDateSequenceValid());
         doc.setAiMetadataClean(req.getAiMetadataClean());
+        doc.setAiSignatureDetected(req.getAiSignatureDetected());
+        doc.setAiSealDetected(req.getAiSealDetected());
         doc.setAiScreeningNotes(req.getAiScreeningNotes());
         doc.setAiScreenedAt(LocalDateTime.now());
 
@@ -574,6 +624,36 @@ public class PropertyOwnershipVerificationService {
         boolean exists(String identifier, UUID propertyId, OwnershipVerificationStatus excludedStatus);
     }
 
+    private void checkExtractedIdentifierDuplicate(PropertyOwnershipVerification verif,
+                                                    PropertyOwnershipDocument doc,
+                                                    java.util.Map<String, String> extractedFields,
+                                                    UUID userId) {
+        String parcel = extractedFields.get("parcelNumber");
+        String title = extractedFields.get("titleNumber");
+
+        boolean parcelDup = StringUtils.hasText(parcel)
+                && ownershipRepo.existsByParcelNumberAndPropertyIdNotAndStatusNot(
+                        parcel, verif.getPropertyId(), OwnershipVerificationStatus.REJECTED);
+        boolean titleDup = StringUtils.hasText(title)
+                && ownershipRepo.existsByTitleDeedNumberAndPropertyIdNotAndStatusNot(
+                        title, verif.getPropertyId(), OwnershipVerificationStatus.REJECTED);
+
+        if (!parcelDup && !titleDup) return;
+
+        String matchedValue = parcelDup ? parcel : title;
+        flagOwnershipFraud(verif, userId, "DUPLICATE_EXTRACTED_LAND_IDENTIFIER",
+                doc.getDocumentCategory().name(), doc.getFileHashSha256(),
+                "AI-extracted land identifier '" + matchedValue + "' is already under verification for a different property");
+        verif.setStatus(OwnershipVerificationStatus.REJECTED);
+        verif.setRejectionReason(
+                "This land parcel/title is already under verification for a different property listing. "
+                        + "If you believe this is a mistake, contact support.");
+        ownershipRepo.save(verif);
+        auditService.log(verif.getId(), "OWNERSHIP", "AUTO_REJECTED_DUPLICATE_LAND_IDENTIFIER",
+                null, "SYSTEM", "AI_SCREENING", "REJECTED",
+                "Doc: " + doc.getDocumentCategory() + " | Matched value: " + matchedValue);
+    }
+
     private void rejectIfLandIdentifierReused(String label, String value, UUID propertyId,
                                               LandIdentifierCheck check) {
         if (StringUtils.hasText(value)
@@ -661,7 +741,15 @@ public class PropertyOwnershipVerificationService {
                         .aiAlterationDetected(d.getAiAlterationDetected())
                         .aiFontConsistency(d.getAiFontConsistency())
                         .aiDateSequenceValid(d.getAiDateSequenceValid())
+                        .aiMetadataClean(d.getAiMetadataClean())
+                        .aiSignatureDetected(d.getAiSignatureDetected())
+                        .aiSealDetected(d.getAiSealDetected())
                         .aiScreeningNotes(d.getAiScreeningNotes())
+                        .aiDetectedCategory(d.getAiDetectedCategory())
+                        .aiCategoryConfidence(d.getAiCategoryConfidence())
+                        .aiCategoryMismatch(d.getAiCategoryMismatch())
+                        .aiSideDetected(d.getAiSideDetected())
+                        .aiExtractedFields(d.getAiExtractedFields())
                         .humanLegalApproved(d.getHumanLegalApproved())
                         .humanReviewNotes(d.getHumanReviewNotes())
                         .uploadedAt(d.getUploadedAt()).build())

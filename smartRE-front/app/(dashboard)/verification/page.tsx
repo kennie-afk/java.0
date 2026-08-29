@@ -154,6 +154,15 @@ export default function VerificationPage() {
             <p className="text-sm text-amber-700 dark:text-amber-400"><AlertTriangle size={13} className="inline mr-1"/>Fraud strikes: {verif.fraudStrikeCount}/3</p>
           </div>
         )}
+        {!!verif?.faceMatchSource && verif.faceMatchSource !== 'NONE' && (
+          <div className={cn('mt-4 p-3 rounded-lg', verif.faceMatchPassed ? 'bg-emerald-50 dark:bg-emerald-500/10' : 'bg-red-50 dark:bg-red-500/10')}>
+            <p className={cn('text-sm', verif.faceMatchPassed ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
+              {verif.faceMatchPassed ? <CheckCircle2 size={13} className="inline mr-1"/> : <AlertTriangle size={13} className="inline mr-1"/>}
+              Selfie-to-ID face match: {verif.faceMatchPassed ? 'Matched' : 'Did not match'}
+              {typeof verif.faceMatchScore === 'number' ? ` (confidence ${verif.faceMatchScore}%)` : ''}
+            </p>
+          </div>
+        )}
       </Card>
 
       {!verif && (
@@ -232,7 +241,15 @@ export default function VerificationPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{doc.documentCategory?.replace(/_/g,' ') || 'Document'}</p>
                   <p className="text-xs text-muted">Score: {doc.aiAuthenticityScore ?? 'N/A'}/100 · {fmt.date(doc.uploadedAt)}</p>
+                  {doc.extractedIdNumber && <p className="text-xs text-muted">ID number read: <strong className="text-gray-700 dark:text-gray-300">{doc.extractedIdNumber}</strong></p>}
+                  {doc.aiCategoryMismatch && (
+                    <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">
+                      Doesn't look like the right document{doc.aiDetectedCategory ? ` — AI thinks this is ${doc.aiDetectedCategory.replace(/_/g,' ').toLowerCase()}` : ''}
+                      {typeof doc.aiCategoryConfidence === 'number' ? ` (${doc.aiCategoryConfidence}% confidence)` : ''}.
+                    </p>
+                  )}
                 </div>
+                {doc.aiCategoryMismatch && <Badge variant="error" size="sm">Wrong document?</Badge>}
                 {doc.aiTamperDetected && <Badge variant="error" size="sm">Tamper detected</Badge>}
                 {doc.humanVerified && <Badge variant="success" size="sm">Human verified</Badge>}
               </div>

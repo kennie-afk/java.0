@@ -56,8 +56,8 @@ services:
   internal-secret: smartre-internal-secret-2026
   document-url-allowed-hosts: localhost,user-service
   document-analysis-enabled: false
-  document-analysis-url: https://api.yourdocumentai.com
-  document-analysis-key: placeholder
+  gemini-api-key: ${GEMINI_API_KEY:}
+  gemini-model: gemini-3.6-flash
   smile-identity-enabled: false
   smile-identity-url: https://testapi.smileidentity.com/v1
   smile-identity-partner-id: placeholder

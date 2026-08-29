@@ -18,6 +18,7 @@ public interface SellerIdentityVerificationRepository extends JpaRepository<Sell
     Optional<SellerIdentityVerification> findByUserId(UUID userId);
     boolean existsByUserId(UUID userId);
     boolean existsByNationalIdNumberAndUserIdNot(String nationalIdNumber, UUID userId);
+    boolean existsByExtractedIdNumberHashAndUserIdNot(String extractedIdNumberHash, UUID userId);
     Page<SellerIdentityVerification> findByStatus(IdentityVerificationStatus status, Pageable pageable);
     List<SellerIdentityVerification> findByStatusAndExpiresAtBefore(
             IdentityVerificationStatus status, LocalDateTime cutoff);

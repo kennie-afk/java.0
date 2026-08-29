@@ -24,4 +24,7 @@ public class IdentityVerificationResponse {
     private List<String> missingRequiredDocuments;
     private Integer fraudStrikeCount;
     private boolean permanentlyBanned;
+    private Integer faceMatchScore;
+    private String faceMatchSource;
+    private Boolean faceMatchPassed;
 }

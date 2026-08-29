@@ -45,6 +45,9 @@ public class PaymentService {
     @org.springframework.beans.factory.annotation.Value("${platform.transaction-commission-pct:2.5}")
     private BigDecimal commissionPct;
 
+    @org.springframework.beans.factory.annotation.Value("${platform.deposit-min-percent:10}")
+    private BigDecimal depositMinPercent;
+
     public BigDecimal getViewingFeeKes() { return viewingFeeKes; }
     public BigDecimal getProfileAccessFeeKes() { return profileAccessFeeKes; }
     public BigDecimal getCommissionPct() { return commissionPct; }
@@ -90,6 +93,21 @@ public class PaymentService {
         if (upperType.equals("FULL_PAYMENT") || upperType.equals("DEPOSIT")) {
             if (!propertyServiceClient.isPropertyVerified(req.getPropertyId())) {
                 throw new RuntimeException("This property has not completed identity and title verification and cannot be paid for yet");
+            }
+            BigDecimal price = propertyServiceClient.getPrice(req.getPropertyId());
+            if (price == null) {
+                throw new RuntimeException("Could not confirm this property's listed price. Please try again shortly.");
+            }
+            if (upperType.equals("FULL_PAYMENT") && req.getAmount().compareTo(price) != 0) {
+                throw new RuntimeException("Full payment amount must exactly match the property's listed price of KES " + price);
+            }
+            if (upperType.equals("DEPOSIT")) {
+                BigDecimal minDeposit = price.multiply(depositMinPercent)
+                        .divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+                if (req.getAmount().compareTo(minDeposit) < 0 || req.getAmount().compareTo(price) > 0) {
+                    throw new RuntimeException("Deposit must be between " + depositMinPercent
+                            + "% and 100% of the property's listed price (KES " + price + ")");
+                }
             }
         }
         UUID actualSellerId = propertyServiceClient.getSellerId(req.getPropertyId());

@@ -80,7 +80,7 @@ jwt:
   expiration: ${JWT_EXPIRATION:86400000}
 
 cookie:
-  secure: ${COOKIE_SECURE:false}
+  secure: ${COOKIE_SECURE:true}
   domain: ${COOKIE_DOMAIN:}
 
 redis:
@@ -144,6 +144,21 @@ resilience4j:
         minimumNumberOfCalls: 5
         permittedNumberOfCallsInHalfOpenState: 3
         automaticTransitionFromOpenToHalfOpenEnabled: true
+      property-service:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+  retry:
+    instances:
+      verification-service:
+        maxAttempts: 3
+        waitDuration: 500ms
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
 
 logging:
   pattern:
