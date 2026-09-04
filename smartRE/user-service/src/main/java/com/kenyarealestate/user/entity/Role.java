@@ -1,2 +1,2 @@
 package com.kenyarealestate.user.entity;
-public enum Role { BUYER, SELLER, AGENT, ADMIN }
+public enum Role { BUYER, SELLER, AGENT, LANDLORD, ADMIN }

@@ -6,11 +6,11 @@ import { useAuthStore } from '@/lib/store'
 import { useUIStore, SIDEBAR_WIDTH, SIDEBAR_WIDTH_COLLAPSED } from '@/lib/uiStore'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { cn, fmt } from '@/lib/utils'
-import { SELLER_ROLES } from '@/lib/roles'
+import { SELLER_ROLES, LANDLORD_ROLES } from '@/lib/roles'
 import {
   LayoutDashboard, Building2, ShieldCheck, Calendar,
   CreditCard, Star, BarChart3, Users, X, ListChecks, Search, Gauge, Landmark, Briefcase, Flag,
-  ChevronsLeft, ChevronsRight, ChevronDown,
+  ChevronsLeft, ChevronsRight, ChevronDown, Bell, KeyRound, FileText,
   List, Plus, UserCheck, Home, Store, PieChart, Receipt, CheckCircle, FileEdit, Ban, AlertCircle, XCircle, Clock, EyeOff,
 } from 'lucide-react'
 
@@ -38,6 +38,15 @@ const nav: NavItem[] = [
     ] },
   { label:'Payments',     href:'/payments',            icon:CreditCard,      roles:['BUYER',...SELLER_ROLES] },
   { label:'Reviews',      href:'/reviews',             icon:Star,            roles:['BUYER',...SELLER_ROLES] },
+  { label:'Portfolio',    href:'/portfolio',           icon:KeyRound,        roles:LANDLORD_ROLES,
+    children:[
+      { label:'Units',   href:'/portfolio?tab=units',   icon:Building2 },
+      { label:'Tenants', href:'/portfolio?tab=tenants', icon:Users },
+      { label:'Leases',  href:'/portfolio?tab=leases',  icon:FileText },
+      { label:'Rent',    href:'/portfolio?tab=rent',    icon:Receipt },
+    ] },
+  { label:'My Tenancy',   href:'/my-tenancy',          icon:Home,            roles:['BUYER',...SELLER_ROLES,'LANDLORD'] },
+  { label:'Notifications', href:'/notifications',      icon:Bell,            roles:['BUYER',...SELLER_ROLES,'LANDLORD','ADMIN'] },
 ]
 const adminNav: NavItem[] = [
   { label:'Command Center', href:'/overview',          icon:Gauge },

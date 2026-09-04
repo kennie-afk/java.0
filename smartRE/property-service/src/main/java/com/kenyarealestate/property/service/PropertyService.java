@@ -267,6 +267,11 @@ public class PropertyService {
         return repo.findBySellerId(sellerId, p).map(this::toResponse);
     }
 
+    @Transactional(readOnly = true)
+    public PropertyResponse getInternal(UUID id) {
+        return toResponse(repo.findById(id).orElseThrow(() -> new NotFoundException("Property not found")));
+    }
+
     public void activateAllForSeller(UUID sellerId) {
         List<Property> props = new ArrayList<>(repo.findBySellerIdAndStatus(sellerId, ListingStatus.DRAFT));
         props.addAll(repo.findBySellerIdAndStatus(sellerId, ListingStatus.PENDING_VERIFICATION));

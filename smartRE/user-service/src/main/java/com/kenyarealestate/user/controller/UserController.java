@@ -9,6 +9,7 @@ import org.springframework.data.domain.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -43,6 +44,16 @@ public class UserController {
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> getById(@PathVariable UUID id, Authentication auth) {
         return ResponseEntity.ok(svc.getById(id, auth != null ? auth.getName() : null));
+    }
+
+    @Operation(summary = "Internal: contact details for a user",
+               description = "Called by notification-service to address a message. Unlike GET "
+                           + "/api/users/{id} this does not redact email or phone, so it requires "
+                           + "the internal-secret header and is not reachable from outside the "
+                           + "docker network.")
+    @GetMapping("/internal/{id}/contact")
+    public ResponseEntity<UserContactResponse> internalContact(@PathVariable UUID id) {
+        return ResponseEntity.ok(svc.getContact(id));
     }
 
     @GetMapping("/admin/all")

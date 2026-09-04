@@ -12,6 +12,7 @@ const titles: Record<string,string> = {
   '/dashboard':'Dashboard','/listings':'My Listings','/properties/new':'New Listing',
   '/verification':'Verification','/ownership':'Land Title','/viewings':'Viewings','/payments':'Payments',
   '/reviews':'Reviews','/profile':'Profile','/agent-application':'Become an Agent',
+  '/notifications':'Notifications','/portfolio':'Portfolio','/my-tenancy':'My Tenancy',
 }
 
 export default function DashboardLayout({ children }:{ children:React.ReactNode }) {

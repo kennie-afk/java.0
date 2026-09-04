@@ -406,6 +406,88 @@ services:
       timeout: 3s
       retries: 10
 
+  notification-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      POSTGRES_DB: notification_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
+    volumes:
+      - notification-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  notification-pgbouncer:
+    image: edoburu/pgbouncer:1.21.0-p1
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      DB_HOST: notification-db
+      DB_PORT: 5432
+      DB_NAME: notification_db
+      DB_USER: postgres
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
+      AUTH_TYPE: scram-sha-256
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 500
+      DEFAULT_POOL_SIZE: 15
+    ports:
+      - "127.0.0.1:6438:5432"
+    depends_on:
+      notification-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "5432"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  pms-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      POSTGRES_DB: pms_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
+    volumes:
+      - pms-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pms-pgbouncer:
+    image: edoburu/pgbouncer:1.21.0-p1
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      DB_HOST: pms-db
+      DB_PORT: 5432
+      DB_NAME: pms_db
+      DB_USER: postgres
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
+      AUTH_TYPE: scram-sha-256
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 500
+      DEFAULT_POOL_SIZE: 15
+    ports:
+      - "127.0.0.1:6439:5432"
+    depends_on:
+      pms-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "5432"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   # ════════════════════════════════════════════════════════════════
   # MICROSERVICES
   # ════════════════════════════════════════════════════════════════
@@ -435,6 +517,7 @@ services:
       PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8080}
       VERIFICATION_SERVICE_URL: http://verification-service:8082
       PROPERTY_SERVICE_URL: http://property-service:8083
+      NOTIFICATION_SERVICE_URL: http://notification-service:8087
       MAIL_HOST: ${MAIL_HOST:-}
       MAIL_PORT: ${MAIL_PORT:-587}
       MAIL_USERNAME: ${MAIL_USERNAME:-}
@@ -571,6 +654,11 @@ services:
       MPESA_STK_QUERY_URL: ${MPESA_STK_QUERY_URL:-https://sandbox.safaricom.co.ke/mpesa/stkpushquery/v1/query}
       MPESA_CALLBACK_URL: ${MPESA_CALLBACK_URL:-https://your-domain.com/api/payments/mpesa/callback}
       MPESA_CALLBACK_SECRET: ${MPESA_CALLBACK_SECRET:?MPESA_CALLBACK_SECRET must be set in .env}
+      MPESA_CALLBACK_ALLOWED_IPS: ${MPESA_CALLBACK_ALLOWED_IPS:-}
+      MPESA_CALLBACK_INSECURE_ALLOW_ALL_IPS: ${MPESA_CALLBACK_INSECURE_ALLOW_ALL_IPS:-false}
+      MPESA_C2B_SHORTCODE: ${MPESA_C2B_SHORTCODE:-}
+      MPESA_C2B_VALIDATION_URL: ${MPESA_C2B_VALIDATION_URL:-https://your-domain.com/api/payments/mpesa/c2b/validation}
+      MPESA_C2B_CONFIRMATION_URL: ${MPESA_C2B_CONFIRMATION_URL:-https://your-domain.com/api/payments/mpesa/c2b/confirmation}
       MPESA_B2C_URL: ${MPESA_B2C_URL:-https://sandbox.safaricom.co.ke/mpesa/b2c/v3/paymentrequest}
       MPESA_B2C_CALLBACK_URL: ${MPESA_B2C_CALLBACK_URL:-https://your-domain.com/api/revenue/mpesa/b2c/callback}
       MPESA_INITIATOR_NAME: ${MPESA_INITIATOR_NAME:-testapi}
@@ -580,6 +668,7 @@ services:
       PLATFORM_COMMISSION_PCT: ${PLATFORM_COMMISSION_PCT:-2.5}
       INTERNAL_SECRET: ${INTERNAL_SECRET:?INTERNAL_SECRET must be set in .env}
       GATEWAY_SIGNING_SECRET: ${GATEWAY_SIGNING_SECRET:?GATEWAY_SIGNING_SECRET must be set in .env}
+      PMS_SERVICE_URL: http://property-management-service:8088
       REDIS_HOST: redis
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     volumes:
@@ -628,6 +717,77 @@ services:
       retries: 8
       start_period: 60s
 
+  notification-service:
+    build: ./notification-service
+    restart: on-failure
+    logging: *default-logging
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://notification-pgbouncer:5432/notification_db?prepareThreshold=0
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env}
+      GATEWAY_SIGNING_SECRET: ${GATEWAY_SIGNING_SECRET:?GATEWAY_SIGNING_SECRET must be set in .env}
+      INTERNAL_SECRET: ${INTERNAL_SECRET:?INTERNAL_SECRET must be set in .env}
+      USER_SERVICE_URL: http://user-service:8081
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      REDIS_HOST: redis
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@smartre.co.ke}
+    depends_on:
+      notification-pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8087/actuator/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 60s
+
+  property-management-service:
+    build: ./property-management-service
+    restart: on-failure
+    logging: *default-logging
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pms-pgbouncer:5432/pms_db?prepareThreshold=0
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env}
+      GATEWAY_SIGNING_SECRET: ${GATEWAY_SIGNING_SECRET:?GATEWAY_SIGNING_SECRET must be set in .env}
+      INTERNAL_SECRET: ${INTERNAL_SECRET:?INTERNAL_SECRET must be set in .env}
+      PROPERTY_SERVICE_URL: http://property-service:8083
+      PAYMENT_SERVICE_URL: http://payment-service:8085
+      USER_SERVICE_URL: http://user-service:8081
+      PMS_MANAGEMENT_FEE_PCT: ${PMS_MANAGEMENT_FEE_PCT:-10.0}
+      PMS_INVOICE_CRON: ${PMS_INVOICE_CRON:-0 0 2 * * *}
+      PMS_ARREARS_CRON: ${PMS_ARREARS_CRON:-0 30 2 * * *}
+      PMS_INVOICE_GRACE_DAYS: ${PMS_INVOICE_GRACE_DAYS:-5}
+      PMS_INVOICE_LEAD_DAYS: ${PMS_INVOICE_LEAD_DAYS:-7}
+      REDIS_HOST: redis
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      pms-pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      property-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8088/actuator/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 60s
+
   api-gateway:
     build: ./api-gateway
     restart: on-failure
@@ -654,6 +814,10 @@ services:
         condition: service_healthy
       review-service:
         condition: service_healthy
+      notification-service:
+        condition: service_healthy
+      property-management-service:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 15s
@@ -663,6 +827,8 @@ services:
 
 volumes:
   user-uploads-data:
+  notification-db-data:
+  pms-db-data:
   redis-data:
   kafka-data:
   zookeeper-data:

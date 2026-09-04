@@ -25,6 +25,7 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(a -> a
                         .requestMatchers("/api/payments/mpesa/callback/**").permitAll()
+                        .requestMatchers("/api/payments/mpesa/c2b/**").permitAll()
                         .requestMatchers("/api/revenue/mpesa/b2c/callback/**").permitAll()
                         .requestMatchers("/api/revenue/mpesa/b2c/status-callback/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/payments/config").permitAll()

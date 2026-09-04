@@ -38,6 +38,7 @@ class UserServiceTest {
     @Mock private PropertyServiceClient propertyServiceClient;
     @Mock private TokenBlacklistService tokenBlacklistService;
     @Mock private AuditService auditService;
+    @Mock private com.kenyarealestate.user.client.NotificationClient notificationClient;
 
     @InjectMocks private UserService userService;
 

@@ -244,7 +244,7 @@ export default function VerificationPage() {
                   {doc.extractedIdNumber && <p className="text-xs text-muted">ID number read: <strong className="text-gray-700 dark:text-gray-300">{doc.extractedIdNumber}</strong></p>}
                   {doc.aiCategoryMismatch && (
                     <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">
-                      Doesn't look like the right document{doc.aiDetectedCategory ? ` — AI thinks this is ${doc.aiDetectedCategory.replace(/_/g,' ').toLowerCase()}` : ''}
+                      Doesn&apos;t look like the right document{doc.aiDetectedCategory ? ` — AI thinks this is ${doc.aiDetectedCategory.replace(/_/g,' ').toLowerCase()}` : ''}
                       {typeof doc.aiCategoryConfidence === 'number' ? ` (${doc.aiCategoryConfidence}% confidence)` : ''}.
                     </p>
                   )}

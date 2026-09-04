@@ -19,6 +19,8 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple3;
 
+import java.util.Optional;
+
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
@@ -67,23 +69,24 @@ public class AuthFilter extends AbstractGatewayFilterFactory<AuthFilter.Config> 
                     redis.opsForValue().get(TOKENS_VALID_AFTER_PREFIX + userId).defaultIfEmpty("")
             )
                     .timeout(REDIS_CHECK_TIMEOUT)
-                    .flatMap(
-                            flags -> onRedisChecksResolved(exchange, chain, token, userId, issuedAtMillis, flags),
-                            // DELIBERATE FAIL-CLOSED DECISION: if Redis is unreachable or too slow
-                            // to answer the blacklist/ban/password-change checks, we deny the
-                            // request with 503 rather than let it through unchecked. The
-                            // alternative (fail-open) would let a revoked/blacklisted token or a
-                            // banned user bypass revocation for the duration of the Redis outage,
-                            // which we consider worse than a full auth outage. This means: if
-                            // Redis is down, NO authenticated route works. If this trade-off
-                            // should differ per-route, that must be an explicit, reviewed change
-                            // here - do not flip it silently.
-                            ex -> {
-                                log.error("Redis unavailable/slow during auth checks, failing closed: {}", ex.toString());
-                                return deny(exchange, HttpStatus.SERVICE_UNAVAILABLE, "Auth service temporarily unavailable");
-                            },
-                            Mono::empty
-                    );
+                    // DELIBERATE FAIL-CLOSED DECISION: if Redis is unreachable or too slow
+                    // to answer the blacklist/ban/password-change checks, we deny the
+                    // request with 503 rather than let it through unchecked. The
+                    // alternative (fail-open) would let a revoked/blacklisted token or a
+                    // banned user bypass revocation for the duration of the Redis outage,
+                    // which we consider worse than a full auth outage. This means: if
+                    // Redis is down, NO authenticated route works. If this trade-off
+                    // should differ per-route, that must be an explicit, reviewed change
+                    // here - do not flip it silently.
+                    .map(Optional::of)
+                    .onErrorResume(ex -> {
+                        log.error("Redis unavailable/slow during auth checks, failing closed: {}", ex.toString());
+                        return Mono.just(Optional.<Tuple3<Boolean, Boolean, String>>empty());
+                    })
+                    .flatMap(flags -> flags
+                            .map(f -> onRedisChecksResolved(exchange, chain, token, userId, issuedAtMillis, f))
+                            .orElseGet(() -> deny(exchange, HttpStatus.SERVICE_UNAVAILABLE,
+                                    "Auth service temporarily unavailable")));
         };
     }
 

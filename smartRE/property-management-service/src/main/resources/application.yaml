@@ -1,0 +1,133 @@
+spring:
+  application:
+    name: property-management-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://pms-db:5432/pms_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:bantu007#}
+    driverClassName: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    placeholder-replacement: false
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+    consumer:
+      group-id: ${spring.application.name}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
+
+server:
+  port: 8088
+
+jwt:
+  secret: ${JWT_SECRET}
+
+pms:
+  management-fee-pct: ${PMS_MANAGEMENT_FEE_PCT:10.0}
+  default-notice-period-days: ${PMS_NOTICE_PERIOD_DAYS:30}
+  invoice:
+    cron: ${PMS_INVOICE_CRON:0 0 2 * * *}
+    grace-days: ${PMS_INVOICE_GRACE_DAYS:5}
+    lead-days: ${PMS_INVOICE_LEAD_DAYS:7}
+  arrears:
+    cron: ${PMS_ARREARS_CRON:0 30 2 * * *}
+
+services:
+  property-url: ${PROPERTY_SERVICE_URL:http://property-service:8083}
+  payment-url: ${PAYMENT_SERVICE_URL:http://payment-service:8085}
+  user-url: ${USER_SERVICE_URL:http://user-service:8081}
+  internal-secret: ${INTERNAL_SECRET}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      property-service:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+      payment-service:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+  retry:
+    instances:
+      property-service:
+        maxAttempts: 3
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+        retryExceptions:
+          - org.springframework.web.client.RestClientException
+
+kafka:
+  topics:
+    pms-events: pms-events
+    payment-events: payment-events
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when-authorized
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+gateway:
+  signing-secret: ${GATEWAY_SIGNING_SECRET}

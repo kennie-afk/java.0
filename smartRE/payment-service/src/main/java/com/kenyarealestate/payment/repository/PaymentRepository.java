@@ -14,6 +14,7 @@ public interface PaymentRepository extends JpaRepository<Payment,UUID> {
     @Query("select p from Payment p where p.mpesaCheckoutRequestId = :checkoutId")
     Optional<Payment> findByMpesaCheckoutRequestIdForUpdate(String checkoutId);
     Optional<Payment> findByIdempotencyKey(String key);
+    Optional<Payment> findByMpesaTransactionId(String mpesaTransactionId);
     Page<Payment> findByBuyerId(UUID buyerId, Pageable p);
     Page<Payment> findBySellerId(UUID sellerId, Pageable p);
     Page<Payment> findByStatusAndEscrowReleasedFalseAndPaymentTypeIn(

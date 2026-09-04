@@ -47,6 +47,7 @@ public class PaymentEventPublisher {
                 .currency(payment.getCurrency())
                 .mpesaReceiptNumber(payment.getMpesaReceiptNumber())
                 .paymentType(payment.getPaymentType().name())
+                .billRefNumber(payment.getBillRefNumber())
                 .completedAt(LocalDateTime.now())
                 .build();
     }

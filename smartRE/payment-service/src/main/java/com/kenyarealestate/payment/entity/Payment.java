@@ -62,6 +62,12 @@ public class Payment {
     @Column(name = "mpesa_transaction_date")
     private String mpesaTransactionDate;
 
+    @Column(name = "bill_ref_number", length = 64)
+    private String billRefNumber;
+
+    @Column(name = "mpesa_transaction_id", length = 64)
+    private String mpesaTransactionId;
+
     @Column(name = "failure_reason", columnDefinition = "TEXT")
     private String failureReason;
 

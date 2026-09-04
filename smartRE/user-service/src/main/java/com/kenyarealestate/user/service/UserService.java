@@ -1,5 +1,6 @@
 package com.kenyarealestate.user.service;
 
+import com.kenyarealestate.user.client.NotificationClient;
 import com.kenyarealestate.user.client.PropertyServiceClient;
 import com.kenyarealestate.user.dto.*;
 import com.kenyarealestate.user.entity.*;
@@ -32,6 +33,7 @@ public class UserService {
     private final LoginAttemptService loginAttemptService;
     private final org.springframework.data.redis.core.RedisTemplate<String, Object> redis;
     private final EmailService emailService;
+    private final NotificationClient notificationClient;
     private final PropertyServiceClient propertyServiceClient;
     private final TokenBlacklistService tokenBlacklistService;
     private final AuditService auditService;
@@ -45,11 +47,12 @@ public class UserService {
     public UserService(UserRepository repo, PasswordEncoder encoder, JwtUtil jwtUtil, LoginAttemptService loginAttemptService,
                         org.springframework.data.redis.core.RedisTemplate<String, Object> redis, EmailService emailService,
                         PropertyServiceClient propertyServiceClient, TokenBlacklistService tokenBlacklistService,
-                        AuditService auditService) {
+                        AuditService auditService, NotificationClient notificationClient) {
         this.repo=repo; this.encoder=encoder; this.jwtUtil=jwtUtil; this.loginAttemptService=loginAttemptService; this.redis=redis;
         this.emailService=emailService; this.propertyServiceClient=propertyServiceClient;
         this.tokenBlacklistService = tokenBlacklistService;
         this.auditService = auditService;
+        this.notificationClient = notificationClient;
     }
 
     public AuthResponse register(RegisterRequest req) {
@@ -60,8 +63,9 @@ public class UserService {
             if (repo.existsByRole(Role.ADMIN)) {
                 throw new ForbiddenException("Admin registration is closed. Ask an existing admin to promote your account.");
             }
-        } else if (!requestedRole.equals("BUYER") && !requestedRole.equals("SELLER")) {
-            throw new BadRequestException("Role must be BUYER or SELLER");
+        } else if (!requestedRole.equals("BUYER") && !requestedRole.equals("SELLER")
+                && !requestedRole.equals("LANDLORD")) {
+            throw new BadRequestException("Role must be BUYER, SELLER or LANDLORD");
         }
         User u = User.builder()
                 .fullName(req.getFullName()).email(req.getEmail().toLowerCase().trim())
@@ -101,6 +105,18 @@ public class UserService {
             }
         }
         return redactAll(resp);
+    }
+
+    @Transactional(readOnly = true)
+    public UserContactResponse getContact(UUID id) {
+        User u = repo.findById(id).orElseThrow(() -> new NotFoundException("User not found"));
+        return UserContactResponse.builder()
+                .id(u.getId())
+                .fullName(u.getFullName())
+                .email(u.getEmail())
+                .phone(u.getPhone())
+                .role(u.getRole() != null ? u.getRole().name() : null)
+                .build();
     }
 
     private UserResponse redactPayoutDetails(UserResponse resp) {
@@ -189,10 +205,28 @@ public class UserService {
         repo.save(u);
 
         String link = frontendUrl + "/reset-password?token=" + rawToken;
-        emailService.send(u.getEmail(), "Reset your smartRE password",
-                "We received a request to reset your smartRE password.\n\n" +
-                "This link expires in 30 minutes:\n" + link + "\n\n" +
-                "If you didn't request this, you can safely ignore this email.");
+        boolean handedOff = false;
+        try {
+            handedOff = notificationClient.send(
+                    u.getId(),
+                    "PASSWORD_RESET",
+                    u.getEmail(),
+                    "password-reset:" + u.getResetTokenHash(),
+                    java.util.Map.of(
+                            "fullName", u.getFullName() != null ? u.getFullName() : "there",
+                            "resetLink", link,
+                            "expiryMinutes", 30));
+        } catch (Exception e) {
+            log.warn("Handing password reset to notification-service failed for userId={}: {}",
+                    u.getId(), e.getMessage());
+        }
+
+        if (!handedOff) {
+            emailService.send(u.getEmail(), "Reset your smartRE password",
+                    "We received a request to reset your smartRE password.\n\n" +
+                    "This link expires in 30 minutes:\n" + link + "\n\n" +
+                    "If you didn't request this, you can safely ignore this email.");
+        }
     }
 
     public void resetPassword(String rawToken, String newPassword) {

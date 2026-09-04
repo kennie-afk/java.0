@@ -82,6 +82,9 @@ mpesa:
   b2c-callback-url: ${MPESA_B2C_CALLBACK_URL:https://your-domain.com/api/revenue/mpesa/b2c/callback}
   b2c-status-query-url: ${MPESA_B2C_STATUS_QUERY_URL:https://sandbox.safaricom.co.ke/mpesa/transactionstatus/v1/query}
   b2c-status-callback-url: ${MPESA_B2C_STATUS_CALLBACK_URL:https://your-domain.com/api/revenue/mpesa/b2c/status-callback}
+  c2b-shortcode:   ${MPESA_C2B_SHORTCODE:}
+  c2b-validation-url:   ${MPESA_C2B_VALIDATION_URL:https://your-domain.com/api/payments/mpesa/c2b/validation}
+  c2b-confirmation-url: ${MPESA_C2B_CONFIRMATION_URL:https://your-domain.com/api/payments/mpesa/c2b/confirmation}
   initiator-name:   ${MPESA_INITIATOR_NAME:testapi}
   initiator-credential: ${MPESA_INITIATOR_CREDENTIAL:Safaricom999!}
   security-credential-cert-path: ${MPESA_SECURITY_CREDENTIAL_CERT_PATH:file:/nonexistent-configure-mpesa-cert}
@@ -119,6 +122,7 @@ platform:
 
 services:
   property-url: ${PROPERTY_SERVICE_URL:http://property-service:8083}
+  pms-url: ${PMS_SERVICE_URL:http://property-management-service:8088}
   internal-secret: ${INTERNAL_SECRET}
 
 gateway:
@@ -127,6 +131,14 @@ gateway:
 resilience4j:
   circuitbreaker:
     instances:
+      pms-service:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
       property-service:
         registerHealthIndicator: true
         slidingWindowSize: 10

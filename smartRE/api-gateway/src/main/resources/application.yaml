@@ -235,6 +235,28 @@ spring:
                 fallbackUri: forward:/fallback/viewing-service
 
         # ── PAYMENTS ─────────────────────────────────────────────
+        - id: payment-c2b-validation-open
+          uri: http://payment-service:8085
+          predicates:
+            - Path=/api/payments/mpesa/c2b/validation/**
+            - Method=POST
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: paymentServiceCB
+                fallbackUri: forward:/fallback/payment-service
+
+        - id: payment-c2b-confirmation-open
+          uri: http://payment-service:8085
+          predicates:
+            - Path=/api/payments/mpesa/c2b/confirmation/**
+            - Method=POST
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: paymentServiceCB
+                fallbackUri: forward:/fallback/payment-service
+
         - id: revenue-b2c-callback-open
           uri: http://payment-service:8085
           predicates: [Path=/api/revenue/mpesa/b2c/callback/**]
@@ -361,6 +383,75 @@ spring:
                 name: reviewServiceCB
                 fallbackUri: forward:/fallback/review-service
 
+        - id: notification-admin-secured
+          uri: http://notification-service:8087
+          predicates: [Path=/api/notifications/admin/**]
+          filters:
+            - AuthFilter
+            - name: CircuitBreaker
+              args:
+                name: notificationServiceCB
+                fallbackUri: forward:/fallback/notification-service
+
+        - id: notification-secured
+          uri: http://notification-service:8087
+          predicates: [Path=/api/notifications/**]
+          filters:
+            - AuthFilter
+            - name: CircuitBreaker
+              args:
+                name: notificationServiceCB
+                fallbackUri: forward:/fallback/notification-service
+
+        - id: units-secured
+          uri: http://property-management-service:8088
+          predicates: [Path=/api/units/**]
+          filters:
+            - AuthFilter
+            - name: CircuitBreaker
+              args:
+                name: pmsServiceCB
+                fallbackUri: forward:/fallback/property-management-service
+
+        - id: pms-tenants-secured
+          uri: http://property-management-service:8088
+          predicates: [Path=/api/tenants/**]
+          filters:
+            - AuthFilter
+            - name: CircuitBreaker
+              args:
+                name: pmsServiceCB
+                fallbackUri: forward:/fallback/property-management-service
+
+        - id: maintenance-secured
+          uri: http://property-management-service:8088
+          predicates: [Path=/api/maintenance/**]
+          filters:
+            - AuthFilter
+            - name: CircuitBreaker
+              args:
+                name: pmsServiceCB
+                fallbackUri: forward:/fallback/property-management-service
+
+        - id: invoices-secured
+          uri: http://property-management-service:8088
+          predicates: [Path=/api/invoices/**]
+          filters:
+            - AuthFilter
+            - name: CircuitBreaker
+              args:
+                name: pmsServiceCB
+                fallbackUri: forward:/fallback/property-management-service
+
+        - id: leases-secured
+          uri: http://property-management-service:8088
+          predicates: [Path=/api/leases/**]
+          filters:
+            - AuthFilter
+            - name: CircuitBreaker
+              args:
+                name: pmsServiceCB
+                fallbackUri: forward:/fallback/property-management-service
 
         - id: document-files-public
           uri: http://user-service:8081
@@ -489,6 +580,8 @@ resilience4j:
       viewingServiceCB: { baseConfig: default }
       paymentServiceCB: { baseConfig: default }
       reviewServiceCB: { baseConfig: default }
+      notificationServiceCB: { baseConfig: default }
+      pmsServiceCB: { baseConfig: default }
   timelimiter:
     configs:
       default:
@@ -503,3 +596,5 @@ resilience4j:
       viewingServiceCB: { baseConfig: default }
       paymentServiceCB: { baseConfig: default }
       reviewServiceCB: { baseConfig: default }
+      notificationServiceCB: { baseConfig: default }
+      pmsServiceCB: { baseConfig: default }

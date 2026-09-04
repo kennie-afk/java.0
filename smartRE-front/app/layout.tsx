@@ -1,3 +1,4 @@
+import Script from 'next/script'
 import type { Metadata, Viewport } from 'next'
 import { Toaster } from 'react-hot-toast'
 import Providers from './providers'
@@ -20,7 +21,7 @@ export default function RootLayout({ children }:{ children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <script src="/theme-init.js" />
+        <Script src="/theme-init.js" strategy="beforeInteractive" />
       </head>
       <body>
         <ErrorTracking />

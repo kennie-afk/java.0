@@ -34,6 +34,7 @@ public class SecurityConfig {
                         "/api/documents/files/documents/profile_image/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/documents/internal/files/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/documents/files/**").authenticated()
+                .requestMatchers("/api/users/internal/**").permitAll()
                 .requestMatchers("/api/users/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/agent-applications/admin/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/users/me").authenticated()

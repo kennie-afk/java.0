@@ -5,6 +5,7 @@ import { Menu, Sun, Moon, LogOut, User, Settings, ChevronDown } from 'lucide-rea
 import { useAuthStore } from '@/lib/store'
 import { useUIStore, SIDEBAR_WIDTH, SIDEBAR_WIDTH_COLLAPSED } from '@/lib/uiStore'
 import { useLogout } from '@/hooks/useLogout'
+import NotificationBell from '@/components/layout/NotificationBell'
 import { cn, fmt } from '@/lib/utils'
 
 export default function Topbar({ onMenu, title }:{ onMenu():void; title?:string }) {
@@ -30,6 +31,8 @@ export default function Topbar({ onMenu, title }:{ onMenu():void; title?:string 
       <button onClick={toggleTheme} className="btn-ghost !h-9 !w-9 !px-0" title="Toggle theme" aria-label="Toggle theme">
         {dark ? <Sun size={17}/> : <Moon size={17}/>}
       </button>
+
+      {user && <NotificationBell/>}
 
       {user && (
         <div className="relative">

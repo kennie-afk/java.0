@@ -46,6 +46,10 @@ import type {
   PaymentReceiptResponse, RevenueSummaryResponse, RevenueResponse,
   ReviewResponse, SellerRatingResponse, ReviewAdminStatsResponse,
   ReportResponse, AgentApplicationResponse,
+  NotificationResponse, UnreadCountResponse, NotificationPreferenceResponse,
+  AdminNotificationResponse, NotificationStatus,
+  UnitResponse, TenantRecord, LeaseResponse, PortfolioSummaryResponse,
+  InvoiceResponse, RentPaymentResponse, MaintenanceResponse,
 } from '@/types'
 
 export const authApi = {
@@ -171,6 +175,67 @@ export const agentApplicationApi = {
   mine:       () => g<AgentApplicationResponse>('/api/agent-applications/mine'),
   adminQueue: (status = 'SUBMITTED', size = 500) => g<PageResponse<AgentApplicationResponse>>('/api/agent-applications/admin/queue', { status, size }),
   adminReview:(id:string, d:object) => pu<AgentApplicationResponse>(`/api/agent-applications/admin/${id}/review`, d),
+}
+
+export const notificationApi = {
+  feed:        (page = 0, size = 20) => g<PageResponse<NotificationResponse>>('/api/notifications/my', { page, size }),
+  unreadCount: () => g<UnreadCountResponse>('/api/notifications/my/unread-count'),
+  markRead:    (id:string) => pu<NotificationResponse>(`/api/notifications/${id}/read`),
+  markAllRead: () => pu<{ updated:number }>('/api/notifications/my/read-all'),
+  preferences: () => g<NotificationPreferenceResponse[]>('/api/notifications/my/preferences'),
+  updatePreference: (d:{ category:string; emailEnabled?:boolean; smsEnabled?:boolean; inAppEnabled?:boolean }) =>
+    pu<NotificationPreferenceResponse>('/api/notifications/my/preferences', d),
+  adminLog:    (p?: { status?: NotificationStatus; page?: number; size?: number }) =>
+    g<PageResponse<AdminNotificationResponse>>('/api/notifications/admin', p),
+  adminRetry:  (id:string) => po<AdminNotificationResponse>(`/api/notifications/admin/${id}/retry`),
+}
+
+export const pmsApi = {
+  units: {
+    create:      (d:object) => po<UnitResponse>('/api/units', d),
+    mine:        (p?: { status?:string; page?:number; size?:number }) => g<PageResponse<UnitResponse>>('/api/units/my', p),
+    summary:     () => g<PortfolioSummaryResponse>('/api/units/my/summary'),
+    byProperty:  (propertyId:string) => g<UnitResponse[]>(`/api/units/property/${propertyId}`),
+    get:         (id:string) => g<UnitResponse>(`/api/units/${id}`),
+    leases:      (id:string) => g<LeaseResponse[]>(`/api/units/${id}/leases`),
+    update:      (id:string, d:object) => pu<UnitResponse>(`/api/units/${id}`, d),
+    remove:      (id:string) => de(`/api/units/${id}`),
+  },
+  tenants: {
+    create:   (d:object) => po<TenantRecord>('/api/tenants', d),
+    mine:     (p?: { q?:string; page?:number; size?:number }) => g<PageResponse<TenantRecord>>('/api/tenants/my', p),
+    get:      (id:string) => g<TenantRecord>(`/api/tenants/${id}`),
+    update:   (id:string, d:object) => pu<TenantRecord>(`/api/tenants/${id}`, d),
+    linkUser: (id:string, userId:string) => pu<TenantRecord>(`/api/tenants/${id}/link-user`, { userId }),
+    remove:   (id:string) => de(`/api/tenants/${id}`),
+  },
+  leases: {
+    create:    (d:object) => po<LeaseResponse>('/api/leases', d),
+    mine:      (p?: { status?:string; page?:number; size?:number }) => g<PageResponse<LeaseResponse>>('/api/leases/my', p),
+    myTenancy: (p?: { page?:number; size?:number }) => g<PageResponse<LeaseResponse>>('/api/leases/my-tenancy', p),
+    get:       (id:string) => g<LeaseResponse>(`/api/leases/${id}`),
+    activate:  (id:string) => pu<LeaseResponse>(`/api/leases/${id}/activate`),
+    end:       (id:string) => pu<LeaseResponse>(`/api/leases/${id}/end`),
+    terminate: (id:string, reason:string) => pu<LeaseResponse>(`/api/leases/${id}/terminate`, { reason }),
+    renew:     (id:string, d:object) => po<LeaseResponse>(`/api/leases/${id}/renew`, d),
+    invoices:  (id:string) => g<InvoiceResponse[]>(`/api/leases/${id}/invoices`),
+  },
+  invoices: {
+    mine:        (p?: { status?:string; page?:number; size?:number }) => g<PageResponse<InvoiceResponse>>('/api/invoices/my', p),
+    myTenancy:   (p?: { page?:number; size?:number }) => g<PageResponse<InvoiceResponse>>('/api/invoices/my-tenancy', p),
+    payments:    (id:string) => g<RentPaymentResponse[]>(`/api/invoices/${id}/payments`),
+    pay:         (id:string, d?:object) => po<RentPaymentResponse>(`/api/invoices/${id}/pay`, d ?? {}),
+    record:      (id:string, d:object) => po<RentPaymentResponse>(`/api/invoices/${id}/record-payment`, d),
+    writeOff:    (id:string) => pu<InvoiceResponse>(`/api/invoices/${id}/write-off`),
+  },
+  maintenance: {
+    mine:        (p?: { status?:string; page?:number; size?:number }) => g<PageResponse<MaintenanceResponse>>('/api/maintenance/my', p),
+    myTenancy:   (p?: { page?:number; size?:number }) => g<PageResponse<MaintenanceResponse>>('/api/maintenance/my-tenancy', p),
+    raiseAsTenant:   (d:object) => po<MaintenanceResponse>('/api/maintenance/my-tenancy', d),
+    raiseAsLandlord: (d:object) => po<MaintenanceResponse>('/api/maintenance', d),
+    update:      (id:string, d:object) => pu<MaintenanceResponse>(`/api/maintenance/${id}`, d),
+    photoUrl:    (id:string, index:number) => `${BASE}/api/maintenance/${id}/photos/${index}`,
+  },
 }
 
 export interface UploadResponse { url:string; objectKey:string; category:string; sizeBytes:number }

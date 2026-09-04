@@ -142,6 +142,12 @@ public class PropertyController {
         return ResponseEntity.ok(svc.adminReactivate(id, resolveUserId(httpReq)));
     }
 
+    @Operation(summary = "Internal: fetch a property regardless of listing status", description = "Called by property-management-service to confirm ownership before attaching units. Unlike GET /api/properties/{id} this does not hide non-ACTIVE listings, so it requires the internal-secret header.")
+    @GetMapping("/internal/{id}")
+    public ResponseEntity<PropertyResponse> internalGet(@PathVariable UUID id) {
+        return ResponseEntity.ok(svc.getInternal(id));
+    }
+
     @Operation(summary = "Internal: activate all of a seller's eligible listings", description = "Called by verification-service (via Kafka consumer, or directly) when a seller's identity is approved. Requires the internal-secret header; not for external clients.")
     @PutMapping("/internal/seller/{sellerId}/activate-all")
     public ResponseEntity<Void> activateAll(@PathVariable UUID sellerId) {

@@ -34,6 +34,7 @@ public class Events {
         private String currency;
         private String mpesaReceiptNumber;
         private String paymentType;
+        private String billRefNumber;
         private LocalDateTime completedAt;
     }
 

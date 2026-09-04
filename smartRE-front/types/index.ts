@@ -1,5 +1,5 @@
 
-export type Role = 'BUYER' | 'SELLER' | 'AGENT' | 'ADMIN'
+export type Role = 'BUYER' | 'SELLER' | 'AGENT' | 'LANDLORD' | 'ADMIN'
 
 export interface AuthResponse {
   token: string
@@ -378,4 +378,190 @@ export interface AgentApplicationResponse {
   reviewedAt?: string
   createdAt: string
   updatedAt: string
+}
+
+export type NotificationCategory =
+  | 'ACCOUNT' | 'VERIFICATION' | 'PAYMENT' | 'VIEWING'
+  | 'PROPERTY' | 'TENANCY' | 'MAINTENANCE'
+
+export type NotificationStatus = 'PENDING' | 'SENT' | 'FAILED' | 'SUPPRESSED'
+
+export interface NotificationResponse {
+  id: string
+  category: NotificationCategory
+  templateCode: string
+  subject?: string
+  body?: string
+  entityType?: string
+  entityId?: string
+  actionUrl?: string
+  read: boolean
+  createdAt: string
+  readAt?: string
+}
+
+export interface UnreadCountResponse {
+  unread: number
+}
+
+export interface NotificationPreferenceResponse {
+  category: NotificationCategory
+  emailEnabled: boolean
+  smsEnabled: boolean
+  inAppEnabled: boolean
+}
+
+export interface AdminNotificationResponse {
+  id: string
+  userId: string
+  recipientEmail?: string
+  channel: 'EMAIL' | 'SMS' | 'IN_APP'
+  category: NotificationCategory
+  templateCode: string
+  subject?: string
+  status: NotificationStatus
+  attempts: number
+  lastError?: string
+  sourceEventType?: string
+  sourceEventId?: string
+  createdAt: string
+  nextAttemptAt?: string
+  sentAt?: string
+}
+
+export type UnitStatus = 'VACANT' | 'OCCUPIED' | 'UNDER_MAINTENANCE' | 'RESERVED'
+export type LeaseStatus = 'DRAFT' | 'ACTIVE' | 'ENDED' | 'TERMINATED' | 'RENEWED'
+export type PaymentFrequency = 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY'
+
+export interface UnitResponse {
+  id: string
+  propertyId: string
+  landlordId: string
+  label: string
+  unitType?: string
+  bedrooms?: number
+  bathrooms?: number
+  sizeSqm?: number
+  rentAmount: number
+  depositAmount?: number
+  status: UnitStatus
+  notes?: string
+  activeLeaseId?: string
+  activeTenantName?: string
+  createdAt: string
+}
+
+export interface TenantRecord {
+  id: string
+  landlordId: string
+  userId?: string
+  fullName: string
+  phone: string
+  email?: string
+  nationalId?: string
+  emergencyName?: string
+  emergencyPhone?: string
+  hasActiveLease: boolean
+  createdAt: string
+}
+
+export interface LeaseResponse {
+  id: string
+  unitId: string
+  unitLabel?: string
+  propertyId?: string
+  tenantId: string
+  tenantName?: string
+  tenantPhone?: string
+  landlordId: string
+  startDate: string
+  endDate?: string
+  rentAmount: number
+  depositAmount: number
+  depositHeld: number
+  managementFeePct: number
+  billingDay: number
+  paymentFrequency: PaymentFrequency
+  noticePeriodDays: number
+  status: LeaseStatus
+  terminatedReason?: string
+  terminatedAt?: string
+  createdAt: string
+}
+
+export type InvoiceStatus = 'PENDING' | 'PARTIAL' | 'PAID' | 'OVERDUE' | 'WRITTEN_OFF'
+export type RentPaymentMethod = 'MPESA_STK' | 'MPESA_PAYBILL' | 'BANK' | 'CASH'
+
+export interface InvoiceResponse {
+  id: string
+  leaseId: string
+  unitId: string
+  unitLabel?: string
+  tenantId: string
+  tenantName?: string
+  tenantPhone?: string
+  invoiceNumber: string
+  periodStart: string
+  periodEnd: string
+  dueDate: string
+  amountDue: number
+  amountPaid: number
+  balance: number
+  status: InvoiceStatus
+  createdAt: string
+}
+
+export interface RentPaymentResponse {
+  id: string
+  invoiceId: string
+  paymentId?: string
+  amount: number
+  method: RentPaymentMethod
+  status: 'PENDING' | 'CONFIRMED' | 'FAILED'
+  mpesaReceipt?: string
+  note?: string
+  createdAt: string
+  paidAt?: string
+}
+
+export interface PortfolioSummaryResponse {
+  totalUnits: number
+  occupiedUnits: number
+  vacantUnits: number
+  underMaintenanceUnits: number
+  tenants: number
+  activeLeases: number
+  monthlyRentRoll: number
+  occupancyRate: number
+  outstandingRent: number
+  overdueInvoices: number
+  openMaintenance: number
+}
+
+export type MaintenanceStatus = 'OPEN' | 'ACKNOWLEDGED' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED' | 'REJECTED'
+export type MaintenancePriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
+
+export interface MaintenanceResponse {
+  id: string
+  unitId: string
+  unitLabel?: string
+  leaseId?: string
+  tenantId?: string
+  tenantName?: string
+  landlordId: string
+  reference: string
+  category: string
+  priority: MaintenancePriority
+  title: string
+  description: string
+  imageUrls: string[]
+  status: MaintenanceStatus
+  raisedByRole: 'TENANT' | 'LANDLORD'
+  assignedTo?: string
+  resolutionNotes?: string
+  cost?: number
+  createdAt: string
+  acknowledgedAt?: string
+  resolvedAt?: string
+  closedAt?: string
 }

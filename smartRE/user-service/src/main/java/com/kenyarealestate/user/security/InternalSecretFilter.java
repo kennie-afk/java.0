@@ -23,7 +23,8 @@ public class InternalSecretFilter extends OncePerRequestFilter {
                                     FilterChain chain)
             throws ServletException, IOException {
 
-        if (request.getRequestURI().contains("/api/documents/internal/")) {
+        String uri = request.getRequestURI();
+        if (uri.contains("/api/documents/internal/") || uri.contains("/api/users/internal/")) {
             String provided = request.getHeader("X-Internal-Secret");
             if (!StringUtils.hasText(provided) || !secretMatches(provided, internalSecret)) {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
