@@ -232,8 +232,6 @@ class DocumentUploadControllerTest {
                 "PROPERTY_IMAGE", SELLER_AUTH);
         String objectKey = (String) uploadRes.getBody().get("objectKey");
 
-        // No stubbing of documentMetadataService.canAccess at all: if the controller called it
-        // for a public category, Mockito's default (false) would 404 this and fail the test.
         ResponseEntity<Resource> res = controller.serveFile(requestFor("/files/" + objectKey), null);
 
         assertEquals(HttpStatus.OK, res.getStatusCode());
@@ -244,8 +242,6 @@ class DocumentUploadControllerTest {
         var uploadRes = controller.upload(jpeg("id.jpg"), "NATIONAL_ID_FRONT", SELLER_AUTH);
         String objectKey = (String) uploadRes.getBody().get("objectKey");
 
-        // Internal service-to-service calls are authenticated via InternalSecretFilter, not a
-        // user JWT, so Authentication is null here — must not be denied for that reason.
         ResponseEntity<Resource> res = controller.serveFile(
                 requestFor("/files/" + objectKey, true), null);
 

@@ -25,12 +25,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-/**
- * Covers the property-ownership verification state machine: the getAndAuthorize IDOR guard
- * (a caller must own the identity verification backing the ownership record), the document
- * upload/duplicate-hash fraud path, and the admin final-decision transitions. This service
- * previously had zero test coverage.
- */
 @ExtendWith(MockitoExtension.class)
 class PropertyOwnershipVerificationServiceTest {
 
@@ -92,7 +86,6 @@ class PropertyOwnershipVerificationServiceTest {
         return req;
     }
 
-    // ---------- startOwnershipVerification ----------
 
     @Test
     void start_rejectsWhenIdentityNotVerifiedYet() {
@@ -148,11 +141,10 @@ class PropertyOwnershipVerificationServiceTest {
         verify(auditService).log(any(), eq("OWNERSHIP"), eq("STARTED"), eq(SELLER_ID), eq("SELLER"), any(), eq("DRAFT"), any());
     }
 
-    // ---------- getAndAuthorize IDOR guard (uploadDocument / deleteDocument / submitForReview) ----------
 
     @Test
     void uploadDocument_rejectsCallerWhoDoesNotOwnTheVerification() {
-        SellerIdentityVerification identity = approvedIdentity(); // owned by SELLER_ID
+        SellerIdentityVerification identity = approvedIdentity();
         PropertyOwnershipVerification verif = verification(identity, OwnershipVerificationStatus.DRAFT);
         when(ownershipRepo.findById(verif.getId())).thenReturn(Optional.of(verif));
 
@@ -209,7 +201,6 @@ class PropertyOwnershipVerificationServiceTest {
         verify(auditService).log(any(), eq("OWNERSHIP"), eq("DOCUMENT_UPLOADED"), eq(SELLER_ID), eq("SELLER"), any(), any(), any());
     }
 
-    // ---------- uploadDocument: fraud / duplicate detection ----------
 
     @Test
     void uploadDocument_rejectsWhenHashAlreadyExists_andFlagsFraud() {
@@ -260,7 +251,6 @@ class PropertyOwnershipVerificationServiceTest {
         verifyNoInteractions(documentIntelligenceService);
     }
 
-    // ---------- submitForReview ----------
 
     @Test
     void submitForReview_rejectsWhenMandatoryDocumentsMissing() {
@@ -358,7 +348,6 @@ class PropertyOwnershipVerificationServiceTest {
         assertTrue(res.getDocuments().get(0).getAiCategoryMismatch());
     }
 
-    // ---------- admin final decision ----------
 
     @Test
     void adminFinalDecision_rejectsWhenNotInHumanReview() {
@@ -427,7 +416,6 @@ class PropertyOwnershipVerificationServiceTest {
                 () -> service.adminFinalDecision(verif.getId(), req, UUID.randomUUID(), "jwt"));
     }
 
-    // ---------- ministry / encumbrance check state guards ----------
 
     @Test
     void recordMinistryCheck_rejectsWhenNotInMinistryCheckStatus() {

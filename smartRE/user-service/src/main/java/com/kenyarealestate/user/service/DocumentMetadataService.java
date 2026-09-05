@@ -11,11 +11,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
-/**
- * Records the uploader of each document and answers "can this caller read this document",
- * so DocumentUploadController can enforce that non-public documents (national ID scans,
- * ownership/business documents, etc.) are only served to the uploader or an admin.
- */
 @Slf4j
 @Service
 public class DocumentMetadataService {
@@ -42,11 +37,6 @@ public class DocumentMetadataService {
                 .build());
     }
 
-    /**
-     * True if the caller may read the given object key: an admin, or the original uploader.
-     * Unknown documents (uploaded before this tracking existed, or never recorded) are denied
-     * by default rather than fail-open.
-     */
     public boolean canAccess(String objectKey, Authentication auth) {
         if (auth == null || !auth.isAuthenticated()) return false;
 

@@ -7,7 +7,6 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/** Audit trail for sensitive admin actions on user accounts (role promotion, ban, unban). */
 @Entity
 @Table(name = "user_audit_log")
 @Data @Builder @NoArgsConstructor @AllArgsConstructor

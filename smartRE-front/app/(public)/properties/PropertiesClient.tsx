@@ -68,7 +68,7 @@ export default function PropertiesClient() {
     if (maxPrice) params.set('maxPrice', maxPrice)
     if (verifiedOnly) params.set('verifiedOnly', 'true')
     router.replace(`/properties${params.toString() ? `?${params.toString()}` : ''}`, { scroll: false })
-  }, [keyword, county, propertyType, listingType, minBedrooms, minPrice, maxPrice, verifiedOnly])
+  }, [router, keyword, county, propertyType, listingType, minBedrooms, minPrice, maxPrice, verifiedOnly])
 
   const clearAll = () => {
     setKeywordInput(''); setCountyInput(''); setPropertyType(''); setListingType('')

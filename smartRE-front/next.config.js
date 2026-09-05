@@ -1,14 +1,5 @@
-/** @type {import('next').NextConfig} */
 const { URL } = require('url')
 
-// next/image's optimizer fetches remote URLs *server-side* on our behalf, so
-// remotePatterns is effectively an allowlist of hosts our server is willing
-// to make outbound requests to. `hostname: '**'` turned that into an open
-// proxy (SSRF/DoS risk: anyone could ask our server to fetch+resize an
-// arbitrary URL). Only the hosts we actually serve property/document photos
-// from need to be listed: the API gateway (local-disk storage fallback in
-// dev, configurable via NEXT_PUBLIC_API_URL) and the S3 bucket used for
-// production uploads (see smartRE/.env S3_PUBLIC_BASE_URL / NEXT_PUBLIC_S3_PUBLIC_URL).
 function hostPattern(urlString, fallback) {
   try {
     const u = new URL(urlString)

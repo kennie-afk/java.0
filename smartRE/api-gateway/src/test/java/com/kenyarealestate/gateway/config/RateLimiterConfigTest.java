@@ -9,11 +9,6 @@ import reactor.test.StepVerifier;
 
 import java.net.InetSocketAddress;
 
-/**
- * Tests the rate-limiter key resolver: authenticated requests must be keyed
- * per-user (so one user can't be starved/boosted by others behind the same
- * IP), and unauthenticated requests must fall back to per-IP keying.
- */
 class RateLimiterConfigTest {
 
     private final KeyResolver resolver = new RateLimiterConfig().userKeyResolver();

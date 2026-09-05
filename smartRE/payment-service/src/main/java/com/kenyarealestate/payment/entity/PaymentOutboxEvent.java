@@ -7,12 +7,6 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * Transactional outbox row for a Kafka event derived from a payment state change.
- * Written in the SAME database transaction as the payment status update, so a Kafka
- * broker outage or transient publish failure can never silently lose the event —
- * {@code PaymentOutboxSweeper} retries anything still unpublished.
- */
 @Entity
 @Table(name = "payment_outbox_events")
 @Data

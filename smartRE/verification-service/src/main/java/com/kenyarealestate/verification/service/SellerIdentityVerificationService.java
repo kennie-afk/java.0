@@ -328,7 +328,7 @@ public class SellerIdentityVerificationService {
         doc.setAiSignatureDetected(req.getAiSignatureDetected());
         doc.setAiSealDetected(req.getAiSealDetected());
         doc.setAiScreeningNotes(req.getAiScreeningNotes());
-        doc.setExtractedIdNumber(req.getExtractedIdNumber()); // new
+        doc.setExtractedIdNumber(req.getExtractedIdNumber());
         doc.setAiScreenedAt(LocalDateTime.now());
 
         if (Boolean.TRUE.equals(req.getAiTamperDetected())) {

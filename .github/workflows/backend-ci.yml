@@ -22,6 +22,8 @@ jobs:
           - viewing-service
           - payment-service
           - review-service
+          - notification-service
+          - property-management-service
     steps:
       - uses: actions/checkout@v4
 

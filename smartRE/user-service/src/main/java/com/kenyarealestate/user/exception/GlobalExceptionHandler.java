@@ -47,9 +47,6 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, msg);
     }
 
-    // Anything that isn't a RuntimeException we deliberately threw (e.g. NullPointerException,
-    // a driver-level SQLException wrapper, IOException) is unexpected: log the real cause
-    // server-side but never leak its message to the client.
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String,Object>> unexpected(Exception e) {
         log.error("Unhandled exception", e);

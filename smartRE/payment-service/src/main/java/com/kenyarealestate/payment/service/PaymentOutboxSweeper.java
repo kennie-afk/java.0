@@ -10,13 +10,6 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 
-/**
- * Safety net for the payment-events outbox: republishes anything not yet acknowledged as
- * published by Kafka. The 5-second grace period avoids racing the synchronous best-effort
- * send that PaymentEventPublisher already attempts inline when the event is first recorded.
- * Rows with a very high attempt count are logged as an alert for manual investigation
- * (mirrors the DLT alerting pattern used on the consumer side in review-service).
- */
 @Slf4j
 @Component
 public class PaymentOutboxSweeper {

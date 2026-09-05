@@ -7,10 +7,6 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Mirrors verification-service's AuditService: records an immutable trail of sensitive
- * admin actions performed against user accounts (promotion, ban, unban).
- */
 @Service
 public class AuditService {
 

@@ -14,14 +14,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Backing store for the payment-events transactional outbox. {@link #recordPending}
- * deliberately does NOT use REQUIRES_NEW: it must participate in (and commit atomically
- * with) the caller's existing payment-status-update transaction, so the event record can
- * never exist without the state change it describes, or vice versa. The mark* methods run
- * in their own transaction since they are invoked from async Kafka callback threads /
- * the scheduled sweeper, after the original transaction has already committed.
- */
 @Slf4j
 @Service
 public class PaymentOutboxService {

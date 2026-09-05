@@ -84,20 +84,6 @@ public class RevenueService {
         return rev;
     }
 
-    /**
-     * Deliberately NOT @Transactional at this level. Every database mutation this method
-     * performs is delegated to a short, independently-committed REQUIRES_NEW transaction
-     * (RevenueAttemptPersister / ReceiptService), so:
-     *   1. the pessimistic lock on the payment row is only held for fast local
-     *      validation/state-transition work (lockValidateAndClaim), never across the
-     *      slow synchronous M-Pesa B2C HTTP call, and
-     *   2. a retried call (double-click, client timeout-and-retry, redelivered request)
-     *      can never trigger a second real B2C transfer: lockValidateAndClaim() atomically
-     *      claims the payout by moving the revenue row to PAYOUT_INITIATING under the
-     *      payment row lock, and any concurrent/retried caller that observes
-     *      PAYOUT_INITIATING/PAYOUT_INITIATED/PAYOUT_COMPLETED short-circuits instead of
-     *      calling B2C again.
-     */
     public RevenueResponse releaseEscrowWithPayout(UUID paymentId, UUID adminId,
                                                     String adminIp, ReleaseEscrowRequest req) {
 
@@ -124,9 +110,6 @@ public class RevenueService {
             log.warn("Duplicate escrow release request ignored for paymentId={} (revenue already {})",
                     paymentId, existing.getStatus());
 
-            // Reconcile: if the payout actually completed but the payment flag was never
-            // set (e.g. the process crashed between markInitiated and finalizeEscrowRelease
-            // on the original attempt), fix that up now rather than leaving it inconsistent.
             if (existing.getStatus() == RevenueStatus.PAYOUT_COMPLETED) {
                 revenueAttemptPersister.finalizeEscrowRelease(paymentId, adminId);
             }
@@ -179,9 +162,6 @@ public class RevenueService {
                 "B2C initiated. ConversationID=" + result.conversationId()
                         + " OriginatorConversationID=" + result.originatorConversationId());
 
-        // Flip the escrow flag immediately so the unreconciled window is as small as
-        // possible — everything after this point is best-effort follow-up, not a
-        // condition for whether the payout itself is considered "released".
         revenueAttemptPersister.finalizeEscrowRelease(paymentId, adminId);
 
         Payment payment = paymentRepo.findById(paymentId).orElseThrow();
@@ -314,13 +294,6 @@ public class RevenueService {
         });
     }
 
-    /**
-     * Handles the async result of a TransactionStatusQuery fired by B2cReconciliationJob for
-     * a payout stuck in PAYOUT_INITIATED with no primary B2C callback. Deliberately only acts
-     * on a clear "completed" signal — an inconclusive or failed status query is logged for
-     * manual review rather than auto-marking real money movement as failed, since a false
-     * PAYOUT_FAILED on a transfer that actually succeeded would be worse than staying stuck.
-     */
     @Transactional
     public void handleStatusQueryCallback(String queryConversationId, String transactionStatus, String rawPayload) {
         revenueRepo.findByStatusQueryConversationId(queryConversationId).ifPresent(revenue -> {

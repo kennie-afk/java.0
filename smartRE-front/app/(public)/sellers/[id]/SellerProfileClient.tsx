@@ -40,11 +40,11 @@ export default function SellerProfileClient() {
       else localStorage.removeItem(pendingKey)
     }).catch(() => localStorage.removeItem(pendingKey))
       .finally(() => setCheckingPending(false))
-  }, [id])
+  }, [id, pendingKey])
 
   useEffect(() => {
     if (hasAccess) { localStorage.removeItem(pendingKey); setPendingPayment(null) }
-  }, [hasAccess])
+  }, [hasAccess, pendingKey])
 
   const handleUnlock = async () => {
     if (!phoneNumber.trim()) { toast.error('Enter your M-Pesa phone number'); return }

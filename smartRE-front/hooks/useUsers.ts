@@ -18,9 +18,6 @@ export function useUsers() {
     refetchInterval: 15_000,
   })
 
-  // Role breakdown comes from the dedicated stats endpoint, not the current
-  // page's `content` — those counts must reflect all users, not just the
-  // ~20 currently loaded into view.
   const { data: roleStats } = useQuery({
     queryKey: queryKeys.userAdminStats,
     queryFn: () => userApi.adminStats(),

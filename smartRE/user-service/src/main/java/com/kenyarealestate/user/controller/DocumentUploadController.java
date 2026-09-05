@@ -172,18 +172,12 @@ public class DocumentUploadController {
         int marker = path.indexOf("/files/");
         String key = path.substring(marker + "/files/".length());
 
-        // Service-to-service calls (e.g. verification-service hashing a document) come in on
-        // /internal/files/** and are already authenticated by InternalSecretFilter, not by a
-        // user JWT — skip the per-user ownership check for that path.
         boolean isInternalCall = request.getRequestURI().contains("/internal/files/");
 
-        // Listing/profile images are intentionally public (rendered on public pages without auth).
         boolean isPublicCategory = key.startsWith(PUBLIC_PROPERTY_IMAGE_PREFIX)
                 || key.startsWith(PUBLIC_PROFILE_IMAGE_PREFIX);
 
         if (!isInternalCall && !isPublicCategory && !documentMetadataService.canAccess(key, auth)) {
-            // 404 rather than 403 so the endpoint doesn't confirm/deny the existence of a
-            // given document to a caller who isn't entitled to see it either way.
             return ResponseEntity.notFound().build();
         }
 

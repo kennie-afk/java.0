@@ -136,7 +136,6 @@ class PaymentServiceTest {
         org.junit.jupiter.api.Assertions.assertTrue(result);
     }
 
-    // ── handleCallback: idempotency / duplicate-callback handling ───────────
 
     private MpesaCallbackRequest callbackRequest(String checkoutId, int resultCode, String receipt, String amount, String phone) {
         MpesaCallbackRequest req = new MpesaCallbackRequest();
@@ -199,8 +198,6 @@ class PaymentServiceTest {
         MpesaCallbackRequest req = callbackRequest(checkoutId, 0, "REC123", "1000", "254708374149");
         paymentService.handleCallback(req, "{}");
 
-        // Duplicate callback on an already-COMPLETED payment must not re-trigger the
-        // review-unlock event or a second receipt.
         verify(eventPublisher, never()).recordAndPublish(any());
         verify(receiptService, never()).issueReceipt(any(), any(), any(), anyString(), anyString(), any());
     }
@@ -232,7 +229,6 @@ class PaymentServiceTest {
                 .mpesaCheckoutRequestId(checkoutId).build();
         when(repo.findByMpesaCheckoutRequestIdForUpdate(checkoutId)).thenReturn(Optional.of(stkPushed));
 
-        // Callback reports a wildly different amount than what was requested.
         MpesaCallbackRequest req = callbackRequest(checkoutId, 0, "REC123", "5", "254708374149");
         paymentService.handleCallback(req, "{}");
 
@@ -251,7 +247,6 @@ class PaymentServiceTest {
         verify(repo, never()).save(any());
     }
 
-    // ── reconcileOne: STK status-query reconciliation ───────────────────────
 
     @Test
     void reconcileOne_succeededQuery_marksCompletedAndPublishesEvent() {

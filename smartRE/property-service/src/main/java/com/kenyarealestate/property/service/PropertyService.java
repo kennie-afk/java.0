@@ -135,10 +135,6 @@ public class PropertyService {
         evictSearchCache();
     }
 
-    // Cross-seller image reuse is a strong fraud signal (stolen photos, or the same bad actor
-    // running multiple fake listings) — the same seller reusing their own photos across a
-    // re-listing is legitimate and explicitly excluded. Re-syncs the full hash set on every
-    // create/update so it never drifts from the property's current imageUrls.
     private void syncImageHashes(UUID sellerId, UUID propertyId, List<String> imageUrls) {
         if (imageUrls == null || imageUrls.isEmpty()) return;
         List<PropertyImageHash> toSave = new ArrayList<>();
@@ -149,9 +145,6 @@ public class PropertyService {
             imageHashRepo.findFirstByImageHashAndSellerIdNot(hash, sellerId).ifPresent(existing -> {
                 log.warn("ALERT: sellerId={} attempted to use a photo already used by sellerId={} on propertyId={}",
                         sellerId, existing.getSellerId(), existing.getPropertyId());
-                // Runs in its own REQUIRES_NEW transaction (see PropertyAuditService), so the
-                // fraud attempt is recorded permanently even though we're about to roll back
-                // this create/update by throwing.
                 auditService.log(propertyId, "DUPLICATE_PHOTO_FRAUD_DETECTED", null, null,
                         sellerId, "SELLER", null,
                         "Attempted to reuse a photo already used by sellerId=" + existing.getSellerId()
@@ -188,9 +181,6 @@ public class PropertyService {
                 && (callerId == null || !callerId.equals(p.getSellerId()))) {
             throw new NotFoundException("Property not found");
         }
-        // Debounce: only count one view per viewer (authenticated user, or IP if anonymous) per
-        // property within the configured window, so the endpoint can't be trivially hammered
-        // (by an attacker, or by the property's own seller) to inflate its view count.
         String viewerKey = callerId != null ? "u:" + callerId : "ip:" + (viewerIp != null ? viewerIp : "unknown");
         if (tryClaimView(id, viewerKey)) {
             p.setViewCount(p.getViewCount() + 1);
@@ -212,8 +202,6 @@ public class PropertyService {
                     .setIfAbsent(key, "1", Duration.ofMinutes(viewDebounceWindowMinutes));
             return Boolean.TRUE.equals(firstViewInWindow);
         } catch (Exception e) {
-            // Fail closed: if Redis is unavailable we'd rather under-count views than let the
-            // debounce be silently bypassed.
             log.warn("View debounce check failed, not counting this view: {}", e.getMessage());
             return false;
         }

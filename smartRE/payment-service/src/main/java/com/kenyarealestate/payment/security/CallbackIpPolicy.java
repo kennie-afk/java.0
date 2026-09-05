@@ -6,19 +6,6 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-/**
- * Decides whether an M-Pesa callback request's source IP is acceptable.
- *
- * Behaviour:
- *  - If mpesa.callback-allowed-ips is set, the caller IP must match it (delegates to
- *    {@link CallbackSecurity#ipAllowed}).
- *  - If it is blank, this used to silently allow ANY IP (the only real protection being
- *    the secret embedded in the callback URL path, which can leak via proxy/access logs).
- *    Now it fails CLOSED by default: the request is rejected unless we're running under
- *    the "local" or "dev" Spring profile, or the operator has explicitly opted into
- *    insecure mode via mpesa.callback-insecure-allow-all-ips=true (documented as
- *    local-development-only in .env.example).
- */
 @Slf4j
 @Component
 public class CallbackIpPolicy {

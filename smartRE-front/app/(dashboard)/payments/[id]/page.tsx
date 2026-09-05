@@ -37,9 +37,11 @@ function PaymentDetail() {
     }).finally(() => setLoad(false))
   }, [id])
 
+  const paymentStatus = payment?.status
+
   useEffect(() => {
-    if (!id || !payment) return
-    if (!['PENDING', 'STK_PUSHED'].includes(payment.status)) return
+    if (!id || !paymentStatus) return
+    if (!['PENDING', 'STK_PUSHED'].includes(paymentStatus)) return
     const interval = setInterval(() => {
       Promise.allSettled([paymentApi.getById(id), paymentApi.audit(id), paymentApi.receipt(id)]).then(([p, a, r]) => {
         if (p.status === 'fulfilled') setPay(p.value)
@@ -48,7 +50,7 @@ function PaymentDetail() {
       })
     }, 4000)
     return () => clearInterval(interval)
-  }, [id, payment?.status])
+  }, [id, paymentStatus])
 
   if (loading) return <PageLoader/>
   if (!payment) {

@@ -5,11 +5,6 @@ import { reportError } from '@/lib/errorLogger'
 import { Card } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 
-// Segment-level error boundary. Because it lives inside app/(dashboard)/ but
-// outside any individual page, a crash in a single dashboard page renders
-// this in place of that page's content while app/(dashboard)/layout.tsx
-// (Sidebar/Topbar) keeps rendering around it — instead of the crash bubbling
-// all the way up to the root app/error.tsx and blanking the whole app shell.
 export default function DashboardError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     reportError(error, 'react-error-boundary', { boundary: 'dashboard' })

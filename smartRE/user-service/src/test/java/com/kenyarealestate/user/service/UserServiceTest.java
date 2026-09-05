@@ -92,7 +92,6 @@ class UserServiceTest {
         lenient().when(redis.opsForValue()).thenReturn(valueOperations);
     }
 
-    // ---------- register ----------
 
     @Test
     void register_bootstrapsFirstAdmin_whenNoneExists() {
@@ -159,7 +158,6 @@ class UserServiceTest {
         verify(repo, never()).save(any());
     }
 
-    // ---------- login ----------
 
     @Test
     void login_rejectsWhenLockedOut() {
@@ -238,7 +236,6 @@ class UserServiceTest {
         verify(loginAttemptService, never()).recordFailure(anyString());
     }
 
-    // ---------- promoteToAdmin (guard + audit) ----------
 
     @Test
     void promoteToAdmin_setsRoleToAdmin_whenCallerIsSuperAdmin() {
@@ -288,7 +285,6 @@ class UserServiceTest {
         assertThrows(NotFoundException.class, () -> userService.promoteToAdmin(missingId, ADMIN_EMAIL));
     }
 
-    // ---------- getById (IDOR / redaction) ----------
 
     @Test
     void getById_returnsFullDetails_whenViewingOwnProfile() {
@@ -367,7 +363,6 @@ class UserServiceTest {
         assertThrows(NotFoundException.class, () -> userService.getById(missingId, null));
     }
 
-    // ---------- changePassword / resetPassword: session invalidation (item #1) ----------
 
     @Test
     void changePassword_succeedsWithCorrectCurrentPassword_andInvalidatesExistingTokens() {
@@ -446,7 +441,6 @@ class UserServiceTest {
         }
     }
 
-    // ---------- ban / unban (transactional side-effect ordering + audit) ----------
 
     @Test
     void ban_deactivatesUser_andRunsSideEffectsImmediately_whenNoTransactionActive() {
@@ -460,8 +454,6 @@ class UserServiceTest {
 
         assertFalse(u.isActive());
         verify(repo).save(u);
-        // Outside of an active Spring transaction (as in this unit test), the side effects run
-        // synchronously rather than being silently dropped.
         verify(valueOperations).set("user:banned:" + u.getId(), "true");
         verify(propertyServiceClient).suspendAllListingsForSeller(u.getId(), "Seller account banned by admin");
         verify(auditService).log(u.getId(), "BANNED", admin.getId(), "ADMIN", "ACTIVE", "INACTIVE", null);

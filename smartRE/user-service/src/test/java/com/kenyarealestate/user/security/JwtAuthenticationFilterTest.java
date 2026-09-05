@@ -25,11 +25,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-/**
- * Directly exercises JwtAuthenticationFilter (bypassing the rest of the Spring Security chain)
- * to prove the blacklist and "tokens valid after" checks (added to close the JWT-revocation
- * gap) actually reject requests, on top of the pre-existing happy/invalid-token paths.
- */
 @ExtendWith(MockitoExtension.class)
 class JwtAuthenticationFilterTest {
 
@@ -73,7 +68,7 @@ class JwtAuthenticationFilterTest {
 
         assertNotNull(SecurityContextHolder.getContext().getAuthentication());
         assertEquals("jane@smartre.co.ke", SecurityContextHolder.getContext().getAuthentication().getName());
-        assertEquals(200, response.getStatus()); // MockFilterChain doesn't set a status; default is 200 (untouched)
+        assertEquals(200, response.getStatus());
     }
 
     @Test
@@ -121,8 +116,6 @@ class JwtAuthenticationFilterTest {
 
         assertNull(SecurityContextHolder.getContext().getAuthentication());
         verifyNoInteractions(tokenBlacklistService);
-        // Falls through to the chain so permitAll endpoints keep working unauthenticated;
-        // Spring Security's authorization rules handle rejecting protected endpoints.
         assertEquals(200, response.getStatus());
     }
 

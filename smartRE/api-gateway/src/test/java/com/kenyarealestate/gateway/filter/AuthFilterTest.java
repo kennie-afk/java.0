@@ -23,11 +23,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-/**
- * Behavioral tests for AuthFilter: token extraction/validation, the
- * blacklist/ban/password-change-revocation checks backed by Redis, and the
- * fail-closed behavior when Redis itself is unavailable or too slow.
- */
 class AuthFilterTest {
 
     private JwtUtil jwtUtil;
@@ -55,7 +50,6 @@ class AuthFilterTest {
         authFilter = new AuthFilter(jwtUtil, redis);
         ReflectionTestUtils.setField(authFilter, "signingSecret", "unit-test-signing-secret");
 
-        // Sane defaults: valid, non-blacklisted, non-banned token, issued now.
         when(jwtUtil.isValid(TOKEN)).thenReturn(true);
         when(jwtUtil.extractUserId(TOKEN)).thenReturn(USER_ID);
         when(jwtUtil.extractIssuedAtMillis(TOKEN)).thenReturn(System.currentTimeMillis());
@@ -128,7 +122,6 @@ class AuthFilterTest {
     void tokenIssuedBeforePasswordChange_isDeniedWithUnauthorized() {
         long issuedAt = System.currentTimeMillis() - Duration.ofHours(1).toMillis();
         when(jwtUtil.extractIssuedAtMillis(TOKEN)).thenReturn(issuedAt);
-        // "tokens valid after" timestamp is newer than the token's issued-at -> revoked.
         when(valueOps.get("user:tokens-valid-after:" + USER_ID))
                 .thenReturn(Mono.just(String.valueOf(System.currentTimeMillis())));
         ServerWebExchange exchange = exchangeWithBearerToken(TOKEN);
@@ -157,10 +150,6 @@ class AuthFilterTest {
 
     @Test
     void redisTimeout_failsClosedWithServiceUnavailable() {
-        // Simulate a Redis outage: the calls never emit, so the .timeout() on the
-        // Mono.zip in AuthFilter must trip and the request must be denied - NOT
-        // forwarded downstream unauthenticated (see the fail-closed comment in
-        // AuthFilter for the reasoning).
         when(redis.hasKey(anyString())).thenReturn(Mono.never());
         when(valueOps.get(anyString())).thenReturn(Mono.never());
         ServerWebExchange exchange = exchangeWithBearerToken(TOKEN);

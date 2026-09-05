@@ -7,7 +7,6 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/** Tracks who uploaded each stored document, so serveFile() can enforce ownership. */
 @Entity
 @Table(name = "uploaded_documents")
 @Data @Builder @NoArgsConstructor @AllArgsConstructor

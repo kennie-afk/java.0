@@ -19,12 +19,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-/**
- * Covers the register/login/forgot-password/reset-password/logout flows at the controller
- * level: that the auth cookie is set/cleared correctly and that logout actually blacklists
- * the token (the other half of the JWT-revocation fix — UserService's unit tests cover the
- * business-rule side of these flows).
- */
 @ExtendWith(MockitoExtension.class)
 class AuthControllerTest {
 

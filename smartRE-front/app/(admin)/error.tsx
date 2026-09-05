@@ -5,10 +5,6 @@ import { reportError } from '@/lib/errorLogger'
 import { Card } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 
-// Segment-level error boundary for the admin area — see the matching
-// app/(dashboard)/error.tsx for why this lives here rather than relying on
-// the root app/error.tsx: it keeps app/(admin)/layout.tsx's Sidebar/Topbar
-// mounted around the failure instead of losing the whole admin chrome.
 export default function AdminError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     reportError(error, 'react-error-boundary', { boundary: 'admin' })

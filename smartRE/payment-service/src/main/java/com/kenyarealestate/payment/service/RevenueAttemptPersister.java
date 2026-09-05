@@ -20,17 +20,6 @@ import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Owns every short, lock-scoped database transition of the escrow-release / payout
- * state machine. Each method here is its own REQUIRES_NEW transaction so that:
- *   - the pessimistic row lock on `payments` is only ever held for fast, local
- *     validation/state-transition work, never across a slow synchronous M-Pesa
- *     B2C HTTP call, and
- *   - the "claim" of a payout attempt (PENDING/FAILED -> PAYOUT_INITIATING) is
- *     committed durably and atomically with that same lock, so a concurrent or
- *     retried release call can never slip through and trigger a second real
- *     B2C transfer for the same payment.
- */
 @Slf4j
 @Service
 public class RevenueAttemptPersister {
@@ -59,17 +48,6 @@ public class RevenueAttemptPersister {
             String phoneNumber) {
     }
 
-    /**
-     * Locks the payment row (PESSIMISTIC_WRITE), validates it's payable, and atomically
-     * claims (or re-claims, after a prior failure) the payout attempt by moving the
-     * revenue row to PAYOUT_INITIATING — all within one short transaction. The lock is
-     * released as soon as this method returns (transaction commits), i.e. BEFORE any
-     * external M-Pesa call is made.
-     *
-     * If a payout for this payment is already in flight or done (PAYOUT_INITIATING,
-     * PAYOUT_INITIATED or PAYOUT_COMPLETED), returns shortCircuited=true and the caller
-     * MUST NOT call B2C again.
-     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public PreparedRelease lockValidateAndClaim(UUID paymentId, BigDecimal commissionPct,
                                                  String payoutMethod, String payeeIdentifier,
@@ -111,7 +89,6 @@ public class RevenueAttemptPersister {
                     .status(RevenueStatus.PAYOUT_INITIATING)
                     .build();
         } else {
-            // Previous attempt was PENDING or PAYOUT_FAILED -- safe to reclaim and retry.
             revenue.setStatus(RevenueStatus.PAYOUT_INITIATING);
             revenue.setPayoutMethod(payoutMethod);
             revenue.setPayoutIdentifier(payeeIdentifier);
@@ -144,11 +121,6 @@ public class RevenueAttemptPersister {
         return revenueRepo.save(r);
     }
 
-    /**
-     * Flips the payment's escrowReleased flag in its own short, locked transaction.
-     * Called immediately after markInitiated() succeeds so the "unreconciled" window
-     * (B2C accepted but payment not yet flagged) is as small as possible.
-     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void finalizeEscrowRelease(UUID paymentId, UUID adminId) {
         Payment payment = paymentRepo.findByIdForUpdate(paymentId)

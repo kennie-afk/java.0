@@ -3,10 +3,6 @@ import { useEffect, useRef } from 'react'
 import { useAuthStore } from '@/lib/store'
 import { validateSession } from '@/lib/api'
 
-// The persisted `sre_user` in localStorage never expires on its own — it only
-// gets cleared on explicit logout or a live 401 from an interactive request.
-// This quietly checks it against the real session once per app load so stale
-// logins (expired/revoked/banned) don't keep rendering as "logged in" forever.
 export default function SessionValidator() {
   const user = useAuthStore(s => s.user)
   const hasHydrated = useAuthStore(s => s.hasHydrated)

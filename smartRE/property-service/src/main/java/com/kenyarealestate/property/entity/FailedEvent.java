@@ -7,12 +7,6 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * A Kafka event that exhausted all retries and landed in the dead-letter topic. Previously these
- * were only ever logged (log.error), so a poison verification event could silently stall a
- * seller's listing activation forever with no queryable record. Persisting them here lets an
- * operator (or a future admin endpoint) find and manually replay/resolve them.
- */
 @Entity
 @Table(name = "failed_events")
 @Data @Builder @NoArgsConstructor @AllArgsConstructor

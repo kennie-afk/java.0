@@ -12,10 +12,6 @@ export function useAdminOverview() {
     queries: [
       { queryKey: queryKeys.revenueSummary, queryFn: () => revenueApi.summary(), refetchInterval: 15_000 },
       { queryKey: queryKeys.revenueAll, queryFn: () => revenueApi.all(), refetchInterval: 15_000 },
-      // This feeds the overview page's global quick-search box (jump to any
-      // user by name/email), not a paginated list — it intentionally pulls a
-      // large batch rather than paging through results. The dedicated Users
-      // management page (hooks/useUsers.ts) paginates for real instead.
       { queryKey: queryKeys.users, queryFn: () => userApi.allAdmin(0, 500), refetchInterval: 15_000 },
       { queryKey: queryKeys.propertiesForOverview, queryFn: () => propertyApi.search({ size: 500 }), refetchInterval: 15_000 },
       { queryKey: queryKeys.identityAdminQueue('HUMAN_REVIEW'), queryFn: () => verifApi.idAdminQueue(), refetchInterval: 15_000 },

@@ -25,12 +25,6 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Exercises the real SecurityConfig authorization rules end-to-end through MockMvc (JWT filter,
- * internal-secret filter, and the authorizeHttpRequests() matchers included) rather than just
- * asserting on the declarative config, so a regression in the matcher order/roles actually fails
- * a test.
- */
 @WebMvcTest(controllers = {UserController.class, AuthController.class})
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class, InternalSecretFilter.class, JwtUtil.class})
 @TestPropertySource(properties = {
@@ -104,8 +98,6 @@ class SecurityConfigTest {
 
     @Test
     void authRegisterAndLogin_arePubliclyReachable_withoutAuthentication() throws Exception {
-        // A malformed/empty body still proves the request reached the controller (400 from
-        // bean validation) rather than being blocked by the security filter chain (401/403).
         mockMvc.perform(post("/api/auth/register").contentType("application/json").content("{}"))
                 .andExpect(status().isBadRequest());
 

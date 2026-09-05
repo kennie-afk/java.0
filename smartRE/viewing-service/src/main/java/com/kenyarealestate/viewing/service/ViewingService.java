@@ -59,9 +59,6 @@ public class ViewingService {
         if (actualSellerId != null && !actualSellerId.equals(req.getSellerId())) {
             throw new ForbiddenException("Seller does not match the property's registered owner");
         }
-        // Fast-fail pre-check for a friendly error message. This is inherently a check-then-act
-        // race under concurrent requests — the real guard against double-booking is the partial
-        // unique index added in V5__prevent_double_booking.sql, enforced below at insert time.
         repo.findFirstByPropertyIdAndBuyerIdAndStatusInOrderByCreatedAtDesc(
                 req.getPropertyId(), buyerId, ACTIVE_STATUSES).ifPresent(existing -> {
             throw new ConflictException("You already have a viewing scheduled for this property (status: "
@@ -152,9 +149,6 @@ public class ViewingService {
         if (v.isBuyerConfirmed()) {
             v.setStatus(ViewingStatus.CONFIRMED);
         }
-        // save()/flush() through the entity (rather than a bulk @Modifying query) so @Version
-        // is actually honored: a concurrent conflicting update raises
-        // ObjectOptimisticLockingFailureException, mapped to 409 by GlobalExceptionHandler.
         Viewing saved = repo.saveAndFlush(v);
         audit(id, "SELLER_CONFIRMED", prevStatus, saved.getStatus().name(),
                 sellerId, "SELLER", clientIp, "Seller confirmed viewing");

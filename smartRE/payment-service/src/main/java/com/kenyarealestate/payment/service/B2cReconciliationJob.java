@@ -21,10 +21,6 @@ public class B2cReconciliationJob {
     private final RevenueService revenueService;
 
     private static final int STUCK_GRACE_MINUTES = 10;
-    // Don't re-fire a TransactionStatusQuery more often than this, even though the sweep
-    // itself runs every 5 minutes — Safaricom's answer arrives asynchronously via callback,
-    // so hammering the query endpoint on every sweep tick wouldn't get us an answer any
-    // faster and would just spam Safaricom's API.
     private static final int MIN_MINUTES_BETWEEN_QUERIES = 4;
 
     public B2cReconciliationJob(CompanyRevenueRepository revenueRepo, PaymentAuditService auditService,

@@ -11,11 +11,6 @@ import java.util.Date;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Tests JwtUtil's parsing/validation logic in isolation from the gateway
- * filter chain: valid tokens, tampered/garbage tokens, expired tokens, and
- * claim extraction (email, role, userId, issuedAt).
- */
 class JwtUtilTest {
 
     private static final String SECRET = "unit-test-jwt-secret-must-be-at-least-256-bits-long-for-hs256!!";

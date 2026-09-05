@@ -15,12 +15,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * Publishes PAYMENT_COMPLETED to Kafka via a transactional outbox: {@link #recordAndPublish}
- * persists the event (in the caller's ongoing DB transaction, see PaymentOutboxService) before
- * attempting delivery, so a Kafka send failure never silently loses the review-unlock signal —
- * PaymentOutboxSweeper retries anything still unpublished.
- */
 @Slf4j
 @Component
 public class PaymentEventPublisher {
@@ -52,13 +46,6 @@ public class PaymentEventPublisher {
                 .build();
     }
 
-    /**
-     * Records the event in the outbox (joins the caller's current transaction — call this
-     * from within the same @Transactional method that flips the payment to COMPLETED) and
-     * makes a best-effort immediate publish attempt. Even if that immediate attempt fails
-     * or this process crashes before it completes, the outbox row is already durably
-     * committed and PaymentOutboxSweeper will retry it.
-     */
     public UUID recordAndPublish(Payment payment) {
         Events.PaymentCompletedEvent event = buildPaymentCompletedEvent(payment);
         PaymentOutboxEvent outbox = outboxService.recordPending(payment.getId(), "PAYMENT_COMPLETED", topic, event);
@@ -66,7 +53,6 @@ public class PaymentEventPublisher {
         return outbox.getId();
     }
 
-    /** Used both for the initial best-effort send and for sweeper-driven retries. */
     public void sendToKafka(UUID outboxEventId, Events.PaymentCompletedEvent event) {
         ProducerRecord<String, Object> record = new ProducerRecord<>(topic, event.getPaymentId().toString(), event);
         String correlationId = MDC.get("traceId");

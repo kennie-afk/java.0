@@ -156,14 +156,6 @@ public class MpesaB2cClient {
     public record StatusQueryResult(boolean accepted, String queryConversationId,
                                      String queryOriginatorConversationId, String description) {}
 
-    /**
-     * Fires a TransactionStatusQuery for a payout that never received its result callback.
-     * Like B2C payment itself, this is asynchronous: a ResponseCode of 0 here only means
-     * Safaricom accepted the query for processing — the actual answer arrives later as a
-     * callback to {@code mpesa.b2c-status-callback-url}, correlated back to the original
-     * payout via the query's own OriginatorConversationID (see
-     * CompanyRevenue.statusQueryConversationId / RevenueController's status-callback endpoint).
-     */
     public StatusQueryResult queryTransactionStatus(String originalOriginatorConversationId, UUID revenueId) {
         try {
             String token = getAccessToken();

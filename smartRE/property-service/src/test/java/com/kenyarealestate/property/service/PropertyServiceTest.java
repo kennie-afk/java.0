@@ -73,8 +73,6 @@ class PropertyServiceTest {
                 .viewCount(0)
                 .build();
 
-        // Constructed manually (rather than @InjectMocks) so the @Value-injected fields
-        // (detailTtl/searchTtl/viewDebounceWindowMinutes) have real defaults instead of 0.
         propertyService = new PropertyService(repo, verifClient, redis, auditService, imageHashRepo, imageHashService);
         setField("detailTtl", 300L);
         setField("searchTtl", 120L);
@@ -247,7 +245,6 @@ class PropertyServiceTest {
         assertThrows(NotFoundException.class, () -> propertyService.adminSuspend(propertyId, adminId));
     }
 
-    // ---- search() ----------------------------------------------------------------------
 
     @Test
     void search_normalizesEnumFiltersToUppercase_andMapsResultsToResponses() {
@@ -293,7 +290,6 @@ class PropertyServiceTest {
                 eq(2), eq("westlands"), eq(true), any(Pageable.class));
     }
 
-    // ---- activateAllForSeller() ---------------------------------------------------------
 
     @Test
     void activateAllForSeller_activatesEachListingAccordingToItsOwnOwnershipStatus() {
@@ -328,7 +324,6 @@ class PropertyServiceTest {
         verify(auditService, never()).log(any(), eq("IDENTITY_VERIFIED_ACTIVATION"), any(), any(), any(), any(), any(), any());
     }
 
-    // ---- duplicate-photo fraud check (syncImageHashes via create/update) ----------------
 
     @Test
     void create_blocksAndAudits_whenPhotoAlreadyUsedByAnotherSeller() {
@@ -403,7 +398,6 @@ class PropertyServiceTest {
         verify(imageHashRepo, never()).findFirstByImageHashAndSellerIdNot(any(), any());
     }
 
-    // ---- getById() view-count debounce ---------------------------------------------------
 
     @Test
     void getById_incrementsViewCount_onlyOncePerViewerWithinDebounceWindow() {

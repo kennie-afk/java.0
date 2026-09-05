@@ -11,15 +11,6 @@ import reactor.core.publisher.Mono;
 import java.time.Instant;
 import java.util.Map;
 
-/**
- * Local target for the CircuitBreaker gateway filter's fallbackUri (see
- * application.yaml route definitions, e.g. "forward:/fallback/user-service").
- * Reached when a downstream service's circuit breaker is open or a call to it
- * times out/fails past the configured threshold. Returns a clean, uniform 503
- * instead of letting the caller see a hung connection or a raw connection-reset
- * error, and gives the Grafana "Circuit Breakers Open" panel / CircuitBreakerOpen
- * alert something real to reflect.
- */
 @Slf4j
 @RestController
 public class FallbackController {

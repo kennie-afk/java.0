@@ -88,10 +88,6 @@ public class AgentApplicationService {
         return toResponse(repo.save(application));
     }
 
-    // Mirrors DocumentAnalysisService's local-file/S3 URL handling in verification-service:
-    // local-disk URLs point at this container's own public-facing host and aren't reachable
-    // from inside the container network, so read the file straight off disk instead. S3 URLs
-    // are genuinely internet-reachable and can be fetched directly.
     private String computeSha256FromUrl(String documentUrl) {
         try {
             int idx = documentUrl.indexOf("/api/documents/files/");

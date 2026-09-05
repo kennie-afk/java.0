@@ -252,11 +252,6 @@ public class UserService {
         }
     }
 
-    /**
-     * Only the (single, undeletable) super admin may mint new admins. This closes the gap where
-     * any ordinary ADMIN could promote arbitrary users to ADMIN, bypassing the "admin
-     * registration is closed after the first admin" rule enforced in register().
-     */
     public UserResponse promoteToAdmin(UUID id, String callerEmail) {
         User caller = repo.findByEmail(callerEmail)
                 .orElseThrow(() -> new ForbiddenException("Caller not found"));
@@ -284,10 +279,6 @@ public class UserService {
         auditService.log(id, "BANNED", caller != null ? caller.getId() : null, "ADMIN",
                 "ACTIVE", "INACTIVE", null);
 
-        // The Redis flag and the downstream property-service call are side effects that must
-        // never fire unless the ban itself actually commits — otherwise a rolled-back
-        // transaction (e.g. a later validation failure) would leave Redis/property-service
-        // believing the user is banned while the DB says they're still active.
         runAfterCommitOrNow(() -> {
             redis.opsForValue().set(BANNED_USER_PREFIX + id, "true");
             propertyServiceClient.suspendAllListingsForSeller(id, "Seller account banned by admin");
@@ -307,11 +298,6 @@ public class UserService {
         return resp;
     }
 
-    /**
-     * Runs the given side effect after the current transaction commits, so it can never run
-     * following a rollback. Falls back to running immediately when there's no active
-     * transaction synchronization (e.g. plain unit tests invoking the service directly).
-     */
     private void runAfterCommitOrNow(Runnable action) {
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {

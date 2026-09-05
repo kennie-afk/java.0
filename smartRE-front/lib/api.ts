@@ -60,9 +60,6 @@ export const authApi = {
   resetPassword:  (token:string, newPassword:string) => po<void>('/api/auth/reset-password', { token, newPassword }),
 }
 
-// Background revalidation of the persisted local session against the real
-// server-side one (cookie expiry, revocation, ban) — deliberately bypasses
-// the loud 401 toast/redirect since this runs unprompted on every page load.
 export const validateSession = () =>
   api.get('/api/users/me', { silentAuthCheck: true } as object)
 

@@ -22,11 +22,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-/**
- * Covers the fraud-strike counter and the permanent-ban threshold, including the downstream
- * effects (Redis flag + property-service suspension + audit log) that fire once a seller
- * crosses max-fraud-strikes.
- */
 @ExtendWith(MockitoExtension.class)
 class FraudFlagServiceTest {
 

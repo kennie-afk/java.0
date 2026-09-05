@@ -14,13 +14,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-/**
- * Central exception-to-HTTP-status mapping. Every branch here exists to fix a real gap found in
- * audit: previously *every* RuntimeException (not-found, access-denied, bad-input, DB constraint
- * violations) collapsed to a single 400 response, and DB/driver exception messages were echoed
- * back to the client verbatim. Specific exception types now get specific, correct status codes,
- * and anything that could carry internal/DB detail gets a safe, generic message instead.
- */
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -52,7 +45,6 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({DataIntegrityViolationException.class, ObjectOptimisticLockingFailureException.class})
     public ResponseEntity<Map<String, Object>> dataConflict(Exception e) {
-        // Never echo raw SQL/constraint text back to the client — log it for operators only.
         log.warn("Data integrity/concurrency conflict: {}", e.getMessage());
         return build(HttpStatus.CONFLICT, "This request conflicts with existing data. Please refresh and try again.");
     }

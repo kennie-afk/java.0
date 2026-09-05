@@ -20,10 +20,6 @@ const extOf = (url: string) => {
 
 const filenameFor = (doc: DocThumb) => `${(doc.label || 'document').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.${extOf(doc.url)}`
 
-// `doc.label` is currently always a fixed backend enum (documentCategory), so
-// this is defense-in-depth rather than a live exploit — but printDocument()
-// interpolates it into HTML via document.write, so it must never be trusted
-// as pre-sanitized. Escape it the same way we would any user-controlled string.
 const escapeHtml = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 
@@ -56,8 +52,6 @@ async function printDocument(doc: DocThumb) {
     if (!win) { toast.error('Pop-up blocked — allow pop-ups to print'); return }
     const isPdfDoc = isPdf(doc.url)
     const safeTitle = escapeHtml(doc.label || 'Document')
-    // blobUrl comes from our own URL.createObjectURL() call above, not from
-    // any user input, so it's safe to interpolate as an attribute value.
     win.document.write(`<!doctype html><html><head><title>${safeTitle}</title><style>
       html,body{margin:0;height:100%;background:#525659}
       img{display:block;max-width:100%;max-height:100vh;margin:0 auto;object-fit:contain}
