@@ -6,7 +6,7 @@ ORG="${ORG:-Green Acres Cooperative}"
 EMAIL="${EMAIL:-demo@smartseason.local}"
 PASSWORD="${PASSWORD:-a-strong-demo-passphrase}"
 
-say() { printf '%s\n' "$*"; }
+say() { printf '%s\n' "$*" >&2; }
 field() { python3 -c "import json,sys;print(json.load(sys.stdin).get('$1',''))" 2>/dev/null; }
 
 say "Seeding SmartSeason demo data against $GATEWAY"

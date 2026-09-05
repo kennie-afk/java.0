@@ -25,3 +25,13 @@ __pycache__/
 **/.mcp.json
 .cursor/
 .aider*
+
+# Personal documents - contain contact details, never publish
+*CV*.pdf
+*CV*.docx
+*Resume*.pdf
+*Resume*.docx
+documents/
+
+# Reference material we did not author - not ours to publish
+/*.pdf
