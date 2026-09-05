@@ -16,6 +16,9 @@ node_modules/
 build/
 .gradle/
 .m2-cache/
+__pycache__/
+*.pyc
+.build-logs/
 
 # Local editor and assistant tooling — never published
 .mcp.json

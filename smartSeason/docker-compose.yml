@@ -1,0 +1,503 @@
+name: smartseason
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-service-env: &service-env
+  SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+  SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+  KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+  EVENTS_ENABLED: ${EVENTS_ENABLED:-true}
+  JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+  JWT_ISSUER: ${JWT_ISSUER:-smartseason-identity}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/docker/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    logging: *default-logging
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redpanda:
+    image: redpandadata/redpanda:v24.2.8
+    restart: unless-stopped
+    logging: *default-logging
+    command:
+      - redpanda
+      - start
+      - --smp=1
+      - --overprovisioned
+      - --node-id=0
+      - --kafka-addr=PLAINTEXT://0.0.0.0:9092,EXTERNAL://0.0.0.0:19092
+      - --advertise-kafka-addr=PLAINTEXT://redpanda:9092,EXTERNAL://localhost:19092
+    ports:
+      - "${REDPANDA_PORT:-19092}:19092"
+    volumes:
+      - redpanda-data:/var/lib/redpanda/data
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy:.*true'"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["observability"]
+    volumes:
+      - ./infra/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+
+  grafana:
+    image: grafana/grafana:11.3.1
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["observability"]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+
+  api-gateway:
+    build: ./apps/api-gateway
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      <<: *service-env
+      REDIS_HOST: redis
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  web:
+    build: ./apps/web
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      GATEWAY_URL: http://api-gateway:8080
+      NODE_ENV: production
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      - api-gateway
+
+  identity-service:
+    build: ./services/identity-service
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["core", "all"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/identity_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  farm-service:
+    build: ./services/farm-service
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["core", "all"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/farm_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  season-service:
+    build: ./services/season-service
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["core", "all"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/season_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  agronomy-service:
+    build: ./services/agronomy-service
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["core", "all"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/agronomy_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  weather-service:
+    build: ./services/weather-service
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["core", "all"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/weather_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  device-registry-service:
+    build: ./services/device-registry-service
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["iot", "all"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/device_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  telemetry-ingest-service:
+    build: ./services/telemetry-ingest-service
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["iot", "all"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/telemetry_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  automation-service:
+    build: ./services/automation-service
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["iot", "all"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/automation_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  workforce-service:
+    build: ./services/workforce-service
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["workforce", "all"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/workforce_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  attendance-service:
+    build: ./services/attendance-service
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["workforce", "all"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/attendance_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  task-service:
+    build: ./services/task-service
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["workforce", "all"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/task_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  fraud-service:
+    build: ./services/fraud-service
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["workforce", "all"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/fraud_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  catalog-service:
+    build: ./services/catalog-service
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["market", "all"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/catalog_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  marketplace-service:
+    build: ./services/marketplace-service
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["market", "all"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/marketplace_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  pricing-service:
+    build: ./services/pricing-service
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["market", "all"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/pricing_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  order-service:
+    build: ./services/order-service
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["market", "all"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/order_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  inventory-service:
+    build: ./services/inventory-service
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["market", "all"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/inventory_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  logistics-service:
+    build: ./services/logistics-service
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["market", "all"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/logistics_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  payment-service:
+    build: ./services/payment-service
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["money", "all"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/payment_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  ledger-service:
+    build: ./services/ledger-service
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["money", "all"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ledger_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  payout-service:
+    build: ./services/payout-service
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["money", "all"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/payout_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  traceability-service:
+    build: ./services/traceability-service
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["platform", "all"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/traceability_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  notification-service:
+    build: ./services/notification-service
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["platform", "all"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/notification_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  media-service:
+    build: ./services/media-service
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["platform", "all"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/media_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  search-service:
+    build: ./services/search-service
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["platform", "all"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/search_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  analytics-service:
+    build: ./services/analytics-service
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["platform", "all"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/analytics_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  audit-service:
+    build: ./services/audit-service
+    restart: unless-stopped
+    logging: *default-logging
+    profiles: ["platform", "all"]
+    environment:
+      <<: *service-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/audit_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  redis-data:
+  redpanda-data:
+  grafana-data:

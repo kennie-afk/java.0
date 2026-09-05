@@ -1,0 +1,14 @@
+package com.smartseason.fraud.engine;
+
+public enum Typology {
+    GHOST_WORKER,
+    PROXY_CLOCK_IN,
+    PIECE_RATE_INFLATION,
+    INPUT_DIVERSION,
+    HARVEST_SKIMMING,
+    VEHICLE_FUEL,
+    COLLUSION,
+    EVIDENCE_FRAUD,
+    HOURS_INFLATION,
+    PROCUREMENT_KICKBACK
+}

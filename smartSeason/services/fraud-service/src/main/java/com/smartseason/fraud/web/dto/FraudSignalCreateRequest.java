@@ -1,0 +1,21 @@
+package com.smartseason.fraud.web.dto;
+
+import com.smartseason.fraud.domain.FraudSignal;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
+
+public record FraudSignalCreateRequest(
+        @NotNull FraudSignal.SubjectType subjectType,
+        @NotNull UUID subjectId,
+        @NotBlank @Size(max = 255) String ruleCode,
+        @NotBlank @Size(max = 255) String typology,
+        @NotNull BigDecimal score,
+        @NotNull Instant detectedAt,
+        @Size(max = 255) String sourceEvent,
+        String details,
+        UUID caseId) {
+}

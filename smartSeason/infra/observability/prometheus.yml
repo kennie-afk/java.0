@@ -1,0 +1,37 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: smartseason-services
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - 'identity-service:8081',
+          - 'farm-service:8082',
+          - 'season-service:8083',
+          - 'agronomy-service:8084',
+          - 'weather-service:8085',
+          - 'device-registry-service:8086',
+          - 'telemetry-ingest-service:8087',
+          - 'automation-service:8088',
+          - 'workforce-service:8089',
+          - 'attendance-service:8090',
+          - 'task-service:8091',
+          - 'fraud-service:8092',
+          - 'catalog-service:8093',
+          - 'marketplace-service:8094',
+          - 'pricing-service:8095',
+          - 'order-service:8096',
+          - 'inventory-service:8097',
+          - 'logistics-service:8098',
+          - 'payment-service:8099',
+          - 'ledger-service:8100',
+          - 'payout-service:8101',
+          - 'traceability-service:8102',
+          - 'notification-service:8103',
+          - 'media-service:8104',
+          - 'search-service:8105',
+          - 'analytics-service:8106',
+          - 'audit-service:8107'
+          - 'api-gateway:8080'

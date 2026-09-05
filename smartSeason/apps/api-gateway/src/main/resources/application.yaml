@@ -1,0 +1,437 @@
+spring:
+  application:
+    name: api-gateway
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  cloud:
+    gateway:
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOriginPatterns: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+            allowedMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+            allowedHeaders: ["*"]
+            allowCredentials: true
+      httpclient:
+        connect-timeout: 3000
+        response-timeout: 15s
+      routes:
+        - id: identity-service
+          uri: ${IDENTITY_SERVICE_URI:http://identity-service:8081}
+          predicates:
+            - Path=/api/identity/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: identityService
+                fallbackUri: forward:/fallback/identity
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authenticatedUserKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+        - id: farm-service
+          uri: ${FARM_SERVICE_URI:http://farm-service:8082}
+          predicates:
+            - Path=/api/farm/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: farmService
+                fallbackUri: forward:/fallback/farm
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authenticatedUserKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+        - id: season-service
+          uri: ${SEASON_SERVICE_URI:http://season-service:8083}
+          predicates:
+            - Path=/api/season/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: seasonService
+                fallbackUri: forward:/fallback/season
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authenticatedUserKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+        - id: agronomy-service
+          uri: ${AGRONOMY_SERVICE_URI:http://agronomy-service:8084}
+          predicates:
+            - Path=/api/agronomy/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: agronomyService
+                fallbackUri: forward:/fallback/agronomy
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authenticatedUserKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+        - id: weather-service
+          uri: ${WEATHER_SERVICE_URI:http://weather-service:8085}
+          predicates:
+            - Path=/api/weather/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: weatherService
+                fallbackUri: forward:/fallback/weather
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authenticatedUserKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+        - id: device-registry-service
+          uri: ${DEVICE_REGISTRY_SERVICE_URI:http://device-registry-service:8086}
+          predicates:
+            - Path=/api/device-registry/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: deviceRegistryService
+                fallbackUri: forward:/fallback/device-registry
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authenticatedUserKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+        - id: telemetry-ingest-service
+          uri: ${TELEMETRY_INGEST_SERVICE_URI:http://telemetry-ingest-service:8087}
+          predicates:
+            - Path=/api/telemetry-ingest/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: telemetryIngestService
+                fallbackUri: forward:/fallback/telemetry-ingest
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authenticatedUserKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+        - id: automation-service
+          uri: ${AUTOMATION_SERVICE_URI:http://automation-service:8088}
+          predicates:
+            - Path=/api/automation/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: automationService
+                fallbackUri: forward:/fallback/automation
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authenticatedUserKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+        - id: workforce-service
+          uri: ${WORKFORCE_SERVICE_URI:http://workforce-service:8089}
+          predicates:
+            - Path=/api/workforce/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: workforceService
+                fallbackUri: forward:/fallback/workforce
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authenticatedUserKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+        - id: attendance-service
+          uri: ${ATTENDANCE_SERVICE_URI:http://attendance-service:8090}
+          predicates:
+            - Path=/api/attendance/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: attendanceService
+                fallbackUri: forward:/fallback/attendance
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authenticatedUserKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+        - id: task-service
+          uri: ${TASK_SERVICE_URI:http://task-service:8091}
+          predicates:
+            - Path=/api/task/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: taskService
+                fallbackUri: forward:/fallback/task
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authenticatedUserKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+        - id: fraud-service
+          uri: ${FRAUD_SERVICE_URI:http://fraud-service:8092}
+          predicates:
+            - Path=/api/fraud/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: fraudService
+                fallbackUri: forward:/fallback/fraud
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authenticatedUserKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+        - id: catalog-service
+          uri: ${CATALOG_SERVICE_URI:http://catalog-service:8093}
+          predicates:
+            - Path=/api/catalog/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: catalogService
+                fallbackUri: forward:/fallback/catalog
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authenticatedUserKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+        - id: marketplace-service
+          uri: ${MARKETPLACE_SERVICE_URI:http://marketplace-service:8094}
+          predicates:
+            - Path=/api/marketplace/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: marketplaceService
+                fallbackUri: forward:/fallback/marketplace
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authenticatedUserKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+        - id: pricing-service
+          uri: ${PRICING_SERVICE_URI:http://pricing-service:8095}
+          predicates:
+            - Path=/api/pricing/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: pricingService
+                fallbackUri: forward:/fallback/pricing
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authenticatedUserKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+        - id: order-service
+          uri: ${ORDER_SERVICE_URI:http://order-service:8096}
+          predicates:
+            - Path=/api/order/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: orderService
+                fallbackUri: forward:/fallback/order
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authenticatedUserKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+        - id: inventory-service
+          uri: ${INVENTORY_SERVICE_URI:http://inventory-service:8097}
+          predicates:
+            - Path=/api/inventory/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: inventoryService
+                fallbackUri: forward:/fallback/inventory
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authenticatedUserKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+        - id: logistics-service
+          uri: ${LOGISTICS_SERVICE_URI:http://logistics-service:8098}
+          predicates:
+            - Path=/api/logistics/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: logisticsService
+                fallbackUri: forward:/fallback/logistics
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authenticatedUserKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+        - id: payment-service
+          uri: ${PAYMENT_SERVICE_URI:http://payment-service:8099}
+          predicates:
+            - Path=/api/payment/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: paymentService
+                fallbackUri: forward:/fallback/payment
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authenticatedUserKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+        - id: ledger-service
+          uri: ${LEDGER_SERVICE_URI:http://ledger-service:8100}
+          predicates:
+            - Path=/api/ledger/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: ledgerService
+                fallbackUri: forward:/fallback/ledger
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authenticatedUserKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+        - id: payout-service
+          uri: ${PAYOUT_SERVICE_URI:http://payout-service:8101}
+          predicates:
+            - Path=/api/payout/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: payoutService
+                fallbackUri: forward:/fallback/payout
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authenticatedUserKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+        - id: traceability-service
+          uri: ${TRACEABILITY_SERVICE_URI:http://traceability-service:8102}
+          predicates:
+            - Path=/api/traceability/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: traceabilityService
+                fallbackUri: forward:/fallback/traceability
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authenticatedUserKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+        - id: notification-service
+          uri: ${NOTIFICATION_SERVICE_URI:http://notification-service:8103}
+          predicates:
+            - Path=/api/notification/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: notificationService
+                fallbackUri: forward:/fallback/notification
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authenticatedUserKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+        - id: media-service
+          uri: ${MEDIA_SERVICE_URI:http://media-service:8104}
+          predicates:
+            - Path=/api/media/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: mediaService
+                fallbackUri: forward:/fallback/media
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authenticatedUserKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+        - id: search-service
+          uri: ${SEARCH_SERVICE_URI:http://search-service:8105}
+          predicates:
+            - Path=/api/search/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: searchService
+                fallbackUri: forward:/fallback/search
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authenticatedUserKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+        - id: analytics-service
+          uri: ${ANALYTICS_SERVICE_URI:http://analytics-service:8106}
+          predicates:
+            - Path=/api/analytics/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: analyticsService
+                fallbackUri: forward:/fallback/analytics
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authenticatedUserKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+        - id: audit-service
+          uri: ${AUDIT_SERVICE_URI:http://audit-service:8107}
+          predicates:
+            - Path=/api/audit/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: auditService
+                fallbackUri: forward:/fallback/audit
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@authenticatedUserKeyResolver}"
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 20
+        failureRateThreshold: 50
+        waitDurationInOpenState: 20s
+        permittedNumberOfCallsInHalfOpenState: 5
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 15s
+
+server:
+  port: 8080
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,gateway
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+smartseason:
+  jwt:
+    secret: ${JWT_SECRET:smartseason-dev-signing-key-change-me-in-production-min-64-chars-long}
+    issuer: ${JWT_ISSUER:smartseason-identity}
+
+logging:
+  level:
+    root: INFO
+    com.smartseason: ${LOG_LEVEL:INFO}

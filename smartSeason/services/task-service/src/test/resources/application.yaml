@@ -1,0 +1,34 @@
+spring:
+  application:
+    name: task-service
+  datasource:
+    url: jdbc:h2:mem:task_db;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+  flyway:
+    enabled: false
+  kafka:
+    bootstrap-servers: localhost:59092
+    consumer:
+      group-id: task-service
+      auto-offset-reset: earliest
+    listener:
+      auto-startup: false
+
+smartseason:
+  jwt:
+    secret: test-signing-key-that-is-at-least-sixty-four-characters-long-for-hs256!!
+    issuer: smartseason-identity
+  events:
+    enabled: false
+
+logging:
+  level:
+    root: WARN
