@@ -209,6 +209,7 @@ MAIN_CLASS = '''package com.smartseason.{pkg};
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * {desc}
@@ -221,6 +222,7 @@ import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServic
  * is bearer-token only.
  */
 @SpringBootApplication(exclude = UserDetailsServiceAutoConfiguration.class)
+@EnableScheduling
 public class {clazz} {{
 
     public static void main(String[] args) {{

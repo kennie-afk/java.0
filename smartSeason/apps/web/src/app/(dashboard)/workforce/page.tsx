@@ -1,4 +1,6 @@
 import { Badge, PageHeader } from "@/components/ui";
+import { EntityForm } from "@/components/entity-form";
+import { createWorker } from "@/lib/actions";
 import { ResourceTable } from "@/components/resource-table";
 import { api, type PageResponse } from "@/lib/api";
 import { readToken } from "@/lib/session";
@@ -26,6 +28,17 @@ export default async function WorkforcePage() {
   return (
     <>
       <PageHeader title="Workforce" subtitle="Workers, contracts and integrity risk scores." />
+      <EntityForm
+        action={createWorker}
+        title="Onboard a worker"
+        submitLabel="Create worker"
+        fields={[
+          { name: "fullName", label: "Full name", required: true, placeholder: "Amina Wanjiru" },
+          { name: "phone", label: "Phone", type: "tel", placeholder: "0712345678" },
+          { name: "nationalId", label: "National ID" },
+          { name: "farmId", label: "Farm id" }
+        ]}
+      />
       <ResourceTable
         rows={rows}
         failed={failed}

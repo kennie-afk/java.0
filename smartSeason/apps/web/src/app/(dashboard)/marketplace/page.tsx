@@ -1,4 +1,6 @@
 import { Badge, PageHeader } from "@/components/ui";
+import { EntityForm } from "@/components/entity-form";
+import { createListing } from "@/lib/actions";
 import { ResourceTable } from "@/components/resource-table";
 import { api, type PageResponse } from "@/lib/api";
 import { readToken } from "@/lib/session";
@@ -22,6 +24,28 @@ export default async function MarketplacePage() {
   return (
     <>
       <PageHeader title="Marketplace" subtitle="Produce offered for sale by farms and cooperatives." />
+      <EntityForm
+        action={createListing}
+        title="Publish a listing"
+        submitLabel="Publish"
+        fields={[
+          { name: "sellerOrgId", label: "Seller organisation id", required: true },
+          { name: "commodityCode", label: "Commodity", required: true, placeholder: "MAIZE" },
+          { name: "variety", label: "Variety" },
+          {
+            name: "grade", label: "Grade",
+            options: [
+              { value: "GRADE_1", label: "Grade 1" },
+              { value: "GRADE_2", label: "Grade 2" },
+              { value: "GRADE_3", label: "Grade 3" }
+            ]
+          },
+          { name: "quantity", label: "Quantity", type: "number", step: "0.1", required: true },
+          { name: "unit", label: "Unit", placeholder: "kg" },
+          { name: "askPrice", label: "Ask price (KES)", type: "number", step: "0.01", required: true },
+          { name: "county", label: "County", placeholder: "Nakuru" }
+        ]}
+      />
       <ResourceTable
         rows={rows}
         failed={failed}

@@ -95,6 +95,9 @@ def generate_service(spec):
         ("PageResponse.java", ts.PAGE_RESPONSE),
         ("DomainEvent.java", ts.DOMAIN_EVENT),
         ("EventPublisher.java", ts.EVENT_PUBLISHER),
+        ("OutboxEntry.java", tc.OUTBOX_ENTRY),
+        ("OutboxRepository.java", tc.OUTBOX_REPOSITORY),
+        ("OutboxRelay.java", tc.OUTBOX_RELAY),
     ]:
         written.append(write(os.path.join(plat, filename), template.format(pkg=pkg)))
 

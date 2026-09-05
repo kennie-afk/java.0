@@ -1,28 +1,26 @@
 package com.smartseason.order.platform;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Instant;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
 public class EventPublisher {
 
-    private static final Logger log = LoggerFactory.getLogger(EventPublisher.class);
-
-    private final KafkaTemplate<String, Object> kafka;
-    private final boolean enabled;
+    private final OutboxRepository outbox;
+    private final ObjectMapper objectMapper;
     private final String topicPrefix;
     private final String producer;
 
-    public EventPublisher(KafkaTemplate<String, Object> kafka,
-                          @Value("${smartseason.events.enabled:false}") boolean enabled,
+    public EventPublisher(OutboxRepository outbox,
+                          ObjectMapper objectMapper,
                           @Value("${smartseason.events.topic-prefix:ss}") String topicPrefix,
                           @Value("${spring.application.name}") String producer) {
-        this.kafka = kafka;
-        this.enabled = enabled;
+        this.outbox = outbox;
+        this.objectMapper = objectMapper;
         this.topicPrefix = topicPrefix;
         this.producer = producer;
     }
@@ -31,19 +29,26 @@ public class EventPublisher {
         DomainEvent<Object> event = DomainEvent.of(type, aggregateId, producer, payload);
         String topic = "%s.%s.%s.v1".formatted(topicPrefix, domain, camelToKebab(type));
 
-        if (!enabled) {
-            log.debug("[events disabled] would publish {} to {}", type, topic);
-            return;
-        }
+        OutboxEntry entry = new OutboxEntry();
+        entry.setId(UUID.randomUUID());
+        entry.setTenantId(TenantContext.tenantId().orElse(null));
+        entry.setTopic(topic);
+        entry.setMessageKey(aggregateId == null ? null : aggregateId.toString());
+        entry.setPayload(serialise(event));
+        entry.setEventType(type);
+        entry.setStatus(OutboxEntry.Status.PENDING);
+        entry.setAttempts(0);
+        entry.setCreatedAt(Instant.now());
 
-        kafka.send(topic, aggregateId == null ? null : aggregateId.toString(), event)
-                .whenComplete((result, error) -> {
-                    if (error != null) {
-                        log.error("Failed to publish {} to {}", type, topic, error);
-                    } else {
-                        log.debug("Published {} to {}", type, topic);
-                    }
-                });
+        outbox.save(entry);
+    }
+
+    private String serialise(DomainEvent<Object> event) {
+        try {
+            return objectMapper.writeValueAsString(event);
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException("Could not serialise event " + event.eventType(), ex);
+        }
     }
 
     private static String camelToKebab(String value) {

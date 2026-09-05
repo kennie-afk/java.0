@@ -183,7 +183,23 @@ public class {name}Controller {{
 def migration_source(service, entities):
     """One forward-only Flyway migration per service."""
     out = [f"-- {service}: initial schema", "-- Forward-only. Every table carries tenant_id"
-           " so tenant-aligned sharding stays possible without a data-model change.", ""]
+           " so tenant-aligned sharding stays possible without a data-model change.", "",
+           "CREATE TABLE outbox_events (",
+           "    id            UUID PRIMARY KEY,",
+           "    tenant_id     UUID,",
+           "    topic         VARCHAR(255) NOT NULL,",
+           "    message_key   VARCHAR(255),",
+           "    payload       JSONB NOT NULL,",
+           "    event_type    VARCHAR(255) NOT NULL,",
+           "    status        VARCHAR(32) NOT NULL,",
+           "    attempts      INTEGER NOT NULL DEFAULT 0,",
+           "    last_error    TEXT,",
+           "    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),",
+           "    published_at  TIMESTAMPTZ",
+           ");",
+           "CREATE INDEX ix_outbox_events_status ON outbox_events (status);",
+           "CREATE INDEX ix_outbox_events_tenant ON outbox_events (tenant_id);",
+           ""]
     for name, table, fields in entities:
         out.append(f"CREATE TABLE {table} (")
         cols = ["    id            UUID PRIMARY KEY",

@@ -1,4 +1,6 @@
 import { Badge, EmptyState, PageHeader } from "@/components/ui";
+import { EntityForm } from "@/components/entity-form";
+import { createFarm } from "@/lib/actions";
 import { api, type PageResponse } from "@/lib/api";
 import { readToken } from "@/lib/session";
 import type { Farm } from "@/lib/types";
@@ -18,6 +20,19 @@ export default async function FarmsPage() {
   return (
     <>
       <PageHeader title="Farms" subtitle="Registered farms, plots and cooperative membership." />
+      <EntityForm
+        action={createFarm}
+        title="Add a farm"
+        submitLabel="Create farm"
+        fields={[
+          { name: "name", label: "Name", required: true, placeholder: "Njoro Home Farm" },
+          { name: "county", label: "County", placeholder: "Nakuru" },
+          { name: "subCounty", label: "Sub-county", placeholder: "Njoro" },
+          { name: "totalAreaHa", label: "Area (ha)", type: "number", step: "0.1" },
+          { name: "latitude", label: "Latitude", type: "number", step: "0.000001" },
+          { name: "longitude", label: "Longitude", type: "number", step: "0.000001" }
+        ]}
+      />
       {failed ? (
         <EmptyState message="farm-service is not reachable." />
       ) : farms.length === 0 ? (
