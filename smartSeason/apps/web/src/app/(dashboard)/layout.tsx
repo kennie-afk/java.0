@@ -1,31 +1,14 @@
 import { redirect } from "next/navigation";
-import { SignOutButton } from "@/components/sign-out-button";
-import { SidebarNav, type NavSection } from "@/components/sidebar-nav";
+import { Rail, type RailItem } from "@/components/rail";
 import { readToken } from "@/lib/session";
 
-const SECTIONS: NavSection[] = [
-  {
-    key: "operations",
-    label: "Operations",
-    items: [
-      { href: "/", label: "Overview" },
-      { href: "/farms", label: "Farms" },
-      { href: "/seasons", label: "Seasons" }
-    ]
-  },
-  {
-    key: "commerce",
-    label: "People and trade",
-    items: [
-      { href: "/workforce", label: "Workforce" },
-      { href: "/marketplace", label: "Marketplace" }
-    ]
-  },
-  {
-    key: "assurance",
-    label: "Assurance",
-    items: [{ href: "/fraud", label: "Fraud" }]
-  }
+const ITEMS: RailItem[] = [
+  { href: "/", label: "Overview", icon: "home" },
+  { href: "/farms", label: "Farms", icon: "farms" },
+  { href: "/seasons", label: "Seasons", icon: "seasons" },
+  { href: "/workforce", label: "Workforce", icon: "workforce" },
+  { href: "/marketplace", label: "Market", icon: "marketplace" },
+  { href: "/fraud", label: "Fraud", icon: "fraud" }
 ];
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -35,17 +18,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="hidden w-56 shrink-0 flex-col border-r border-[var(--color-line)] bg-[var(--color-surface)] md:flex">
-        <div className="px-5 py-6">
-          <span className="text-base font-semibold tracking-tight">SmartSeason</span>
-        </div>
-        <SidebarNav sections={SECTIONS} />
-        <div className="border-t border-[var(--color-line)] p-3">
-          <SignOutButton />
-        </div>
-      </aside>
-      <main className="flex-1 px-6 py-8 md:px-10">{children}</main>
+    <div className="flex min-h-screen bg-[var(--color-canvas)]">
+      <Rail items={ITEMS} />
+      <main className="flex-1 px-6 py-10 md:px-12 lg:px-16">
+        <div className="mx-auto max-w-5xl">{children}</div>
+      </main>
     </div>
   );
 }

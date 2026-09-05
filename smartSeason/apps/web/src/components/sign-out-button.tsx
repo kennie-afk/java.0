@@ -20,9 +20,22 @@ export function SignOutButton() {
       type="button"
       onClick={signOut}
       disabled={pending}
-      className="w-full rounded-md px-3 py-2 text-left text-sm text-[var(--color-muted)] transition-colors hover:bg-[#eef1ef] hover:text-[var(--color-ink)] disabled:opacity-50"
+      className="flex w-full cursor-pointer flex-col items-center gap-1.5 rounded-xl px-1 py-2.5 text-[0.6875rem] font-medium text-[var(--color-muted)] transition-colors hover:bg-[var(--color-raised)] hover:text-[var(--color-ink)] disabled:opacity-50"
     >
-      {pending ? "Signing out…" : "Sign out"}
+      <svg
+        viewBox="0 0 24 24"
+        className="h-[22px] w-[22px]"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M15 17l5-5-5-5" />
+        <path d="M20 12H9" />
+        <path d="M12 20H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6" />
+      </svg>
+      {pending ? "Wait…" : "Sign out"}
     </button>
   );
 }
