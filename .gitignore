@@ -32,6 +32,3 @@ __pycache__/
 *Resume*.pdf
 *Resume*.docx
 documents/
-
-# Reference material we did not author - not ours to publish
-/*.pdf
