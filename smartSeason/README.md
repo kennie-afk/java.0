@@ -111,6 +111,31 @@ can be run instead.
 
 27 services, 113 persisted aggregates, one gateway, one web application.
 
+## Implementation depth
+
+The 27 services share one platform layer — tenant isolation, RFC 7807 errors, optimistic
+locking, forward-only migrations, JWT at both edge and service, and a transactional outbox.
+Domain logic beyond CRUD is implemented in eleven of them:
+
+| Service | What is implemented beyond CRUD |
+|---|---|
+| `identity-service` | registration, login, JWT minting, BCrypt, refresh-token rotation with family revocation, lockout, enumeration resistance |
+| `fraud-service` | rules engine with five detectors, probabilistic confidence compounding, evidence bundles, Kafka ingest from attendance, case opening and payout holds |
+| `ledger-service` | double-entry posting with balance enforcement, idempotent replay, currency and closed-account guards, normal-side balances |
+| `order-service` | fulfilment saga with reverse-order compensation that survives a failing compensation step |
+| `payment-service` | M-Pesa STK push, B2C and callbacks behind a gateway interface, msisdn and whole-shilling validation, idempotent callback handling, mock and live modes |
+| `attendance-service` | geofence enforcement — mocked GPS and out-of-fence positions rejected, weak biometrics flagged |
+| `automation-service` | rule evaluation with cooldowns and safety interlocks: manual override, mutual exclusion, maximum runtime |
+| `notification-service` | EN/SW templating with locale fallback, quiet hours, suppression of messages with unfilled variables |
+| `inventory-service` | stock reservations that hold without deducting, oversell prevention, expiry sweeping |
+| `payout-service` | eligibility policy holding payouts on fraud cases, disputes, sanctions, missing KYC and ceilings |
+| `audit-service` | tamper-evident hash chain with length-prefixed canonicalisation and integrity verification |
+
+The remaining sixteen services carry correct schemas, tenant-scoped repositories, validated
+DTOs, REST endpoints and tests, but no domain behaviour beyond create-read-update-delete.
+Live M-Pesa additionally needs Daraja credentials and a public callback URL; the flow is
+exercised end to end against the mock gateway.
+
 ## Design decisions
 
 **Database per service.** No service reads another's tables. State crosses a boundary as a
