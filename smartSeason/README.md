@@ -146,6 +146,7 @@ standalone in tests without a broker.
 ```bash
 tools/build-all.sh                              # build and test every service in Docker
 GATEWAY=http://localhost:8080 tools/smoke-test.sh   # end-to-end against a running stack
+GATEWAY=http://localhost:8080 tools/event-path-test.sh  # attendance -> Kafka -> fraud engine
 GATEWAY=http://localhost:8080 tools/seed.sh         # demo organisation, farms, workers, listings
 cd apps/web && npm run build                    # typecheck and build the frontend
 ```

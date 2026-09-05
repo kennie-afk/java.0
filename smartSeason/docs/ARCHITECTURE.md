@@ -146,6 +146,41 @@ Every detection carries its evidence and its reasoning, because these decisions 
 someone's pay. Enforcement is a separate decision from detection: scores and cases are
 outputs, and a human reviews before any punitive action.
 
+### The live path
+
+`attendance-service` publishes a clock event; `fraud-service` consumes it, evaluates it, and
+acts — two services with separate databases that share no code:
+
+```
+POST /api/attendance/v1/clock-events
+        │  mockLocation=true, biometricScore=0.31, insideGeofence=false
+        ▼
+   ss.workforce.clock-event-created.v1        (Kafka, keyed by aggregate id)
+        ▼
+   ClockEventListener → FraudIngestService → FraudRuleEngine
+        ▼
+   FraudCase(PROXY_CLOCK_IN, CRITICAL, payoutHeld=true)
+   FraudSignal linked to the case, FraudEvidence bundle
+   WorkerRiskScore raised, band CRITICAL
+   events: FraudCaseOpened, PayoutHoldRequested, WorkerRiskScoreUpdated
+```
+
+Two thresholds separate detection from enforcement: a confidence of 0.60 opens a case for
+review, and 0.75 additionally requests a payout hold. Neither suspends anyone automatically.
+
+The consumer deserialises to `String` and parses with Jackson rather than using Spring's
+typed JSON deserialization. Typed deserialization writes the producer's fully-qualified class
+name into a type header, which would couple `fraud-service` to `attendance-service`'s package
+layout — a shared-code dependency wearing an event's clothing. The contract is the JSON
+document, not a Java class, so the two services can evolve independently.
+
+Acknowledgement is manual, and a message that cannot be parsed is acknowledged with an error
+log rather than retried forever: one malformed event must not become a poison pill that stops
+every subsequent event from being processed.
+
+Verified end to end by `tools/event-path-test.sh`, which publishes a deliberately fraudulent
+clock event and asserts the case, its severity, the payout hold and the risk band.
+
 ## Code generation
 
 `tools/catalogue.py` is the single source of truth for service names, ports, databases and
