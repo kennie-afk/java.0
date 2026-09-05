@@ -1,15 +1,31 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SignOutButton } from "@/components/sign-out-button";
+import { SidebarNav, type NavSection } from "@/components/sidebar-nav";
 import { readToken } from "@/lib/session";
 
-const NAV = [
-  { href: "/", label: "Overview" },
-  { href: "/farms", label: "Farms" },
-  { href: "/seasons", label: "Seasons" },
-  { href: "/workforce", label: "Workforce" },
-  { href: "/fraud", label: "Fraud" },
-  { href: "/marketplace", label: "Marketplace" }
+const SECTIONS: NavSection[] = [
+  {
+    key: "operations",
+    label: "Operations",
+    items: [
+      { href: "/", label: "Overview" },
+      { href: "/farms", label: "Farms" },
+      { href: "/seasons", label: "Seasons" }
+    ]
+  },
+  {
+    key: "commerce",
+    label: "People and trade",
+    items: [
+      { href: "/workforce", label: "Workforce" },
+      { href: "/marketplace", label: "Marketplace" }
+    ]
+  },
+  {
+    key: "assurance",
+    label: "Assurance",
+    items: [{ href: "/fraud", label: "Fraud" }]
+  }
 ];
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -24,17 +40,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <div className="px-5 py-6">
           <span className="text-base font-semibold tracking-tight">SmartSeason</span>
         </div>
-        <nav className="flex flex-1 flex-col gap-0.5 px-3">
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="rounded-md px-3 py-2 text-sm text-[var(--color-muted)] transition-colors hover:bg-[var(--color-brand-soft)] hover:text-[var(--color-brand)]"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <SidebarNav sections={SECTIONS} />
         <div className="border-t border-[var(--color-line)] p-3">
           <SignOutButton />
         </div>
