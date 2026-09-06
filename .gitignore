@@ -32,3 +32,11 @@ __pycache__/
 *Resume*.pdf
 *Resume*.docx
 documents/
+
+# personal documents, never published
+*.pdf
+*.docx
+*Resume*
+*resume*
+*_CV*
+*Curriculum*

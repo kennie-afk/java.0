@@ -12,9 +12,11 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -25,6 +27,21 @@ public class ApiExceptionHandler {
     @ExceptionHandler(ResourceNotFoundException.class)
     public ProblemDetail onNotFound(ResourceNotFoundException ex, HttpServletRequest request) {
         return problem(HttpStatus.NOT_FOUND, "not-found", ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ProblemDetail onUnknownPath(NoResourceFoundException ex, HttpServletRequest request) {
+        return problem(HttpStatus.NOT_FOUND, "not-found", "No endpoint at this path", request);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ProblemDetail onMethodNotAllowed(
+            HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
+        return problem(
+                HttpStatus.METHOD_NOT_ALLOWED,
+                "method-not-allowed",
+                "That method is not supported on this path",
+                request);
     }
 
     @ExceptionHandler(ConflictException.class)

@@ -14,7 +14,7 @@ export interface Field {
 }
 
 const INPUT =
-  "w-full rounded-md border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-sm outline-none focus:border-[var(--color-brand)]";
+  "w-full rounded-md border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-sm outline-none focus:border-[var(--color-accent)]";
 
 export function EntityForm({
   action,
@@ -43,7 +43,7 @@ export function EntityForm({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-md bg-[var(--color-brand)] px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+        className="rounded-md bg-[var(--color-ink)] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[#242832]"
       >
         {title}
       </button>
@@ -111,7 +111,7 @@ export function EntityForm({
       <button
         type="submit"
         disabled={pending}
-        className="mt-4 rounded-md bg-[var(--color-brand)] px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+        className="mt-4 rounded-md bg-[var(--color-ink)] px-3 py-2 text-sm font-medium text-white transition-opacity hover:bg-[#242832] disabled:opacity-50"
       >
         {pending ? "Saving…" : submitLabel}
       </button>

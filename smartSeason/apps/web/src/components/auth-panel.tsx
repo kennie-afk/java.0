@@ -6,7 +6,7 @@ import { useState } from "react";
 type Mode = "signin" | "register";
 
 const FIELD =
-  "w-full rounded-md border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-sm outline-none focus:border-[var(--color-brand)]";
+  "w-full rounded-md border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-sm outline-none focus:border-[var(--color-accent)]";
 
 export function AuthPanel() {
   const router = useRouter();
@@ -137,7 +137,7 @@ export function AuthPanel() {
         <button
           type="submit"
           disabled={busy}
-          className="w-full rounded-md bg-[var(--color-brand)] px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="w-full rounded-md bg-[var(--color-ink)] px-3 py-2 text-sm font-medium text-white transition-opacity hover:bg-[#242832] disabled:opacity-50"
         >
           {busy ? "Working…" : mode === "signin" ? "Sign in" : "Create account"}
         </button>
