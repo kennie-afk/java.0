@@ -35,6 +35,9 @@ async function request<T>(path: string, init?: RequestInit, token?: string): Pro
     throw new ApiError(response.status, detail);
   }
 
+  if (response.status === 204) {
+    return undefined as T;
+  }
   return (await response.json()) as T;
 }
 
@@ -61,18 +64,23 @@ const json = (body: unknown): RequestInit => ({
 
 export const api = {
   get: <T>(path: string) => request<T>(path),
+  post: <T>(path: string, body: unknown) => request<T>(path, json(body)),
+  put: <T>(path: string, body: unknown) =>
+    request<T>(path, { ...json(body), method: "PUT" }),
   login: (email: string, password: string) =>
     request<LoginResult>("/v1/auth/login", json({ email, password }), ""),
   register: (input: RegisterInput) =>
     request<LoginResult>("/v1/auth/register", json(input), ""),
-  forgot: (email: string) =>
-    request<{ detail: string }>("/v1/auth/forgot", json({ email }), "")
+  forgot: (email: string) => request<{ detail: string }>("/v1/auth/forgot", json({ email }), "")
 };
 
 export function describeError(error: unknown): string {
   if (error instanceof ApiError) {
-    if (error.status === 401 || error.status === 403) {
-      return "That session has expired. Sign out on the left, then sign in again.";
+    if (error.status === 401) {
+      return "That session has expired. Sign out, then sign in again.";
+    }
+    if (error.status === 403) {
+      return "This account may not use that area.";
     }
     return error.message;
   }
@@ -82,6 +90,4 @@ export function describeError(error: unknown): string {
   return error instanceof Error ? error.message : "Something went wrong.";
 }
 
-export function ksh(cents: number): string {
-  return `KSh ${(cents / 100).toLocaleString("en-KE", { maximumFractionDigits: 0 })}`;
-}
+export { ksh } from "@/lib/money";

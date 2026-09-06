@@ -56,6 +56,11 @@ public class ApiController {
     public record Session(String accessToken, String tenantId, String fullName, String role,
             String organisation, long expiresInSeconds) {}
 
+    public record TeamInvite(
+            @NotBlank String fullName, @Email @NotBlank String email,
+            @Size(min = 10) String password, @NotBlank String role,
+            UUID supplierId, UUID customerId) {}
+
     public record ForgotRequest(@Email @NotBlank String email) {}
 
     public record Acknowledged(String detail) {}
@@ -93,10 +98,49 @@ public class ApiController {
     }
 
     private Session session(AppUser user) {
-        Principal principal = new Principal(user.getId(), user.getTenantId(), user.getEmail(), user.getRole());
+        Principal principal =
+                new Principal(
+                        user.getId(), user.getTenantId(), user.getEmail(), user.getRole(),
+                        user.getSupplierId(), user.getCustomerId());
         String organisation = tenants.findById(user.getTenantId()).map(Tenant::getName).orElse("");
         return new Session(tokens.issue(principal), user.getTenantId().toString(),
                 user.getFullName(), user.getRole(), organisation, tokens.ttlSeconds());
+    }
+
+    @PostMapping("/users")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Map<String, Object> inviteUser(@Valid @RequestBody TeamInvite request) {
+        UUID tenantId = context.current().tenantId();
+        if (!"OWNER".equals(context.current().role())) {
+            throw new Errors.Unauthorized("only an owner can add accounts");
+        }
+        if (users.findByEmailAndStatus(request.email(), "ACTIVE").isPresent()) {
+            throw new Errors.BadRequest("that email is already registered");
+        }
+        String role = request.role().toUpperCase();
+        if (!List.of("OPERATOR", "SUPPLIER", "CUSTOMER").contains(role)) {
+            throw new Errors.BadRequest("role must be OPERATOR, SUPPLIER or CUSTOMER");
+        }
+        if ("SUPPLIER".equals(role)) {
+            suppliers.findByIdAndTenantId(request.supplierId(), tenantId)
+                    .orElseThrow(() -> new Errors.BadRequest("a supplier account needs a supplier"));
+        }
+        if ("CUSTOMER".equals(role)) {
+            customers.findByIdAndTenantId(request.customerId(), tenantId)
+                    .orElseThrow(() -> new Errors.BadRequest("a customer account needs a customer"));
+        }
+
+        AppUser user = new AppUser();
+        user.setTenantId(tenantId);
+        user.setEmail(request.email());
+        user.setFullName(request.fullName());
+        user.setPasswordHash(encoder.encode(request.password()));
+        user.setRole(role);
+        user.setSupplierId("SUPPLIER".equals(role) ? request.supplierId() : null);
+        user.setCustomerId("CUSTOMER".equals(role) ? request.customerId() : null);
+        user = users.save(user);
+
+        return Map.of("id", user.getId(), "email", user.getEmail(), "role", user.getRole());
     }
 
     @PostMapping("/auth/forgot")

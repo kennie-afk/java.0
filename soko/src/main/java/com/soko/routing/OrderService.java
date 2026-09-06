@@ -6,6 +6,7 @@ import com.soko.platform.Errors;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -40,6 +41,12 @@ public class OrderService {
     private final OrderRepository orders;
     private final OrderLineRepository orderLines;
     private final RoutingEngine engine;
+    private OrderService self;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setSelf(@org.springframework.context.annotation.Lazy OrderService self) {
+        this.self = self;
+    }
 
     public OrderService(
             ProductRepository products,
@@ -58,8 +65,19 @@ public class OrderService {
         this.engine = engine;
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public boolean reserve(UUID offerId, int quantity) {
+        return offers.reserve(offerId, quantity) == 1;
+    }
+
     @Transactional
     public Placed place(UUID tenantId, UUID customerId, List<LineRequest> requested) {
+        return place(tenantId, customerId, requested, false);
+    }
+
+    @Transactional
+    public Placed place(
+            UUID tenantId, UUID customerId, List<LineRequest> requested, boolean byCustomer) {
         if (requested == null || requested.isEmpty()) {
             throw new Errors.BadRequest("an order needs at least one line");
         }
@@ -73,6 +91,7 @@ public class OrderService {
         order.setTenantId(tenantId);
         order.setCustomerId(customer.getId());
         order.setReference(reference());
+        order.setPlacedByCustomer(byCustomer);
         order = orders.saveAndFlush(order);
 
         long revenue = 0;
@@ -115,7 +134,7 @@ public class OrderService {
                                                             + describe(outcome.rejected())));
 
             Offer offer = decision.offer();
-            if (offers.reserve(offer.getId(), line.quantity()) == 0) {
+            if (!self.reserve(offer.getId(), line.quantity())) {
                 throw new Errors.Unroutable(
                         "stock for " + product.getName() + " was taken by another order");
             }

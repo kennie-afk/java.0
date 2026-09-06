@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { api, describeError } from "@/lib/api";
+import { homeFor } from "@/lib/home";
 import { clearSession, writeSession } from "@/lib/session";
 
 export interface AuthState {
@@ -17,8 +18,10 @@ export async function signIn(_previous: AuthState, form: FormData): Promise<Auth
     return { error: "Enter both an email address and a password.", message: null };
   }
 
+  let destination = "/";
   try {
     const result = await api.login(email, password);
+    destination = homeFor(result.role);
     await writeSession(
       {
         token: result.accessToken,
@@ -32,7 +35,7 @@ export async function signIn(_previous: AuthState, form: FormData): Promise<Auth
     return { error: describeError(caught), message: null };
   }
 
-  redirect("/");
+  redirect(destination);
 }
 
 export async function signUp(_previous: AuthState, form: FormData): Promise<AuthState> {
@@ -76,10 +79,7 @@ export async function requestReset(_previous: AuthState, form: FormData): Promis
   } catch (caught) {
     return { error: describeError(caught), message: null };
   }
-  return {
-    error: null,
-    message: "If that email has an account, a reset link is on its way."
-  };
+  return { error: null, message: "If that email has an account, a reset link is on its way." };
 }
 
 export async function signOut(): Promise<void> {

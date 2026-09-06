@@ -17,6 +17,10 @@ public interface OrderRepository extends JpaRepository<SalesOrder, UUID> {
 
     long countByTenantId(UUID tenantId);
 
+    List<SalesOrder> findByCustomerIdOrderByPlacedAtDesc(UUID customerId);
+
+    Optional<SalesOrder> findByIdAndCustomerId(UUID id, UUID customerId);
+
     @Query(value = """
             select count(*)              as orders,
                    coalesce(sum(o.revenue_cents), 0) as revenue,

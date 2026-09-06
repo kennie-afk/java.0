@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { readSession } from "@/lib/session";
 import { AuthPanel } from "@/app/login/panel";
-import { MilkingScene } from "@/components/milking-scene";
+import Image from "next/image";
 
 export default async function LoginPage() {
   if (await readSession()) {
@@ -21,7 +21,16 @@ export default async function LoginPage() {
             Soko routes every order line to the cheapest supplier that can keep the cold chain and
             still deliver with shelf life to spare. You carry no stock and no spoilage.
           </p>
-          <MilkingScene className="mt-8 w-full max-w-md rounded-xl" />
+          <div className="mt-8 max-w-md overflow-hidden rounded-xl border border-[var(--color-line)]">
+            <Image
+              src="/dairy.jpeg"
+              alt="Dairy cows feeding at a milking shed"
+              width={736}
+              height={552}
+              priority
+              className="h-[240px] w-full object-cover"
+            />
+          </div>
 
           <dl className="mt-8 grid max-w-md grid-cols-3 gap-5">
             <div>

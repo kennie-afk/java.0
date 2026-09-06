@@ -54,7 +54,23 @@ public class SecurityConfig {
                         auth ->
                                 auth.requestMatchers("/actuator/health", "/actuator/info").permitAll()
                                         .requestMatchers(HttpMethod.POST, "/v1/auth/**").permitAll()
+                                        .requestMatchers("/v1/supplier/**").hasRole("SUPPLIER")
+                                        .requestMatchers("/v1/shop/**").hasRole("CUSTOMER")
+                                        .requestMatchers("/v1/**")
+                                        .hasAnyRole("OWNER", "OPERATOR")
                                         .anyRequest().authenticated())
+                .exceptionHandling(
+                        handling ->
+                                handling.accessDeniedHandler(
+                                        (request, response, ex) -> {
+                                            response.setStatus(403);
+                                            response.setContentType("application/problem+json");
+                                            response.getWriter()
+                                                    .write(
+                                                            "{\"title\":\"forbidden\",\"status\":403,"
+                                                                + "\"detail\":\"That account may not use this endpoint\","
+                                                                + "\"code\":\"forbidden\"}");
+                                        }))
                 .addFilterBefore(tokenFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

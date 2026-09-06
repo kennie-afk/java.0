@@ -19,6 +19,7 @@ public class SalesOrder {
     @Column(name = "cost_cents", nullable = false) private long costCents;
     @Column(name = "margin_cents", nullable = false) private long marginCents;
     @Column(name = "placed_at", nullable = false) private Instant placedAt = Instant.now();
+    @Column(name = "placed_by_customer", nullable = false) private boolean placedByCustomer;
 
     @OneToMany(mappedBy = "orderId", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<OrderLine> lines = new ArrayList<>();
@@ -39,6 +40,8 @@ public class SalesOrder {
     public void setCostCents(long v) { this.costCents = v; }
     public long getMarginCents() { return marginCents; }
     public void setMarginCents(long v) { this.marginCents = v; }
+    public boolean isPlacedByCustomer() { return placedByCustomer; }
+    public void setPlacedByCustomer(boolean v) { this.placedByCustomer = v; }
     public Instant getPlacedAt() { return placedAt; }
     public void setPlacedAt(Instant v) { this.placedAt = v; }
     public List<OrderLine> getLines() { return lines; }

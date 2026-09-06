@@ -21,7 +21,14 @@ public class AppUser {
     @Column(name = "password_hash", nullable = false) private String passwordHash;
     @Column(nullable = false) private String role = "OPERATOR";
     @Column(nullable = false) private String status = "ACTIVE";
+    @Column(name = "supplier_id") private UUID supplierId;
+    @Column(name = "customer_id") private UUID customerId;
     @Column(name = "created_at", nullable = false) private Instant createdAt = Instant.now();
+
+    public UUID getSupplierId() { return supplierId; }
+    public void setSupplierId(UUID v) { this.supplierId = v; }
+    public UUID getCustomerId() { return customerId; }
+    public void setCustomerId(UUID v) { this.customerId = v; }
 
     public UUID getTenantId() { return tenantId; }
     public void setTenantId(UUID v) { this.tenantId = v; }

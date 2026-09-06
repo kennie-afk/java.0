@@ -64,18 +64,18 @@ From `tools/load.py`, 300 requests at 16 concurrent against a freshly seeded dat
 | `GET /v1/overview` | 37.5 ms | 82.3 ms | 142.2 ms | 367 req/s |
 | `GET /v1/orders` | 39.0 ms | 134.4 ms | 202.2 ms | 305 req/s |
 | `GET /v1/offers` | 66.2 ms | 121.6 ms | 134.5 ms | 222 req/s |
-| `POST /v1/orders` | 1117 ms | 5199 ms | 7209 ms | 8.9 req/s |
+| `POST /v1/orders` | 275 ms | 557 ms | 708 ms | 53 req/s |
 
 The reads are quick because the overview is one SQL aggregate rather than four table scans
 summed in Java, and the order list joins its customer instead of loading every customer per
 request. Fixing those two things took the overview from 286 ms to 37 ms.
 
-**Writes are the honest weak point.** Sixteen concurrent workers ordering from thirty-eight
-offers collide constantly on the same rows, and Postgres serialises the conditional update
-per row, which is exactly what stops overselling. The transaction also spans every line of
-an order, so locks are held longer than they need to be. Splitting the reservation out of
-the order transaction is the obvious next move; it is not done. A distributor placing a few
-thousand orders a day is nowhere near this ceiling, but the number should not be dressed up.
+Writes went through two rounds. A pessimistic lock over every candidate row was correct but
+serialised the catalogue, at 1036 ms. Replacing it with the conditional update above brought
+that to 1117 ms under load but still held every row lock for the length of the whole order.
+Moving the reservation into its own short transaction, so a row lock lives for one statement
+rather than the whole checkout, took it to **275 ms and 53 req/s** — six times the throughput,
+with all three hundred requests succeeding rather than sixty of them timing out.
 
 ## Running it
 
@@ -92,6 +92,7 @@ orders, then prints the credentials. Sign in at the console with
 ```bash
 python3 tools/load.py http://localhost:8090 300 16   # the table above
 python3 tools/oversell_check.py                      # the concurrency proof
+python3 tools/roles_check.py                         # role isolation and cost leakage
 ```
 
 ## Tests
@@ -105,15 +106,33 @@ chilled product, a lead time that outlasts shelf life, a quantity that cannot be
 an inactive supplier, a price tie broken by reliability, and a non-perishable product that
 tolerates a slow supplier.
 
+## Three sides, three interfaces
+
+The distributor is not the only party. Signing in routes each account to its own area.
+
+**The distributor** sees orders, margin, the catalogue, suppliers and every offer, and can
+print a receipt per order showing which supplier filled each line.
+
+**The supplier** sees only lines routed to them, what they are owed on the ones not yet
+delivered, and their own prices and stock. They mark a line dispatched with a note on how it
+is travelling, then delivered on arrival. A second dispatch on the same line is refused.
+
+**The customer** sees a storefront of what is actually in stock, with a basket, and their own
+order history with the progress of each line. They never see supplier cost or margin — those
+fields are absent from every shop response, not merely hidden in the interface.
+
+Roles are enforced at the edge, not in the pages. A customer token calling an operator
+endpoint receives 403, a supplier token calling the storefront receives 403, and a
+cross-tenant read receives 404. `tools/roles_check.py` walks all of it, including a check
+that no field named cost or margin appears in any customer-facing payload.
+
 ## What is not built
 
-- **No supplier portal.** Suppliers do not sign in; their offers are maintained by the
-  distributor. They cannot see orders routed to them or confirm dispatch.
-- **No customer storefront.** Buyers do not browse or order themselves; orders arrive
-  through the API.
-- **No payment capture, delivery tracking or notifications.** `POST /v1/auth/forgot`
-  accepts a request and answers identically whether or not the account exists, so it does
-  not leak which emails are registered, but no mail is actually sent.
+- **No payment capture.** Orders record what is owed; no money moves.
+- **No email.** `POST /v1/auth/forgot` accepts a request and answers identically whether or
+  not the account exists, so it does not leak which addresses are registered, but nothing is
+  actually sent.
+- **No delivery routing or proof of delivery** beyond the supplier marking a line delivered.
 
 ## Layout
 

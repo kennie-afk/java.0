@@ -18,7 +18,17 @@ public class OrderLine {
     @Column(name = "unit_cost_cents", nullable = false) private long unitCostCents;
     @Column(nullable = false) private String status = "PENDING";
     @Column(name = "routing_reason") private String routingReason;
+    @Column(name = "dispatched_at") private Instant dispatchedAt;
+    @Column(name = "delivered_at") private Instant deliveredAt;
+    @Column(name = "tracking_note") private String trackingNote;
     @Column(name = "created_at", nullable = false) private Instant createdAt = Instant.now();
+
+    public Instant getDispatchedAt() { return dispatchedAt; }
+    public void setDispatchedAt(Instant v) { this.dispatchedAt = v; }
+    public Instant getDeliveredAt() { return deliveredAt; }
+    public void setDeliveredAt(Instant v) { this.deliveredAt = v; }
+    public String getTrackingNote() { return trackingNote; }
+    public void setTrackingNote(String v) { this.trackingNote = v; }
 
     public UUID getId() { return id; }
     public void setId(UUID v) { this.id = v; }
