@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: soko
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/soko}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX:24}
+      minimum-idle: 4
+      connection-timeout: 3000
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+server:
+  port: ${PORT:8090}
+  compression:
+    enabled: true
+  tomcat:
+    threads:
+      max: ${TOMCAT_MAX_THREADS:200}
+
+soko:
+  jwt:
+    secret: ${SOKO_JWT_SECRET:a-local-development-secret-of-at-least-32-characters}
+    ttl-minutes: ${SOKO_JWT_TTL_MINUTES:720}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+logging:
+  level:
+    root: INFO

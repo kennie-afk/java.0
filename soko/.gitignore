@@ -1,0 +1,11 @@
+target/
+.next/
+node_modules/
+*.tsbuildinfo
+.env
+
+# personal documents, never published
+*.pdf
+*.docx
+*Resume*
+*resume*
