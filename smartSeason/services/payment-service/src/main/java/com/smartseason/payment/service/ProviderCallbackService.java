@@ -1,6 +1,8 @@
 package com.smartseason.payment.service;
 
 import com.smartseason.payment.domain.ProviderCallback;
+import com.smartseason.payment.platform.CountCache;
+import com.smartseason.payment.platform.CountCache;
 import com.smartseason.payment.platform.EventPublisher;
 import com.smartseason.payment.platform.PageResponse;
 import com.smartseason.payment.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProviderCallbackService {
 
     private static final String RESOURCE = "ProviderCallback";
+    private static final String ENTITY = "provider_callbacks";
 
     private final ProviderCallbackRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public ProviderCallbackService(ProviderCallbackRepository repository, EventPublisher events) {
+    public ProviderCallbackService(ProviderCallbackRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<ProviderCallbackResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(ProviderCallbackResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(ProviderCallbackResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public ProviderCallbackResponse get(UUID id) {
@@ -57,6 +64,7 @@ public class ProviderCallbackService {
         entity.setError(request.error());
 
         ProviderCallback saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("money", "ProviderCallbackCreated", saved.getId(), ProviderCallbackResponse.from(saved));
         return ProviderCallbackResponse.from(saved);
     }
@@ -101,6 +109,7 @@ public class ProviderCallbackService {
     public void delete(UUID id) {
         ProviderCallback entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("money", "ProviderCallbackDeleted", id, null);
     }
 

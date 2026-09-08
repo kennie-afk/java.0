@@ -31,7 +31,7 @@ export function Modal({ open, onClose, title, children, size='md', footer }: Mod
             <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-[#1A1A35] flex items-center justify-center text-gray-400 transition-colors" aria-label="Close"><X size={16}/></button>
           </div>
         )}
-        <div className="flex-1 overflow-auto p-6">{children}</div>
+        <div className="flex-1 overflow-auto p-4">{children}</div>
         {footer && <div className="flex gap-3 justify-end px-6 py-4 border-t border-gray-200 dark:border-[#1E1E3A] shrink-0">{footer}</div>}
       </div>
     </div>,
@@ -52,12 +52,17 @@ export function ConfirmModal({ open,onClose,onConfirm,title,message,label='Confi
   )
 }
 
+/**
+ * An empty state is a signpost, not a landing page. This used to reserve 64px of vertical
+ * padding around a single sentence, which pushed the actual content of every list it
+ * appears above below the fold.
+ */
 export function EmptyState({ icon, title, desc, action }:{ icon?:ReactNode;title:string;desc?:string;action?:ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-      {icon && <div className="w-14 h-14 rounded-2xl bg-gold-50 dark:bg-gold-500/10 text-gold-500 flex items-center justify-center mb-4">{icon}</div>}
-      <h3 className="font-display text-lg font-semibold mb-2">{title}</h3>
-      {desc && <p className="text-sm text-muted mb-6 max-w-sm">{desc}</p>}
+    <div className="flex flex-col items-center justify-center py-9 px-4 text-center">
+      {icon && <div className="w-10 h-10 rounded-lg bg-gold-50 dark:bg-gold-500/10 text-gold-500 flex items-center justify-center mb-2.5">{icon}</div>}
+      <h3 className="font-display text-base font-semibold mb-1">{title}</h3>
+      {desc && <p className="text-xs text-muted mb-3 max-w-sm">{desc}</p>}
       {action}
     </div>
   )
@@ -68,7 +73,7 @@ export function Spinner({ size=24, className='' }:{ size?:number; className?:str
 }
 
 export function PageLoader() {
-  return <div className="flex items-center justify-center min-h-[60vh]"><Spinner size={40}/></div>
+  return <div className="flex items-center justify-center min-h-[40vh]"><Spinner size={26}/></div>
 }
 
 export function SkeletonCard() {

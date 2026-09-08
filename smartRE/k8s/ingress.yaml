@@ -1,0 +1,109 @@
+# The one route into the cluster, and the certificate that protects it.
+#
+# Everything else in k8s/ is deliberately unreachable from outside: network-policy.yaml
+# denies ingress by default and admits only the gateway and the front end. This file is
+# what actually lets traffic in, so it is the counterpart to that policy rather than an
+# afterthought.
+#
+# SINGLE HOST, PATH ROUTED — and that is a decision, not a default.
+#
+# The obvious alternative is two hosts, smartre.co.ke for the app and api.smartre.co.ke
+# for the gateway. It is rejected because it makes every API call cross-origin, and that
+# costs three things: a CORS preflight on the path of every mutation, a session cookie
+# that needs SameSite=None (which browsers increasingly distrust), and a gateway whose
+# allowedOrigins must be kept in step with the front end's hostname or everything breaks
+# at once. Serving both from one origin removes the entire class of problem: the browser
+# sees same-origin requests, the cookie works with SameSite=Lax, and there is one
+# certificate to renew.
+#
+# Requires an NGINX ingress controller and cert-manager. See k8s/README.md.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: smartre
+  namespace: smartre
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+
+    # Document uploads. user-service accepts a 10MB file inside a 12MB request; NGINX
+    # defaults to 1MB and would reject the upload with a 413 before the service ever saw
+    # it — a failure that looks like a broken app rather than a proxy limit.
+    nginx.ingress.kubernetes.io/proxy-body-size: "12m"
+
+    # Verification calls Gemini with a 30s hard timeout of its own. A proxy that gives up
+    # at 60s would cut a legitimate analysis short, so the read timeout sits above it.
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "90"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "90"
+
+    # HTTP is redirected rather than served. There is a session cookie on this origin and
+    # it is marked Secure, so a plaintext response would be useless as well as unsafe.
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+    # The real client address, so the per-service rate limiter keys on the caller rather
+    # than on the ingress controller's pod IP. Without this every anonymous request in
+    # the cluster shares one bucket.
+    nginx.ingress.kubernetes.io/use-forwarded-headers: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - smartre.co.ke
+        - www.smartre.co.ke
+      secretName: smartre-tls
+  rules:
+    - host: smartre.co.ke
+      http:
+        paths:
+          # Longest prefix first: /api must win over / or every request reaches the
+          # front end and the API is unreachable.
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 3000
+    - host: www.smartre.co.ke
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 3000
+---
+# Deliberately NOT exposed: /actuator.
+#
+# The health, metrics and env endpoints are reachable inside the cluster for probes and
+# Prometheus, and there is no rule above that routes them from outside. Publishing them
+# would hand an unauthenticated caller the service's configuration and dependency graph.
+# This ConfigMap exists only to record that the omission is intentional, so nobody
+# "fixes" it later by adding a path.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ingress-notes
+  namespace: smartre
+data:
+  not-exposed: |
+    /actuator/**   probes and Prometheus only, in-cluster
+    /api/*/internal/**   secret-gated service-to-service; the gateway strips
+                         X-Internal-Secret from inbound requests, so an external caller
+                         cannot forge one, but these are not routed either way.

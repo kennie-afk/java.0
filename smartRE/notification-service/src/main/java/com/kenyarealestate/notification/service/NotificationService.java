@@ -6,6 +6,7 @@ import com.kenyarealestate.notification.exception.ForbiddenException;
 import com.kenyarealestate.notification.exception.NotFoundException;
 import com.kenyarealestate.notification.repository.NotificationPreferenceRepository;
 import com.kenyarealestate.notification.repository.NotificationRepository;
+import com.kenyarealestate.notification.repository.NotificationTemplateRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,13 +23,16 @@ public class NotificationService {
     private final NotificationRepository repo;
     private final NotificationPreferenceRepository preferences;
     private final NotificationDispatcher dispatcher;
+    private final NotificationTemplateRepository templates;
 
     public NotificationService(NotificationRepository repo,
                                NotificationPreferenceRepository preferences,
-                               NotificationDispatcher dispatcher) {
+                               NotificationDispatcher dispatcher,
+                               NotificationTemplateRepository templates) {
         this.repo = repo;
         this.preferences = preferences;
         this.dispatcher = dispatcher;
+        this.templates = templates;
     }
 
     @Transactional(readOnly = true)
@@ -68,6 +72,13 @@ public class NotificationService {
         Map<Category, NotificationPreference> stored = new EnumMap<>(Category.class);
         preferences.findByUserId(userId).forEach(p -> stored.put(p.getCategory(), p));
 
+        // Which channels this category can actually deliver on, read from the templates
+        // that exist rather than hardcoded, so adding an SMS template is all it takes for
+        // the switch to become live.
+        Set<Category> withEmail = channelsWithTemplates(Channel.EMAIL);
+        Set<Category> withSms   = channelsWithTemplates(Channel.SMS);
+        Set<Category> withInApp = channelsWithTemplates(Channel.IN_APP);
+
         List<PreferenceResponse> out = new ArrayList<>();
         for (Category c : Category.values()) {
             if (c == Category.ACCOUNT) continue;
@@ -77,9 +88,18 @@ public class NotificationService {
                     .emailEnabled(p == null || p.isEmailEnabled())
                     .smsEnabled(p == null || p.isSmsEnabled())
                     .inAppEnabled(p == null || p.isInAppEnabled())
+                    .emailAvailable(withEmail.contains(c))
+                    .smsAvailable(withSms.contains(c))
+                    .inAppAvailable(withInApp.contains(c))
                     .build());
         }
         return out;
+    }
+
+    private Set<Category> channelsWithTemplates(Channel channel) {
+        return templates.findByChannelAndActiveTrue(channel).stream()
+                .map(NotificationTemplate::getCategory)
+                .collect(java.util.stream.Collectors.toSet());
     }
 
     @Transactional

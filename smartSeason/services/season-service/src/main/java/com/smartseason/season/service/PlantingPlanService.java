@@ -1,6 +1,8 @@
 package com.smartseason.season.service;
 
 import com.smartseason.season.domain.PlantingPlan;
+import com.smartseason.season.platform.CountCache;
+import com.smartseason.season.platform.CountCache;
 import com.smartseason.season.platform.EventPublisher;
 import com.smartseason.season.platform.PageResponse;
 import com.smartseason.season.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class PlantingPlanService {
 
     private static final String RESOURCE = "PlantingPlan";
+    private static final String ENTITY = "planting_plans";
 
     private final PlantingPlanRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public PlantingPlanService(PlantingPlanRepository repository, EventPublisher events) {
+    public PlantingPlanService(PlantingPlanRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<PlantingPlanResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(PlantingPlanResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(PlantingPlanResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public PlantingPlanResponse get(UUID id) {
@@ -56,6 +63,7 @@ public class PlantingPlanService {
         entity.setApprovedAt(request.approvedAt());
 
         PlantingPlan saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("farm", "PlantingPlanCreated", saved.getId(), PlantingPlanResponse.from(saved));
         return PlantingPlanResponse.from(saved);
     }
@@ -97,6 +105,7 @@ public class PlantingPlanService {
     public void delete(UUID id) {
         PlantingPlan entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("farm", "PlantingPlanDeleted", id, null);
     }
 

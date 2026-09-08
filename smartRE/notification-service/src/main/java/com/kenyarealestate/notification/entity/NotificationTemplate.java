@@ -41,6 +41,13 @@ public class NotificationTemplate {
     @Column(name = "body_template", nullable = false, columnDefinition = "TEXT")
     private String bodyTemplate;
 
+    /**
+     * The text/html alternative. Nullable on purpose: SMS and in-app templates have no
+     * HTML, and an email without one still sends as plain text rather than failing.
+     */
+    @Column(name = "html_body_template", columnDefinition = "TEXT")
+    private String htmlBodyTemplate;
+
     @Builder.Default
     @Column(nullable = false)
     private boolean active = true;

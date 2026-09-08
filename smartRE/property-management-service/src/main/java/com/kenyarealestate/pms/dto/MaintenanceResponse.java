@@ -27,6 +27,8 @@ public class MaintenanceResponse {
     private String assignedTo;
     private String resolutionNotes;
     private BigDecimal cost;
+    private String costBorneBy;
+    private BigDecimal tenantCharge;
     private LocalDateTime createdAt;
     private LocalDateTime acknowledgedAt;
     private LocalDateTime resolvedAt;

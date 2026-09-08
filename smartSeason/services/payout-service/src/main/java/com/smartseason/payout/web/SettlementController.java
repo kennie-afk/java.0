@@ -35,19 +35,21 @@ public class SettlementController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE')")
     @Operation(summary = "List settlements for the caller's tenant")
     public PageResponse<SettlementResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE')")
     @Operation(summary = "Fetch a single Settlement by id")
     public SettlementResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Create a Settlement")
     public ResponseEntity<SettlementResponse> create(@Valid @RequestBody SettlementCreateRequest request) {
         SettlementResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class SettlementController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Apply a partial update to a Settlement")
     public SettlementResponse update(@PathVariable UUID id, @Valid @RequestBody SettlementUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Delete a Settlement")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

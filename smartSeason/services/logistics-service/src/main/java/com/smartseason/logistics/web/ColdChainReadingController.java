@@ -35,19 +35,21 @@ public class ColdChainReadingController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'STOREKEEPER', 'BUYER')")
     @Operation(summary = "List cold-chain-readings for the caller's tenant")
     public PageResponse<ColdChainReadingResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'STOREKEEPER', 'BUYER')")
     @Operation(summary = "Fetch a single ColdChainReading by id")
     public ColdChainReadingResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STOREKEEPER')")
     @Operation(summary = "Create a ColdChainReading")
     public ResponseEntity<ColdChainReadingResponse> create(@Valid @RequestBody ColdChainReadingCreateRequest request) {
         ColdChainReadingResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class ColdChainReadingController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STOREKEEPER')")
     @Operation(summary = "Apply a partial update to a ColdChainReading")
     public ColdChainReadingResponse update(@PathVariable UUID id, @Valid @RequestBody ColdChainReadingUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a ColdChainReading")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

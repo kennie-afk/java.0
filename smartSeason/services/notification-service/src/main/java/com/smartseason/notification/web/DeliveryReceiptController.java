@@ -35,19 +35,21 @@ public class DeliveryReceiptController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "List delivery-receipts for the caller's tenant")
     public PageResponse<DeliveryReceiptResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Fetch a single DeliveryReceipt by id")
     public DeliveryReceiptResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Create a DeliveryReceipt")
     public ResponseEntity<DeliveryReceiptResponse> create(@Valid @RequestBody DeliveryReceiptCreateRequest request) {
         DeliveryReceiptResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class DeliveryReceiptController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Apply a partial update to a DeliveryReceipt")
     public DeliveryReceiptResponse update(@PathVariable UUID id, @Valid @RequestBody DeliveryReceiptUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a DeliveryReceipt")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

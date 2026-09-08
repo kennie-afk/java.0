@@ -11,7 +11,7 @@ import { PageLoader } from '@/components/ui/Modal'
 const titles: Record<string,string> = {
   '/dashboard':'Dashboard','/listings':'My Listings','/properties/new':'New Listing',
   '/verification':'Verification','/ownership':'Land Title','/viewings':'Viewings','/payments':'Payments',
-  '/reviews':'Reviews','/profile':'Profile','/agent-application':'Become an Agent',
+  '/reviews':'Reviews','/profile':'Profile',
   '/notifications':'Notifications','/portfolio':'Portfolio','/my-tenancy':'My Tenancy',
 }
 
@@ -32,7 +32,7 @@ export default function DashboardLayout({ children }:{ children:React.ReactNode 
       <Topbar onMenu={() => setSidebar(true)} title={title}/>
       <main className="pt-16 min-h-screen transition-[padding-left] duration-300 ease-in-out"
         style={{ paddingLeft: isDesktop ? (collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH) : 0 }}>
-        <div className="p-4 sm:p-6 max-w-7xl mx-auto animate-fade-in">{children}</div>
+        <div className="p-3 sm:p-4 max-w-7xl mx-auto animate-fade-in">{children}</div>
       </main>
     </div>
   )

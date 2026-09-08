@@ -87,7 +87,7 @@ function ViewingsPageInner() {
   if (isLoading) return <PageLoader/>
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
         <h1 className="font-display text-lg font-semibold text-gray-900 dark:text-white">Viewings</h1>
         <p className="text-muted text-sm mt-1">Manage your property viewing appointments</p>
@@ -152,7 +152,7 @@ function ViewingCard({ viewing:v, role, onAction, acting }:{ viewing:ViewingResp
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
             <Calendar size={22}/>
           </div>
           <div>

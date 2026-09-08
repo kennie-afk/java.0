@@ -1,8 +1,11 @@
 package com.kenyarealestate.verification.controller;
 
+import com.kenyarealestate.verification.dto.intake.BulkIntakeRequest;
+import com.kenyarealestate.verification.dto.intake.BulkIntakeResponse;
 import com.kenyarealestate.verification.dto.ownership.*;
 import com.kenyarealestate.verification.enums.OwnershipVerificationStatus;
 import com.kenyarealestate.verification.security.JwtUtil;
+import com.kenyarealestate.verification.service.BulkIntakeService;
 import com.kenyarealestate.verification.service.PropertyOwnershipVerificationService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -18,10 +21,14 @@ import java.util.*;
 public class PropertyOwnershipController {
 
     private final PropertyOwnershipVerificationService service;
+    private final BulkIntakeService bulkIntakeService;
     private final JwtUtil jwtUtil;
 
-    public PropertyOwnershipController(PropertyOwnershipVerificationService service, JwtUtil jwtUtil) {
+    public PropertyOwnershipController(PropertyOwnershipVerificationService service,
+                                       BulkIntakeService bulkIntakeService,
+                                       JwtUtil jwtUtil) {
         this.service = service;
+        this.bulkIntakeService = bulkIntakeService;
         this.jwtUtil = jwtUtil;
     }
 
@@ -38,6 +45,23 @@ public class PropertyOwnershipController {
             @PathVariable UUID verificationId,
             @Valid @RequestBody UploadOwnershipDocumentRequest req) {
         return ResponseEntity.ok(service.uploadDocument(resolveUserId(httpReq), verificationId, req));
+    }
+
+    /**
+     * Files a whole folder at once, with no category declared for any document.
+     *
+     * <p>The single-document endpoint above asks the seller to pick from sixteen
+     * categories per file. This one works it out, files everything it is sure about, and
+     * returns a short list of what still needs a person — which for a clean upload is
+     * empty.
+     */
+    @PostMapping("/{verificationId}/documents/bulk")
+    public ResponseEntity<BulkIntakeResponse> bulkUpload(
+            HttpServletRequest httpReq,
+            @PathVariable UUID verificationId,
+            @Valid @RequestBody BulkIntakeRequest req) {
+        return ResponseEntity.ok(
+                bulkIntakeService.intakeOwnership(resolveUserId(httpReq), verificationId, req));
     }
 
     @DeleteMapping("/{verificationId}/documents/{documentId}")

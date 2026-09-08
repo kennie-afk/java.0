@@ -39,12 +39,37 @@ forwards without requiring a token.
 ## Quick Start
 
 ```bash
-unzip smart-real-estate-system.zip && cd smartre
+cd smartRE
 cp .env.example .env
-# Edit .env with your Daraja credentials if testing M-Pesa
+```
 
-docker-compose up --build
-# First build: ~5-8 min  |  Subsequent: ~30 sec per changed service
+Every secret in `.env` is required. Nothing has a fallback default, so a service will
+refuse to start rather than run on a value that is public in this repository. Generate
+each one per environment:
+
+```bash
+openssl rand -base64 48   # JWT_SECRET
+openssl rand -base64 32   # INTERNAL_SECRET, GATEWAY_SIGNING_SECRET, MPESA_CALLBACK_SECRET
+```
+
+Then bring the whole platform up — ten services, the gateway, the Next.js web app,
+Postgres per service, Redis, Kafka and the observability stack:
+
+```bash
+docker compose up --build
+```
+
+First build takes roughly 5-8 minutes, subsequent builds about 30 seconds per changed
+service. The web app is on port 3000 and the gateway on 8080.
+
+## Building outside Docker
+
+The root `pom.xml` is an aggregator over all nine services. Each service keeps its own
+Spring Boot parent so it stays independently buildable inside its own Docker context.
+
+```bash
+mvn -T 1C package          # build every service
+mvn -pl user-service test  # or just one
 ```
 
 ---
@@ -213,7 +238,7 @@ docker-compose up user-db verification-db property-db viewing-db payment-db revi
 SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/<service_db>
 SPRING_DATASOURCE_USERNAME=postgres
 SPRING_DATASOURCE_PASSWORD=postgres
-JWT_SECRET=superSecretRealEstatePlatformKey2026MakeItAtLeast64CharactersLongForSecurity
+JWT_SECRET=replace-with-a-random-64-plus-character-secret-generated-per-environment
 ```
 
 For verification-service also add:

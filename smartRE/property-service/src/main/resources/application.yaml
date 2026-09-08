@@ -4,7 +4,7 @@ spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://property-db:5432/property_db}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:bantu007#}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driverClassName: org.postgresql.Driver
     hikari:
       maximum-pool-size: 20
@@ -62,9 +62,6 @@ services:
   verification-url: ${VERIFICATION_SERVICE_URL:http://verification-service:8082}
   user-service-url: ${USER_SERVICE_URL:http://user-service:8081}
   internal-secret: ${INTERNAL_SECRET}
-  # Allowlist for the outbound image fetch used in cross-seller duplicate-photo detection
-  # (ImageHashService) — only these hosts are followed directly; anything else is refused
-  # (SSRF guard). Must match wherever user-service actually issues public document URLs from.
   gateway-public-url: ${PUBLIC_API_URL:http://localhost:8080}
   s3-public-base-url: ${S3_PUBLIC_BASE_URL:https://smartre-documents.s3.amazonaws.com}
 
@@ -76,8 +73,6 @@ redis:
   search-cache-prefix: "property:search:"
   property-cache-prefix: "property:detail:"
   property-detail-ttl-seconds: 300
-  # Debounce window for the public GET /api/properties/{id} view-count increment: at most one
-  # increment per viewer (authenticated user id, or IP if anonymous) per property per window.
   view-debounce-window-minutes: 30
 
 kafka:
@@ -128,3 +123,14 @@ resilience4j:
         waitDuration: 500ms
         enableExponentialBackoff: true
         exponentialBackoffMultiplier: 2
+
+# Per-service throttling, behind the gateway's own limiter. See RateLimitProperties for
+# why these are looser than the gateway's: this catches traffic that did not come through
+# the front door, not ordinary traffic that did.
+rate-limit:
+  enabled: ${RATE_LIMIT_ENABLED:true}
+  capacity: ${RATE_LIMIT_CAPACITY:300}
+  refill-per-minute: ${RATE_LIMIT_REFILL_PER_MINUTE:300}
+  write-capacity: ${RATE_LIMIT_WRITE_CAPACITY:60}
+  write-refill-per-minute: ${RATE_LIMIT_WRITE_REFILL_PER_MINUTE:60}
+  trust-forwarded-for: ${RATE_LIMIT_TRUST_FORWARDED_FOR:true}

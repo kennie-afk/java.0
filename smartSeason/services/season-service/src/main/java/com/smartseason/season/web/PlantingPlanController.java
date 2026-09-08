@@ -35,19 +35,21 @@ public class PlantingPlanController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "List planting-plans for the caller's tenant")
     public PageResponse<PlantingPlanResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "Fetch a single PlantingPlan by id")
     public PlantingPlanResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "Create a PlantingPlan")
     public ResponseEntity<PlantingPlanResponse> create(@Valid @RequestBody PlantingPlanCreateRequest request) {
         PlantingPlanResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class PlantingPlanController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "Apply a partial update to a PlantingPlan")
     public PlantingPlanResponse update(@PathVariable UUID id, @Valid @RequestBody PlantingPlanUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Delete a PlantingPlan")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

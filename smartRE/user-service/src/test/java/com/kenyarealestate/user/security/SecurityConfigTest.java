@@ -1,6 +1,9 @@
 package com.kenyarealestate.user.security;
 
 import com.kenyarealestate.user.controller.AuthController;
+import com.kenyarealestate.user.ratelimit.RateLimitFilter;
+import com.kenyarealestate.user.ratelimit.RateLimitProperties;
+import com.kenyarealestate.user.ratelimit.TokenBucketLimiter;
 import com.kenyarealestate.user.controller.UserController;
 import com.kenyarealestate.user.dto.UserResponse;
 import com.kenyarealestate.user.service.TokenBlacklistService;
@@ -26,7 +29,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = {UserController.class, AuthController.class})
-@Import({SecurityConfig.class, JwtAuthenticationFilter.class, InternalSecretFilter.class, JwtUtil.class})
+// RateLimitFilter and its properties are real here so that the chain under test is the
+// chain that ships; only the Redis-backed limiter is mocked, since a slice test has no
+// Redis. Its default answer allows everything, which keeps these tests about
+// authorization rather than throughput.
+@Import({SecurityConfig.class, JwtAuthenticationFilter.class, InternalSecretFilter.class, JwtUtil.class,
+        RateLimitFilter.class, RateLimitProperties.class})
 @TestPropertySource(properties = {
         "jwt.secret=test-only-secret-key-must-be-at-least-256-bits-long-for-hs256!!",
         "jwt.expiration=86400000",
@@ -41,6 +49,14 @@ class SecurityConfigTest {
     @MockitoBean private UserService userService;
     @MockitoBean private TokenBlacklistService tokenBlacklistService;
     @MockitoBean private UserDetailsService userDetailsService;
+    @MockitoBean private TokenBucketLimiter tokenBucketLimiter;
+
+    @org.junit.jupiter.api.BeforeEach
+    void allowEveryRequestThroughTheLimiter() {
+        when(tokenBucketLimiter.tryConsume(anyString(), org.mockito.ArgumentMatchers.anyInt(),
+                org.mockito.ArgumentMatchers.anyInt()))
+                .thenReturn(new com.kenyarealestate.user.ratelimit.RateLimitDecision(true, 100, 0));
+    }
 
     private String tokenFor(String email, String role) {
         when(userDetailsService.loadUserByUsername(email)).thenReturn(

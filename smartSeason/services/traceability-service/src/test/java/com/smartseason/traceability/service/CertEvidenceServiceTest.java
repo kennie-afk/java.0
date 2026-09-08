@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.traceability.domain.CertEvidence;
+import com.smartseason.traceability.platform.CountCache;
+import com.smartseason.traceability.platform.CountCache;
 import com.smartseason.traceability.platform.EventPublisher;
 import com.smartseason.traceability.platform.ResourceNotFoundException;
 import com.smartseason.traceability.platform.TenantContext;
@@ -29,7 +31,10 @@ class CertEvidenceServiceTest {
 
     private final CertEvidenceRepository repository = mock(CertEvidenceRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final CertEvidenceService service = new CertEvidenceService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final CertEvidenceService service = new CertEvidenceService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

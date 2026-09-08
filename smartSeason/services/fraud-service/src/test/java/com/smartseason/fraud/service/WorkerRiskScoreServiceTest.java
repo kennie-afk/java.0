@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.fraud.domain.WorkerRiskScore;
+import com.smartseason.fraud.platform.CountCache;
+import com.smartseason.fraud.platform.CountCache;
 import com.smartseason.fraud.platform.EventPublisher;
 import com.smartseason.fraud.platform.ResourceNotFoundException;
 import com.smartseason.fraud.platform.TenantContext;
@@ -29,7 +31,10 @@ class WorkerRiskScoreServiceTest {
 
     private final WorkerRiskScoreRepository repository = mock(WorkerRiskScoreRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final WorkerRiskScoreService service = new WorkerRiskScoreService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final WorkerRiskScoreService service = new WorkerRiskScoreService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

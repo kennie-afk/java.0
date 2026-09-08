@@ -1,6 +1,8 @@
 package com.smartseason.audit.service;
 
 import com.smartseason.audit.domain.AuditRecord;
+import com.smartseason.audit.platform.CountCache;
+import com.smartseason.audit.platform.CountCache;
 import com.smartseason.audit.platform.EventPublisher;
 import com.smartseason.audit.platform.PageResponse;
 import com.smartseason.audit.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuditRecordService {
 
     private static final String RESOURCE = "AuditRecord";
+    private static final String ENTITY = "audit_records";
 
     private final AuditRecordRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public AuditRecordService(AuditRecordRepository repository, EventPublisher events) {
+    public AuditRecordService(AuditRecordRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<AuditRecordResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(AuditRecordResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(AuditRecordResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public AuditRecordResponse get(UUID id) {
@@ -62,6 +69,7 @@ public class AuditRecordService {
         entity.setRecordHash(request.recordHash());
 
         AuditRecord saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("platform", "AuditRecordCreated", saved.getId(), AuditRecordResponse.from(saved));
         return AuditRecordResponse.from(saved);
     }
@@ -121,6 +129,7 @@ public class AuditRecordService {
     public void delete(UUID id) {
         AuditRecord entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("platform", "AuditRecordDeleted", id, null);
     }
 

@@ -35,19 +35,21 @@ public class ReservationController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'STOREKEEPER')")
     @Operation(summary = "List reservations for the caller's tenant")
     public PageResponse<ReservationResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'STOREKEEPER')")
     @Operation(summary = "Fetch a single Reservation by id")
     public ReservationResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STOREKEEPER')")
     @Operation(summary = "Create a Reservation")
     public ResponseEntity<ReservationResponse> create(@Valid @RequestBody ReservationCreateRequest request) {
         ReservationResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class ReservationController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STOREKEEPER')")
     @Operation(summary = "Apply a partial update to a Reservation")
     public ReservationResponse update(@PathVariable UUID id, @Valid @RequestBody ReservationUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STOREKEEPER')")
     @Operation(summary = "Delete a Reservation")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

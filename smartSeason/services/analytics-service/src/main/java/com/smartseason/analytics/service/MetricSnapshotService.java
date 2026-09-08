@@ -1,6 +1,8 @@
 package com.smartseason.analytics.service;
 
 import com.smartseason.analytics.domain.MetricSnapshot;
+import com.smartseason.analytics.platform.CountCache;
+import com.smartseason.analytics.platform.CountCache;
 import com.smartseason.analytics.platform.EventPublisher;
 import com.smartseason.analytics.platform.PageResponse;
 import com.smartseason.analytics.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class MetricSnapshotService {
 
     private static final String RESOURCE = "MetricSnapshot";
+    private static final String ENTITY = "metric_snapshots";
 
     private final MetricSnapshotRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public MetricSnapshotService(MetricSnapshotRepository repository, EventPublisher events) {
+    public MetricSnapshotService(MetricSnapshotRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<MetricSnapshotResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(MetricSnapshotResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(MetricSnapshotResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public MetricSnapshotResponse get(UUID id) {
@@ -57,6 +64,7 @@ public class MetricSnapshotService {
         entity.setComputedAt(request.computedAt());
 
         MetricSnapshot saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("platform", "MetricSnapshotCreated", saved.getId(), MetricSnapshotResponse.from(saved));
         return MetricSnapshotResponse.from(saved);
     }
@@ -101,6 +109,7 @@ public class MetricSnapshotService {
     public void delete(UUID id) {
         MetricSnapshot entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("platform", "MetricSnapshotDeleted", id, null);
     }
 

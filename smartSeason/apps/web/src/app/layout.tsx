@@ -3,7 +3,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "SmartSeason",
-  description: "Agricultural operations platform"
+  description: "Agricultural operations platform",
+  icons: { icon: "/logo-icon.flat.svg" }
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

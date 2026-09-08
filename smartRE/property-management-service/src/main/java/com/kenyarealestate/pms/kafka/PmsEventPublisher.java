@@ -2,41 +2,57 @@ package com.kenyarealestate.pms.kafka;
 
 import com.kenyarealestate.pms.entity.Lease;
 import com.kenyarealestate.pms.entity.MaintenanceRequest;
+import com.kenyarealestate.pms.entity.PmsOutboxEvent;
 import com.kenyarealestate.pms.entity.RentInvoice;
 import com.kenyarealestate.pms.repository.UnitRepository;
+import com.kenyarealestate.pms.service.PmsOutboxService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * Publishes property-management events through a transactional outbox.
+ *
+ * <p>Every publish method funnels through {@link #send}, which writes an outbox row in
+ * the caller's transaction and defers the Kafka send until that transaction commits. A
+ * rollback takes the event with it; a commit followed by a failed send leaves a durable
+ * row for {@link com.kenyarealestate.pms.service.PmsOutboxSweeper} to retry.
+ */
 @Slf4j
 @Component
 public class PmsEventPublisher {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final UnitRepository units;
+    private final PmsOutboxService outboxService;
 
     @Value("${kafka.topics.pms-events:pms-events}")
     private String topic;
 
-    public PmsEventPublisher(KafkaTemplate<String, Object> kafkaTemplate, UnitRepository units) {
+    public PmsEventPublisher(KafkaTemplate<String, Object> kafkaTemplate, UnitRepository units,
+                             PmsOutboxService outboxService) {
         this.kafkaTemplate = kafkaTemplate;
         this.units = units;
+        this.outboxService = outboxService;
     }
 
-    public void publishLeaseActivated(Lease lease, UUID propertyId) {
+    public void publishLeaseActivated(Lease lease, UUID propertyId, UUID tenantUserId) {
         var event = Events.LeaseActivatedEvent.builder()
                 .eventType("LEASE_ACTIVATED")
                 .leaseId(lease.getId())
                 .unitId(lease.getUnitId())
                 .tenantId(lease.getTenantId())
+                .tenantUserId(tenantUserId)
                 .landlordId(lease.getLandlordId())
                 .propertyId(propertyId)
                 .rentAmount(lease.getRentAmount())
@@ -44,20 +60,21 @@ public class PmsEventPublisher {
                 .startDate(lease.getStartDate())
                 .activatedAt(LocalDateTime.now())
                 .build();
-        send(lease.getId().toString(), event, "LEASE_ACTIVATED");
+        send(lease.getId(), lease.getId().toString(), event, "LEASE_ACTIVATED");
     }
 
-    public void publishLeaseEnded(Lease lease, String reason) {
+    public void publishLeaseEnded(Lease lease, String reason, UUID tenantUserId) {
         var event = Events.LeaseEndedEvent.builder()
                 .eventType("LEASE_ENDED")
                 .leaseId(lease.getId())
                 .unitId(lease.getUnitId())
                 .tenantId(lease.getTenantId())
+                .tenantUserId(tenantUserId)
                 .landlordId(lease.getLandlordId())
                 .reason(reason)
                 .endedAt(LocalDateTime.now())
                 .build();
-        send(lease.getId().toString(), event, "LEASE_ENDED");
+        send(lease.getId(), lease.getId().toString(), event, "LEASE_ENDED");
     }
 
     public void publishRentInvoiceIssued(RentInvoice invoice, UUID tenantUserId) {
@@ -74,7 +91,7 @@ public class PmsEventPublisher {
                 .dueDate(invoice.getDueDate())
                 .issuedAt(LocalDateTime.now())
                 .build();
-        send(invoice.getId().toString(), event, "RENT_INVOICE_ISSUED");
+        send(invoice.getId(), invoice.getId().toString(), event, "RENT_INVOICE_ISSUED");
     }
 
     public void publishRentOverdue(RentInvoice invoice, int daysOverdue, UUID tenantUserId) {
@@ -92,7 +109,7 @@ public class PmsEventPublisher {
                 .daysOverdue(daysOverdue)
                 .detectedAt(LocalDateTime.now())
                 .build();
-        send(invoice.getId().toString() + ":" + daysOverdue, event, "RENT_OVERDUE");
+        send(invoice.getId(), invoice.getId() + ":" + daysOverdue, event, "RENT_OVERDUE");
     }
 
     public void publishRentReceived(RentInvoice invoice, java.math.BigDecimal amount, UUID tenantUserId) {
@@ -110,7 +127,7 @@ public class PmsEventPublisher {
                 .invoiceStatus(invoice.getStatus().name())
                 .receivedAt(LocalDateTime.now())
                 .build();
-        send(invoice.getId().toString(), event, "RENT_RECEIVED");
+        send(invoice.getId(), invoice.getId().toString(), event, "RENT_RECEIVED");
     }
 
     public void publishMaintenanceRaised(MaintenanceRequest r, String unitLabel, UUID tenantUserId) {
@@ -129,7 +146,7 @@ public class PmsEventPublisher {
                 .raisedByRole(r.getRaisedByRole().name())
                 .raisedAt(LocalDateTime.now())
                 .build();
-        send(r.getId().toString(), event, "MAINTENANCE_RAISED");
+        send(r.getId(), r.getId().toString(), event, "MAINTENANCE_RAISED");
     }
 
     public void publishMaintenanceResolved(MaintenanceRequest r, String unitLabel, UUID tenantUserId) {
@@ -147,22 +164,47 @@ public class PmsEventPublisher {
                 .resolutionNotes(r.getResolutionNotes())
                 .resolvedAt(LocalDateTime.now())
                 .build();
-        send(r.getId().toString() + ":" + r.getStatus(), event, "MAINTENANCE_RESOLVED");
+        send(r.getId(), r.getId() + ":" + r.getStatus(), event, "MAINTENANCE_RESOLVED");
     }
 
     private String unitLabel(UUID unitId) {
         return units.findById(unitId).map(u -> u.getLabel()).orElse(null);
     }
 
-    private void send(String key, Object event, String label) {
+    private void send(UUID aggregateId, String key, Object event, String eventType) {
+        PmsOutboxEvent outbox = outboxService.recordPending(aggregateId, eventType, topic, key, event);
+        dispatchAfterCommit(outbox.getId(), key, eventType, event);
+    }
+
+    private void dispatchAfterCommit(UUID outboxEventId, String key, String eventType, Object event) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            // No surrounding transaction — the row is already committed, so send now.
+            sendToKafka(outboxEventId, key, eventType, event);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                sendToKafka(outboxEventId, key, eventType, event);
+            }
+        });
+    }
+
+    public void sendToKafka(UUID outboxEventId, String key, String eventType, Object event) {
         ProducerRecord<String, Object> record = new ProducerRecord<>(topic, key, event);
         String traceId = MDC.get("correlationId");
         if (StringUtils.hasText(traceId)) {
             record.headers().add("X-Correlation-Id", traceId.getBytes(StandardCharsets.UTF_8));
         }
         kafkaTemplate.send(record).whenComplete((result, ex) -> {
-            if (ex != null) log.error("Failed to publish {} for {}: {}", label, key, ex.getMessage());
-            else log.info("Published {} for {}", label, key);
+            if (ex != null) {
+                log.error("Failed to publish {} for {} (outboxId={}): {}",
+                        eventType, key, outboxEventId, ex.getMessage());
+                outboxService.markAttemptFailed(outboxEventId, ex.getMessage());
+            } else {
+                log.info("Published {} for {} (outboxId={})", eventType, key, outboxEventId);
+                outboxService.markPublished(outboxEventId);
+            }
         });
     }
 }

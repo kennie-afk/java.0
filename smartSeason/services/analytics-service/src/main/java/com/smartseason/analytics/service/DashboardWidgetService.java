@@ -1,6 +1,8 @@
 package com.smartseason.analytics.service;
 
 import com.smartseason.analytics.domain.DashboardWidget;
+import com.smartseason.analytics.platform.CountCache;
+import com.smartseason.analytics.platform.CountCache;
 import com.smartseason.analytics.platform.EventPublisher;
 import com.smartseason.analytics.platform.PageResponse;
 import com.smartseason.analytics.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class DashboardWidgetService {
 
     private static final String RESOURCE = "DashboardWidget";
+    private static final String ENTITY = "dashboard_widgets";
 
     private final DashboardWidgetRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public DashboardWidgetService(DashboardWidgetRepository repository, EventPublisher events) {
+    public DashboardWidgetService(DashboardWidgetRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<DashboardWidgetResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(DashboardWidgetResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(DashboardWidgetResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public DashboardWidgetResponse get(UUID id) {
@@ -56,6 +63,7 @@ public class DashboardWidgetService {
         entity.setConfig(request.config());
 
         DashboardWidget saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("platform", "DashboardWidgetCreated", saved.getId(), DashboardWidgetResponse.from(saved));
         return DashboardWidgetResponse.from(saved);
     }
@@ -97,6 +105,7 @@ public class DashboardWidgetService {
     public void delete(UUID id) {
         DashboardWidget entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("platform", "DashboardWidgetDeleted", id, null);
     }
 

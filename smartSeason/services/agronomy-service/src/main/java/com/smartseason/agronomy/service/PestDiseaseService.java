@@ -1,6 +1,8 @@
 package com.smartseason.agronomy.service;
 
 import com.smartseason.agronomy.domain.PestDisease;
+import com.smartseason.agronomy.platform.CountCache;
+import com.smartseason.agronomy.platform.CountCache;
 import com.smartseason.agronomy.platform.EventPublisher;
 import com.smartseason.agronomy.platform.PageResponse;
 import com.smartseason.agronomy.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class PestDiseaseService {
 
     private static final String RESOURCE = "PestDisease";
+    private static final String ENTITY = "pest_diseases";
 
     private final PestDiseaseRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public PestDiseaseService(PestDiseaseRepository repository, EventPublisher events) {
+    public PestDiseaseService(PestDiseaseRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<PestDiseaseResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(PestDiseaseResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(PestDiseaseResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public PestDiseaseResponse get(UUID id) {
@@ -56,6 +63,7 @@ public class PestDiseaseService {
         entity.setImageUrl(request.imageUrl());
 
         PestDisease saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("farm", "PestDiseaseCreated", saved.getId(), PestDiseaseResponse.from(saved));
         return PestDiseaseResponse.from(saved);
     }
@@ -97,6 +105,7 @@ public class PestDiseaseService {
     public void delete(UUID id) {
         PestDisease entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("farm", "PestDiseaseDeleted", id, null);
     }
 

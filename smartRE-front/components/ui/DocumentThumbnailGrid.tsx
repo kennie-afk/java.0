@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { ImageOff, X, ChevronLeft, ChevronRight, FileText, ExternalLink, Download, Printer, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { mediaSrc } from "@/lib/media"
 
 export interface DocThumb { id: string; url: string; label?: string }
 
@@ -95,7 +96,7 @@ export function DocumentThumbnailGrid({ documents, title, onRemove }: { document
 
   return (
     <div>
-      <p className="text-[12px] font-medium text-gray-600 dark:text-gray-400 mb-2">
+      <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
         {title ?? `Uploaded documents (${documents.length})`}
       </p>
       <div className="grid grid-cols-2 gap-2">
@@ -105,7 +106,7 @@ export function DocumentThumbnailGrid({ documents, title, onRemove }: { document
               <a key={d.id} href={d.url} target="_blank" rel="noopener noreferrer"
                 className="group relative aspect-video rounded-lg overflow-hidden border border-base bg-gray-100 dark:bg-[#1A1509] flex flex-col items-center justify-center gap-1.5 text-gray-500 dark:text-gray-400 hover:border-gold-300 transition-colors">
                 <FileText size={22}/>
-                <span className="text-[11px] font-medium flex items-center gap-1">PDF document <ExternalLink size={10}/></span>
+                <span className="text-xs font-medium flex items-center gap-1">PDF document <ExternalLink size={10}/></span>
                 <div className="absolute top-1.5 right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <span role="button" tabIndex={0} onClick={e => { e.preventDefault(); e.stopPropagation(); downloadDocument(d) }}
                     aria-label="Download document" title="Download"
@@ -126,7 +127,7 @@ export function DocumentThumbnailGrid({ documents, title, onRemove }: { document
                   )}
                 </div>
                 {d.label && (
-                  <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[10px] px-2 py-1 truncate">
+                  <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-2xs px-2 py-1 truncate">
                     {d.label.replace(/_/g, ' ')}
                   </span>
                 )}
@@ -140,14 +141,14 @@ export function DocumentThumbnailGrid({ documents, title, onRemove }: { document
               {broken[d.id] ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-gray-400">
                   <ImageOff size={18}/>
-                  <span className="text-[10px]">Failed to load</span>
+                  <span className="text-2xs">Failed to load</span>
                 </div>
               ) : (
-                <Image src={d.url} alt={d.label || 'document'} fill sizes="200px" className="object-cover" unoptimized
+                <Image src={mediaSrc(d.url)} alt={d.label || 'document'} fill sizes="200px" className="object-cover" unoptimized
                   onError={() => setBroken(b => ({ ...b, [d.id]: true }))}/>
               )}
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center">
-                <span className="opacity-0 group-hover:opacity-100 text-white text-[11px] font-medium transition-opacity">View full size</span>
+                <span className="opacity-0 group-hover:opacity-100 text-white text-xs font-medium transition-opacity">View full size</span>
               </div>
               <div className="absolute top-1.5 right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <span role="button" tabIndex={0} onClick={e => { e.stopPropagation(); downloadDocument(d) }}
@@ -169,7 +170,7 @@ export function DocumentThumbnailGrid({ documents, title, onRemove }: { document
                 )}
               </div>
               {d.label && (
-                <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[10px] px-2 py-1 truncate">
+                <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-2xs px-2 py-1 truncate">
                   {d.label.replace(/_/g, ' ')}
                 </span>
               )}
@@ -206,11 +207,11 @@ export function DocumentThumbnailGrid({ documents, title, onRemove }: { document
           <div onClick={e => e.stopPropagation()} className="relative w-full max-w-3xl aspect-video">
             {broken[current.id] ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-gray-400">
-                <ImageOff size={32}/>
+                <ImageOff size={22}/>
                 <span className="text-sm">This document failed to load</span>
               </div>
             ) : (
-              <Image src={current.url} alt={current.label || 'document'} fill className="object-contain" unoptimized
+              <Image src={mediaSrc(current.url)} alt={current.label || 'document'} fill className="object-contain" unoptimized
                 onError={() => setBroken(b => ({ ...b, [current.id]: true }))}/>
             )}
           </div>

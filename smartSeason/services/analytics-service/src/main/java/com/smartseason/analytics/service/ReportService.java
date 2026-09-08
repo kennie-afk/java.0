@@ -1,6 +1,8 @@
 package com.smartseason.analytics.service;
 
 import com.smartseason.analytics.domain.Report;
+import com.smartseason.analytics.platform.CountCache;
+import com.smartseason.analytics.platform.CountCache;
 import com.smartseason.analytics.platform.EventPublisher;
 import com.smartseason.analytics.platform.PageResponse;
 import com.smartseason.analytics.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class ReportService {
 
     private static final String RESOURCE = "Report";
+    private static final String ENTITY = "reports";
 
     private final ReportRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public ReportService(ReportRepository repository, EventPublisher events) {
+    public ReportService(ReportRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<ReportResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(ReportResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(ReportResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public ReportResponse get(UUID id) {
@@ -57,6 +64,7 @@ public class ReportService {
         entity.setOwnerUserId(request.ownerUserId());
 
         Report saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("platform", "ReportCreated", saved.getId(), ReportResponse.from(saved));
         return ReportResponse.from(saved);
     }
@@ -101,6 +109,7 @@ public class ReportService {
     public void delete(UUID id) {
         Report entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("platform", "ReportDeleted", id, null);
     }
 

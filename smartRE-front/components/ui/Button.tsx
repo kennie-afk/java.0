@@ -11,9 +11,9 @@ const V: Record<Variant,string> = {
   secondary:'btn-secondary',
   ghost:    'btn-ghost',
   danger:   'btn-danger',
-  outline:  'inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md border border-gold-500 text-gold-500 hover:bg-gold-50 dark:hover:bg-gold-500/10 text-[13px] font-medium transition-all duration-150',
+  outline:  'inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md border border-gold-500 text-gold-500 hover:bg-gold-50 dark:hover:bg-gold-500/10 text-base font-medium transition-all duration-150',
 }
-const S: Record<Size,string> = { sm:'!h-7 !px-2.5 !text-[11px]', md:'', lg:'!h-10 !px-5 !text-sm' }
+const S: Record<Size,string> = { sm:'!h-7 !px-2.5 !text-xs', md:'', lg:'!h-10 !px-5 !text-sm' }
 
 interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant; size?: Size; loading?: boolean; fullWidth?: boolean

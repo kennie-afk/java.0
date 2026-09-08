@@ -9,7 +9,17 @@ const base = {
   strokeLinejoin: "round" as const
 };
 
-export type IconName = "home" | "farms" | "seasons" | "workforce" | "fraud" | "marketplace";
+export type IconName =
+  | "home"
+  | "farms"
+  | "seasons"
+  | "workforce"
+  | "fraud"
+  | "marketplace"
+  | "devices"
+  | "money"
+  | "platform"
+  | "identity";
 
 export function Icon({ name, className }: { name: IconName; className?: string }) {
   const paths: Record<IconName, ReactNode> = {
@@ -52,6 +62,33 @@ export function Icon({ name, className }: { name: IconName; className?: string }
         <path d="M4 8 6 4h12l2 4" />
         <circle cx="9" cy="19" r="1.4" />
         <circle cx="16" cy="19" r="1.4" />
+      </>
+    ),
+    devices: (
+      <>
+        <rect x="4" y="4" width="16" height="16" rx="2.5" />
+        <rect x="9" y="9" width="6" height="6" rx="1" />
+        <path d="M9 2.5v1.5M15 2.5v1.5M9 20v1.5M15 20v1.5M2.5 9H4M2.5 15H4M20 9h1.5M20 15h1.5" />
+      </>
+    ),
+    money: (
+      <>
+        <rect x="2.5" y="6" width="19" height="12" rx="2" />
+        <circle cx="12" cy="12" r="2.5" />
+        <path d="M6 10v4M18 10v4" />
+      </>
+    ),
+    platform: (
+      <>
+        <path d="M4 7.5 12 3.5l8 4-8 4z" />
+        <path d="M4 12.5 12 16.5l8-4" />
+        <path d="M4 17 12 21l8-4" />
+      </>
+    ),
+    identity: (
+      <>
+        <circle cx="12" cy="8.5" r="3.5" />
+        <path d="M5 20a7 7 0 0 1 14 0" />
       </>
     )
   };

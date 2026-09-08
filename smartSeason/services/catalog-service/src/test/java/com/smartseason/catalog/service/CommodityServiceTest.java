@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.catalog.domain.Commodity;
+import com.smartseason.catalog.platform.CountCache;
+import com.smartseason.catalog.platform.CountCache;
 import com.smartseason.catalog.platform.EventPublisher;
 import com.smartseason.catalog.platform.ResourceNotFoundException;
 import com.smartseason.catalog.platform.TenantContext;
@@ -29,7 +31,10 @@ class CommodityServiceTest {
 
     private final CommodityRepository repository = mock(CommodityRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final CommodityService service = new CommodityService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final CommodityService service = new CommodityService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

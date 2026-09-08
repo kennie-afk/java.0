@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.payment.domain.MpesaTransaction;
+import com.smartseason.payment.platform.CountCache;
+import com.smartseason.payment.platform.CountCache;
 import com.smartseason.payment.platform.EventPublisher;
 import com.smartseason.payment.platform.ResourceNotFoundException;
 import com.smartseason.payment.platform.TenantContext;
@@ -29,7 +31,10 @@ class MpesaTransactionServiceTest {
 
     private final MpesaTransactionRepository repository = mock(MpesaTransactionRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final MpesaTransactionService service = new MpesaTransactionService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final MpesaTransactionService service = new MpesaTransactionService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

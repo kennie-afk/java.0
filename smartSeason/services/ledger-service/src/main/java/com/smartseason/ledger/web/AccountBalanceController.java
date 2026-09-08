@@ -35,19 +35,21 @@ public class AccountBalanceController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE')")
     @Operation(summary = "List account-balances for the caller's tenant")
     public PageResponse<AccountBalanceResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE')")
     @Operation(summary = "Fetch a single AccountBalance by id")
     public AccountBalanceResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Create a AccountBalance")
     public ResponseEntity<AccountBalanceResponse> create(@Valid @RequestBody AccountBalanceCreateRequest request) {
         AccountBalanceResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class AccountBalanceController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Apply a partial update to a AccountBalance")
     public AccountBalanceResponse update(@PathVariable UUID id, @Valid @RequestBody AccountBalanceUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Delete a AccountBalance")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

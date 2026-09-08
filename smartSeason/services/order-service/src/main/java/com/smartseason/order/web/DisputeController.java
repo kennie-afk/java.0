@@ -35,19 +35,21 @@ public class DisputeController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'STOREKEEPER', 'FINANCE', 'BUYER')")
     @Operation(summary = "List disputes for the caller's tenant")
     public PageResponse<DisputeResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'STOREKEEPER', 'FINANCE', 'BUYER')")
     @Operation(summary = "Fetch a single Dispute by id")
     public DisputeResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'BUYER')")
     @Operation(summary = "Create a Dispute")
     public ResponseEntity<DisputeResponse> create(@Valid @RequestBody DisputeCreateRequest request) {
         DisputeResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class DisputeController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'BUYER')")
     @Operation(summary = "Apply a partial update to a Dispute")
     public DisputeResponse update(@PathVariable UUID id, @Valid @RequestBody DisputeUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'BUYER')")
     @Operation(summary = "Delete a Dispute")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

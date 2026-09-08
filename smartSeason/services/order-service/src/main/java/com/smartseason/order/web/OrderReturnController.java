@@ -35,19 +35,21 @@ public class OrderReturnController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'STOREKEEPER', 'FINANCE', 'BUYER')")
     @Operation(summary = "List order-returns for the caller's tenant")
     public PageResponse<OrderReturnResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'STOREKEEPER', 'FINANCE', 'BUYER')")
     @Operation(summary = "Fetch a single OrderReturn by id")
     public OrderReturnResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'BUYER')")
     @Operation(summary = "Create a OrderReturn")
     public ResponseEntity<OrderReturnResponse> create(@Valid @RequestBody OrderReturnCreateRequest request) {
         OrderReturnResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class OrderReturnController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'BUYER')")
     @Operation(summary = "Apply a partial update to a OrderReturn")
     public OrderReturnResponse update(@PathVariable UUID id, @Valid @RequestBody OrderReturnUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'BUYER')")
     @Operation(summary = "Delete a OrderReturn")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

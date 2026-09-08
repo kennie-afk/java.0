@@ -1,4 +1,5 @@
 package com.kenyarealestate.verification.security;
+import com.kenyarealestate.verification.ratelimit.RateLimitFilter;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,9 +16,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtFilter;
+    private final RateLimitFilter rateLimitFilter;
     private final InternalSecretFilter internalSecretFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtFilter, InternalSecretFilter internalSecretFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtFilter, InternalSecretFilter internalSecretFilter, RateLimitFilter rateLimitFilter) {
+        this.rateLimitFilter = rateLimitFilter;
         this.jwtFilter = jwtFilter;
         this.internalSecretFilter = internalSecretFilter;
     }
@@ -38,7 +41,10 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .addFilterBefore(internalSecretFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+            // After the JWT filter, so the bucket can be keyed on who is calling
+            // rather than on an address that a whole office may share.
+            .addFilterAfter(rateLimitFilter, JwtAuthenticationFilter.class);
         return http.build();
     }
 }

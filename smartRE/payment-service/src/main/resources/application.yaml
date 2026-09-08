@@ -4,7 +4,7 @@ spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://payment-db:5432/payment_db}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:bantu007#}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driverClassName: org.postgresql.Driver
     hikari:
       maximum-pool-size: 20
@@ -65,15 +65,12 @@ kafka:
 
 mpesa:
   consumer-key:    ${MPESA_CONSUMER_KEY:placeholder}
-  consumer-secret: ${MPESA_CONSUMER_SECRET:placeholder}
+  consumer-secret: ${MPESA_CONSUMER_SECRET:}
   shortcode:       ${MPESA_SHORTCODE:174379}
   passkey:         ${MPESA_PASSKEY:placeholder}
   callback-url:    ${MPESA_CALLBACK_URL:https://your-domain.com/api/payments/mpesa/callback}
   callback-secret: ${MPESA_CALLBACK_SECRET}
   callback-allowed-ips: ${MPESA_CALLBACK_ALLOWED_IPS:}
-  # Local-development-only escape hatch: when callback-allowed-ips is blank, the callback
-  # endpoints fail CLOSED (reject) unless this is true or the active Spring profile is
-  # local/dev/test. Never set this to true outside local development.
   callback-insecure-allow-all-ips: ${MPESA_CALLBACK_INSECURE_ALLOW_ALL_IPS:false}
   auth-url:        ${MPESA_AUTH_URL:https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials}
   stk-push-url:    ${MPESA_STK_PUSH_URL:https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest}
@@ -86,7 +83,7 @@ mpesa:
   c2b-validation-url:   ${MPESA_C2B_VALIDATION_URL:https://your-domain.com/api/payments/mpesa/c2b/validation}
   c2b-confirmation-url: ${MPESA_C2B_CONFIRMATION_URL:https://your-domain.com/api/payments/mpesa/c2b/confirmation}
   initiator-name:   ${MPESA_INITIATOR_NAME:testapi}
-  initiator-credential: ${MPESA_INITIATOR_CREDENTIAL:Safaricom999!}
+  initiator-credential: ${MPESA_INITIATOR_CREDENTIAL:}
   security-credential-cert-path: ${MPESA_SECURITY_CREDENTIAL_CERT_PATH:file:/nonexistent-configure-mpesa-cert}
 
 management:
@@ -112,7 +109,6 @@ management:
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
-
 
 platform:
   viewing-fee-kes:              ${PLATFORM_VIEWING_FEE_KES:200}
@@ -159,6 +155,15 @@ resilience4j:
 
 logging:
   pattern:
-    # Includes the gateway-issued X-Correlation-Id (see CorrelationIdFilter) so log
-    # lines for a single request can be grepped/correlated across services in Loki.
     console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %5p [%X{correlationId:-}] [%15.15t] %-40.40logger{39} : %m%n%wEx"
+
+# Per-service throttling, behind the gateway's own limiter. See RateLimitProperties for
+# why these are looser than the gateway's: this catches traffic that did not come through
+# the front door, not ordinary traffic that did.
+rate-limit:
+  enabled: ${RATE_LIMIT_ENABLED:true}
+  capacity: ${RATE_LIMIT_CAPACITY:300}
+  refill-per-minute: ${RATE_LIMIT_REFILL_PER_MINUTE:300}
+  write-capacity: ${RATE_LIMIT_WRITE_CAPACITY:60}
+  write-refill-per-minute: ${RATE_LIMIT_WRITE_REFILL_PER_MINUTE:60}
+  trust-forwarded-for: ${RATE_LIMIT_TRUST_FORWARDED_FOR:true}

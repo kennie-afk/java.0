@@ -1,6 +1,8 @@
 package com.smartseason.pricing.service;
 
 import com.smartseason.pricing.domain.MarketIndex;
+import com.smartseason.pricing.platform.CountCache;
+import com.smartseason.pricing.platform.CountCache;
 import com.smartseason.pricing.platform.EventPublisher;
 import com.smartseason.pricing.platform.PageResponse;
 import com.smartseason.pricing.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class MarketIndexService {
 
     private static final String RESOURCE = "MarketIndex";
+    private static final String ENTITY = "market_indices";
 
     private final MarketIndexRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public MarketIndexService(MarketIndexRepository repository, EventPublisher events) {
+    public MarketIndexService(MarketIndexRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<MarketIndexResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(MarketIndexResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(MarketIndexResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public MarketIndexResponse get(UUID id) {
@@ -56,6 +63,7 @@ public class MarketIndexService {
         entity.setComputedAt(request.computedAt());
 
         MarketIndex saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "MarketIndexCreated", saved.getId(), MarketIndexResponse.from(saved));
         return MarketIndexResponse.from(saved);
     }
@@ -97,6 +105,7 @@ public class MarketIndexService {
     public void delete(UUID id) {
         MarketIndex entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "MarketIndexDeleted", id, null);
     }
 

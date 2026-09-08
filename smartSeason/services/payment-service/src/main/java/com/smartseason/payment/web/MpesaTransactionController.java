@@ -35,19 +35,21 @@ public class MpesaTransactionController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE', 'BUYER')")
     @Operation(summary = "List mpesa-transactions for the caller's tenant")
     public PageResponse<MpesaTransactionResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE', 'BUYER')")
     @Operation(summary = "Fetch a single MpesaTransaction by id")
     public MpesaTransactionResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Create a MpesaTransaction")
     public ResponseEntity<MpesaTransactionResponse> create(@Valid @RequestBody MpesaTransactionCreateRequest request) {
         MpesaTransactionResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class MpesaTransactionController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Apply a partial update to a MpesaTransaction")
     public MpesaTransactionResponse update(@PathVariable UUID id, @Valid @RequestBody MpesaTransactionUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Delete a MpesaTransaction")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

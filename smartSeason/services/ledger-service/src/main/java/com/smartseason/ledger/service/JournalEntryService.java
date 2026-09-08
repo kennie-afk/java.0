@@ -1,6 +1,8 @@
 package com.smartseason.ledger.service;
 
 import com.smartseason.ledger.domain.JournalEntry;
+import com.smartseason.ledger.platform.CountCache;
+import com.smartseason.ledger.platform.CountCache;
 import com.smartseason.ledger.platform.EventPublisher;
 import com.smartseason.ledger.platform.PageResponse;
 import com.smartseason.ledger.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class JournalEntryService {
 
     private static final String RESOURCE = "JournalEntry";
+    private static final String ENTITY = "journal_entries";
 
     private final JournalEntryRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public JournalEntryService(JournalEntryRepository repository, EventPublisher events) {
+    public JournalEntryService(JournalEntryRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<JournalEntryResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(JournalEntryResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(JournalEntryResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public JournalEntryResponse get(UUID id) {
@@ -60,6 +67,7 @@ public class JournalEntryService {
         entity.setIdempotencyKey(request.idempotencyKey());
 
         JournalEntry saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("money", "JournalEntryCreated", saved.getId(), JournalEntryResponse.from(saved));
         return JournalEntryResponse.from(saved);
     }
@@ -113,6 +121,7 @@ public class JournalEntryService {
     public void delete(UUID id) {
         JournalEntry entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("money", "JournalEntryDeleted", id, null);
     }
 

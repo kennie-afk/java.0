@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.traceability.domain.TraceBatch;
+import com.smartseason.traceability.platform.CountCache;
+import com.smartseason.traceability.platform.CountCache;
 import com.smartseason.traceability.platform.EventPublisher;
 import com.smartseason.traceability.platform.ResourceNotFoundException;
 import com.smartseason.traceability.platform.TenantContext;
@@ -29,7 +31,10 @@ class TraceBatchServiceTest {
 
     private final TraceBatchRepository repository = mock(TraceBatchRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final TraceBatchService service = new TraceBatchService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final TraceBatchService service = new TraceBatchService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

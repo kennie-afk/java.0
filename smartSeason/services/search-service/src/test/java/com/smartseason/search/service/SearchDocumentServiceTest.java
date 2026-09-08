@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.search.domain.SearchDocument;
+import com.smartseason.search.platform.CountCache;
+import com.smartseason.search.platform.CountCache;
 import com.smartseason.search.platform.EventPublisher;
 import com.smartseason.search.platform.ResourceNotFoundException;
 import com.smartseason.search.platform.TenantContext;
@@ -29,7 +31,10 @@ class SearchDocumentServiceTest {
 
     private final SearchDocumentRepository repository = mock(SearchDocumentRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final SearchDocumentService service = new SearchDocumentService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final SearchDocumentService service = new SearchDocumentService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

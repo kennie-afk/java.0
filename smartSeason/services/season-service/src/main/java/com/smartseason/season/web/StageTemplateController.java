@@ -35,19 +35,21 @@ public class StageTemplateController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "List stage-templates for the caller's tenant")
     public PageResponse<StageTemplateResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "Fetch a single StageTemplate by id")
     public StageTemplateResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "Create a StageTemplate")
     public ResponseEntity<StageTemplateResponse> create(@Valid @RequestBody StageTemplateCreateRequest request) {
         StageTemplateResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class StageTemplateController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "Apply a partial update to a StageTemplate")
     public StageTemplateResponse update(@PathVariable UUID id, @Valid @RequestBody StageTemplateUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Delete a StageTemplate")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

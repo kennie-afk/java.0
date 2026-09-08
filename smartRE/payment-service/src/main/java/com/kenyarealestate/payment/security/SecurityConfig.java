@@ -1,4 +1,5 @@
 package com.kenyarealestate.payment.security;
+import com.kenyarealestate.payment.ratelimit.RateLimitFilter;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,9 +13,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtFilter;
+    private final RateLimitFilter rateLimitFilter;
     private final InternalSecretFilter internalSecretFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter f, InternalSecretFilter internalSecretFilter) {
+    public SecurityConfig(JwtAuthenticationFilter f, InternalSecretFilter internalSecretFilter, RateLimitFilter rateLimitFilter) {
+        this.rateLimitFilter = rateLimitFilter;
         this.jwtFilter = f;
         this.internalSecretFilter = internalSecretFilter;
     }
@@ -35,7 +38,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/payments/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .addFilterBefore(internalSecretFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+            // After the JWT filter, so the bucket can be keyed on who is calling
+            // rather than on an address that a whole office may share.
+            .addFilterAfter(rateLimitFilter, JwtAuthenticationFilter.class);
         return http.build();
     }
 }

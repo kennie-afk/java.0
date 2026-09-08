@@ -35,19 +35,21 @@ public class InputIssueController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'STOREKEEPER')")
     @Operation(summary = "List input-issues for the caller's tenant")
     public PageResponse<InputIssueResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'STOREKEEPER')")
     @Operation(summary = "Fetch a single InputIssue by id")
     public InputIssueResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STOREKEEPER')")
     @Operation(summary = "Create a InputIssue")
     public ResponseEntity<InputIssueResponse> create(@Valid @RequestBody InputIssueCreateRequest request) {
         InputIssueResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class InputIssueController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STOREKEEPER')")
     @Operation(summary = "Apply a partial update to a InputIssue")
     public InputIssueResponse update(@PathVariable UUID id, @Valid @RequestBody InputIssueUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STOREKEEPER')")
     @Operation(summary = "Delete a InputIssue")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

@@ -1,6 +1,8 @@
 package com.smartseason.automation.service;
 
 import com.smartseason.automation.domain.ActuatorCommand;
+import com.smartseason.automation.platform.CountCache;
+import com.smartseason.automation.platform.CountCache;
 import com.smartseason.automation.platform.EventPublisher;
 import com.smartseason.automation.platform.PageResponse;
 import com.smartseason.automation.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class ActuatorCommandService {
 
     private static final String RESOURCE = "ActuatorCommand";
+    private static final String ENTITY = "actuator_commands";
 
     private final ActuatorCommandRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public ActuatorCommandService(ActuatorCommandRepository repository, EventPublisher events) {
+    public ActuatorCommandService(ActuatorCommandRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<ActuatorCommandResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(ActuatorCommandResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(ActuatorCommandResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public ActuatorCommandResponse get(UUID id) {
@@ -59,6 +66,7 @@ public class ActuatorCommandService {
         entity.setFailureReason(request.failureReason());
 
         ActuatorCommand saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("iot", "ActuatorCommandCreated", saved.getId(), ActuatorCommandResponse.from(saved));
         return ActuatorCommandResponse.from(saved);
     }
@@ -109,6 +117,7 @@ public class ActuatorCommandService {
     public void delete(UUID id) {
         ActuatorCommand entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("iot", "ActuatorCommandDeleted", id, null);
     }
 

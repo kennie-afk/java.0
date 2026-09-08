@@ -45,6 +45,10 @@ public class Notification {
     @Column(columnDefinition = "TEXT")
     private String body;
 
+    /** The HTML alternative actually sent, kept so a retry resends the same message. */
+    @Column(name = "html_body", columnDefinition = "TEXT")
+    private String htmlBody;
+
     @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)

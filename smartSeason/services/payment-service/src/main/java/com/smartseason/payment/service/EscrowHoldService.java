@@ -1,6 +1,8 @@
 package com.smartseason.payment.service;
 
 import com.smartseason.payment.domain.EscrowHold;
+import com.smartseason.payment.platform.CountCache;
+import com.smartseason.payment.platform.CountCache;
 import com.smartseason.payment.platform.EventPublisher;
 import com.smartseason.payment.platform.PageResponse;
 import com.smartseason.payment.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class EscrowHoldService {
 
     private static final String RESOURCE = "EscrowHold";
+    private static final String ENTITY = "escrow_holds";
 
     private final EscrowHoldRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public EscrowHoldService(EscrowHoldRepository repository, EventPublisher events) {
+    public EscrowHoldService(EscrowHoldRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<EscrowHoldResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(EscrowHoldResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(EscrowHoldResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public EscrowHoldResponse get(UUID id) {
@@ -59,6 +66,7 @@ public class EscrowHoldService {
         entity.setReleaseCondition(request.releaseCondition());
 
         EscrowHold saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("money", "EscrowHoldCreated", saved.getId(), EscrowHoldResponse.from(saved));
         return EscrowHoldResponse.from(saved);
     }
@@ -109,6 +117,7 @@ public class EscrowHoldService {
     public void delete(UUID id) {
         EscrowHold entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("money", "EscrowHoldDeleted", id, null);
     }
 

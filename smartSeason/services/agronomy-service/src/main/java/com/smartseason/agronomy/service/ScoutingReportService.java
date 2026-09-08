@@ -1,6 +1,8 @@
 package com.smartseason.agronomy.service;
 
 import com.smartseason.agronomy.domain.ScoutingReport;
+import com.smartseason.agronomy.platform.CountCache;
+import com.smartseason.agronomy.platform.CountCache;
 import com.smartseason.agronomy.platform.EventPublisher;
 import com.smartseason.agronomy.platform.PageResponse;
 import com.smartseason.agronomy.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class ScoutingReportService {
 
     private static final String RESOURCE = "ScoutingReport";
+    private static final String ENTITY = "scouting_reports";
 
     private final ScoutingReportRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public ScoutingReportService(ScoutingReportRepository repository, EventPublisher events) {
+    public ScoutingReportService(ScoutingReportRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<ScoutingReportResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(ScoutingReportResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(ScoutingReportResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public ScoutingReportResponse get(UUID id) {
@@ -60,6 +67,7 @@ public class ScoutingReportService {
         entity.setStatus(request.status());
 
         ScoutingReport saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("farm", "ScoutingReportCreated", saved.getId(), ScoutingReportResponse.from(saved));
         return ScoutingReportResponse.from(saved);
     }
@@ -113,6 +121,7 @@ public class ScoutingReportService {
     public void delete(UUID id) {
         ScoutingReport entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("farm", "ScoutingReportDeleted", id, null);
     }
 

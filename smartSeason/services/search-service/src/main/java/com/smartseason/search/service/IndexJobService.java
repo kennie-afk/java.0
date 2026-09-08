@@ -1,6 +1,8 @@
 package com.smartseason.search.service;
 
 import com.smartseason.search.domain.IndexJob;
+import com.smartseason.search.platform.CountCache;
+import com.smartseason.search.platform.CountCache;
 import com.smartseason.search.platform.EventPublisher;
 import com.smartseason.search.platform.PageResponse;
 import com.smartseason.search.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class IndexJobService {
 
     private static final String RESOURCE = "IndexJob";
+    private static final String ENTITY = "index_jobs";
 
     private final IndexJobRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public IndexJobService(IndexJobRepository repository, EventPublisher events) {
+    public IndexJobService(IndexJobRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<IndexJobResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(IndexJobResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(IndexJobResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public IndexJobResponse get(UUID id) {
@@ -56,6 +63,7 @@ public class IndexJobService {
         entity.setError(request.error());
 
         IndexJob saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("platform", "IndexJobCreated", saved.getId(), IndexJobResponse.from(saved));
         return IndexJobResponse.from(saved);
     }
@@ -97,6 +105,7 @@ public class IndexJobService {
     public void delete(UUID id) {
         IndexJob entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("platform", "IndexJobDeleted", id, null);
     }
 

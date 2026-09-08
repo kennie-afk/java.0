@@ -1,4 +1,5 @@
 package com.kenyarealestate.review.security;
+import com.kenyarealestate.review.ratelimit.RateLimitFilter;
 import org.springframework.context.annotation.*; import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -7,7 +8,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtFilter;
-    public SecurityConfig(JwtAuthenticationFilter f) { this.jwtFilter=f; }
+    private final RateLimitFilter rateLimitFilter;
+    public SecurityConfig(JwtAuthenticationFilter f, RateLimitFilter rateLimitFilter) {
+        this.rateLimitFilter = rateLimitFilter; this.jwtFilter=f; }
     @Bean public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(s->s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -16,7 +19,10 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET,"/api/reviews/**").permitAll()
                 .requestMatchers("/swagger-ui/**","/v3/api-docs/**","/actuator/**").permitAll()
                 .anyRequest().authenticated())
-            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+            // After the JWT filter, so the bucket can be keyed on who is calling
+            // rather than on an address that a whole office may share.
+            .addFilterAfter(rateLimitFilter, JwtAuthenticationFilter.class);
         return http.build();
     }
 }

@@ -35,19 +35,21 @@ public class GradeStandardController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'STOREKEEPER', 'BUYER')")
     @Operation(summary = "List grade-standards for the caller's tenant")
     public PageResponse<GradeStandardResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'STOREKEEPER', 'BUYER')")
     @Operation(summary = "Fetch a single GradeStandard by id")
     public GradeStandardResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Create a GradeStandard")
     public ResponseEntity<GradeStandardResponse> create(@Valid @RequestBody GradeStandardCreateRequest request) {
         GradeStandardResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class GradeStandardController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Apply a partial update to a GradeStandard")
     public GradeStandardResponse update(@PathVariable UUID id, @Valid @RequestBody GradeStandardUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a GradeStandard")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

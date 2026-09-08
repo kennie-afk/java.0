@@ -1,6 +1,8 @@
 package com.smartseason.search.service;
 
 import com.smartseason.search.domain.SearchDocument;
+import com.smartseason.search.platform.CountCache;
+import com.smartseason.search.platform.CountCache;
 import com.smartseason.search.platform.EventPublisher;
 import com.smartseason.search.platform.PageResponse;
 import com.smartseason.search.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class SearchDocumentService {
 
     private static final String RESOURCE = "SearchDocument";
+    private static final String ENTITY = "search_documents";
 
     private final SearchDocumentRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public SearchDocumentService(SearchDocumentRepository repository, EventPublisher events) {
+    public SearchDocumentService(SearchDocumentRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<SearchDocumentResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(SearchDocumentResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(SearchDocumentResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public SearchDocumentResponse get(UUID id) {
@@ -62,6 +69,7 @@ public class SearchDocumentService {
         entity.setStatus(request.status());
 
         SearchDocument saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("platform", "SearchDocumentCreated", saved.getId(), SearchDocumentResponse.from(saved));
         return SearchDocumentResponse.from(saved);
     }
@@ -121,6 +129,7 @@ public class SearchDocumentService {
     public void delete(UUID id) {
         SearchDocument entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("platform", "SearchDocumentDeleted", id, null);
     }
 

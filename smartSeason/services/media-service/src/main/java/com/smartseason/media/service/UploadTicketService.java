@@ -1,6 +1,8 @@
 package com.smartseason.media.service;
 
 import com.smartseason.media.domain.UploadTicket;
+import com.smartseason.media.platform.CountCache;
+import com.smartseason.media.platform.CountCache;
 import com.smartseason.media.platform.EventPublisher;
 import com.smartseason.media.platform.PageResponse;
 import com.smartseason.media.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class UploadTicketService {
 
     private static final String RESOURCE = "UploadTicket";
+    private static final String ENTITY = "upload_tickets";
 
     private final UploadTicketRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public UploadTicketService(UploadTicketRepository repository, EventPublisher events) {
+    public UploadTicketService(UploadTicketRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<UploadTicketResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(UploadTicketResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(UploadTicketResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public UploadTicketResponse get(UUID id) {
@@ -57,6 +64,7 @@ public class UploadTicketService {
         entity.setStatus(request.status());
 
         UploadTicket saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("platform", "UploadTicketCreated", saved.getId(), UploadTicketResponse.from(saved));
         return UploadTicketResponse.from(saved);
     }
@@ -101,6 +109,7 @@ public class UploadTicketService {
     public void delete(UUID id) {
         UploadTicket entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("platform", "UploadTicketDeleted", id, null);
     }
 

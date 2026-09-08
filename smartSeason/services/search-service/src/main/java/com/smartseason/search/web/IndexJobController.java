@@ -35,19 +35,21 @@ public class IndexJobController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'STOREKEEPER', 'FINANCE', 'BUYER')")
     @Operation(summary = "List index-jobs for the caller's tenant")
     public PageResponse<IndexJobResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'STOREKEEPER', 'FINANCE', 'BUYER')")
     @Operation(summary = "Fetch a single IndexJob by id")
     public IndexJobResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Create a IndexJob")
     public ResponseEntity<IndexJobResponse> create(@Valid @RequestBody IndexJobCreateRequest request) {
         IndexJobResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class IndexJobController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Apply a partial update to a IndexJob")
     public IndexJobResponse update(@PathVariable UUID id, @Valid @RequestBody IndexJobUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a IndexJob")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

@@ -35,19 +35,21 @@ public class ProviderCallbackController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE', 'BUYER')")
     @Operation(summary = "List provider-callbacks for the caller's tenant")
     public PageResponse<ProviderCallbackResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE', 'BUYER')")
     @Operation(summary = "Fetch a single ProviderCallback by id")
     public ProviderCallbackResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Create a ProviderCallback")
     public ResponseEntity<ProviderCallbackResponse> create(@Valid @RequestBody ProviderCallbackCreateRequest request) {
         ProviderCallbackResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class ProviderCallbackController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Apply a partial update to a ProviderCallback")
     public ProviderCallbackResponse update(@PathVariable UUID id, @Valid @RequestBody ProviderCallbackUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Delete a ProviderCallback")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

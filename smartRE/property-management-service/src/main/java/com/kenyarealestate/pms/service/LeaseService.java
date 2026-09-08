@@ -97,7 +97,7 @@ public class LeaseService {
         unit.setStatus(UnitStatus.OCCUPIED);
         units.save(unit);
 
-        publisher.publishLeaseActivated(lease, unit.getPropertyId());
+        publisher.publishLeaseActivated(lease, unit.getPropertyId(), tenantUserId(lease.getTenantId()));
         return toResponse(lease);
     }
 
@@ -115,7 +115,7 @@ public class LeaseService {
 
         if (wasActive) {
             releaseUnit(lease.getUnitId());
-            publisher.publishLeaseEnded(lease, reason);
+            publisher.publishLeaseEnded(lease, reason, tenantUserId(lease.getTenantId()));
         }
         return toResponse(lease);
     }
@@ -128,7 +128,7 @@ public class LeaseService {
         lease.setStatus(LeaseStatus.ENDED);
         leases.save(lease);
         releaseUnit(lease.getUnitId());
-        publisher.publishLeaseEnded(lease, "Lease ran to completion");
+        publisher.publishLeaseEnded(lease, "Lease ran to completion", tenantUserId(lease.getTenantId()));
         return toResponse(lease);
     }
 
@@ -255,5 +255,15 @@ public class LeaseService {
                 .terminatedAt(l.getTerminatedAt())
                 .createdAt(l.getCreatedAt())
                 .build();
+    }
+
+    /**
+     * The tenant's SmartRE account, or null when their record has never been linked to
+     * one. Null is normal, not an error: a landlord can keep a tenant on the books
+     * without that person ever creating an account, and the notification is simply
+     * skipped rather than the lease change failing.
+     */
+    private UUID tenantUserId(UUID tenantId) {
+        return tenants.findById(tenantId).map(com.kenyarealestate.pms.entity.Tenant::getUserId).orElse(null);
     }
 }

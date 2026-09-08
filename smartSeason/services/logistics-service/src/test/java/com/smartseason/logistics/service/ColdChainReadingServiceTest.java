@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.logistics.domain.ColdChainReading;
+import com.smartseason.logistics.platform.CountCache;
+import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.EventPublisher;
 import com.smartseason.logistics.platform.ResourceNotFoundException;
 import com.smartseason.logistics.platform.TenantContext;
@@ -29,7 +31,10 @@ class ColdChainReadingServiceTest {
 
     private final ColdChainReadingRepository repository = mock(ColdChainReadingRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final ColdChainReadingService service = new ColdChainReadingService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final ColdChainReadingService service = new ColdChainReadingService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

@@ -35,19 +35,21 @@ public class AutomationRuleController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "List automation-rules for the caller's tenant")
     public PageResponse<AutomationRuleResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "Fetch a single AutomationRule by id")
     public AutomationRuleResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER')")
     @Operation(summary = "Create a AutomationRule")
     public ResponseEntity<AutomationRuleResponse> create(@Valid @RequestBody AutomationRuleCreateRequest request) {
         AutomationRuleResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class AutomationRuleController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER')")
     @Operation(summary = "Apply a partial update to a AutomationRule")
     public AutomationRuleResponse update(@PathVariable UUID id, @Valid @RequestBody AutomationRuleUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a AutomationRule")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

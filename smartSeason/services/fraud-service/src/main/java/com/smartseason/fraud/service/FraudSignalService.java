@@ -1,6 +1,8 @@
 package com.smartseason.fraud.service;
 
 import com.smartseason.fraud.domain.FraudSignal;
+import com.smartseason.fraud.platform.CountCache;
+import com.smartseason.fraud.platform.CountCache;
 import com.smartseason.fraud.platform.EventPublisher;
 import com.smartseason.fraud.platform.PageResponse;
 import com.smartseason.fraud.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class FraudSignalService {
 
     private static final String RESOURCE = "FraudSignal";
+    private static final String ENTITY = "fraud_signals";
 
     private final FraudSignalRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public FraudSignalService(FraudSignalRepository repository, EventPublisher events) {
+    public FraudSignalService(FraudSignalRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<FraudSignalResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(FraudSignalResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(FraudSignalResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public FraudSignalResponse get(UUID id) {
@@ -57,6 +64,7 @@ public class FraudSignalService {
         entity.setCaseId(request.caseId());
 
         FraudSignal saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("workforce", "FraudSignalCreated", saved.getId(), FraudSignalResponse.from(saved));
         return FraudSignalResponse.from(saved);
     }
@@ -101,6 +109,7 @@ public class FraudSignalService {
     public void delete(UUID id) {
         FraudSignal entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("workforce", "FraudSignalDeleted", id, null);
     }
 

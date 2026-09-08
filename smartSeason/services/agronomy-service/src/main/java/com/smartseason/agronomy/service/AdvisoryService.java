@@ -1,6 +1,8 @@
 package com.smartseason.agronomy.service;
 
 import com.smartseason.agronomy.domain.Advisory;
+import com.smartseason.agronomy.platform.CountCache;
+import com.smartseason.agronomy.platform.CountCache;
 import com.smartseason.agronomy.platform.EventPublisher;
 import com.smartseason.agronomy.platform.PageResponse;
 import com.smartseason.agronomy.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class AdvisoryService {
 
     private static final String RESOURCE = "Advisory";
+    private static final String ENTITY = "advisories";
 
     private final AdvisoryRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public AdvisoryService(AdvisoryRepository repository, EventPublisher events) {
+    public AdvisoryService(AdvisoryRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<AdvisoryResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(AdvisoryResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(AdvisoryResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public AdvisoryResponse get(UUID id) {
@@ -58,6 +65,7 @@ public class AdvisoryService {
         entity.setAcknowledgedBy(request.acknowledgedBy());
 
         Advisory saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("farm", "AdvisoryCreated", saved.getId(), AdvisoryResponse.from(saved));
         return AdvisoryResponse.from(saved);
     }
@@ -105,6 +113,7 @@ public class AdvisoryService {
     public void delete(UUID id) {
         Advisory entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("farm", "AdvisoryDeleted", id, null);
     }
 

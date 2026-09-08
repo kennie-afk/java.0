@@ -1,6 +1,8 @@
 package com.smartseason.order.service;
 
 import com.smartseason.order.domain.OrderSagaState;
+import com.smartseason.order.platform.CountCache;
+import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.EventPublisher;
 import com.smartseason.order.platform.PageResponse;
 import com.smartseason.order.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class OrderSagaStateService {
 
     private static final String RESOURCE = "OrderSagaState";
+    private static final String ENTITY = "order_saga_states";
 
     private final OrderSagaStateRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public OrderSagaStateService(OrderSagaStateRepository repository, EventPublisher events) {
+    public OrderSagaStateService(OrderSagaStateRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<OrderSagaStateResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(OrderSagaStateResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(OrderSagaStateResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public OrderSagaStateResponse get(UUID id) {
@@ -57,6 +64,7 @@ public class OrderSagaStateService {
         entity.setContext(request.context());
 
         OrderSagaState saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "OrderSagaStateCreated", saved.getId(), OrderSagaStateResponse.from(saved));
         return OrderSagaStateResponse.from(saved);
     }
@@ -101,6 +109,7 @@ public class OrderSagaStateService {
     public void delete(UUID id) {
         OrderSagaState entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "OrderSagaStateDeleted", id, null);
     }
 

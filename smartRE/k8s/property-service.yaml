@@ -60,6 +60,21 @@ spec:
                 configMapKeyRef:
                   name: smartre-config
                   key: VERIFICATION_SERVICE_URL
+            - name: GATEWAY_SIGNING_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: smartre-secrets
+                  key: GATEWAY_SIGNING_SECRET
+            - name: INTERNAL_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: smartre-secrets
+                  key: INTERNAL_SECRET
+            - name: PUBLIC_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: smartre-config
+                  key: PUBLIC_API_URL
           resources:
             requests:
               memory: "256Mi"

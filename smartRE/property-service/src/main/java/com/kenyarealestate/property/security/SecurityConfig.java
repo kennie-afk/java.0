@@ -1,4 +1,5 @@
 package com.kenyarealestate.property.security;
+import com.kenyarealestate.property.ratelimit.RateLimitFilter;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,9 +16,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtFilter;
+    private final RateLimitFilter rateLimitFilter;
     private final InternalSecretFilter internalSecretFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtFilter, InternalSecretFilter internalSecretFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtFilter, InternalSecretFilter internalSecretFilter, RateLimitFilter rateLimitFilter) {
+        this.rateLimitFilter = rateLimitFilter;
         this.jwtFilter = jwtFilter;
         this.internalSecretFilter = internalSecretFilter;
     }
@@ -35,11 +38,14 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html",
                                  "/v3/api-docs/**", "/actuator/**").permitAll()
                 .requestMatchers("/api/properties/admin/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.POST, "/api/properties").hasAnyRole("SELLER", "AGENT", "LANDLORD")
+                .requestMatchers(HttpMethod.POST, "/api/properties").hasAnyRole("SELLER", "LANDLORD")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(internalSecretFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+            // After the JWT filter, so the bucket can be keyed on who is calling
+            // rather than on an address that a whole office may share.
+            .addFilterAfter(rateLimitFilter, JwtAuthenticationFilter.class);
         return http.build();
     }
 }

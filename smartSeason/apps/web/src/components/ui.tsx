@@ -10,13 +10,13 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
+    <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div className="max-w-2xl">
-        <h1 className="text-[1.375rem] font-semibold leading-tight tracking-[-0.015em]">
+        <h1 className="text-2xl font-semibold leading-tight tracking-[-0.015em]">
           {title}
         </h1>
         {subtitle ? (
-          <p className="mt-1.5 text-[0.8125rem] leading-relaxed text-[var(--color-muted)]">
+          <p className="mt-1.5 text-sm leading-relaxed text-[var(--color-muted)]">
             {subtitle}
           </p>
         ) : null}
@@ -34,14 +34,14 @@ export function Tabs({
   active: string;
 }) {
   return (
-    <nav className="mb-8 flex flex-wrap items-center gap-1">
+    <nav className="mb-5 flex flex-wrap items-center gap-1">
       {items.map((item) => {
         const current = item.href === active;
         return (
           <a
             key={item.href}
             href={item.href}
-            className={`rounded-lg px-3 py-1.5 text-[0.8125rem] font-medium transition-colors ${
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
               current
                 ? "bg-[var(--color-ink)] text-white"
                 : "text-[var(--color-muted)] hover:bg-[var(--color-raised)] hover:text-[var(--color-ink)]"
@@ -67,13 +67,13 @@ export function Card({
   actions?: ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)]">
+    <section className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)]">
       {title ? (
-        <div className="flex flex-wrap items-start justify-between gap-3 px-5 pt-4 pb-3">
+        <div className="flex flex-wrap items-start justify-between gap-3 px-3 pt-3 pb-2">
           <div>
-            <h2 className="text-[0.875rem] font-semibold tracking-[-0.01em]">{title}</h2>
+            <h2 className="text-base font-semibold tracking-[-0.01em]">{title}</h2>
             {description ? (
-              <p className="mt-1 text-[0.75rem] leading-relaxed text-[var(--color-muted)]">
+              <p className="mt-1 text-xs leading-relaxed text-[var(--color-muted)]">
                 {description}
               </p>
             ) : null}
@@ -81,7 +81,7 @@ export function Card({
           {actions}
         </div>
       ) : null}
-      <div className={title ? "px-5 pb-5" : "p-5"}>{children}</div>
+      <div className={title ? "px-3 pb-5" : "p-3.5"}>{children}</div>
     </section>
   );
 }
@@ -107,13 +107,13 @@ export function Stat({
   const numeric = /^[^A-Za-z]*$/.test(value) || /^[\d.,]+\s?(ms|s|%|x|\/s|KB|MB)$/i.test(value);
   const size = numeric
     ? value.length <= 8
-      ? "text-[1.125rem]"
-      : "text-[0.9375rem]"
-    : "text-[0.875rem]";
+      ? "text-xl"
+      : "text-lg"
+    : "text-base";
 
   return (
-    <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] px-4 py-3">
-      <p className="text-[0.625rem] font-medium uppercase tracking-[0.07em] text-[var(--color-faint)]">
+    <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2">
+      <p className="text-2xs font-medium uppercase tracking-[0.07em] text-[var(--color-faint)]">
         {label}
       </p>
       <p
@@ -124,7 +124,7 @@ export function Stat({
         {value}
       </p>
       {hint ? (
-        <p className="mt-0.5 text-[0.6875rem] leading-relaxed text-[var(--color-faint)]">{hint}</p>
+        <p className="mt-0.5 text-2xs leading-relaxed text-[var(--color-faint)]">{hint}</p>
       ) : null}
     </div>
   );
@@ -171,7 +171,7 @@ export function Badge({ value, dot }: { value: string; dot?: boolean }) {
   const tone = TONE[key] ?? "bg-[var(--color-raised)] text-[var(--color-muted)]";
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[0.6875rem] font-medium ${tone}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-2xs font-medium ${tone}`}
     >
       {dot ? <span className="h-1.5 w-1.5 rounded-full bg-current" /> : null}
       {sentence(value)}
@@ -189,16 +189,16 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="px-5 py-10 text-center">
+    <div className="px-3 py-10 text-center">
       <div className="mx-auto mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-raised)]">
         <svg viewBox="0 0 24 24" className="h-4 w-4 text-[var(--color-faint)]" fill="none" stroke="currentColor" strokeWidth="1.6">
           <circle cx="11" cy="11" r="7" />
           <path d="M20 20l-3.5-3.5" strokeLinecap="round" />
         </svg>
       </div>
-      <p className="text-[0.875rem] font-medium">{message}</p>
+      <p className="text-base font-medium">{message}</p>
       {detail ? (
-        <p className="mx-auto mt-1 max-w-md text-[0.75rem] text-[var(--color-muted)]">
+        <p className="mx-auto mt-1 max-w-md text-xs text-[var(--color-muted)]">
           {detail}
         </p>
       ) : null}
@@ -221,7 +221,7 @@ export function Notice({
     danger: "border-[#f5cdcb] bg-[var(--color-danger-soft)] text-[var(--color-danger)]"
   }[tone];
   return (
-    <div className={`rounded-lg border px-4 py-3 text-[0.8125rem] leading-relaxed ${styles}`}>
+    <div className={`rounded-lg border px-3 py-2 text-sm leading-relaxed ${styles}`}>
       {children}
     </div>
   );
@@ -238,23 +238,31 @@ export function Field({
 }) {
   return (
     <label className="block">
-      <span className="block text-[0.8125rem] font-medium text-[var(--color-ink)]">{label}</span>
+      <span className="block text-sm font-medium text-[var(--color-ink)]">{label}</span>
       {children}
       {hint ? (
-        <span className="mt-1.5 block text-[0.75rem] text-[var(--color-muted)]">{hint}</span>
+        <span className="mt-1.5 block text-xs text-[var(--color-muted)]">{hint}</span>
       ) : null}
     </label>
   );
 }
 
+/* Margin-free variants. `inputClass`/`selectClass` carry `mt-2` for the `Field`
+   wrapper; forms that supply their own label spacing use these instead. */
+export const bareInputClass =
+  "w-full rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] px-2.5 py-1.5 text-xs outline-none transition-colors placeholder:text-[var(--color-faint)] hover:border-[var(--color-faint)] focus:border-[var(--color-accent)]";
+
+export const bareSelectClass =
+  "w-full cursor-pointer appearance-none rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] bg-[length:14px] bg-[right_0.625rem_center] bg-no-repeat py-1.5 pl-2.5 pr-8 text-xs outline-none transition-colors hover:border-[var(--color-faint)] focus:border-[var(--color-accent)] disabled:opacity-60 bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.75%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M6%208l4%204%204-4%22%2F%3E%3C%2Fsvg%3E')]";
+
 export const inputClass =
-  "mt-2 w-full rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-[0.8125rem] outline-none transition-colors placeholder:text-[var(--color-faint)] hover:border-[var(--color-faint)] focus:border-[var(--color-accent)] focus:ring-4 focus:ring-[var(--color-accent-soft)]";
+  "mt-2 w-full rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-sm outline-none transition-colors placeholder:text-[var(--color-faint)] hover:border-[var(--color-faint)] focus:border-[var(--color-accent)] focus:ring-4 focus:ring-[var(--color-accent-soft)]";
 
 export const selectClass =
-  "mt-2 w-full cursor-pointer appearance-none rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] bg-[length:16px] bg-[right_0.875rem_center] bg-no-repeat py-2 pl-3 pr-9 text-[0.8125rem] outline-none transition-colors hover:border-[var(--color-faint)] focus:border-[var(--color-accent)] focus:ring-4 focus:ring-[var(--color-accent-soft)] bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.75%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M6%208l4%204%204-4%22%2F%3E%3C%2Fsvg%3E')]";
+  "mt-2 w-full cursor-pointer appearance-none rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] bg-[length:16px] bg-[right_0.875rem_center] bg-no-repeat py-2 pl-3 pr-9 text-sm outline-none transition-colors hover:border-[var(--color-faint)] focus:border-[var(--color-accent)] focus:ring-4 focus:ring-[var(--color-accent-soft)] bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.75%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M6%208l4%204%204-4%22%2F%3E%3C%2Fsvg%3E')]";
 
 const buttonBase =
-  "inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-[0.8125rem] font-medium transition-all active:translate-y-px disabled:pointer-events-none disabled:opacity-50";
+  "inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50";
 
 export const buttonClass = `${buttonBase} bg-[var(--color-ink)] text-white hover:bg-[#242832]`;
 
@@ -296,18 +304,27 @@ export function Select({
 export const rowClass =
   "border-b border-[var(--color-line)] transition-colors last:border-0 hover:bg-[var(--color-raised)]";
 
-export function Table({ head, children }: { head: string[]; children: ReactNode }) {
+export interface HeadCell {
+  /** Stable React key; also the field name when the header is a sort link. */
+  key: string;
+  label: ReactNode;
+  numeric?: boolean;
+}
+
+export function Table({ head, children }: { head: HeadCell[]; children: ReactNode }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+      <table className="w-full text-xs">
         <thead>
           <tr className="border-b border-[var(--color-line)] text-left">
-            {head.map((column) => (
+            {head.map((cell) => (
               <th
-                key={column}
-                className="px-3.5 py-2.5 text-[0.625rem] font-medium uppercase tracking-[0.06em] text-[var(--color-faint)]"
+                key={cell.key}
+                className={`px-3 py-2 text-2xs font-medium uppercase tracking-[0.06em] text-[var(--color-faint)] ${
+                  cell.numeric ? "text-right" : ""
+                }`}
               >
-                {column}
+                {cell.label}
               </th>
             ))}
           </tr>
@@ -337,7 +354,7 @@ export function KeyValue({ items }: { items: [string, string][] }) {
     <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
       {items.map(([key, value]) => (
         <div key={key}>
-          <dt className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-[var(--color-muted)]">
+          <dt className="text-2xs font-semibold uppercase tracking-[0.06em] text-[var(--color-muted)]">
             {key}
           </dt>
           <dd className="mt-1 break-words text-sm">{value}</dd>

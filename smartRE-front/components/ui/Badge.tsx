@@ -17,7 +17,7 @@ const styles: Record<Variant,string> = {
 export function Badge({ variant='muted', children, dot, size='md', className }:
   { variant?:Variant; children:React.ReactNode; dot?:boolean; size?:'sm'|'md'; className?:string }) {
   return (
-    <span className={cn('badge', styles[variant], size==='sm'?'text-[11px] px-2 py-0':'', className)}>
+    <span className={cn('badge', styles[variant], size==='sm'?'text-xs px-2 py-0':'', className)}>
       {dot && <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', {
         'bg-emerald-500':variant==='success','bg-amber-500':variant==='warning',
         'bg-red-500':variant==='error','bg-blue-500':variant==='info',
@@ -34,7 +34,7 @@ export function StatusBadge({ status, size }:{ status:string; size?:'sm'|'md' })
 
 export function TrustBadge({ identityVerified, ownershipVerified, fullyTrusted, size='md' }:
   { identityVerified:boolean; ownershipVerified?:boolean; fullyTrusted?:boolean; size?:'sm'|'md'|'lg' }) {
-  const cls = cn('badge font-semibold', size==='sm'?'text-[11px]':size==='lg'?'text-sm px-3 py-1':'')
+  const cls = cn('badge font-semibold', size==='sm'?'text-xs':size==='lg'?'text-sm px-3 py-1':'')
   if (fullyTrusted) return <span className={cn(cls,'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400')}><ShieldCheck size={size==='sm'?11:size==='lg'?16:13}/>Fully Verified</span>
   if (identityVerified && !ownershipVerified) return <span className={cn(cls,'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400')}><Shield size={13}/>Identity Only</span>
   if (identityVerified) return <span className={cn(cls,'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400')}><ShieldAlert size={13}/>Partial</span>

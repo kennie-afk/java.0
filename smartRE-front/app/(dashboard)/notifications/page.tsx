@@ -82,11 +82,11 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h2 className="font-display text-xl font-semibold text-gray-900 dark:text-white">Notifications</h2>
-          <p className="text-[13px] text-muted mt-0.5">
+          <p className="text-base text-muted mt-0.5">
             {unread > 0 ? `${unread} unread` : 'Everything here has been read'}
           </p>
         </div>
@@ -113,14 +113,14 @@ export default function NotificationsPage() {
                 <button
                   onClick={() => openNotification(n)}
                   className={cn(
-                    'w-full text-left px-4 py-3.5 flex items-start gap-3 transition-colors',
+                    'w-full text-left px-3 py-2.5 flex items-start gap-3 transition-colors',
                     'hover:bg-gray-50 dark:hover:bg-[#1A1A35]',
                     !n.read && 'bg-gold-50/50 dark:bg-gold-500/[0.06]')}>
                   <span className={cn('mt-2 w-1.5 h-1.5 rounded-full shrink-0',
                     n.read ? 'bg-transparent' : 'bg-gold-500')}/>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className={cn('text-[14px] leading-snug',
+                      <p className={cn('text-lg leading-snug',
                         n.read ? 'text-gray-700 dark:text-gray-300' : 'font-semibold text-gray-900 dark:text-white')}>
                         {n.subject || n.templateCode}
                       </p>
@@ -128,8 +128,8 @@ export default function NotificationsPage() {
                         {CATEGORY_LABEL[n.category] ?? n.category}
                       </Badge>
                     </div>
-                    {n.body && <p className="text-[12.5px] text-muted mt-1 whitespace-pre-line line-clamp-3">{n.body}</p>}
-                    <p className="text-[11px] text-muted mt-1.5">{fmt.ago(n.createdAt)}</p>
+                    {n.body && <p className="text-sm text-muted mt-1 whitespace-pre-line line-clamp-3">{n.body}</p>}
+                    <p className="text-xs text-muted mt-1.5">{fmt.ago(n.createdAt)}</p>
                   </div>
                 </button>
               </li>
@@ -145,17 +145,17 @@ export default function NotificationsPage() {
 
       <div id="preferences" className="scroll-mt-20">
         <h3 className="font-display text-lg font-semibold text-gray-900 dark:text-white mb-1">Preferences</h3>
-        <p className="text-[13px] text-muted mb-4">
+        <p className="text-base text-muted mb-4">
           Choose how you hear about each kind of update. Account notices like password resets are always sent.
         </p>
 
         {prefsLoading ? (
           <Card><div className="flex justify-center py-8"><Spinner size={24}/></div></Card>
         ) : prefs.length === 0 ? (
-          <Card><p className="text-[13px] text-muted py-2">Preferences are unavailable right now.</p></Card>
+          <Card><p className="text-base text-muted py-2">Preferences are unavailable right now.</p></Card>
         ) : (
           <Card padding="none">
-            <div className="hidden sm:grid grid-cols-[1fr_auto_auto_auto] gap-4 px-4 py-2.5 border-b border-base text-[11px] font-medium text-muted uppercase tracking-wide">
+            <div className="hidden sm:grid grid-cols-[1fr_auto_auto_auto] gap-4 px-4 py-2.5 border-b border-base text-xs font-medium text-muted uppercase tracking-wide">
               <span>Category</span>
               <span className="w-16 text-center">Email</span>
               <span className="w-16 text-center">In-app</span>
@@ -163,21 +163,28 @@ export default function NotificationsPage() {
             </div>
             <ul className="divide-y divide-[color:var(--border)]">
               {prefs.map(p => (
-                <li key={p.category} className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-3 sm:gap-4 px-4 py-3.5 items-center">
+                <li key={p.category} className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-3 sm:gap-4 px-3 py-2.5 items-center">
                   <div className="min-w-0">
-                    <p className="text-[13.5px] font-medium text-gray-900 dark:text-white">
+                    <p className="text-base font-medium text-gray-900 dark:text-white">
                       {CATEGORY_LABEL[p.category] ?? p.category}
                     </p>
                     {CATEGORY_BLURB[p.category] && (
-                      <p className="text-[11.5px] text-muted mt-0.5">{CATEGORY_BLURB[p.category]}</p>
+                      <p className="text-xs text-muted mt-0.5">{CATEGORY_BLURB[p.category]}</p>
                     )}
                   </div>
                   <Toggle icon={<Mail size={13}/>} label="Email" busy={saving === p.category+'emailEnabled'}
+                    available={p.emailAvailable}
                     checked={p.emailEnabled} onChange={v => toggle(p.category, 'emailEnabled', v)}/>
                   <Toggle icon={<Monitor size={13}/>} label="In-app" busy={saving === p.category+'inAppEnabled'}
+                    available={p.inAppAvailable}
                     checked={p.inAppEnabled} onChange={v => toggle(p.category, 'inAppEnabled', v)}/>
+                  {/* SMS is deliberately reserved for time-sensitive and financial
+                      updates, so most categories have no SMS template and the switch is
+                      inert there. The server decides, from the templates that exist. */}
                   <Toggle icon={<MessageSquare size={13}/>} label="SMS" busy={saving === p.category+'smsEnabled'}
-                    checked={p.smsEnabled} onChange={v => toggle(p.category, 'smsEnabled', v)} hint="Not sending yet"/>
+                    available={p.smsAvailable}
+                    checked={p.smsEnabled} onChange={v => toggle(p.category, 'smsEnabled', v)}
+                    hint="Sent for urgent and money-related updates"/>
                 </li>
               ))}
             </ul>
@@ -188,27 +195,40 @@ export default function NotificationsPage() {
   )
 }
 
-function Toggle({ checked, onChange, busy, icon, label, hint }:{
+/**
+ * A channel switch.
+ *
+ * <p>`available` is not the same as `busy`. Unavailable means this category has no
+ * template written for the channel, so the switch would control nothing — showing a live
+ * one there promises a message the system will never send. It renders inert and says why
+ * on hover rather than disappearing, so the grid stays readable across categories.
+ */
+function Toggle({ checked, onChange, busy, icon, label, hint, available = true }:{
   checked:boolean; onChange:(v:boolean)=>void; busy?:boolean
-  icon:React.ReactNode; label:string; hint?:string
+  icon:React.ReactNode; label:string; hint?:string; available?:boolean
 }) {
+  const title = available ? hint : `No ${label.toLowerCase()} is sent for this category`
   return (
-    <div className="flex items-center gap-2 sm:w-16 sm:justify-center" title={hint}>
-      <span className="sm:hidden flex items-center gap-1.5 text-[12px] text-muted w-20">{icon}{label}</span>
+    <div className="flex items-center gap-2 sm:w-16 sm:justify-center" title={title}>
+      <span className="sm:hidden flex items-center gap-1.5 text-sm text-muted w-20">{icon}{label}</span>
       <button
         role="switch"
-        aria-checked={checked}
+        aria-checked={available && checked}
         aria-label={label}
-        disabled={busy}
+        aria-disabled={!available}
+        disabled={busy || !available}
         onClick={() => onChange(!checked)}
         className={cn(
           'relative w-9 h-5 rounded-full transition-colors shrink-0 disabled:opacity-50',
-          checked ? 'bg-gold-500' : 'bg-gray-200 dark:bg-gray-700')}>
+          !available ? 'bg-gray-200 dark:bg-gray-700 opacity-40 cursor-not-allowed'
+                     : checked ? 'bg-gold-500' : 'bg-gray-200 dark:bg-gray-700')}>
         <span className={cn(
           'absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform',
-          checked ? 'translate-x-[18px]' : 'translate-x-0.5')}/>
+          available && checked ? 'translate-x-[18px]' : 'translate-x-0.5')}/>
       </button>
-      {hint && <span className="sm:hidden text-[10.5px] text-muted">{hint}</span>}
+      {!available
+        ? <span className="sm:hidden text-2xs text-muted">Not used here</span>
+        : hint && <span className="sm:hidden text-2xs text-muted">{hint}</span>}
     </div>
   )
 }

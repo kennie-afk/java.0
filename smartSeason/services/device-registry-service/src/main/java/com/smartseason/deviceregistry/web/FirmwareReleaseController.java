@@ -35,19 +35,21 @@ public class FirmwareReleaseController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER')")
     @Operation(summary = "List firmware-releases for the caller's tenant")
     public PageResponse<FirmwareReleaseResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER')")
     @Operation(summary = "Fetch a single FirmwareRelease by id")
     public FirmwareReleaseResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Create a FirmwareRelease")
     public ResponseEntity<FirmwareReleaseResponse> create(@Valid @RequestBody FirmwareReleaseCreateRequest request) {
         FirmwareReleaseResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class FirmwareReleaseController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Apply a partial update to a FirmwareRelease")
     public FirmwareReleaseResponse update(@PathVariable UUID id, @Valid @RequestBody FirmwareReleaseUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a FirmwareRelease")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

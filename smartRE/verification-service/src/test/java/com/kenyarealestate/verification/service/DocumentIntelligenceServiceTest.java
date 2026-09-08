@@ -43,6 +43,10 @@ class DocumentIntelligenceServiceTest {
         ReflectionTestUtils.setField(service, "geminiBaseUrl", "http://127.0.0.1:" + visionPort + "/");
         ReflectionTestUtils.setField(service, "geminiModel", "test-model");
         ReflectionTestUtils.setField(service, "geminiApiKey", "test-key");
+        ReflectionTestUtils.setField(service, "connectTimeoutMs", 2000);
+        ReflectionTestUtils.setField(service, "readTimeoutMs", 5000);
+        ReflectionTestUtils.setField(service, "hardTimeoutMs", 8000);
+        ReflectionTestUtils.invokeMethod(service, "initRestTemplate");
     }
 
     @AfterEach

@@ -35,19 +35,21 @@ public class MarketIndexController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'BUYER')")
     @Operation(summary = "List market-indices for the caller's tenant")
     public PageResponse<MarketIndexResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'BUYER')")
     @Operation(summary = "Fetch a single MarketIndex by id")
     public MarketIndexResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Create a MarketIndex")
     public ResponseEntity<MarketIndexResponse> create(@Valid @RequestBody MarketIndexCreateRequest request) {
         MarketIndexResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class MarketIndexController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Apply a partial update to a MarketIndex")
     public MarketIndexResponse update(@PathVariable UUID id, @Valid @RequestBody MarketIndexUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a MarketIndex")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

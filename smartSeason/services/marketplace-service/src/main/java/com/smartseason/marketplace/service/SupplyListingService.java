@@ -1,6 +1,8 @@
 package com.smartseason.marketplace.service;
 
 import com.smartseason.marketplace.domain.SupplyListing;
+import com.smartseason.marketplace.platform.CountCache;
+import com.smartseason.marketplace.platform.CountCache;
 import com.smartseason.marketplace.platform.EventPublisher;
 import com.smartseason.marketplace.platform.PageResponse;
 import com.smartseason.marketplace.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class SupplyListingService {
 
     private static final String RESOURCE = "SupplyListing";
+    private static final String ENTITY = "supply_listings";
 
     private final SupplyListingRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public SupplyListingService(SupplyListingRepository repository, EventPublisher events) {
+    public SupplyListingService(SupplyListingRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<SupplyListingResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(SupplyListingResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(SupplyListingResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public SupplyListingResponse get(UUID id) {
@@ -66,6 +73,7 @@ public class SupplyListingService {
         entity.setStatus(request.status());
 
         SupplyListing saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "SupplyListingCreated", saved.getId(), SupplyListingResponse.from(saved));
         return SupplyListingResponse.from(saved);
     }
@@ -137,6 +145,7 @@ public class SupplyListingService {
     public void delete(UUID id) {
         SupplyListing entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "SupplyListingDeleted", id, null);
     }
 

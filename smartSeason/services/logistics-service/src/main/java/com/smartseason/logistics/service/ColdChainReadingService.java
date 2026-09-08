@@ -1,6 +1,8 @@
 package com.smartseason.logistics.service;
 
 import com.smartseason.logistics.domain.ColdChainReading;
+import com.smartseason.logistics.platform.CountCache;
+import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.EventPublisher;
 import com.smartseason.logistics.platform.PageResponse;
 import com.smartseason.logistics.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class ColdChainReadingService {
 
     private static final String RESOURCE = "ColdChainReading";
+    private static final String ENTITY = "cold_chain_readings";
 
     private final ColdChainReadingRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public ColdChainReadingService(ColdChainReadingRepository repository, EventPublisher events) {
+    public ColdChainReadingService(ColdChainReadingRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<ColdChainReadingResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(ColdChainReadingResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(ColdChainReadingResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public ColdChainReadingResponse get(UUID id) {
@@ -54,6 +61,7 @@ public class ColdChainReadingService {
         entity.setBreach(request.breach());
 
         ColdChainReading saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "ColdChainReadingCreated", saved.getId(), ColdChainReadingResponse.from(saved));
         return ColdChainReadingResponse.from(saved);
     }
@@ -89,6 +97,7 @@ public class ColdChainReadingService {
     public void delete(UUID id) {
         ColdChainReading entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "ColdChainReadingDeleted", id, null);
     }
 

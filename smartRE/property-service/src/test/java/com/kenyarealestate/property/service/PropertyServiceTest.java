@@ -14,6 +14,7 @@ import com.kenyarealestate.property.exception.NotFoundException;
 import com.kenyarealestate.property.repository.PropertyImageHashRepository;
 import com.kenyarealestate.property.repository.PropertyRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -36,6 +37,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import com.kenyarealestate.property.kafka.PropertyEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -50,6 +52,7 @@ class PropertyServiceTest {
     @Mock private ValueOperations<String, Object> valueOps;
 
     private PropertyService propertyService;
+    private PropertyEventPublisher eventPublisher;
 
     private UUID sellerId;
     private UUID otherSellerId;
@@ -73,7 +76,9 @@ class PropertyServiceTest {
                 .viewCount(0)
                 .build();
 
-        propertyService = new PropertyService(repo, verifClient, redis, auditService, imageHashRepo, imageHashService);
+        eventPublisher = mock(PropertyEventPublisher.class);
+        propertyService = new PropertyService(repo, verifClient, redis, auditService, imageHashRepo,
+                imageHashService, eventPublisher);
         setField("detailTtl", 300L);
         setField("searchTtl", 120L);
         setField("viewDebounceWindowMinutes", 30L);
@@ -98,6 +103,17 @@ class PropertyServiceTest {
         req.setListingType("SALE");
         req.setCounty("Nairobi");
         req.setPrice(BigDecimal.valueOf(8000000));
+        // An advertised property has a photo. This fixture previously had none and
+        // still passed, because @NotEmpty was only enforced at the HTTP layer — the
+        // service would happily build a photo-less listing if called directly.
+        req.setImageUrls(List.of("https://cdn.example.test/listing-1.jpg"));
+        return req;
+    }
+
+    private CreatePropertyRequest manageOnlyRequest() {
+        var req = baseCreateRequest();
+        req.setImageUrls(List.of());
+        req.setManageOnly(true);
         return req;
     }
 
@@ -143,6 +159,35 @@ class PropertyServiceTest {
         var res = propertyService.create(sellerId, baseCreateRequest());
 
         assertEquals("PENDING_VERIFICATION", res.getStatus());
+    }
+
+    @Test
+    void create_setsUnlisted_whenManageOnly() {
+        // A landlord setting up a block to manage it is not advertising anything, so
+        // the property must not enter the verification queue — and must never appear
+        // in a public query, all of which filter on ACTIVE.
+        when(verifClient.isIdentityVerified(sellerId)).thenReturn(true);
+        when(repo.save(any(Property.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        var res = propertyService.create(sellerId, manageOnlyRequest());
+
+        assertEquals("UNLISTED", res.getStatus());
+    }
+
+    @Test
+    void create_allowsNoPhotos_whenManageOnly() {
+        when(verifClient.isIdentityVerified(sellerId)).thenReturn(false);
+        when(repo.save(any(Property.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        assertDoesNotThrow(() -> propertyService.create(sellerId, manageOnlyRequest()));
+    }
+
+    @Test
+    void create_requiresAPhoto_whenAdvertised() {
+        var req = baseCreateRequest();
+        req.setImageUrls(List.of());
+
+        assertThrows(IllegalArgumentException.class, () -> propertyService.create(sellerId, req));
     }
 
     @Test
@@ -223,18 +268,50 @@ class PropertyServiceTest {
     }
 
     @Test
-    void adminReactivate_setsStatusActive_andClearsDuplicateFlag() {
+    void adminReactivate_returnsAFullyVerifiedListingToActive() {
         UUID adminId = UUID.randomUUID();
         property.setStatus(ListingStatus.SUSPENDED);
-        property.setDuplicateParcelFlag(true);
+        property.setSellerIdentityVerified(true);
+        property.setPropertyOwnershipVerified(true);
+        property.setDuplicateParcelFlag(false);
         when(repo.findById(propertyId)).thenReturn(Optional.of(property));
         when(repo.save(any(Property.class))).thenAnswer(inv -> inv.getArgument(0));
 
         var res = propertyService.adminReactivate(propertyId, adminId);
 
         assertEquals("ACTIVE", res.getStatus());
-        assertFalse(property.isDuplicateParcelFlag());
         verify(auditService).log(eq(propertyId), eq("ADMIN_REACTIVATED"), any(), any(), eq(adminId), eq("ADMIN"), any(), any());
+    }
+
+    @Test
+    void adminReactivate_holdsAtPendingVerification_andKeepsTheDuplicateParcelFlag() {
+        UUID adminId = UUID.randomUUID();
+        property.setStatus(ListingStatus.SUSPENDED);
+        property.setSellerIdentityVerified(true);
+        property.setPropertyOwnershipVerified(true);
+        property.setDuplicateParcelFlag(true);
+        when(repo.findById(propertyId)).thenReturn(Optional.of(property));
+        when(repo.save(any(Property.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        var res = propertyService.adminReactivate(propertyId, adminId);
+
+        assertEquals("PENDING_VERIFICATION", res.getStatus());
+        assertTrue(property.isDuplicateParcelFlag());
+        verify(auditService).log(eq(propertyId), eq("ADMIN_REACTIVATED"), any(), any(), eq(adminId), eq("ADMIN"), any(), any());
+    }
+
+    @Test
+    void adminReactivate_holdsAtPendingVerification_whenOwnershipIsNotVerified() {
+        UUID adminId = UUID.randomUUID();
+        property.setStatus(ListingStatus.SUSPENDED);
+        property.setSellerIdentityVerified(true);
+        property.setPropertyOwnershipVerified(false);
+        when(repo.findById(propertyId)).thenReturn(Optional.of(property));
+        when(repo.save(any(Property.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        var res = propertyService.adminReactivate(propertyId, adminId);
+
+        assertEquals("PENDING_VERIFICATION", res.getStatus());
     }
 
     @Test
@@ -460,5 +537,34 @@ class PropertyServiceTest {
         var res = propertyService.getById(propertyId, sellerId, false, "1.2.3.4");
 
         assertEquals(propertyId, res.getId());
+    }
+
+    @Test
+    @DisplayName("suspending a seller's listings tells them once, with the count and the reason")
+    void suspensionNotifiesTheSellerOnce() {
+        UUID seller = UUID.randomUUID();
+        when(repo.findBySellerIdAndStatus(eq(seller), eq(ListingStatus.ACTIVE)))
+                .thenReturn(java.util.List.of(property, property));
+        when(repo.findBySellerIdAndStatus(eq(seller), eq(ListingStatus.PENDING_VERIFICATION)))
+                .thenReturn(java.util.List.of());
+        when(repo.findBySellerIdAndStatus(eq(seller), eq(ListingStatus.DRAFT)))
+                .thenReturn(java.util.List.of());
+
+        propertyService.suspendAllForSeller(seller, "Seller account banned by admin");
+
+        // One message carrying the count, not one per listing.
+        verify(eventPublisher, times(1))
+                .publishListingsSuspended(seller, 2, "Seller account banned by admin");
+    }
+
+    @Test
+    @DisplayName("a seller with nothing listed is not told their nothing was suspended")
+    void nothingToSuspendSendsNothing() {
+        UUID seller = UUID.randomUUID();
+        when(repo.findBySellerIdAndStatus(any(), any())).thenReturn(java.util.List.of());
+
+        propertyService.suspendAllForSeller(seller, "Seller account banned by admin");
+
+        verify(eventPublisher, never()).publishListingsSuspended(any(), anyInt(), any());
     }
 }

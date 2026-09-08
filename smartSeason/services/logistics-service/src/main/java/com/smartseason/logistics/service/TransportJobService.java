@@ -1,6 +1,8 @@
 package com.smartseason.logistics.service;
 
 import com.smartseason.logistics.domain.TransportJob;
+import com.smartseason.logistics.platform.CountCache;
+import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.EventPublisher;
 import com.smartseason.logistics.platform.PageResponse;
 import com.smartseason.logistics.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class TransportJobService {
 
     private static final String RESOURCE = "TransportJob";
+    private static final String ENTITY = "transport_jobs";
 
     private final TransportJobRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public TransportJobService(TransportJobRepository repository, EventPublisher events) {
+    public TransportJobService(TransportJobRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<TransportJobResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(TransportJobResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(TransportJobResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public TransportJobResponse get(UUID id) {
@@ -67,6 +74,7 @@ public class TransportJobService {
         entity.setStatus(request.status());
 
         TransportJob saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "TransportJobCreated", saved.getId(), TransportJobResponse.from(saved));
         return TransportJobResponse.from(saved);
     }
@@ -141,6 +149,7 @@ public class TransportJobService {
     public void delete(UUID id) {
         TransportJob entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "TransportJobDeleted", id, null);
     }
 

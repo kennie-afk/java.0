@@ -95,7 +95,6 @@ export function useUsers() {
     ban,
     unban,
     sellers: roleStats?.sellers ?? 0,
-    agents: roleStats?.agents ?? 0,
     buyers: roleStats?.buyers ?? 0,
     admins: roleStats?.admins ?? 0,
   }

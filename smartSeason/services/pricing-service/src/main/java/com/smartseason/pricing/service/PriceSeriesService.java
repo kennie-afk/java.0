@@ -1,6 +1,8 @@
 package com.smartseason.pricing.service;
 
 import com.smartseason.pricing.domain.PriceSeries;
+import com.smartseason.pricing.platform.CountCache;
+import com.smartseason.pricing.platform.CountCache;
 import com.smartseason.pricing.platform.EventPublisher;
 import com.smartseason.pricing.platform.PageResponse;
 import com.smartseason.pricing.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class PriceSeriesService {
 
     private static final String RESOURCE = "PriceSeries";
+    private static final String ENTITY = "price_series";
 
     private final PriceSeriesRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public PriceSeriesService(PriceSeriesRepository repository, EventPublisher events) {
+    public PriceSeriesService(PriceSeriesRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<PriceSeriesResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(PriceSeriesResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(PriceSeriesResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public PriceSeriesResponse get(UUID id) {
@@ -60,6 +67,7 @@ public class PriceSeriesService {
         entity.setVolumeKg(request.volumeKg());
 
         PriceSeries saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "PriceSeriesCreated", saved.getId(), PriceSeriesResponse.from(saved));
         return PriceSeriesResponse.from(saved);
     }
@@ -113,6 +121,7 @@ public class PriceSeriesService {
     public void delete(UUID id) {
         PriceSeries entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "PriceSeriesDeleted", id, null);
     }
 

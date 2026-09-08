@@ -90,10 +90,10 @@ function AdminReviewsPageInner() {
   const maxCount = stats ? Math.max(1, ...stats.ratingDistribution.map(d => d.count)) : 1
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
         <h1 className="font-display text-lg font-semibold text-gray-900 dark:text-white">Reviews</h1>
-        <p className="text-muted text-[13px] mt-1">All buyer reviews across every listing, platform-wide</p>
+        <p className="text-muted text-base mt-1">All buyer reviews across every listing, platform-wide</p>
       </div>
 
       {(statsQ.isError || listQ.isError) && <InlineError message="Failed to load reviews."/>}
@@ -108,7 +108,7 @@ function AdminReviewsPageInner() {
           </div>
 
           <Card>
-            <h2 className="font-display font-semibold text-[13px] text-gray-900 dark:text-white mb-4">Rating distribution</h2>
+            <h2 className="font-display font-semibold text-base text-gray-900 dark:text-white mb-4">Rating distribution</h2>
             <div className="space-y-2">
               {[5, 4, 3, 2, 1].map(n => {
                 const cnt = stats.ratingDistribution.find(d => d.rating === n)?.count ?? 0
@@ -151,7 +151,7 @@ function AdminReviewsPageInner() {
                     {r.verified ? <Badge variant="success" size="sm">Visible</Badge> : <Badge variant="error" size="sm">Hidden</Badge>}
                   </div>
                   {r.comment && <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">{r.comment}</p>}
-                  <p className="text-[11px] text-muted">
+                  <p className="text-xs text-muted">
                     <a href={`/properties/${r.propertyId}`} target="_blank" rel="noopener noreferrer" className="hover:underline text-gold-600 dark:text-gold-400">
                       Property {r.propertyId.slice(0, 8)}...
                     </a>

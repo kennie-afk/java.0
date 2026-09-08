@@ -15,6 +15,8 @@ public class Events {
         private UUID leaseId;
         private UUID unitId;
         private UUID tenantId;
+        /** The tenant's SmartRE account, when their record is linked to one. */
+        private UUID tenantUserId;
         private UUID landlordId;
         private UUID propertyId;
         private BigDecimal rentAmount;
@@ -109,6 +111,8 @@ public class Events {
         private UUID leaseId;
         private UUID unitId;
         private UUID tenantId;
+        /** The tenant's SmartRE account, when their record is linked to one. */
+        private UUID tenantUserId;
         private UUID landlordId;
         private String reason;
         private LocalDateTime endedAt;

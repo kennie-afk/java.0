@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.automation.domain.DigitalTwin;
+import com.smartseason.automation.platform.CountCache;
+import com.smartseason.automation.platform.CountCache;
 import com.smartseason.automation.platform.EventPublisher;
 import com.smartseason.automation.platform.ResourceNotFoundException;
 import com.smartseason.automation.platform.TenantContext;
@@ -29,7 +31,10 @@ class DigitalTwinServiceTest {
 
     private final DigitalTwinRepository repository = mock(DigitalTwinRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final DigitalTwinService service = new DigitalTwinService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final DigitalTwinService service = new DigitalTwinService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

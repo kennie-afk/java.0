@@ -35,19 +35,21 @@ public class TraceLinkController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'STOREKEEPER', 'BUYER')")
     @Operation(summary = "List trace-links for the caller's tenant")
     public PageResponse<TraceLinkResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'STOREKEEPER', 'BUYER')")
     @Operation(summary = "Fetch a single TraceLink by id")
     public TraceLinkResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STOREKEEPER')")
     @Operation(summary = "Create a TraceLink")
     public ResponseEntity<TraceLinkResponse> create(@Valid @RequestBody TraceLinkCreateRequest request) {
         TraceLinkResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class TraceLinkController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STOREKEEPER')")
     @Operation(summary = "Apply a partial update to a TraceLink")
     public TraceLinkResponse update(@PathVariable UUID id, @Valid @RequestBody TraceLinkUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a TraceLink")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

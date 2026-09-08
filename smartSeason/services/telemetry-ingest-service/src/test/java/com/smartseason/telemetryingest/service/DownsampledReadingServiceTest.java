@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.telemetryingest.domain.DownsampledReading;
+import com.smartseason.telemetryingest.platform.CountCache;
+import com.smartseason.telemetryingest.platform.CountCache;
 import com.smartseason.telemetryingest.platform.EventPublisher;
 import com.smartseason.telemetryingest.platform.ResourceNotFoundException;
 import com.smartseason.telemetryingest.platform.TenantContext;
@@ -29,7 +31,10 @@ class DownsampledReadingServiceTest {
 
     private final DownsampledReadingRepository repository = mock(DownsampledReadingRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final DownsampledReadingService service = new DownsampledReadingService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final DownsampledReadingService service = new DownsampledReadingService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

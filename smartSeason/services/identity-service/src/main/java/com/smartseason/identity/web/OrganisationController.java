@@ -35,19 +35,21 @@ public class OrganisationController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "List organisations for the caller's tenant")
     public PageResponse<OrganisationResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Fetch a single Organisation by id")
     public OrganisationResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Create a Organisation")
     public ResponseEntity<OrganisationResponse> create(@Valid @RequestBody OrganisationCreateRequest request) {
         OrganisationResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class OrganisationController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Apply a partial update to a Organisation")
     public OrganisationResponse update(@PathVariable UUID id, @Valid @RequestBody OrganisationUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a Organisation")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

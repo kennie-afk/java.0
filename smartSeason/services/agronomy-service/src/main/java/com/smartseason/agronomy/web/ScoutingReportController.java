@@ -35,19 +35,21 @@ public class ScoutingReportController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "List scouting-reports for the caller's tenant")
     public PageResponse<ScoutingReportResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "Fetch a single ScoutingReport by id")
     public ScoutingReportResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "Create a ScoutingReport")
     public ResponseEntity<ScoutingReportResponse> create(@Valid @RequestBody ScoutingReportCreateRequest request) {
         ScoutingReportResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class ScoutingReportController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "Apply a partial update to a ScoutingReport")
     public ScoutingReportResponse update(@PathVariable UUID id, @Valid @RequestBody ScoutingReportUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGRONOMIST')")
     @Operation(summary = "Delete a ScoutingReport")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

@@ -1,6 +1,8 @@
 package com.smartseason.telemetryingest.service;
 
 import com.smartseason.telemetryingest.domain.DownsampledReading;
+import com.smartseason.telemetryingest.platform.CountCache;
+import com.smartseason.telemetryingest.platform.CountCache;
 import com.smartseason.telemetryingest.platform.EventPublisher;
 import com.smartseason.telemetryingest.platform.PageResponse;
 import com.smartseason.telemetryingest.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class DownsampledReadingService {
 
     private static final String RESOURCE = "DownsampledReading";
+    private static final String ENTITY = "downsampled_readings";
 
     private final DownsampledReadingRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public DownsampledReadingService(DownsampledReadingRepository repository, EventPublisher events) {
+    public DownsampledReadingService(DownsampledReadingRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<DownsampledReadingResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(DownsampledReadingResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(DownsampledReadingResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public DownsampledReadingResponse get(UUID id) {
@@ -56,6 +63,7 @@ public class DownsampledReadingService {
         entity.setSampleCount(request.sampleCount());
 
         DownsampledReading saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("iot", "DownsampledReadingCreated", saved.getId(), DownsampledReadingResponse.from(saved));
         return DownsampledReadingResponse.from(saved);
     }
@@ -97,6 +105,7 @@ public class DownsampledReadingService {
     public void delete(UUID id) {
         DownsampledReading entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("iot", "DownsampledReadingDeleted", id, null);
     }
 

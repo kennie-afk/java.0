@@ -35,19 +35,21 @@ public class StockItemController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'STOREKEEPER')")
     @Operation(summary = "List stock-items for the caller's tenant")
     public PageResponse<StockItemResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'STOREKEEPER')")
     @Operation(summary = "Fetch a single StockItem by id")
     public StockItemResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STOREKEEPER')")
     @Operation(summary = "Create a StockItem")
     public ResponseEntity<StockItemResponse> create(@Valid @RequestBody StockItemCreateRequest request) {
         StockItemResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class StockItemController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STOREKEEPER')")
     @Operation(summary = "Apply a partial update to a StockItem")
     public StockItemResponse update(@PathVariable UUID id, @Valid @RequestBody StockItemUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STOREKEEPER')")
     @Operation(summary = "Delete a StockItem")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

@@ -1,0 +1,15 @@
+package com.kenyarealestate.verification.repository;
+
+import com.kenyarealestate.verification.entity.VerificationOutboxEvent;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+
+@Repository
+public interface VerificationOutboxEventRepository extends JpaRepository<VerificationOutboxEvent, UUID> {
+
+    List<VerificationOutboxEvent> findByPublishedFalseAndCreatedAtBefore(LocalDateTime cutoff);
+}

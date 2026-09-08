@@ -1,6 +1,8 @@
 package com.smartseason.order.service;
 
 import com.smartseason.order.domain.PurchaseOrder;
+import com.smartseason.order.platform.CountCache;
+import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.EventPublisher;
 import com.smartseason.order.platform.PageResponse;
 import com.smartseason.order.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class PurchaseOrderService {
 
     private static final String RESOURCE = "PurchaseOrder";
+    private static final String ENTITY = "orders";
 
     private final PurchaseOrderRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public PurchaseOrderService(PurchaseOrderRepository repository, EventPublisher events) {
+    public PurchaseOrderService(PurchaseOrderRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<PurchaseOrderResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(PurchaseOrderResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(PurchaseOrderResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public PurchaseOrderResponse get(UUID id) {
@@ -69,6 +76,7 @@ public class PurchaseOrderService {
         entity.setIdempotencyKey(request.idempotencyKey());
 
         PurchaseOrder saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "PurchaseOrderCreated", saved.getId(), PurchaseOrderResponse.from(saved));
         return PurchaseOrderResponse.from(saved);
     }
@@ -149,6 +157,7 @@ public class PurchaseOrderService {
     public void delete(UUID id) {
         PurchaseOrder entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "PurchaseOrderDeleted", id, null);
     }
 

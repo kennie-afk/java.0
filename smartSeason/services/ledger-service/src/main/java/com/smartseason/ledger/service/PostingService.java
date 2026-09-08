@@ -1,6 +1,8 @@
 package com.smartseason.ledger.service;
 
 import com.smartseason.ledger.domain.Posting;
+import com.smartseason.ledger.platform.CountCache;
+import com.smartseason.ledger.platform.CountCache;
 import com.smartseason.ledger.platform.EventPublisher;
 import com.smartseason.ledger.platform.PageResponse;
 import com.smartseason.ledger.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class PostingService {
 
     private static final String RESOURCE = "Posting";
+    private static final String ENTITY = "postings";
 
     private final PostingRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public PostingService(PostingRepository repository, EventPublisher events) {
+    public PostingService(PostingRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<PostingResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(PostingResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(PostingResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public PostingResponse get(UUID id) {
@@ -56,6 +63,7 @@ public class PostingService {
         entity.setMemo(request.memo());
 
         Posting saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("money", "PostingCreated", saved.getId(), PostingResponse.from(saved));
         return PostingResponse.from(saved);
     }
@@ -97,6 +105,7 @@ public class PostingService {
     public void delete(UUID id) {
         Posting entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("money", "PostingDeleted", id, null);
     }
 

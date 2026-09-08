@@ -22,6 +22,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Base64;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -107,6 +108,19 @@ public class UserService {
         return redactAll(resp);
     }
 
+    /**
+     * Resolves an email to a user id, for internal callers only.
+     *
+     * <p>Deliberately returns nothing but the id. A landlord linking a tenant needs to
+     * know which account belongs to the address they already hold; they do not need,
+     * and must not get, the name or role attached to it.
+     */
+    @Transactional(readOnly = true)
+    public Optional<UUID> findIdByEmail(String email) {
+        if (email == null || email.isBlank()) return Optional.empty();
+        return repo.findByEmail(email.trim().toLowerCase()).map(User::getId);
+    }
+
     @Transactional(readOnly = true)
     public UserContactResponse getContact(UUID id) {
         User u = repo.findById(id).orElseThrow(() -> new NotFoundException("User not found"));
@@ -175,7 +189,6 @@ public class UserService {
         return UserAdminStatsResponse.builder()
                 .buyers(repo.countByRole(Role.BUYER))
                 .sellers(repo.countByRole(Role.SELLER))
-                .agents(repo.countByRole(Role.AGENT))
                 .admins(repo.countByRole(Role.ADMIN))
                 .total(repo.count())
                 .verified(repo.countByVerifiedTrue())

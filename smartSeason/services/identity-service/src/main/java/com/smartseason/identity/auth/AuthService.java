@@ -35,7 +35,22 @@ public class AuthService {
 
     private static final int MAX_FAILED_ATTEMPTS = 5;
     private static final long REFRESH_TTL_DAYS = 30;
-    private static final String DEFAULT_ROLES = "ADMIN";
+    /**
+     * What the person who registers an organisation gets.
+     *
+     * They are always ADMIN of the organisation they just created - somebody has
+     * to be able to invite the rest - and they also get the role that matches
+     * what the organisation does, so a farm owner can work their own farm
+     * without granting themselves anything.
+     */
+    private static String rolesFor(Organisation.OrgType orgType) {
+        return switch (orgType) {
+            case FARM, COOPERATIVE -> "ADMIN,FARMER";
+            case BUYER -> "ADMIN,BUYER";
+            case TRANSPORTER -> "ADMIN,STOREKEEPER";
+            case ADMIN -> "ADMIN";
+        };
+    }
 
     private final OrganisationRepository organisations;
     private final UserRepository users;
@@ -86,7 +101,7 @@ public class AuthService {
         user.setFullName(request.fullName());
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setOrganisationId(tenantId);
-        user.setRoles(DEFAULT_ROLES);
+        user.setRoles(rolesFor(organisation.getOrgType()));
         user.setStatus(User.Status.ACTIVE);
         user.setMfaEnabled(false);
         user.setFailedAttempts(0);

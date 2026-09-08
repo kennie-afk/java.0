@@ -1,6 +1,8 @@
 package com.smartseason.payout.service;
 
 import com.smartseason.payout.domain.PayoutItem;
+import com.smartseason.payout.platform.CountCache;
+import com.smartseason.payout.platform.CountCache;
 import com.smartseason.payout.platform.EventPublisher;
 import com.smartseason.payout.platform.PageResponse;
 import com.smartseason.payout.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class PayoutItemService {
 
     private static final String RESOURCE = "PayoutItem";
+    private static final String ENTITY = "payout_items";
 
     private final PayoutItemRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public PayoutItemService(PayoutItemRepository repository, EventPublisher events) {
+    public PayoutItemService(PayoutItemRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<PayoutItemResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(PayoutItemResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(PayoutItemResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public PayoutItemResponse get(UUID id) {
@@ -62,6 +69,7 @@ public class PayoutItemService {
         entity.setIdempotencyKey(request.idempotencyKey());
 
         PayoutItem saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("money", "PayoutItemCreated", saved.getId(), PayoutItemResponse.from(saved));
         return PayoutItemResponse.from(saved);
     }
@@ -121,6 +129,7 @@ public class PayoutItemService {
     public void delete(UUID id) {
         PayoutItem entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("money", "PayoutItemDeleted", id, null);
     }
 

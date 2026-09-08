@@ -59,7 +59,7 @@ class ReportServiceTest {
 
     @BeforeEach
     void setup() {
-        when(reportRepo.save(any(Report.class))).thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(reportRepo.save(any(Report.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 
     @Test

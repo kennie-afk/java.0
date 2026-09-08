@@ -35,19 +35,21 @@ public class WageRateController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'FINANCE')")
     @Operation(summary = "List wage-rates for the caller's tenant")
     public PageResponse<WageRateResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'FINANCE')")
     @Operation(summary = "Fetch a single WageRate by id")
     public WageRateResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Create a WageRate")
     public ResponseEntity<WageRateResponse> create(@Valid @RequestBody WageRateCreateRequest request) {
         WageRateResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class WageRateController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Apply a partial update to a WageRate")
     public WageRateResponse update(@PathVariable UUID id, @Valid @RequestBody WageRateUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Delete a WageRate")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

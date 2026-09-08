@@ -49,8 +49,14 @@
   .bg-surface-2 { @apply bg-gray-50 dark:bg-[#251E14]; }
   .bg-surface-3 { @apply bg-gray-100 dark:bg-[#2E2518]; }
   .border-base { @apply border-gray-200 dark:border-[#3A2F1F]; }
-  .card { @apply bg-white dark:bg-[#201911] border border-gray-200 dark:border-[#3A2F1F] rounded-xl shadow-sm; }
-  .card-hover { @apply card hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200; }
+  .card { @apply bg-white dark:bg-[#201911] border border-gray-200 dark:border-[#3A2F1F] rounded-lg shadow-none; }
+  /* Hover states earn their keep by confirming the target, not by animating it. A card
+     that lifts and drops a shadow moves the text under the cursor, and on a dense grid
+     several of them twitch as the pointer crosses. The border warming is enough to say
+     "this is the one" without anything changing position or size. */
+  .card-hover { @apply card cursor-pointer border-gray-200 dark:border-[#3A2F1F]
+                       hover:border-gold-300 dark:hover:border-gold-500/40
+                       transition-colors duration-150; }
   .input-base {
     @apply w-full h-8 px-2.5 rounded-md border border-gray-200 dark:border-[#3A2F1F]
            bg-white dark:bg-[#201911] text-gray-900 dark:text-gray-100
@@ -62,15 +68,15 @@
     @apply inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md
            bg-gold-500 hover:bg-gold-600 active:bg-gold-700
            text-white text-[13px] font-medium
-           shadow-sm hover:shadow-gold hover:-translate-y-px active:translate-y-0
-           transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0;
+           shadow-none
+           transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-secondary {
     @apply inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md
            bg-gray-100 dark:bg-[#2E2518] hover:bg-gray-200 dark:hover:bg-[#3A2F1F]
            text-gray-700 dark:text-gray-200 text-[13px] font-medium
-           border border-gray-200 dark:border-[#3A2F1F] hover:-translate-y-px active:translate-y-0
-           transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0;
+           border border-gray-200 dark:border-[#3A2F1F]
+           transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md
@@ -81,8 +87,7 @@
   .btn-danger {
     @apply inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md
            bg-red-500 hover:bg-red-600 text-white text-[13px] font-medium
-           hover:-translate-y-px active:translate-y-0
-           transition-all duration-150 disabled:opacity-50 disabled:hover:translate-y-0;
+           transition-colors duration-150 disabled:opacity-50;
   }
   .badge {
     @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide;
@@ -92,19 +97,69 @@
     background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.05) 50%, transparent 75%);
     background-size: 200% 100%;
   }
+  /* Navigation is furniture: it should be legible and then get out of the way. 12px at
+     normal weight rather than 13px medium, tighter rows, and no sideways slide on
+     hover — the background change already says which row the pointer is on. */
   .sidebar-link {
-    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium
+    @apply flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[12px] font-normal
            text-gray-600 dark:text-gray-400
            hover:bg-gray-100 dark:hover:bg-[#2E2518]
            hover:text-gray-900 dark:hover:text-white
-           hover:translate-x-0.5
-           transition-all duration-150;
+           transition-colors duration-150;
   }
   .sidebar-link-active {
     @apply sidebar-link bg-gold-50 dark:bg-gold-500/10
-           text-gold-700 dark:text-gold-400
+           font-medium text-gold-700 dark:text-gold-400
            hover:bg-gold-50 dark:hover:bg-gold-500/10
-           hover:text-gold-700 dark:hover:text-gold-400
-           hover:translate-x-0;
+           hover:text-gold-700 dark:hover:text-gold-400;
+  }
+}
+
+/* Printing.
+   Only the receipt is meant to reach paper. Rather than build a separate print route,
+   everything is hidden and the one element that opted in is made visible again — which
+   keeps the printed document and the on-screen one the same thing, so they cannot drift
+   apart. `visibility` rather than `display` because hiding an ancestor with `display`
+   would take the receipt down with it. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #print-root,
+  #print-root * {
+    visibility: visible;
+  }
+
+  #print-root {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    color: #000;
+    background: #fff;
+  }
+
+  /* Paper has no dark mode and no hover states. */
+  #print-root * {
+    color: #000 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  /* Except the logo. `color` does not drive SVG fills, so the mark would survive the
+     rule above anyway — but browsers default to dropping backgrounds and adjusting
+     colours when printing, and this asks them not to for the one element whose colour
+     carries meaning. A receipt with a grey smudge where the mark should be looks
+     forged. */
+  #print-root svg,
+  #print-root svg * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  @page {
+    margin: 18mm;
   }
 }

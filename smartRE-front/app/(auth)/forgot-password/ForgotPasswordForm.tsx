@@ -34,8 +34,8 @@ export default function ForgotPasswordForm() {
           <MailCheck size={22}/>
         </div>
         <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-white">Check your email</h1>
-        <p className="text-[13px] text-muted mt-2">If an account exists for that email, we&apos;ve sent a link to reset your password. It expires in 30 minutes.</p>
-        <Link href="/login" className="inline-flex items-center gap-1.5 text-[13px] font-medium text-gold-600 dark:text-gold-400 hover:underline mt-5">
+        <p className="text-base text-muted mt-2">If an account exists for that email, we&apos;ve sent a link to reset your password. It expires in 30 minutes.</p>
+        <Link href="/login" className="inline-flex items-center gap-1.5 text-base font-medium text-gold-600 dark:text-gold-400 hover:underline mt-5">
           <ArrowLeft size={14}/>Back to sign in
         </Link>
       </Card>
@@ -46,14 +46,14 @@ export default function ForgotPasswordForm() {
     <Card padding="sm" className="sm:p-6">
       <div className="mb-5">
         <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-white">Reset your password</h1>
-        <p className="text-[13px] text-muted mt-1">Enter the email you signed up with and we&apos;ll send you a reset link.</p>
+        <p className="text-base text-muted mt-1">Enter the email you signed up with and we&apos;ll send you a reset link.</p>
       </div>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5">
         <Input label="Email address" type="email" placeholder="kennieme24@gmail.com" required
           leftIcon={<Mail size={15}/>} {...register('email')} error={errors.email?.message}/>
         <Button type="submit" fullWidth loading={isSubmitting}>Send reset link</Button>
       </form>
-      <Link href="/login" className="inline-flex items-center gap-1.5 text-[13px] font-medium text-gold-600 dark:text-gold-400 hover:underline mt-4">
+      <Link href="/login" className="inline-flex items-center gap-1.5 text-base font-medium text-gold-600 dark:text-gold-400 hover:underline mt-4">
         <ArrowLeft size={14}/>Back to sign in
       </Link>
     </Card>

@@ -35,19 +35,21 @@ public class OrderSagaStateController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'STOREKEEPER', 'FINANCE', 'BUYER')")
     @Operation(summary = "List order-saga-states for the caller's tenant")
     public PageResponse<OrderSagaStateResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'STOREKEEPER', 'FINANCE', 'BUYER')")
     @Operation(summary = "Fetch a single OrderSagaState by id")
     public OrderSagaStateResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'BUYER')")
     @Operation(summary = "Create a OrderSagaState")
     public ResponseEntity<OrderSagaStateResponse> create(@Valid @RequestBody OrderSagaStateCreateRequest request) {
         OrderSagaStateResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class OrderSagaStateController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'BUYER')")
     @Operation(summary = "Apply a partial update to a OrderSagaState")
     public OrderSagaStateResponse update(@PathVariable UUID id, @Valid @RequestBody OrderSagaStateUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'BUYER')")
     @Operation(summary = "Delete a OrderSagaState")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

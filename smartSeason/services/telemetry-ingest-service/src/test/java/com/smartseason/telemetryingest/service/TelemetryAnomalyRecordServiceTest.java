@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.telemetryingest.domain.TelemetryAnomalyRecord;
+import com.smartseason.telemetryingest.platform.CountCache;
+import com.smartseason.telemetryingest.platform.CountCache;
 import com.smartseason.telemetryingest.platform.EventPublisher;
 import com.smartseason.telemetryingest.platform.ResourceNotFoundException;
 import com.smartseason.telemetryingest.platform.TenantContext;
@@ -29,7 +31,10 @@ class TelemetryAnomalyRecordServiceTest {
 
     private final TelemetryAnomalyRecordRepository repository = mock(TelemetryAnomalyRecordRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final TelemetryAnomalyRecordService service = new TelemetryAnomalyRecordService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final TelemetryAnomalyRecordService service = new TelemetryAnomalyRecordService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

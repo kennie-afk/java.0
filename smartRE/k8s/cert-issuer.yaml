@@ -1,0 +1,48 @@
+# Certificate issuance for the Ingress.
+#
+# cert-manager watches the Ingress, sees the cert-manager.io/cluster-issuer annotation,
+# obtains a certificate over ACME HTTP-01 and writes it into the smartre-tls Secret that
+# the Ingress names. Nothing here needs running by hand, and renewal is automatic at
+# roughly 60 days.
+#
+# ClusterIssuer rather than Issuer: it is cluster-scoped, so a second namespace (a staging
+# copy of this stack, say) can use the same issuer without duplicating the account key.
+#
+# TWO issuers on purpose. Let's Encrypt rate-limits the production endpoint hard — five
+# duplicate certificates per week — and a misconfigured DNS record or an ingress
+# controller that is not yet answering will burn through that allowance in an afternoon,
+# after which you are locked out until the window rolls. Point the Ingress at
+# letsencrypt-staging first, confirm a certificate is issued end to end, then switch the
+# annotation to letsencrypt-production. The staging certificate is untrusted by browsers,
+# which is the point: it proves the plumbing without spending the quota.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    # Expiry warnings go here. A real, monitored address — a certificate that silently
+    # fails to renew takes the whole site down 90 days after nobody noticed.
+    email: admin@smartre.co.ke
+    privateKeySecretRef:
+      name: letsencrypt-staging-account-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: nginx
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-production
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: admin@smartre.co.ke
+    privateKeySecretRef:
+      name: letsencrypt-production-account-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: nginx

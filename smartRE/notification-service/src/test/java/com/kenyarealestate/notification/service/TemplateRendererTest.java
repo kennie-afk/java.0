@@ -24,7 +24,8 @@ class TemplateRendererTest {
     @BeforeEach
     void setUp() {
         templates = mock(NotificationTemplateRepository.class);
-        renderer = new TemplateRenderer(templates, new TemplateEngineConfig().notificationTemplateEngine());
+        renderer = new TemplateRenderer(templates, new TemplateEngineConfig().notificationTemplateEngine(),
+                new EmailHtmlShell("https://smartre.co.ke"));
     }
 
     private NotificationTemplate template(String subject, String body) {

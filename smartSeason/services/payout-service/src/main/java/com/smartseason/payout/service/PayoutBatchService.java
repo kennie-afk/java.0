@@ -1,6 +1,8 @@
 package com.smartseason.payout.service;
 
 import com.smartseason.payout.domain.PayoutBatch;
+import com.smartseason.payout.platform.CountCache;
+import com.smartseason.payout.platform.CountCache;
 import com.smartseason.payout.platform.EventPublisher;
 import com.smartseason.payout.platform.PageResponse;
 import com.smartseason.payout.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class PayoutBatchService {
 
     private static final String RESOURCE = "PayoutBatch";
+    private static final String ENTITY = "payout_batches";
 
     private final PayoutBatchRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public PayoutBatchService(PayoutBatchRepository repository, EventPublisher events) {
+    public PayoutBatchService(PayoutBatchRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<PayoutBatchResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(PayoutBatchResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(PayoutBatchResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public PayoutBatchResponse get(UUID id) {
@@ -59,6 +66,7 @@ public class PayoutBatchService {
         entity.setStatus(request.status());
 
         PayoutBatch saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("money", "PayoutBatchCreated", saved.getId(), PayoutBatchResponse.from(saved));
         return PayoutBatchResponse.from(saved);
     }
@@ -109,6 +117,7 @@ public class PayoutBatchService {
     public void delete(UUID id) {
         PayoutBatch entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("money", "PayoutBatchDeleted", id, null);
     }
 

@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { api, ApiError } from "@/lib/api";
-import { tokenCookieName } from "@/lib/session";
+import { refreshCookieName, tokenCookieName } from "@/lib/session";
 
 interface TokenResponse {
   accessToken: string;
+  refreshToken: string;
   expiresIn: number;
   userId: string;
   organisationId: string;
@@ -28,6 +29,16 @@ export async function POST(request: Request) {
       secure: process.env.NODE_ENV === "production",
       path: "/",
       maxAge: tokens.expiresIn
+    });
+
+    // Kept longer than the access token so the middleware can rotate a new one
+    // without sending the user back to the sign-in screen every 15 minutes.
+    response.cookies.set(refreshCookieName, tokens.refreshToken, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 14
     });
     return response;
   } catch (error) {

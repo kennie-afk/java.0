@@ -1,6 +1,8 @@
 package com.smartseason.catalog.service;
 
 import com.smartseason.catalog.domain.ProductVariant;
+import com.smartseason.catalog.platform.CountCache;
+import com.smartseason.catalog.platform.CountCache;
 import com.smartseason.catalog.platform.EventPublisher;
 import com.smartseason.catalog.platform.PageResponse;
 import com.smartseason.catalog.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProductVariantService {
 
     private static final String RESOURCE = "ProductVariant";
+    private static final String ENTITY = "product_variants";
 
     private final ProductVariantRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public ProductVariantService(ProductVariantRepository repository, EventPublisher events) {
+    public ProductVariantService(ProductVariantRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<ProductVariantResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(ProductVariantResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(ProductVariantResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public ProductVariantResponse get(UUID id) {
@@ -55,6 +62,7 @@ public class ProductVariantService {
         entity.setActive(request.active());
 
         ProductVariant saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "ProductVariantCreated", saved.getId(), ProductVariantResponse.from(saved));
         return ProductVariantResponse.from(saved);
     }
@@ -93,6 +101,7 @@ public class ProductVariantService {
     public void delete(UUID id) {
         ProductVariant entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "ProductVariantDeleted", id, null);
     }
 

@@ -35,19 +35,21 @@ public class NdviReadingController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "List ndvi-readings for the caller's tenant")
     public PageResponse<NdviReadingResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "Fetch a single NdviReading by id")
     public NdviReadingResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGRONOMIST')")
     @Operation(summary = "Create a NdviReading")
     public ResponseEntity<NdviReadingResponse> create(@Valid @RequestBody NdviReadingCreateRequest request) {
         NdviReadingResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class NdviReadingController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGRONOMIST')")
     @Operation(summary = "Apply a partial update to a NdviReading")
     public NdviReadingResponse update(@PathVariable UUID id, @Valid @RequestBody NdviReadingUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a NdviReading")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

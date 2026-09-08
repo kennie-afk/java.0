@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.payment.domain.PaymentIntent;
+import com.smartseason.payment.platform.CountCache;
+import com.smartseason.payment.platform.CountCache;
 import com.smartseason.payment.platform.EventPublisher;
 import com.smartseason.payment.platform.ResourceNotFoundException;
 import com.smartseason.payment.platform.TenantContext;
@@ -29,7 +31,10 @@ class PaymentIntentServiceTest {
 
     private final PaymentIntentRepository repository = mock(PaymentIntentRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final PaymentIntentService service = new PaymentIntentService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final PaymentIntentService service = new PaymentIntentService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

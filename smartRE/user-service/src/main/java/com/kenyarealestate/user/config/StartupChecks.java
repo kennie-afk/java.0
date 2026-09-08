@@ -33,13 +33,19 @@ public class StartupChecks implements CommandLineRunner {
     public void run(String... args) {
         checkInternalSecret();
         if (!s3Enabled) {
-            log.info("############################################################");
-            log.info("# USER-SERVICE: storing uploads on local disk (storage.local-dir)");
-            log.info("# Durable as long as the container's volume persists, but not");
-            log.info("# shared across replicas if this service is scaled horizontally.");
-            log.info("# Set S3_ENABLED=true with real credentials for a multi-instance");
-            log.info("# or multi-region production deployment.");
-            log.info("############################################################");
+            // Warn, not info: this is a constraint on how the service may be deployed,
+            // and it was previously easy to miss in a busy startup log.
+            log.warn("############################################################");
+            log.warn("# USER-SERVICE: storing uploads on local disk (storage.local-dir)");
+            log.warn("# This instance is the only one that can read what it writes.");
+            log.warn("# Running more than one replica against a volume that is not");
+            log.warn("# shared will lose documents — an upload handled by one pod is");
+            log.warn("# simply missing from the other, and shows up as an intermittent");
+            log.warn("# 404 rather than as an error anyone can trace.");
+            log.warn("# k8s/user-service.yaml pins this deployment to one replica for");
+            log.warn("# exactly this reason. Set S3_ENABLED=true with real credentials");
+            log.warn("# before scaling it.");
+            log.warn("############################################################");
         }
 
         if (!userRepository.existsBySuperAdminTrue()) {
@@ -70,12 +76,12 @@ public class StartupChecks implements CommandLineRunner {
             log.warn("# requests to user-service.");
             log.warn("############################################################");
         } else {
-            log.error("############################################################");
-            log.error("# USER-SERVICE: services.internal-secret {}", reason);
-            log.error("# Set INTERNAL_SECRET to a unique, randomly generated value of");
-            log.error("# at least {} characters before running outside local", MIN_INTERNAL_SECRET_LENGTH);
-            log.error("# development - every internal-only endpoint trusts this secret.");
-            log.error("############################################################");
+            throw new IllegalStateException(
+                    "USER-SERVICE: services.internal-secret " + reason
+                            + "; set INTERNAL_SECRET to a unique, randomly generated value of at least "
+                            + MIN_INTERNAL_SECRET_LENGTH
+                            + " characters before running outside local development, because every "
+                            + "internal-only endpoint trusts this secret");
         }
     }
 

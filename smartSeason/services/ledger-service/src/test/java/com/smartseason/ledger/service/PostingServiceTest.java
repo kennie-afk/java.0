@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.ledger.domain.Posting;
+import com.smartseason.ledger.platform.CountCache;
+import com.smartseason.ledger.platform.CountCache;
 import com.smartseason.ledger.platform.EventPublisher;
 import com.smartseason.ledger.platform.ResourceNotFoundException;
 import com.smartseason.ledger.platform.TenantContext;
@@ -29,7 +31,10 @@ class PostingServiceTest {
 
     private final PostingRepository repository = mock(PostingRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final PostingService service = new PostingService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final PostingService service = new PostingService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

@@ -1,17 +1,4 @@
 #!/usr/bin/env bash
-# Manual backup of all SmartRE Postgres databases.
-#
-# This is a stopgap, not a real backup pipeline: run it by hand before
-# destructive operations (docker-compose down -v, migrations, upgrades).
-# A scheduled/automated version with off-host retention is tracked as
-# follow-up work, not implemented here.
-#
-# Usage:
-#   ./scripts/backup-db.sh [output-dir]
-#
-# Requires: docker, a running set of <db>-db containers (from either
-# docker-compose.yml or docker-compose-infra.yml), and the DB_PASSWORD
-# used to start them (read from .env if present).
 
 set -euo pipefail
 
@@ -24,9 +11,6 @@ DATABASES=(user_db verification_db property_db viewing_db payment_db review_db)
 
 mkdir -p "$OUT_DIR"
 
-# Pull DB_PASSWORD from .env if it's not already exported, so pg_dump inside
-# the container can authenticate (POSTGRES_PASSWORD env var, matches how the
-# containers themselves were started).
 if [ -z "${DB_PASSWORD:-}" ] && [ -f "$REPO_ROOT/.env" ]; then
   DB_PASSWORD="$(grep -E '^DB_PASSWORD=' "$REPO_ROOT/.env" | tail -1 | cut -d '=' -f2-)"
 fi
@@ -37,9 +21,6 @@ fi
 
 find_container() {
   local db_service="$1"
-  # Matches container names from either compose project, e.g.
-  # "smartre-user-db-1" (docker-compose.yml) - the -infra.yml DB containers
-  # share the same POSTGRES_DB names so either works as a dump source.
   docker ps --format '{{.Names}}' | grep -E "(^|-)${db_service}-db(-1)?$" | head -1
 }
 

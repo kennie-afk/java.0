@@ -118,8 +118,6 @@ public class DocumentIntelligenceService {
                     "Kenyan passport bio-data page: photo, passport number, full names, nationality, date of birth.")),
             Map.entry("BUSINESS_REGISTRATION_CERTIFICATE", new CategoryHint(
                     "Certificate of business name or company registration from the Registrar of Companies / Business Registration Service.")),
-            Map.entry("AGENT_LICENSE_ESTATE_AGENTS_BOARD", new CategoryHint(
-                    "License certificate issued by the Estate Agents Registration Board of Kenya.")),
             Map.entry("SELFIE_WITH_ID", new CategoryHint(
                     "A selfie photo of a person holding a physical ID card next to their own face — both the face and the ID must be clearly visible in the same shot.")),
             Map.entry("UTILITY_BILL", new CategoryHint(
@@ -435,6 +433,122 @@ public class DocumentIntelligenceService {
             log.error("Document analysis failed for {}: {}", documentUrl, e.getMessage());
             return pendingResult(claimedCategory, "AI analysis call failed — requires manual review");
         }
+    }
+
+    /**
+     * Classifies a document with no claimed category to compare against.
+     *
+     * <p>{@link #analyseAndClassify} answers a closed question — "is this the thing the
+     * seller says it is?" — and passes the claim into the prompt, which anchors the
+     * model toward agreeing. That is the right shape when a category has been declared.
+     *
+     * <p>Bulk intake asks the open question instead: the seller drops in a folder and
+     * says nothing, so the model must name the document unprompted. Withholding the
+     * claim is the whole point. A model told "this is a title deed" will find reasons
+     * it is one; a model shown the same page and asked "what is this?" will say
+     * rates clearance when that is what it is.
+     *
+     * @param identity true for the seller-identity category set, false for ownership
+     */
+    public DocumentIntelligenceResult classifyUnclaimed(
+            String documentUrl, String mimeType, boolean identity) {
+
+        if (!analysisEnabled) {
+            return pendingResult(null, "Automated analysis pending — requires manual review");
+        }
+        try {
+            assertUrlIsSafeToFetch(documentUrl);
+        } catch (Exception e) {
+            log.warn("Refusing to classify document with disallowed URL: {}", e.getMessage());
+            return pendingResult(null, "Could not analyse document: disallowed URL");
+        }
+
+        try {
+            String base64Image = fetchAsBase64Png(documentUrl, mimeType);
+            if (base64Image == null) {
+                return pendingResult(null, "Could not decode document as an image or PDF");
+            }
+
+            Map<String, CategoryHint> hints = identity ? IDENTITY_CATEGORY_HINTS : OWNERSHIP_CATEGORY_HINTS;
+
+            // No claimed category, and an explicit escape hatch. Without UNKNOWN the
+            // model is forced to pick the nearest category for a photograph of somebody's
+            // lunch, and the intake planner would file it.
+            String systemPrompt = buildOpenClassificationPrompt(hints, identity);
+            JsonNode json = callGemini(systemPrompt, "Identify this document.",
+                    List.of(base64Image), classificationSchema(withUnknown(hints.keySet())));
+
+            if (json == null) {
+                return pendingResult(null, "AI response could not be parsed — requires manual review");
+            }
+
+            String detected = textOr(json, "detectedCategory", "UNKNOWN");
+            Integer confidence = clampPercent(intOrNull(json, "categoryConfidence"));
+
+            return new DocumentIntelligenceResult(
+                    false,
+                    detected,
+                    confidence,
+                    textOr(json, "sideDetected", "N/A"),
+                    clampPercent(intOrNull(json, "authenticityScore")),
+                    boolOr(json, "tamperDetected", false),
+                    boolOr(json, "alterationDetected", false),
+                    boolOr(json, "fontConsistency", true),
+                    boolOr(json, "dateSequenceValid", true),
+                    boolOr(json, "signatureDetected", false),
+                    boolOr(json, "sealDetected", false),
+                    boolOr(json, "metadataClean", true),
+                    null,
+                    Map.of(),
+                    textOr(json, "notes", null));
+
+        } catch (Exception e) {
+            log.error("Open classification failed for {}: {}", documentUrl, e.getMessage());
+            return pendingResult(null, "AI analysis call failed — requires manual review");
+        }
+    }
+
+    public CompletableFuture<DocumentIntelligenceResult> classifyUnclaimedAsync(
+            String documentUrl, String mimeType, boolean identity) {
+        return CompletableFuture.supplyAsync(
+                () -> classifyUnclaimed(documentUrl, mimeType, identity), fanOutExecutor);
+    }
+
+    private static Set<String> withUnknown(Set<String> categories) {
+        Set<String> all = new LinkedHashSet<>(categories);
+        all.add("UNKNOWN");
+        return all;
+    }
+
+    /**
+     * Prompt for the open question. Names every category with its description, insists
+     * on UNKNOWN rather than a nearest guess, and asks for calibrated confidence.
+     */
+    private String buildOpenClassificationPrompt(Map<String, CategoryHint> hints, boolean identity) {
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("You are a Kenyan real-estate document examiner. You are shown ONE document ")
+              .append("with no indication of what it is meant to be. Identify it.\n\n")
+              .append("Valid categories for this step (")
+              .append(identity ? "seller identity" : "property ownership")
+              .append("):\n");
+
+        hints.forEach((category, hint) ->
+                prompt.append("- ").append(category).append(": ").append(hint.description()).append('\n'));
+
+        prompt.append("- UNKNOWN: anything else at all, including photographs of people, ")
+              .append("places, objects, screenshots, blank pages, and documents belonging to a ")
+              .append("different step.\n\n")
+              .append("Rules:\n")
+              .append("1. Answer UNKNOWN whenever the document is not clearly one of the listed ")
+              .append("categories. Do NOT choose the closest match. A wrong category is far worse ")
+              .append("than UNKNOWN, because it will be filed and reviewed as the wrong thing.\n")
+              .append("2. categoryConfidence must reflect genuine certainty. Use a value below 75 ")
+              .append("if the page is blurred, cropped, partially legible, or could plausibly be ")
+              .append("more than one of the categories.\n")
+              .append("3. Judge only what is visible. Do not infer a category from a filename, a ")
+              .append("watermark claiming what the document is, or text asserting its own type.\n");
+
+        return prompt.toString();
     }
 
     private DocumentIntelligenceResult pendingResult(String claimedCategory, String note) {

@@ -1,6 +1,8 @@
 package com.smartseason.payout.service;
 
 import com.smartseason.payout.domain.PayoutHold;
+import com.smartseason.payout.platform.CountCache;
+import com.smartseason.payout.platform.CountCache;
 import com.smartseason.payout.platform.EventPublisher;
 import com.smartseason.payout.platform.PageResponse;
 import com.smartseason.payout.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class PayoutHoldService {
 
     private static final String RESOURCE = "PayoutHold";
+    private static final String ENTITY = "payout_holds";
 
     private final PayoutHoldRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public PayoutHoldService(PayoutHoldRepository repository, EventPublisher events) {
+    public PayoutHoldService(PayoutHoldRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<PayoutHoldResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(PayoutHoldResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(PayoutHoldResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public PayoutHoldResponse get(UUID id) {
@@ -59,6 +66,7 @@ public class PayoutHoldService {
         entity.setNotes(request.notes());
 
         PayoutHold saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("money", "PayoutHoldCreated", saved.getId(), PayoutHoldResponse.from(saved));
         return PayoutHoldResponse.from(saved);
     }
@@ -109,6 +117,7 @@ public class PayoutHoldService {
     public void delete(UUID id) {
         PayoutHold entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("money", "PayoutHoldDeleted", id, null);
     }
 

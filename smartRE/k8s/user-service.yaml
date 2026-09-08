@@ -1,3 +1,23 @@
+# Uploaded documents, while S3_ENABLED is false.
+#
+# This is the Kubernetes equivalent of the `user-uploads-data` volume in
+# docker-compose.yml. Without it, uploads land on the container's own filesystem and
+# disappear on every restart and every rollout — silently, because nothing errors.
+#
+# ReadWriteOnce is the honest default: most storage classes offer nothing else, and a
+# single-writer volume is exactly why the Deployment below is pinned to one replica.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: user-uploads
+  namespace: smartre
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,7 +26,23 @@ metadata:
   labels:
     app: user-service
 spec:
-  replicas: 2
+  # One replica, deliberately, and it stays one until S3_ENABLED is true.
+  #
+  # With object storage off, user-service writes uploaded documents to STORAGE_LOCAL_DIR,
+  # backed by the PersistentVolumeClaim at the bottom of this file. A standard
+  # ReadWriteOnce volume can only be mounted by one node, so a second replica would
+  # either fail to schedule or — on a ReadWriteMany class — serve a directory the first
+  # replica cannot see. Either way a document uploaded through one pod would be missing
+  # from the other, and the failure would look like an intermittent 404 rather than a
+  # configuration mistake.
+  #
+  # To scale this service: set S3_ENABLED true in the ConfigMap, put real credentials in
+  # S3_ACCESS_KEY / S3_SECRET_KEY, then raise this and the HPA below together.
+  replicas: 1
+  strategy:
+    # Recreate, not RollingUpdate: a ReadWriteOnce volume cannot be attached to the new
+    # pod while the old one still holds it, so a surge would deadlock the rollout.
+    type: Recreate
   selector:
     matchLabels:
       app: user-service
@@ -24,6 +60,10 @@ spec:
         prometheus.io/path: "/actuator/prometheus"
         prometheus.io/port: "8081"
     spec:
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: user-uploads
       containers:
         - name: user-service
           image: smartre/user-service:latest
@@ -56,6 +96,59 @@ spec:
                   name: smartre-config
                   key: KAFKA_BOOTSTRAP_SERVERS
 
+            - name: INTERNAL_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: smartre-secrets
+                  key: INTERNAL_SECRET
+            # Uploaded documents. With S3_ENABLED false the service writes them to
+            # STORAGE_LOCAL_DIR inside the container — which on Kubernetes means
+            # ephemeral per-pod disk: a file uploaded to one replica is invisible to
+            # the other and gone on restart. Object storage is the only correct
+            # setting for a multi-replica deploy.
+            - name: S3_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: smartre-config
+                  key: S3_ENABLED
+            - name: S3_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: smartre-config
+                  key: S3_REGION
+            - name: S3_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: smartre-config
+                  key: S3_BUCKET
+            - name: S3_PUBLIC_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: smartre-config
+                  key: S3_PUBLIC_BASE_URL
+            - name: S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: smartre-secrets
+                  key: S3_ACCESS_KEY
+            - name: S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: smartre-secrets
+                  key: S3_SECRET_KEY
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads
+            - name: FRONTEND_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: smartre-config
+                  key: FRONTEND_URL
+            - name: PUBLIC_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: smartre-config
+                  key: PUBLIC_API_URL
           resources:
             requests:
               memory: "256Mi"
@@ -104,8 +197,10 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: user-service
-  minReplicas: 2
-  maxReplicas: 10
+  # Pinned to one for the same reason as the Deployment above: the uploads volume is not
+  # shared. Raise both together, and only after enabling S3.
+  minReplicas: 1
+  maxReplicas: 1
   metrics:
     - type: Resource
       resource:

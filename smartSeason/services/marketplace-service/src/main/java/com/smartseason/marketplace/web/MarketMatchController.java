@@ -35,19 +35,21 @@ public class MarketMatchController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'BUYER')")
     @Operation(summary = "List market-matches for the caller's tenant")
     public PageResponse<MarketMatchResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'BUYER')")
     @Operation(summary = "Fetch a single MarketMatch by id")
     public MarketMatchResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'BUYER')")
     @Operation(summary = "Create a MarketMatch")
     public ResponseEntity<MarketMatchResponse> create(@Valid @RequestBody MarketMatchCreateRequest request) {
         MarketMatchResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class MarketMatchController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'BUYER')")
     @Operation(summary = "Apply a partial update to a MarketMatch")
     public MarketMatchResponse update(@PathVariable UUID id, @Valid @RequestBody MarketMatchUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'BUYER')")
     @Operation(summary = "Delete a MarketMatch")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

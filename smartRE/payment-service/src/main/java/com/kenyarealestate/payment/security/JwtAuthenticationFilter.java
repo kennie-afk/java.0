@@ -70,7 +70,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         boolean headersTrusted = StringUtils.hasText(email)
                 && StringUtils.hasText(signature)
-                && signature.equals(sign(email, role, userId));
+                && signaturesMatch(signature, sign(email, role, userId));
 
         if (!headersTrusted) {
             email = null; role = null; userId = null;
@@ -100,6 +100,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (expected == null) return false;
         return MessageDigest.isEqual(
                 provided.getBytes(StandardCharsets.UTF_8),
+                expected.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private boolean signaturesMatch(String presented, String expected) {
+        if (!StringUtils.hasText(expected)) {
+            return false;
+        }
+        return MessageDigest.isEqual(
+                presented.getBytes(StandardCharsets.UTF_8),
                 expected.getBytes(StandardCharsets.UTF_8));
     }
 

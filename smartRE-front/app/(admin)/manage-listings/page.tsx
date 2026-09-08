@@ -89,7 +89,7 @@ function AdminListingsPageInner() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="font-display text-lg font-semibold text-gray-900 dark:text-white">Listings</h1>
-          <p className="text-muted text-[13px] mt-1">{items.length} on this page · {totalElements} total</p>
+          <p className="text-muted text-base mt-1">{items.length} on this page · {totalElements} total</p>
         </div>
         <div className="w-56">
           <Select label="Status" options={STATUS_OPTIONS} value={status} onChange={e => setStatus(e.target.value as ListingStatus)}/>
@@ -102,7 +102,7 @@ function AdminListingsPageInner() {
         <div>
           <Input leftIcon={<Search size={15}/>} placeholder="Search by title or county..." value={search} onChange={e => setSearch(e.target.value)}/>
           {search && (
-            <p className="text-[11px] text-muted mt-1.5">Search only applies to the current page — use Previous/Next to browse the rest of {totalElements} listings.</p>
+            <p className="text-xs text-muted mt-1.5">Search only applies to the current page — use Previous/Next to browse the rest of {totalElements} listings.</p>
           )}
         </div>
       )}
@@ -116,12 +116,12 @@ function AdminListingsPageInner() {
           {filtered.map(p => (
             <Card key={p.id}>
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-xl bg-gold-100 dark:bg-gold-500/10 text-gold-500 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-lg bg-gold-100 dark:bg-gold-500/10 text-gold-500 flex items-center justify-center shrink-0">
                   <Building2 size={17}/>
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <p className="font-semibold text-gray-900 dark:text-white text-[13px]">{p.title}</p>
+                    <p className="font-semibold text-gray-900 dark:text-white text-base">{p.title}</p>
                     <StatusBadge status={p.status} size="sm"/>
                     {p.duplicateParcelFlag && (
                       <Badge variant="error" size="sm">
@@ -129,11 +129,11 @@ function AdminListingsPageInner() {
                       </Badge>
                     )}
                   </div>
-                  <p className="text-[12px] text-muted">
+                  <p className="text-sm text-muted">
                     {p.county} · {fmt.currency(p.price)} · {p.parcelNumber || 'no parcel #'} · {fmt.date(p.createdAt)}
                   </p>
                   <a href={`/properties/${p.id}`} target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] text-gold-600 dark:text-gold-400 mt-1.5 hover:underline">
+                    className="inline-flex items-center gap-1 text-xs text-gold-600 dark:text-gold-400 mt-1.5 hover:underline">
                     View listing <ExternalLink size={10}/>
                   </a>
                 </div>

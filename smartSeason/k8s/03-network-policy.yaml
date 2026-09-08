@@ -1,0 +1,66 @@
+---
+# Allow-list networking. The default deny below is what gives the rules after it meaning:
+# without it, adding an allow rule changes nothing.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: smartseason
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+---
+# The two pods meant to be reachable from outside. The ingress controller runs in its own
+# namespace, so this cannot be narrowed to in-namespace traffic.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-public-edge
+  namespace: smartseason
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values: [api-gateway, web]
+  policyTypes:
+    - Ingress
+  ingress:
+    - {}
+---
+# Services talk to each other and to the gateway, but nothing outside the namespace
+# reaches them directly.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-namespace-internal
+  namespace: smartseason
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: NotIn
+        values: [api-gateway, web]
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector: {}
+---
+# cert-manager answers the ACME challenge with a short-lived solver pod in this namespace,
+# which the default deny selects like any other. Without this the certificate never
+# issues and the symptom points at cert-manager rather than at the network policy.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-acme-solver
+  namespace: smartseason
+spec:
+  podSelector:
+    matchLabels:
+      acme.cert-manager.io/http01-solver: "true"
+  policyTypes:
+    - Ingress
+  ingress:
+    - {}

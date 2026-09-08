@@ -1,6 +1,8 @@
 package com.smartseason.inventory.service;
 
 import com.smartseason.inventory.domain.GradingResult;
+import com.smartseason.inventory.platform.CountCache;
+import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.EventPublisher;
 import com.smartseason.inventory.platform.PageResponse;
 import com.smartseason.inventory.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class GradingResultService {
 
     private static final String RESOURCE = "GradingResult";
+    private static final String ENTITY = "grading_results";
 
     private final GradingResultRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public GradingResultService(GradingResultRepository repository, EventPublisher events) {
+    public GradingResultService(GradingResultRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<GradingResultResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(GradingResultResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(GradingResultResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public GradingResultResponse get(UUID id) {
@@ -58,6 +65,7 @@ public class GradingResultService {
         entity.setStandardVersion(request.standardVersion());
 
         GradingResult saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "GradingResultCreated", saved.getId(), GradingResultResponse.from(saved));
         return GradingResultResponse.from(saved);
     }
@@ -105,6 +113,7 @@ public class GradingResultService {
     public void delete(UUID id) {
         GradingResult entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "GradingResultDeleted", id, null);
     }
 

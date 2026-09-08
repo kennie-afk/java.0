@@ -1,6 +1,8 @@
 package com.smartseason.marketplace.service;
 
 import com.smartseason.marketplace.domain.DemandPost;
+import com.smartseason.marketplace.platform.CountCache;
+import com.smartseason.marketplace.platform.CountCache;
 import com.smartseason.marketplace.platform.EventPublisher;
 import com.smartseason.marketplace.platform.PageResponse;
 import com.smartseason.marketplace.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class DemandPostService {
 
     private static final String RESOURCE = "DemandPost";
+    private static final String ENTITY = "demand_posts";
 
     private final DemandPostRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public DemandPostService(DemandPostRepository repository, EventPublisher events) {
+    public DemandPostService(DemandPostRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<DemandPostResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(DemandPostResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(DemandPostResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public DemandPostResponse get(UUID id) {
@@ -60,6 +67,7 @@ public class DemandPostService {
         entity.setNotes(request.notes());
 
         DemandPost saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "DemandPostCreated", saved.getId(), DemandPostResponse.from(saved));
         return DemandPostResponse.from(saved);
     }
@@ -113,6 +121,7 @@ public class DemandPostService {
     public void delete(UUID id) {
         DemandPost entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "DemandPostDeleted", id, null);
     }
 

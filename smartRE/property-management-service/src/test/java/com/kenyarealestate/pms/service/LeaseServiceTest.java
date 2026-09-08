@@ -89,7 +89,7 @@ class LeaseServiceTest {
         var res = service.create(LANDLORD, request());
         assertEquals("DRAFT", res.getStatus());
         assertEquals(UnitStatus.VACANT, unit.getStatus());
-        verify(publisher, never()).publishLeaseActivated(any(), any());
+        verify(publisher, never()).publishLeaseActivated(any(), any(), any());
     }
 
     @Test
@@ -144,7 +144,7 @@ class LeaseServiceTest {
 
         assertEquals("ACTIVE", res.getStatus());
         assertEquals(UnitStatus.OCCUPIED, unit.getStatus());
-        verify(publisher).publishLeaseActivated(any(), eq(PROPERTY));
+        verify(publisher).publishLeaseActivated(any(), eq(PROPERTY), any());
     }
 
     @Test
@@ -176,7 +176,7 @@ class LeaseServiceTest {
 
         assertEquals("ENDED", res.getStatus());
         assertEquals(UnitStatus.VACANT, unit.getStatus());
-        verify(publisher).publishLeaseEnded(any(), any());
+        verify(publisher).publishLeaseEnded(any(), any(), any());
     }
 
     @Test
@@ -203,7 +203,7 @@ class LeaseServiceTest {
         service.terminate(LANDLORD, draft.getId(), "Signed elsewhere");
 
         assertEquals(UnitStatus.VACANT, unit.getStatus());
-        verify(publisher, never()).publishLeaseEnded(any(), any());
+        verify(publisher, never()).publishLeaseEnded(any(), any(), any());
     }
 
     @Test
@@ -240,7 +240,7 @@ class LeaseServiceTest {
         service.activate(LANDLORD, draft.getId());
 
         ArgumentCaptor<Lease> captor = ArgumentCaptor.forClass(Lease.class);
-        verify(publisher).publishLeaseActivated(captor.capture(), eq(PROPERTY));
+        verify(publisher).publishLeaseActivated(captor.capture(), eq(PROPERTY), any());
         assertEquals(12, captor.getValue().getBillingDay());
     }
 }

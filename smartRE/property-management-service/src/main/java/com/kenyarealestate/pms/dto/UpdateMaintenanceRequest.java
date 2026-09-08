@@ -12,4 +12,10 @@ public class UpdateMaintenanceRequest {
     @Size(max = 160) private String assignedTo;
     @Size(max = 4000) private String resolutionNotes;
     @DecimalMin("0.0") private BigDecimal cost;
+
+    /** LANDLORD, TENANT or SHARED. Required when resolving a job that cost anything. */
+    private String costBorneBy;
+
+    /** The tenant's portion. Required for SHARED, rejected for LANDLORD. */
+    @DecimalMin("0.0") private BigDecimal tenantCharge;
 }

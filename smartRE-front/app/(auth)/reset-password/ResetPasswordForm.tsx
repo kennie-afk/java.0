@@ -40,8 +40,8 @@ export default function ResetPasswordForm() {
           <ShieldAlert size={22}/>
         </div>
         <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-white">Invalid reset link</h1>
-        <p className="text-[13px] text-muted mt-2">This password reset link is missing or malformed. Request a new one below.</p>
-        <Link href="/forgot-password" className="inline-flex items-center gap-1.5 text-[13px] font-medium text-gold-600 dark:text-gold-400 hover:underline mt-5">
+        <p className="text-base text-muted mt-2">This password reset link is missing or malformed. Request a new one below.</p>
+        <Link href="/forgot-password" className="inline-flex items-center gap-1.5 text-base font-medium text-gold-600 dark:text-gold-400 hover:underline mt-5">
           <ArrowLeft size={14}/>Request a new link
         </Link>
       </Card>
@@ -52,7 +52,7 @@ export default function ResetPasswordForm() {
     <Card padding="sm" className="sm:p-6">
       <div className="mb-5">
         <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-white">Choose a new password</h1>
-        <p className="text-[13px] text-muted mt-1">Make it at least 8 characters.</p>
+        <p className="text-base text-muted mt-1">Make it at least 8 characters.</p>
       </div>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5">
         <Input label="New password" type={showPwd?'text':'password'} placeholder="••••••••" required
@@ -61,7 +61,7 @@ export default function ResetPasswordForm() {
           {...register('password')} error={errors.password?.message}/>
         <Button type="submit" fullWidth loading={isSubmitting}>Reset password</Button>
       </form>
-      <Link href="/login" className="inline-flex items-center gap-1.5 text-[13px] font-medium text-gold-600 dark:text-gold-400 hover:underline mt-4">
+      <Link href="/login" className="inline-flex items-center gap-1.5 text-base font-medium text-gold-600 dark:text-gold-400 hover:underline mt-4">
         <ArrowLeft size={14}/>Back to sign in
       </Link>
     </Card>

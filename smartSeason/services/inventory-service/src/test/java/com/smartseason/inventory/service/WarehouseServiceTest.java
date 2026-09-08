@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.inventory.domain.Warehouse;
+import com.smartseason.inventory.platform.CountCache;
+import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.EventPublisher;
 import com.smartseason.inventory.platform.ResourceNotFoundException;
 import com.smartseason.inventory.platform.TenantContext;
@@ -29,7 +31,10 @@ class WarehouseServiceTest {
 
     private final WarehouseRepository repository = mock(WarehouseRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final WarehouseService service = new WarehouseService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final WarehouseService service = new WarehouseService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

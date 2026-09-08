@@ -35,19 +35,21 @@ public class PriceSeriesController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'BUYER')")
     @Operation(summary = "List price-series for the caller's tenant")
     public PageResponse<PriceSeriesResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'BUYER')")
     @Operation(summary = "Fetch a single PriceSeries by id")
     public PriceSeriesResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Create a PriceSeries")
     public ResponseEntity<PriceSeriesResponse> create(@Valid @RequestBody PriceSeriesCreateRequest request) {
         PriceSeriesResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class PriceSeriesController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Apply a partial update to a PriceSeries")
     public PriceSeriesResponse update(@PathVariable UUID id, @Valid @RequestBody PriceSeriesUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a PriceSeries")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

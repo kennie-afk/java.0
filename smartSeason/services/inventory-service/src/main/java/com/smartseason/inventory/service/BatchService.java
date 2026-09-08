@@ -1,6 +1,8 @@
 package com.smartseason.inventory.service;
 
 import com.smartseason.inventory.domain.Batch;
+import com.smartseason.inventory.platform.CountCache;
+import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.EventPublisher;
 import com.smartseason.inventory.platform.PageResponse;
 import com.smartseason.inventory.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class BatchService {
 
     private static final String RESOURCE = "Batch";
+    private static final String ENTITY = "batches";
 
     private final BatchRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public BatchService(BatchRepository repository, EventPublisher events) {
+    public BatchService(BatchRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<BatchResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(BatchResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(BatchResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public BatchResponse get(UUID id) {
@@ -61,6 +68,7 @@ public class BatchService {
         entity.setStatus(request.status());
 
         Batch saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "BatchCreated", saved.getId(), BatchResponse.from(saved));
         return BatchResponse.from(saved);
     }
@@ -117,6 +125,7 @@ public class BatchService {
     public void delete(UUID id) {
         Batch entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "BatchDeleted", id, null);
     }
 

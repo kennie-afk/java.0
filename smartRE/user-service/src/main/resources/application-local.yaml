@@ -2,7 +2,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/user_db
     username: postgres
-    password: "bantu007#"
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
   jpa:
     hibernate:
       ddl-auto: update
@@ -34,12 +34,12 @@ spring:
         spring.json.trusted.packages: "com.kenyarealestate.*"
 
 jwt:
-  secret: superSecretRealEstatePlatformKey2026MakeItAtLeast64CharactersLongForSecurity
+  secret: ${JWT_SECRET}
   expiration: 86400000
 
 services:
   verification-url: http://localhost:8082
-  internal-secret: smartre-internal-secret-2026
+  internal-secret: ${INTERNAL_SECRET}
 
 app:
   public-url: http://localhost:8080

@@ -35,19 +35,21 @@ public class UssdSessionController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "List ussd-sessions for the caller's tenant")
     public PageResponse<UssdSessionResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Fetch a single UssdSession by id")
     public UssdSessionResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Create a UssdSession")
     public ResponseEntity<UssdSessionResponse> create(@Valid @RequestBody UssdSessionCreateRequest request) {
         UssdSessionResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class UssdSessionController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Apply a partial update to a UssdSession")
     public UssdSessionResponse update(@PathVariable UUID id, @Valid @RequestBody UssdSessionUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a UssdSession")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

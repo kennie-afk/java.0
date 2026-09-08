@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.payout.domain.PayoutItem;
+import com.smartseason.payout.platform.CountCache;
+import com.smartseason.payout.platform.CountCache;
 import com.smartseason.payout.platform.EventPublisher;
 import com.smartseason.payout.platform.ResourceNotFoundException;
 import com.smartseason.payout.platform.TenantContext;
@@ -29,7 +31,10 @@ class PayoutItemServiceTest {
 
     private final PayoutItemRepository repository = mock(PayoutItemRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final PayoutItemService service = new PayoutItemService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final PayoutItemService service = new PayoutItemService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

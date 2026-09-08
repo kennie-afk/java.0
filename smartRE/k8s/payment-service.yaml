@@ -65,11 +65,31 @@ spec:
                 secretKeyRef:
                   name: smartre-secrets
                   key: MPESA_CONSUMER_SECRET
+            - name: MPESA_PASSKEY
+              valueFrom:
+                secretKeyRef:
+                  name: smartre-secrets
+                  key: MPESA_PASSKEY
             - name: MPESA_CALLBACK_URL
               valueFrom:
                 secretKeyRef:
                   name: smartre-secrets
                   key: MPESA_CALLBACK_URL
+            - name: GATEWAY_SIGNING_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: smartre-secrets
+                  key: GATEWAY_SIGNING_SECRET
+            - name: INTERNAL_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: smartre-secrets
+                  key: INTERNAL_SECRET
+            - name: MPESA_CALLBACK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: smartre-secrets
+                  key: MPESA_CALLBACK_SECRET
           resources:
             requests:
               memory: "256Mi"

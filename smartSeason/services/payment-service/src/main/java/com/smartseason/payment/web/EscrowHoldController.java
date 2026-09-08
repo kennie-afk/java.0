@@ -35,19 +35,21 @@ public class EscrowHoldController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE', 'BUYER')")
     @Operation(summary = "List escrow-holds for the caller's tenant")
     public PageResponse<EscrowHoldResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE', 'BUYER')")
     @Operation(summary = "Fetch a single EscrowHold by id")
     public EscrowHoldResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Create a EscrowHold")
     public ResponseEntity<EscrowHoldResponse> create(@Valid @RequestBody EscrowHoldCreateRequest request) {
         EscrowHoldResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class EscrowHoldController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Apply a partial update to a EscrowHold")
     public EscrowHoldResponse update(@PathVariable UUID id, @Valid @RequestBody EscrowHoldUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Delete a EscrowHold")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

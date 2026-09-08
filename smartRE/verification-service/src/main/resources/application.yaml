@@ -4,7 +4,7 @@ spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://verification-db:5432/verification_db}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:bantu007#}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driverClassName: org.postgresql.Driver
     hikari:
       maximum-pool-size: 20
@@ -62,11 +62,6 @@ services:
   property-url: ${PROPERTY_SERVICE_URL:http://property-service:8083}
   user-service-url: ${USER_SERVICE_URL:http://user-service:8081}
   internal-secret: ${INTERNAL_SECRET}
-  # Hosts that a client-supplied documentUrl is allowed to point at before this service will
-  # fetch it server-side (SHA-256 hashing, AI screening). Prevents SSRF: without this, a
-  # malicious documentUrl could make the server fetch arbitrary internal/external resources.
-  # Add the public-facing document/API host (e.g. the api-gateway domain or S3 bucket host)
-  # via this env var in every real deployment.
   document-url-allowed-hosts: ${DOCUMENT_URL_ALLOWED_HOSTS:localhost,user-service}
   document-analysis-enabled: ${DOCUMENT_ANALYSIS_ENABLED:false}
   gemini-api-key: ${GEMINI_API_KEY:}
@@ -135,3 +130,14 @@ resilience4j:
         automaticTransitionFromOpenToHalfOpenEnabled: true
         waitDurationInOpenState: 10s
         failureRateThreshold: 50
+
+# Per-service throttling, behind the gateway's own limiter. See RateLimitProperties for
+# why these are looser than the gateway's: this catches traffic that did not come through
+# the front door, not ordinary traffic that did.
+rate-limit:
+  enabled: ${RATE_LIMIT_ENABLED:true}
+  capacity: ${RATE_LIMIT_CAPACITY:300}
+  refill-per-minute: ${RATE_LIMIT_REFILL_PER_MINUTE:300}
+  write-capacity: ${RATE_LIMIT_WRITE_CAPACITY:60}
+  write-refill-per-minute: ${RATE_LIMIT_WRITE_REFILL_PER_MINUTE:60}
+  trust-forwarded-for: ${RATE_LIMIT_TRUST_FORWARDED_FOR:true}

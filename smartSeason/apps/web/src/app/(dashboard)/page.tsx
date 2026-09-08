@@ -1,122 +1,177 @@
-import { Card, PageHeader, Stat } from "@/components/ui";
-import { api, ApiError, type PageResponse } from "@/lib/api";
-import { readToken } from "@/lib/session";
-import type { FraudCase, Farm, SupplyListing } from "@/lib/types";
+import Link from "next/link";
+import { PageHeader, Stat } from "@/components/ui";
+import { api, type PageResponse } from "@/lib/api";
+import { GROUPS } from "@/lib/catalogue.generated";
+import { canSeeGroup, canSeeService, primaryRole, ROLE_LABELS, type Role } from "@/lib/roles";
+import { loadMyWork } from "@/lib/tasks";
+import { readRoles, readToken } from "@/lib/session";
 
-async function safeCount(path: string, token: string | null): Promise<number | null> {
+async function count(path: string, token: string | null): Promise<number | null> {
   try {
-    const page = await api.get<PageResponse<unknown>>(path, token);
-    return page.totalElements;
-  } catch (error) {
-    if (error instanceof ApiError) {
-      return null;
-    }
+    return (await api.get<PageResponse<unknown>>(`${path}?size=1`, token)).totalElements;
+  } catch {
     return null;
   }
 }
 
-async function safeList<T>(path: string, token: string | null): Promise<T[]> {
-  try {
-    const page = await api.get<PageResponse<T>>(path, token);
-    return page.content;
-  } catch {
-    return [];
-  }
+interface Headline {
+  label: string;
+  path: string;
+  href: string;
+  hint?: string;
 }
 
+/**
+ * What each role opens the platform to see.
+ *
+ * A farmer cares what is growing and what it will fetch; a storekeeper cares
+ * what is in the shed; finance cares what is owed. Showing all four to all four
+ * is how a dashboard becomes wallpaper.
+ */
+const HEADLINES: Record<Role, Headline[]> = {
+  ADMIN: [
+    { label: "Farms", path: "/api/farm/v1/farms", href: "/farm/farms" },
+    { label: "Workers", path: "/api/workforce/v1/workers", href: "/workforce/workers" },
+    { label: "Listings", path: "/api/marketplace/v1/supply-listings", href: "/marketplace/supply-listings" },
+    { label: "Orders", path: "/api/order/v1/orders", href: "/order/orders" },
+    { label: "Fraud cases", path: "/api/fraud/v1/fraud-cases", href: "/fraud/fraud-cases" },
+    { label: "Users", path: "/api/identity/v1/users", href: "/identity/users" }
+  ],
+  FARMER: [
+    { label: "Farms", path: "/api/farm/v1/farms", href: "/farm/farms" },
+    { label: "Seasons", path: "/api/season/v1/seasons", href: "/season/seasons" },
+    { label: "Workers", path: "/api/workforce/v1/workers", href: "/workforce/workers" },
+    { label: "Listings", path: "/api/marketplace/v1/supply-listings", href: "/marketplace/supply-listings" },
+    { label: "Orders", path: "/api/order/v1/orders", href: "/order/orders" },
+    { label: "Fraud cases", path: "/api/fraud/v1/fraud-cases", href: "/fraud/fraud-cases", hint: "Open against your workers" }
+  ],
+  MANAGER: [
+    { label: "Work orders", path: "/api/task/v1/work-orders", href: "/task/work-orders" },
+    { label: "Assignments", path: "/api/task/v1/task-assignments", href: "/task/task-assignments" },
+    { label: "Workers", path: "/api/workforce/v1/workers", href: "/workforce/workers" },
+    { label: "Shifts", path: "/api/attendance/v1/shifts", href: "/attendance/shifts" },
+    { label: "Seasons", path: "/api/season/v1/seasons", href: "/season/seasons" },
+    { label: "Fraud cases", path: "/api/fraud/v1/fraud-cases", href: "/fraud/fraud-cases" }
+  ],
+  AGRONOMIST: [
+    { label: "Advisories", path: "/api/agronomy/v1/advisories", href: "/agronomy/advisories" },
+    { label: "Scouting reports", path: "/api/agronomy/v1/scouting-reports", href: "/agronomy/scouting-reports" },
+    { label: "Seasons", path: "/api/season/v1/seasons", href: "/season/seasons" },
+    { label: "Pest library", path: "/api/agronomy/v1/pest-diseases", href: "/agronomy/pest-diseases" },
+    { label: "Weather stations", path: "/api/weather/v1/weather-stations", href: "/weather/weather-stations" },
+    { label: "Forecasts", path: "/api/weather/v1/forecasts", href: "/weather/forecasts" }
+  ],
+  STOREKEEPER: [
+    { label: "Warehouses", path: "/api/inventory/v1/warehouses", href: "/inventory/warehouses" },
+    { label: "Batches", path: "/api/inventory/v1/batches", href: "/inventory/batches" },
+    { label: "Stock items", path: "/api/inventory/v1/stock-items", href: "/inventory/stock-items" },
+    { label: "Transport jobs", path: "/api/logistics/v1/transport-jobs", href: "/logistics/transport-jobs" },
+    { label: "Vehicles", path: "/api/logistics/v1/vehicles", href: "/logistics/vehicles" },
+    { label: "Trace batches", path: "/api/traceability/v1/trace-batches", href: "/traceability/trace-batches" }
+  ],
+  FINANCE: [
+    { label: "Payments", path: "/api/payment/v1/payment-intents", href: "/payment/payment-intents" },
+    { label: "Settlements", path: "/api/payout/v1/settlements", href: "/payout/settlements" },
+    { label: "Payout batches", path: "/api/payout/v1/payout-batches", href: "/payout/payout-batches" },
+    { label: "Accounts", path: "/api/ledger/v1/accounts", href: "/ledger/accounts" },
+    { label: "Journal entries", path: "/api/ledger/v1/journal-entries", href: "/ledger/journal-entries" },
+    { label: "Holds", path: "/api/payout/v1/payout-holds", href: "/payout/payout-holds", hint: "Withheld pending review" }
+  ],
+  BUYER: [
+    { label: "Listings", path: "/api/marketplace/v1/supply-listings", href: "/marketplace/supply-listings" },
+    { label: "My orders", path: "/api/order/v1/orders", href: "/order/orders" },
+    { label: "Offers", path: "/api/marketplace/v1/offers", href: "/marketplace/offers" },
+    { label: "Prices", path: "/api/pricing/v1/price-series", href: "/pricing/price-series" },
+    { label: "Deliveries", path: "/api/logistics/v1/transport-jobs", href: "/logistics/transport-jobs" },
+    { label: "Payments", path: "/api/payment/v1/payment-intents", href: "/payment/payment-intents" }
+  ],
+  // A worker's count comes from the scoped endpoint, not the collection: the
+  // collection would answer with the whole tenant's assignments.
+  WORKER: []
+};
+
+const SUBTITLE: Record<Role, string> = {
+  ADMIN: "Everything across the platform.",
+  FARMER: "What is growing, who is working it, and what it is fetching.",
+  MANAGER: "Today's work and the people doing it.",
+  AGRONOMIST: "Crop health, advisories and the weather behind them.",
+  STOREKEEPER: "What is in store and what is moving.",
+  FINANCE: "Money in, money out, and anything on hold.",
+  BUYER: "Produce on offer and the orders you have placed.",
+  WORKER: "Your assigned work."
+};
+
 export default async function OverviewPage() {
-  const token = await readToken();
+  const [token, roles] = await Promise.all([readToken(), readRoles()]);
+  const role = primaryRole(roles);
+  const headlines = HEADLINES[role];
 
-  const [farms, seasons, cases, listings] = await Promise.all([
-    safeCount("/api/farm/v1/farms?size=1", token),
-    safeCount("/api/season/v1/seasons?size=1", token),
-    safeCount("/api/fraud/v1/fraud-cases?size=1", token),
-    safeCount("/api/marketplace/v1/supply-listings?size=1", token)
-  ]);
+  const counts = await Promise.all(headlines.map((item) => count(item.path, token)));
 
-  const [recentFarms, openCases, activeListings] = await Promise.all([
-    safeList<Farm>("/api/farm/v1/farms?size=5", token),
-    safeList<FraudCase>("/api/fraud/v1/fraud-cases?size=5", token),
-    safeList<SupplyListing>("/api/marketplace/v1/supply-listings?size=5", token)
-  ]);
+  // Counted through /my-work so the figure matches what the worker can open.
+  const myTaskCount =
+    role === "WORKER" ? (await loadMyWork()).filter((card) => !card.assignment.completedAt).length : null;
 
-  const unreachable = farms === null && seasons === null && cases === null;
+  // The service map is only meaningful to someone who can open more than a
+  // couple of services, so a worker never sees it.
+  const visibleGroups = GROUPS.filter((group) => canSeeGroup(roles, group.slug)).map((group) => ({
+    ...group,
+    services: group.services.filter((service) => canSeeService(roles, service.slug))
+  }));
 
   return (
     <>
-      <PageHeader
-        title="Overview"
-        subtitle="Platform activity across farms, seasons, workforce integrity and trade."
-      />
+      <PageHeader title={`${ROLE_LABELS[role]} overview`} subtitle={SUBTITLE[role]} />
 
-      {unreachable ? (
-        <Card>
-          <p className="text-sm text-[var(--color-muted)]">
-            The API gateway is not reachable. Start the platform with{" "}
-            <code className="rounded bg-[#eef1ef] px-1.5 py-0.5 text-xs">docker compose up</code>{" "}
-            and sign in to populate this view.
-          </p>
-        </Card>
+      <section className="grid gap-2.5 sm:grid-cols-3 xl:grid-cols-6">
+        {myTaskCount !== null ? (
+          <Link href="/my-work" className="block">
+            <Stat label="My open tasks" value={String(myTaskCount)} hint="Assigned to you" />
+          </Link>
+        ) : null}
+        {headlines.map((item, index) => (
+          <Link key={item.label} href={item.href} className="block">
+            <Stat
+              label={item.label}
+              value={counts[index]?.toLocaleString() ?? "—"}
+              hint={item.hint}
+            />
+          </Link>
+        ))}
+      </section>
+
+      {visibleGroups.length > 1 ? (
+        <section className="mt-6 grid gap-2.5 lg:grid-cols-2 xl:grid-cols-3">
+          {visibleGroups.map((group) => (
+            <div
+              key={group.slug}
+              className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)]"
+            >
+              <div className="flex items-baseline justify-between border-b border-[var(--color-line)] px-3 py-2">
+                <h2 className="text-xs font-semibold">{group.label}</h2>
+                <span className="text-2xs text-[var(--color-faint)]">
+                  {group.services.length} service{group.services.length === 1 ? "" : "s"}
+                </span>
+              </div>
+              <ul>
+                {group.services.map((service) => (
+                  <li key={service.slug}>
+                    <Link
+                      href={`/${service.slug}`}
+                      className="flex items-center justify-between gap-3 px-3 py-1.5 text-xs transition-colors hover:bg-[var(--color-raised)]"
+                    >
+                      <span className="truncate">{service.label}</span>
+                      <span className="shrink-0 text-2xs uppercase tracking-[0.06em] text-[var(--color-faint)]">
+                        {service.access[role] ?? "full"}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </section>
       ) : null}
-
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat label="Farms" value={farms?.toLocaleString() ?? "—"} />
-        <Stat label="Seasons" value={seasons?.toLocaleString() ?? "—"} />
-        <Stat label="Fraud cases" value={cases?.toLocaleString() ?? "—"} hint="Open and under review" />
-        <Stat label="Listings" value={listings?.toLocaleString() ?? "—"} hint="Produce on the marketplace" />
-      </section>
-
-      <section className="mt-8 grid gap-4 lg:grid-cols-3">
-        <Card>
-          <h2 className="mb-3 text-sm font-semibold">Recent farms</h2>
-          <ul className="space-y-2">
-            {recentFarms.length === 0 ? (
-              <li className="text-sm text-[var(--color-muted)]">No farms yet.</li>
-            ) : (
-              recentFarms.map((farm) => (
-                <li key={farm.id} className="flex justify-between text-sm">
-                  <span>{farm.name}</span>
-                  <span className="text-[var(--color-muted)]">{farm.county ?? "—"}</span>
-                </li>
-              ))
-            )}
-          </ul>
-        </Card>
-
-        <Card>
-          <h2 className="mb-3 text-sm font-semibold">Fraud cases</h2>
-          <ul className="space-y-2">
-            {openCases.length === 0 ? (
-              <li className="text-sm text-[var(--color-muted)]">Nothing flagged.</li>
-            ) : (
-              openCases.map((item) => (
-                <li key={item.id} className="flex justify-between text-sm">
-                  <span>{item.caseNumber}</span>
-                  <span className="text-[var(--color-muted)]">{item.typology}</span>
-                </li>
-              ))
-            )}
-          </ul>
-        </Card>
-
-        <Card>
-          <h2 className="mb-3 text-sm font-semibold">Active listings</h2>
-          <ul className="space-y-2">
-            {activeListings.length === 0 ? (
-              <li className="text-sm text-[var(--color-muted)]">No listings yet.</li>
-            ) : (
-              activeListings.map((listing) => (
-                <li key={listing.id} className="flex justify-between text-sm">
-                  <span>{listing.commodityCode}</span>
-                  <span className="tabular-nums text-[var(--color-muted)]">
-                    {listing.quantity} {listing.unit}
-                  </span>
-                </li>
-              ))
-            )}
-          </ul>
-        </Card>
-      </section>
     </>
   );
 }

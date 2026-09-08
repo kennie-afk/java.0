@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AccountSwitcher } from "@/components/account-switcher";
 import { useState } from "react";
 
 type Mode = "signin" | "register";
@@ -8,7 +10,12 @@ type Mode = "signin" | "register";
 const FIELD =
   "w-full rounded-md border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-sm outline-none focus:border-[var(--color-accent)]";
 
-export function AuthPanel() {
+export function AuthPanel({
+  accounts = []
+}: {
+  /** Configured accounts for the switcher; empty when it is not enabled. */
+  accounts?: { email: string; label: string }[];
+}) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("signin");
   const [error, setError] = useState<string | null>(null);
@@ -20,6 +27,16 @@ export function AuthPanel() {
     setBusy(true);
 
     const form = new FormData(event.currentTarget);
+
+    if (mode === "register") {
+      const password = String(form.get("password") ?? "");
+      if (password !== String(form.get("confirmPassword") ?? "")) {
+        setError("The two passwords do not match");
+        setBusy(false);
+        return;
+      }
+    }
+
     const endpoint = mode === "signin" ? "/api/auth/login" : "/api/auth/register";
     const payload =
       mode === "signin"
@@ -58,7 +75,7 @@ export function AuthPanel() {
   }
 
   return (
-    <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] p-6">
+    <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] p-3.5">
       <div className="mb-5 flex gap-1 rounded-md bg-[#eef1ef] p-1">
         {(["signin", "register"] as Mode[]).map((value) => (
           <button
@@ -128,6 +145,33 @@ export function AuthPanel() {
           ) : null}
         </label>
 
+        {mode === "register" ? (
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-[var(--color-muted)]">
+              Confirm password
+            </span>
+            <input
+              name="confirmPassword"
+              type="password"
+              required
+              minLength={12}
+              autoComplete="new-password"
+              className={FIELD}
+            />
+          </label>
+        ) : null}
+
+        {mode === "signin" ? (
+          <p className="text-right">
+            <Link
+              href="/forgot-password"
+              className="text-xs text-[var(--color-muted)] underline-offset-2 hover:text-[var(--color-ink)] hover:underline"
+            >
+              Forgot your password?
+            </Link>
+          </p>
+        ) : null}
+
         {error ? (
           <p role="alert" className="text-sm text-[var(--color-danger)]">
             {error}
@@ -142,6 +186,11 @@ export function AuthPanel() {
           {busy ? "Working…" : mode === "signin" ? "Sign in" : "Create account"}
         </button>
       </form>
+
+      {/* Only offered beside the sign-in form. Someone creating an account is
+          registering a new organisation; switching to an existing one mid-way
+          would throw away what they were doing. */}
+      {mode === "signin" ? <AccountSwitcher accounts={accounts} /> : null}
     </div>
   );
 }

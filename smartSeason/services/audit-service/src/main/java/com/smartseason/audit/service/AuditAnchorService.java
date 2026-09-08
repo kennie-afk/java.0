@@ -1,6 +1,8 @@
 package com.smartseason.audit.service;
 
 import com.smartseason.audit.domain.AuditAnchor;
+import com.smartseason.audit.platform.CountCache;
+import com.smartseason.audit.platform.CountCache;
 import com.smartseason.audit.platform.EventPublisher;
 import com.smartseason.audit.platform.PageResponse;
 import com.smartseason.audit.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuditAnchorService {
 
     private static final String RESOURCE = "AuditAnchor";
+    private static final String ENTITY = "audit_anchors";
 
     private final AuditAnchorRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public AuditAnchorService(AuditAnchorRepository repository, EventPublisher events) {
+    public AuditAnchorService(AuditAnchorRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<AuditAnchorResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(AuditAnchorResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(AuditAnchorResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public AuditAnchorResponse get(UUID id) {
@@ -53,6 +60,7 @@ public class AuditAnchorService {
         entity.setExternalRef(request.externalRef());
 
         AuditAnchor saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("platform", "AuditAnchorCreated", saved.getId(), AuditAnchorResponse.from(saved));
         return AuditAnchorResponse.from(saved);
     }
@@ -85,6 +93,7 @@ public class AuditAnchorService {
     public void delete(UUID id) {
         AuditAnchor entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("platform", "AuditAnchorDeleted", id, null);
     }
 

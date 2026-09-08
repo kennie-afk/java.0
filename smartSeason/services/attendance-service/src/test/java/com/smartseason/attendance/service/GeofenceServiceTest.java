@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.attendance.domain.Geofence;
+import com.smartseason.attendance.platform.CountCache;
+import com.smartseason.attendance.platform.CountCache;
 import com.smartseason.attendance.platform.EventPublisher;
 import com.smartseason.attendance.platform.ResourceNotFoundException;
 import com.smartseason.attendance.platform.TenantContext;
@@ -29,7 +31,10 @@ class GeofenceServiceTest {
 
     private final GeofenceRepository repository = mock(GeofenceRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final GeofenceService service = new GeofenceService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final GeofenceService service = new GeofenceService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

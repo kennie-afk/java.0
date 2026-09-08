@@ -35,19 +35,21 @@ public class RouteStopController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'STOREKEEPER', 'BUYER')")
     @Operation(summary = "List route-stops for the caller's tenant")
     public PageResponse<RouteStopResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'STOREKEEPER', 'BUYER')")
     @Operation(summary = "Fetch a single RouteStop by id")
     public RouteStopResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STOREKEEPER')")
     @Operation(summary = "Create a RouteStop")
     public ResponseEntity<RouteStopResponse> create(@Valid @RequestBody RouteStopCreateRequest request) {
         RouteStopResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class RouteStopController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STOREKEEPER')")
     @Operation(summary = "Apply a partial update to a RouteStop")
     public RouteStopResponse update(@PathVariable UUID id, @Valid @RequestBody RouteStopUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a RouteStop")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

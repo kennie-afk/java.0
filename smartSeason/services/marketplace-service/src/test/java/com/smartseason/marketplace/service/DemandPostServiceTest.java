@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.marketplace.domain.DemandPost;
+import com.smartseason.marketplace.platform.CountCache;
+import com.smartseason.marketplace.platform.CountCache;
 import com.smartseason.marketplace.platform.EventPublisher;
 import com.smartseason.marketplace.platform.ResourceNotFoundException;
 import com.smartseason.marketplace.platform.TenantContext;
@@ -29,7 +31,10 @@ class DemandPostServiceTest {
 
     private final DemandPostRepository repository = mock(DemandPostRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final DemandPostService service = new DemandPostService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final DemandPostService service = new DemandPostService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

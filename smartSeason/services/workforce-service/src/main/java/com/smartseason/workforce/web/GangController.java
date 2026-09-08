@@ -35,19 +35,21 @@ public class GangController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'FINANCE')")
     @Operation(summary = "List gangs for the caller's tenant")
     public PageResponse<GangResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'FINANCE')")
     @Operation(summary = "Fetch a single Gang by id")
     public GangResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Create a Gang")
     public ResponseEntity<GangResponse> create(@Valid @RequestBody GangCreateRequest request) {
         GangResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class GangController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Apply a partial update to a Gang")
     public GangResponse update(@PathVariable UUID id, @Valid @RequestBody GangUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Delete a Gang")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

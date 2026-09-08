@@ -1,6 +1,8 @@
 package com.smartseason.inventory.service;
 
 import com.smartseason.inventory.domain.InputIssue;
+import com.smartseason.inventory.platform.CountCache;
+import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.EventPublisher;
 import com.smartseason.inventory.platform.PageResponse;
 import com.smartseason.inventory.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class InputIssueService {
 
     private static final String RESOURCE = "InputIssue";
+    private static final String ENTITY = "input_issues";
 
     private final InputIssueRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public InputIssueService(InputIssueRepository repository, EventPublisher events) {
+    public InputIssueService(InputIssueRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<InputIssueResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(InputIssueResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(InputIssueResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public InputIssueResponse get(UUID id) {
@@ -61,6 +68,7 @@ public class InputIssueService {
         entity.setStatus(request.status());
 
         InputIssue saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "InputIssueCreated", saved.getId(), InputIssueResponse.from(saved));
         return InputIssueResponse.from(saved);
     }
@@ -117,6 +125,7 @@ public class InputIssueService {
     public void delete(UUID id) {
         InputIssue entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "InputIssueDeleted", id, null);
     }
 

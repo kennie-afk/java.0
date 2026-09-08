@@ -1,6 +1,8 @@
 package com.smartseason.marketplace.service;
 
 import com.smartseason.marketplace.domain.MarketMatch;
+import com.smartseason.marketplace.platform.CountCache;
+import com.smartseason.marketplace.platform.CountCache;
 import com.smartseason.marketplace.platform.EventPublisher;
 import com.smartseason.marketplace.platform.PageResponse;
 import com.smartseason.marketplace.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class MarketMatchService {
 
     private static final String RESOURCE = "MarketMatch";
+    private static final String ENTITY = "market_matches";
 
     private final MarketMatchRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public MarketMatchService(MarketMatchRepository repository, EventPublisher events) {
+    public MarketMatchService(MarketMatchRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<MarketMatchResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(MarketMatchResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(MarketMatchResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public MarketMatchResponse get(UUID id) {
@@ -55,6 +62,7 @@ public class MarketMatchService {
         entity.setStatus(request.status());
 
         MarketMatch saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "MarketMatchCreated", saved.getId(), MarketMatchResponse.from(saved));
         return MarketMatchResponse.from(saved);
     }
@@ -93,6 +101,7 @@ public class MarketMatchService {
     public void delete(UUID id) {
         MarketMatch entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "MarketMatchDeleted", id, null);
     }
 

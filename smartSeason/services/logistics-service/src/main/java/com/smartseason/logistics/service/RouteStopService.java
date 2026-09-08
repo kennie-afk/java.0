@@ -1,6 +1,8 @@
 package com.smartseason.logistics.service;
 
 import com.smartseason.logistics.domain.RouteStop;
+import com.smartseason.logistics.platform.CountCache;
+import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.EventPublisher;
 import com.smartseason.logistics.platform.PageResponse;
 import com.smartseason.logistics.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class RouteStopService {
 
     private static final String RESOURCE = "RouteStop";
+    private static final String ENTITY = "route_stops";
 
     private final RouteStopRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public RouteStopService(RouteStopRepository repository, EventPublisher events) {
+    public RouteStopService(RouteStopRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<RouteStopResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(RouteStopResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(RouteStopResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public RouteStopResponse get(UUID id) {
@@ -58,6 +65,7 @@ public class RouteStopService {
         entity.setOffRoute(request.offRoute());
 
         RouteStop saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "RouteStopCreated", saved.getId(), RouteStopResponse.from(saved));
         return RouteStopResponse.from(saved);
     }
@@ -105,6 +113,7 @@ public class RouteStopService {
     public void delete(UUID id) {
         RouteStop entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "RouteStopDeleted", id, null);
     }
 

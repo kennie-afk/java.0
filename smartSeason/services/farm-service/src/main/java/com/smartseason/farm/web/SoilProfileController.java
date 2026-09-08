@@ -35,19 +35,21 @@ public class SoilProfileController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "List soil-profiles for the caller's tenant")
     public PageResponse<SoilProfileResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "Fetch a single SoilProfile by id")
     public SoilProfileResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER')")
     @Operation(summary = "Create a SoilProfile")
     public ResponseEntity<SoilProfileResponse> create(@Valid @RequestBody SoilProfileCreateRequest request) {
         SoilProfileResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class SoilProfileController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER')")
     @Operation(summary = "Apply a partial update to a SoilProfile")
     public SoilProfileResponse update(@PathVariable UUID id, @Valid @RequestBody SoilProfileUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Delete a SoilProfile")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

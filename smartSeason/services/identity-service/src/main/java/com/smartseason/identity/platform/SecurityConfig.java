@@ -30,7 +30,9 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http,
+                                          com.smartseason.identity.ratelimit.RateLimitFilter rateLimitFilter)
+            throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .cors(Customizer.withDefaults())
@@ -45,7 +47,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/identity/v1/auth/**").permitAll()
                 .requestMatchers("/api/identity/v1/.well-known/**").permitAll()
                 .anyRequest().authenticated())
-            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+
+            .addFilterAfter(rateLimitFilter, JwtAuthenticationFilter.class);
         return http.build();
     }
 

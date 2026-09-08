@@ -1,0 +1,32 @@
+# SHA-256 of every Flyway migration, recorded when it was written.
+# Regenerate with: python3 scripts/check-migrations-frozen.py --update
+
+ffd97302c95008cb97690d9e970855315e6cee669b5850b6a02b7873b8c15178  services/agronomy-service/src/main/resources/db/migration/V1__init.sql
+63f46aa56e4b412ee023585610e3dbd671aad5a3990179a1cf6120a6a276da8b  services/analytics-service/src/main/resources/db/migration/V1__init.sql
+195dcdfcd95b53623c5a991e7bf1f7e52e391711b79df948ac8922bcb64d361a  services/attendance-service/src/main/resources/db/migration/V1__init.sql
+586e1cda6b51a98dc0f8e9a592832b4856a79abd127478a39ccafb750a0e000b  services/audit-service/src/main/resources/db/migration/V1__init.sql
+eb12dec200c41630886dd1bce9142377ae0b19cf017d50e10cb7cacf88dfad13  services/automation-service/src/main/resources/db/migration/V1__init.sql
+1451341fb126fed907b4a4a98288de43c1b2c2d51aa0274d1766243b2c17544c  services/catalog-service/src/main/resources/db/migration/V1__init.sql
+972c0f0f63adfc48c965b5d1026fc6bbefcbca38eb2dd1aed251369bf26b5f40  services/device-registry-service/src/main/resources/db/migration/V1__init.sql
+852a646b88be8a752733a9cf3b2ea5d3289960d49af3233a3bc06d76ea9d1d8f  services/farm-service/src/main/resources/db/migration/V1__init.sql
+d02a7d30138c518930edac5115ccd578cdbad1f17e6a1bfd42acc075b10f95c2  services/fraud-service/src/main/resources/db/migration/V1__init.sql
+cdc399991c52034ca33a797dc54156f696c8309e6222707ba432759a0232f6af  services/identity-service/src/main/resources/db/migration/V1__init.sql
+edc4e6fa3254ead9ea43f69fe69af41494605eb05ca9f9f58e46fd36a4344bdd  services/inventory-service/src/main/resources/db/migration/V1__init.sql
+9470686158b9e411b02dc229b2f74e6e1f31390c86ea11e6db7813e61511cf84  services/ledger-service/src/main/resources/db/migration/V1__init.sql
+3ae9b7e612a73f4ae5b92cd919d374a3c11b61ace6a708b9b50095dde0edd196  services/logistics-service/src/main/resources/db/migration/V1__init.sql
+4293a41d750f8172f0ad0947fe872061e298f8188986e7145a486511b2e96d8f  services/marketplace-service/src/main/resources/db/migration/V1__init.sql
+7b4985a0443aef42badb485f085cebf4115de19b8755aee14a63620f6ecb7fdb  services/media-service/src/main/resources/db/migration/V1__init.sql
+e55a5266ce001edaa4828b2f4c05403a99c72fc1e2e40fc19fc2b8ef3ac33ca4  services/notification-service/src/main/resources/db/migration/V1__init.sql
+b5b9789904c6d4724c5c9710e3115094064ad77133acf37c2b4dbdd294bf1247  services/order-service/src/main/resources/db/migration/V1__init.sql
+cce0fc1b5ead7c9b5451d2330ba7815e3f9d956f4f5d758444d09c44be332bfc  services/payment-service/src/main/resources/db/migration/V1__init.sql
+02fd501f1bbea28cf95e7ac18cd21efe6214ed92de9ce547b2d43cac8e06f8ce  services/payout-service/src/main/resources/db/migration/V1__init.sql
+6a7332b141b8930b52a809731341b9906267b98e20d5a2b014c94e8378c4384f  services/pricing-service/src/main/resources/db/migration/V1__init.sql
+8cfb12321d965362bd65f0cba89f692fc89a60b34b8c5a363de45b0bbaac4d46  services/search-service/src/main/resources/db/migration/V1__init.sql
+27df376045ff746b1092459e80a44dd994a7429f9afce7b167a0fe52328d0dfe  services/season-service/src/main/resources/db/migration/V1__init.sql
+25beaa2b917f634fa9895b7e85b8dce2e997c683bcec801a5503b2419d69554a  services/task-service/src/main/resources/db/migration/V1__init.sql
+12cfd97c55034459c416bb9a6836f4d371aef2ba7607abbe043b3a8ecbafb343  services/task-service/src/main/resources/db/migration/V2__assignment_user_link.sql
+1d4966cb7727f68d2c8d873c8679b8920aa5c6979352fe8451fc4b2c76d87093  services/telemetry-ingest-service/src/main/resources/db/migration/V1__init.sql
+d1766bdb98851a348b3447558d0155f9f4de789cc80ca1fe6b26e42d4a45770d  services/traceability-service/src/main/resources/db/migration/V1__init.sql
+17df23316e9760cb62223a5eaa26169a5081282fedffb9ccf4b01ad73295779a  services/weather-service/src/main/resources/db/migration/V1__init.sql
+640aafeae51d4441bd06e5d6236fc24560d04b63d71942faea2631d179ee17b4  services/workforce-service/src/main/resources/db/migration/V1__init.sql
+daa1fcc2465feec5c036ad29264bdab110798bd385da038c7c3eca8468596526  services/workforce-service/src/main/resources/db/migration/V2__worker_user_link.sql

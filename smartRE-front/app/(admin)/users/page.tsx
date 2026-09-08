@@ -14,7 +14,7 @@ import { InlineError } from '@/components/ui/InlineError'
 import { Pagination } from '@/components/ui/Pagination'
 import { fmt } from '@/lib/utils'
 
-const VALID_ROLES: Role[] = ['BUYER', 'SELLER', 'AGENT', 'ADMIN']
+const VALID_ROLES: Role[] = ['BUYER', 'SELLER', 'LANDLORD', 'ADMIN']
 
 export default function UsersPage() {
   return <Suspense fallback={<PageLoader/>}><UsersPageInner/></Suspense>
@@ -22,7 +22,7 @@ export default function UsersPage() {
 
 function UsersPageInner() {
   const {
-    users, loading, error, sellers, agents, buyers, admins,
+    users, loading, error, sellers, buyers, admins,
     page, setPage, totalPages, totalElements,
     promote, promotingId, ban, unban, banningId,
   } = useUsers()
@@ -59,7 +59,7 @@ function UsersPageInner() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="font-display text-lg font-semibold text-gray-900 dark:text-white">Users</h1>
@@ -69,7 +69,6 @@ function UsersPageInner() {
           <Select label="Role" options={[
             { value: '', label: 'All roles' },
             { value: 'SELLER', label: 'Sellers' },
-            { value: 'AGENT', label: 'Agents' },
             { value: 'BUYER', label: 'Buyers' },
             { value: 'ADMIN', label: 'Admins' },
           ]} value={roleFilter} onChange={e => setRoleFilter(e.target.value as Role | '')}/>
@@ -79,9 +78,6 @@ function UsersPageInner() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <button onClick={() => setRoleFilter(roleFilter === 'SELLER' ? '' : 'SELLER')} className="text-left">
           <Card className={roleFilter === 'SELLER' ? 'ring-2 ring-gold-500' : ''}><p className="text-sm text-muted">Sellers</p><p className="font-display text-lg font-semibold mt-1">{sellers}</p></Card>
-        </button>
-        <button onClick={() => setRoleFilter(roleFilter === 'AGENT' ? '' : 'AGENT')} className="text-left">
-          <Card className={roleFilter === 'AGENT' ? 'ring-2 ring-gold-500' : ''}><p className="text-sm text-muted">Agents</p><p className="font-display text-lg font-semibold mt-1">{agents}</p></Card>
         </button>
         <button onClick={() => setRoleFilter(roleFilter === 'BUYER' ? '' : 'BUYER')} className="text-left">
           <Card className={roleFilter === 'BUYER' ? 'ring-2 ring-gold-500' : ''}><p className="text-sm text-muted">Buyers</p><p className="font-display text-lg font-semibold mt-1">{buyers}</p></Card>
@@ -95,21 +91,21 @@ function UsersPageInner() {
         {error && <InlineError message={error}/>}
         <Input leftIcon={<Search size={15}/>} placeholder="Search by name or email..." value={search} onChange={e => setSearch(e.target.value)} className="mb-1.5"/>
         {(search || roleFilter) && (
-          <p className="text-[11px] text-muted mb-3">Search and role filters only apply to the current page — use Previous/Next to browse the rest of {totalElements} users.</p>
+          <p className="text-xs text-muted mb-3">Search and role filters only apply to the current page — use Previous/Next to browse the rest of {totalElements} users.</p>
         )}
         {filtered.length === 0 ? (
           <EmptyState icon={<Users size={24}/>} title="No users found"/>
         ) : (
           <div className="space-y-2">
             {filtered.map(u => (
-              <div key={u.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-[#1A1A35] transition-colors">
+              <div key={u.id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-[#1A1A35] transition-colors">
                 <div className="w-10 h-10 rounded-full bg-gold-500 text-white flex items-center justify-center font-bold text-sm shrink-0">
                   {fmt.initials(u.fullName)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-medium text-sm text-gray-900 dark:text-white">{u.fullName}</p>
-                    <Badge size="sm" variant={u.role === 'ADMIN' ? 'purple' : u.role === 'AGENT' ? 'success' : u.role === 'SELLER' ? 'gold' : 'info'}>{u.role}</Badge>
+                    <Badge size="sm" variant={u.role === 'ADMIN' ? 'purple' : u.role === 'LANDLORD' ? 'success' : u.role === 'SELLER' ? 'gold' : 'info'}>{u.role}</Badge>
                     {u.verified && <Badge variant="success" size="sm"><ShieldCheck size={10}/>Verified</Badge>}
                     {!u.active && <Badge variant="error" size="sm">Banned</Badge>}
                   </div>

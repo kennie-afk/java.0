@@ -1,6 +1,8 @@
 package com.smartseason.order.service;
 
 import com.smartseason.order.domain.OrderReturn;
+import com.smartseason.order.platform.CountCache;
+import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.EventPublisher;
 import com.smartseason.order.platform.PageResponse;
 import com.smartseason.order.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class OrderReturnService {
 
     private static final String RESOURCE = "OrderReturn";
+    private static final String ENTITY = "order_returns";
 
     private final OrderReturnRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public OrderReturnService(OrderReturnRepository repository, EventPublisher events) {
+    public OrderReturnService(OrderReturnRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<OrderReturnResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(OrderReturnResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(OrderReturnResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public OrderReturnResponse get(UUID id) {
@@ -56,6 +63,7 @@ public class OrderReturnService {
         entity.setStatus(request.status());
 
         OrderReturn saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "OrderReturnCreated", saved.getId(), OrderReturnResponse.from(saved));
         return OrderReturnResponse.from(saved);
     }
@@ -97,6 +105,7 @@ public class OrderReturnService {
     public void delete(UUID id) {
         OrderReturn entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "OrderReturnDeleted", id, null);
     }
 

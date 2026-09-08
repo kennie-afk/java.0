@@ -35,19 +35,21 @@ public class OrderLineController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'STOREKEEPER', 'FINANCE', 'BUYER')")
     @Operation(summary = "List order-lines for the caller's tenant")
     public PageResponse<OrderLineResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'STOREKEEPER', 'FINANCE', 'BUYER')")
     @Operation(summary = "Fetch a single OrderLine by id")
     public OrderLineResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'BUYER')")
     @Operation(summary = "Create a OrderLine")
     public ResponseEntity<OrderLineResponse> create(@Valid @RequestBody OrderLineCreateRequest request) {
         OrderLineResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class OrderLineController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'BUYER')")
     @Operation(summary = "Apply a partial update to a OrderLine")
     public OrderLineResponse update(@PathVariable UUID id, @Valid @RequestBody OrderLineUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'BUYER')")
     @Operation(summary = "Delete a OrderLine")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

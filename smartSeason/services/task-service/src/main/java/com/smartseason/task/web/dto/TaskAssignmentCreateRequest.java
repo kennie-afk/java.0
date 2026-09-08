@@ -10,6 +10,7 @@ import java.util.UUID;
 public record TaskAssignmentCreateRequest(
         @NotNull UUID workOrderId,
         UUID workerId,
+        UUID workerUserId,
         UUID gangId,
         @NotNull UUID assignedBy,
         @NotNull Instant assignedAt,

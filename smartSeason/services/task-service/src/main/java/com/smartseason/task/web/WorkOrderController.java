@@ -35,19 +35,21 @@ public class WorkOrderController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'WORKER')")
     @Operation(summary = "List work-orders for the caller's tenant")
     public PageResponse<WorkOrderResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'WORKER')")
     @Operation(summary = "Fetch a single WorkOrder by id")
     public WorkOrderResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER')")
     @Operation(summary = "Create a WorkOrder")
     public ResponseEntity<WorkOrderResponse> create(@Valid @RequestBody WorkOrderCreateRequest request) {
         WorkOrderResponse created = service.create(request);
@@ -55,7 +57,7 @@ public class WorkOrderController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER')")
     @Operation(summary = "Apply a partial update to a WorkOrder")
     public WorkOrderResponse update(@PathVariable UUID id, @Valid @RequestBody WorkOrderUpdateRequest request) {
         return service.update(id, request);

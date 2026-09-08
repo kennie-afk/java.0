@@ -42,7 +42,7 @@ export function useAdminOverview() {
   const properties = propertiesQ.data?.content ?? []
   const idQueue = idQueueQ.data?.content ?? []
   const fraudSummary = fraudSummaryQ.data ?? { totalFraudStrikes: 0, permanentlyBanned: 0 }
-  const userStats = userStatsQ.data ?? { buyers: 0, sellers: 0, agents: 0, admins: 0, total: 0, verified: 0 }
+  const userStats = userStatsQ.data ?? { buyers: 0, sellers: 0, admins: 0, total: 0, verified: 0 }
   const propertyStats = propertyStatsQ.data ?? {
     active: 0, draft: 0, pendingVerification: 0, sold: 0, rented: 0, suspended: 0, withdrawn: 0,
     avgActivePrice: 0, totalViews: 0, byType: [], topCounties: [],
@@ -55,7 +55,6 @@ export function useAdminOverview() {
   const stats = useMemo(() => {
     const buyers = userStats.buyers
     const sellers = userStats.sellers
-    const agents = userStats.agents
     const admins = userStats.admins
     const verifiedUsers = userStats.verified
     const verifiedPct = userStats.total ? Math.round((userStats.verified / userStats.total) * 100) : 0
@@ -97,7 +96,7 @@ export function useAdminOverview() {
     const banned = fraudSummary.permanentlyBanned
 
     return {
-      buyers, sellers, agents, admins, verifiedUsers, verifiedPct,
+      buyers, sellers, admins, verifiedUsers, verifiedPct,
       active, draft, pending, closed, fullyTrusted, avgPrice, totalViews,
       typeChart, topCounties, commission, viewingFee, pendingPayout, failedPayout, totalPayout,
       topSellers, trendChart, fraudStrikes, banned,

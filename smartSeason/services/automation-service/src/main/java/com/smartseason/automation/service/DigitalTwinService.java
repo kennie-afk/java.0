@@ -1,6 +1,8 @@
 package com.smartseason.automation.service;
 
 import com.smartseason.automation.domain.DigitalTwin;
+import com.smartseason.automation.platform.CountCache;
+import com.smartseason.automation.platform.CountCache;
 import com.smartseason.automation.platform.EventPublisher;
 import com.smartseason.automation.platform.PageResponse;
 import com.smartseason.automation.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class DigitalTwinService {
 
     private static final String RESOURCE = "DigitalTwin";
+    private static final String ENTITY = "digital_twins";
 
     private final DigitalTwinRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public DigitalTwinService(DigitalTwinRepository repository, EventPublisher events) {
+    public DigitalTwinService(DigitalTwinRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<DigitalTwinResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(DigitalTwinResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(DigitalTwinResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public DigitalTwinResponse get(UUID id) {
@@ -56,6 +63,7 @@ public class DigitalTwinService {
         entity.setState(request.state());
 
         DigitalTwin saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("iot", "DigitalTwinCreated", saved.getId(), DigitalTwinResponse.from(saved));
         return DigitalTwinResponse.from(saved);
     }
@@ -97,6 +105,7 @@ public class DigitalTwinService {
     public void delete(UUID id) {
         DigitalTwin entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("iot", "DigitalTwinDeleted", id, null);
     }
 

@@ -20,7 +20,7 @@ export function SignOutButton() {
       type="button"
       onClick={signOut}
       disabled={pending}
-      className="flex w-full cursor-pointer flex-col items-center gap-1 rounded-lg px-1 py-2 text-[0.625rem] font-medium text-[var(--color-muted)] transition-colors hover:bg-[var(--color-raised)] hover:text-[var(--color-ink)] disabled:opacity-50"
+      className="flex w-full cursor-pointer flex-col items-center gap-1 rounded-lg px-1 py-2 text-2xs font-medium text-[var(--color-muted)] transition-colors hover:bg-[var(--color-raised)] hover:text-[var(--color-ink)] disabled:opacity-50"
     >
       <svg
         viewBox="0 0 24 24"

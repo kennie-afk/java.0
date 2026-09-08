@@ -1,0 +1,74 @@
+---
+# Single host, path routed: /api to the gateway, everything else to the front end. See
+# the module docstring for why one origin rather than two.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: smartseason
+  namespace: smartseason
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+    # Media uploads go through the gateway; NGINX defaults to 1MB and would reject them
+    # with a 413 before any service saw the request.
+    nginx.ingress.kubernetes.io/proxy-body-size: "25m"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/use-forwarded-headers: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - smartseason.co.ke
+      secretName: smartseason-tls
+  rules:
+    - host: smartseason.co.ke
+      http:
+        paths:
+          # Longest prefix first, or every request reaches the front end and the API is
+          # unreachable.
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 3000
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: admin@smartseason.co.ke
+    privateKeySecretRef:
+      name: letsencrypt-staging-account-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: nginx
+---
+# Use staging first. Production rate-limits at five duplicate certificates a week, and a
+# wrong DNS record spends that allowance in an afternoon.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-production
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: admin@smartseason.co.ke
+    privateKeySecretRef:
+      name: letsencrypt-production-account-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: nginx

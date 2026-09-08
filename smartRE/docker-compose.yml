@@ -1,4 +1,3 @@
-version: "3.8"
 
 x-logging: &default-logging
   driver: "json-file"
@@ -8,11 +7,9 @@ x-logging: &default-logging
 
 services:
 
-  # ════════════════════════════════════════════════════════════════
-  # INFRASTRUCTURE
-  # ════════════════════════════════════════════════════════════════
-
   redis:
+    mem_limit: 256m
+    mem_reservation: 128m
     image: redis:7-alpine
     restart: unless-stopped
     logging: *default-logging
@@ -28,6 +25,8 @@ services:
       retries: 10
 
   zookeeper:
+    mem_limit: 512m
+    mem_reservation: 128m
     image: confluentinc/cp-zookeeper:7.6.0
     restart: unless-stopped
     logging: *default-logging
@@ -44,6 +43,8 @@ services:
       retries: 10
 
   kafka:
+    mem_limit: 1g
+    mem_reservation: 128m
     image: confluentinc/cp-kafka:7.6.0
     restart: unless-stopped
     logging: *default-logging
@@ -73,6 +74,8 @@ services:
       start_period: 30s
 
   kafka-ui:
+    mem_limit: 512m
+    mem_reservation: 128m
     image: provectuslabs/kafka-ui:latest
     restart: unless-stopped
     logging: *default-logging
@@ -85,11 +88,9 @@ services:
       KAFKA_CLUSTERS_0_NAME: smartre-kafka
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
 
-  # ════════════════════════════════════════════════════════════════
-  # OBSERVABILITY STACK
-  # ════════════════════════════════════════════════════════════════
-
   prometheus:
+    mem_limit: 512m
+    mem_reservation: 128m
     image: prom/prometheus:v2.51.0
     restart: unless-stopped
     logging: *default-logging
@@ -106,6 +107,8 @@ services:
       - '--web.enable-lifecycle'
 
   grafana:
+    mem_limit: 384m
+    mem_reservation: 128m
     image: grafana/grafana:10.4.0
     restart: unless-stopped
     logging: *default-logging
@@ -113,7 +116,7 @@ services:
       - "3001:3000"
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-smartre2026}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:?GRAFANA_PASSWORD must be set in .env}
       GF_USERS_ALLOW_SIGN_UP: "false"
     volumes:
       - grafana-data:/var/lib/grafana
@@ -122,6 +125,8 @@ services:
       - prometheus
 
   loki:
+    mem_limit: 512m
+    mem_reservation: 128m
     image: grafana/loki:2.9.7
     restart: unless-stopped
     logging: *default-logging
@@ -133,6 +138,8 @@ services:
     command: -config.file=/etc/loki/config.yml
 
   promtail:
+    mem_limit: 128m
+    mem_reservation: 128m
     image: grafana/promtail:2.9.7
     restart: unless-stopped
     logging: *default-logging
@@ -145,6 +152,8 @@ services:
       - loki
 
   alertmanager:
+    mem_limit: 128m
+    mem_reservation: 128m
     image: prom/alertmanager:v0.27.0
     restart: unless-stopped
     logging: *default-logging
@@ -153,11 +162,9 @@ services:
     volumes:
       - ./observability/alertmanager.yml:/etc/alertmanager/config.yml:ro
 
-  # ════════════════════════════════════════════════════════════════
-  # DATABASES + PGBOUNCER
-  # ════════════════════════════════════════════════════════════════
-
   user-db:
+    mem_limit: 512m
+    mem_reservation: 128m
     image: postgres:16-alpine
     restart: unless-stopped
     logging: *default-logging
@@ -174,6 +181,8 @@ services:
       retries: 10
 
   user-pgbouncer:
+    mem_limit: 128m
+    mem_reservation: 96m
     image: edoburu/pgbouncer:1.21.0-p1
     restart: unless-stopped
     logging: *default-logging
@@ -202,6 +211,8 @@ services:
       retries: 10
 
   verification-db:
+    mem_limit: 512m
+    mem_reservation: 128m
     image: postgres:16-alpine
     restart: unless-stopped
     logging: *default-logging
@@ -218,6 +229,8 @@ services:
       retries: 10
 
   verification-pgbouncer:
+    mem_limit: 128m
+    mem_reservation: 96m
     image: edoburu/pgbouncer:1.21.0-p1
     restart: unless-stopped
     logging: *default-logging
@@ -243,6 +256,8 @@ services:
       retries: 10
 
   property-db:
+    mem_limit: 512m
+    mem_reservation: 128m
     image: postgres:16-alpine
     restart: unless-stopped
     logging: *default-logging
@@ -259,6 +274,8 @@ services:
       retries: 10
 
   property-pgbouncer:
+    mem_limit: 128m
+    mem_reservation: 96m
     image: edoburu/pgbouncer:1.21.0-p1
     restart: unless-stopped
     logging: *default-logging
@@ -284,6 +301,8 @@ services:
       retries: 10
 
   viewing-db:
+    mem_limit: 512m
+    mem_reservation: 128m
     image: postgres:16-alpine
     restart: unless-stopped
     logging: *default-logging
@@ -300,6 +319,8 @@ services:
       retries: 10
 
   viewing-pgbouncer:
+    mem_limit: 128m
+    mem_reservation: 96m
     image: edoburu/pgbouncer:1.21.0-p1
     restart: unless-stopped
     logging: *default-logging
@@ -325,6 +346,8 @@ services:
       retries: 10
 
   payment-db:
+    mem_limit: 512m
+    mem_reservation: 128m
     image: postgres:16-alpine
     restart: unless-stopped
     logging: *default-logging
@@ -341,6 +364,8 @@ services:
       retries: 10
 
   payment-pgbouncer:
+    mem_limit: 128m
+    mem_reservation: 96m
     image: edoburu/pgbouncer:1.21.0-p1
     restart: unless-stopped
     logging: *default-logging
@@ -366,6 +391,8 @@ services:
       retries: 10
 
   review-db:
+    mem_limit: 512m
+    mem_reservation: 128m
     image: postgres:16-alpine
     restart: unless-stopped
     logging: *default-logging
@@ -382,6 +409,8 @@ services:
       retries: 10
 
   review-pgbouncer:
+    mem_limit: 128m
+    mem_reservation: 96m
     image: edoburu/pgbouncer:1.21.0-p1
     restart: unless-stopped
     logging: *default-logging
@@ -407,6 +436,8 @@ services:
       retries: 10
 
   notification-db:
+    mem_limit: 512m
+    mem_reservation: 128m
     image: postgres:16-alpine
     restart: unless-stopped
     logging: *default-logging
@@ -423,6 +454,8 @@ services:
       retries: 10
 
   notification-pgbouncer:
+    mem_limit: 128m
+    mem_reservation: 96m
     image: edoburu/pgbouncer:1.21.0-p1
     restart: unless-stopped
     logging: *default-logging
@@ -448,6 +481,8 @@ services:
       retries: 10
 
   pms-db:
+    mem_limit: 512m
+    mem_reservation: 128m
     image: postgres:16-alpine
     restart: unless-stopped
     logging: *default-logging
@@ -464,6 +499,8 @@ services:
       retries: 10
 
   pms-pgbouncer:
+    mem_limit: 128m
+    mem_reservation: 96m
     image: edoburu/pgbouncer:1.21.0-p1
     restart: unless-stopped
     logging: *default-logging
@@ -488,11 +525,9 @@ services:
       timeout: 3s
       retries: 10
 
-  # ════════════════════════════════════════════════════════════════
-  # MICROSERVICES
-  # ════════════════════════════════════════════════════════════════
-
   user-service:
+    mem_limit: 768m
+    mem_reservation: 128m
     build: ./user-service
     restart: on-failure
     logging: *default-logging
@@ -540,6 +575,8 @@ services:
       start_period: 60s
 
   verification-service:
+    mem_limit: 1g
+    mem_reservation: 128m
     build: ./verification-service
     restart: on-failure
     logging: *default-logging
@@ -575,6 +612,8 @@ services:
       start_period: 60s
 
   property-service:
+    mem_limit: 768m
+    mem_reservation: 128m
     build: ./property-service
     restart: on-failure
     logging: *default-logging
@@ -606,6 +645,8 @@ services:
       start_period: 60s
 
   viewing-service:
+    mem_limit: 640m
+    mem_reservation: 128m
     build: ./viewing-service
     restart: on-failure
     logging: *default-logging
@@ -637,6 +678,8 @@ services:
       start_period: 60s
 
   payment-service:
+    mem_limit: 768m
+    mem_reservation: 128m
     build: ./payment-service
     restart: on-failure
     logging: *default-logging
@@ -688,6 +731,8 @@ services:
       start_period: 60s
 
   review-service:
+    mem_limit: 640m
+    mem_reservation: 128m
     build: ./review-service
     restart: on-failure
     logging: *default-logging
@@ -718,6 +763,8 @@ services:
       start_period: 60s
 
   notification-service:
+    mem_limit: 640m
+    mem_reservation: 128m
     build: ./notification-service
     restart: on-failure
     logging: *default-logging
@@ -737,6 +784,9 @@ services:
       MAIL_USERNAME: ${MAIL_USERNAME:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
       MAIL_FROM: ${MAIL_FROM:-no-reply@smartre.co.ke}
+      SMS_USERNAME: ${SMS_USERNAME:-}
+      SMS_API_KEY: ${SMS_API_KEY:-}
+      SMS_SENDER_ID: ${SMS_SENDER_ID:-}
     depends_on:
       notification-pgbouncer:
         condition: service_healthy
@@ -752,6 +802,8 @@ services:
       start_period: 60s
 
   property-management-service:
+    mem_limit: 768m
+    mem_reservation: 128m
     build: ./property-management-service
     restart: on-failure
     logging: *default-logging
@@ -788,7 +840,36 @@ services:
       retries: 8
       start_period: 60s
 
+  web:
+    build:
+      context: ../smartRE-front
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+        NEXT_PUBLIC_S3_PUBLIC_URL: ${S3_PUBLIC_BASE_URL:-https://smartre-documents.s3.amazonaws.com}
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:-}
+    restart: on-failure
+    logging: *default-logging
+    ports:
+      - "3000:3000"
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+      # Server-side fetches (the image optimiser) cannot use the public URL:
+      # inside the container that is its own loopback.
+      INTERNAL_API_URL: ${INTERNAL_API_URL:-http://api-gateway:8080}
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000/', r => process.exit(r.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
   api-gateway:
+    mem_limit: 512m
+    mem_reservation: 128m
     build: ./api-gateway
     restart: on-failure
     logging: *default-logging

@@ -33,7 +33,7 @@ public class PropertyController {
         this.jwtUtil = jwtUtil;
     }
 
-    @Operation(summary = "Create a property listing", description = "Seller/agent only. New listings start in DRAFT or PENDING_VERIFICATION depending on the seller's identity-verification status.")
+    @Operation(summary = "Create a property listing", description = "Sellers and landlords only. New listings start in DRAFT or PENDING_VERIFICATION depending on the seller's identity-verification status.")
     @PostMapping
     public ResponseEntity<PropertyResponse> create(
             @Valid @RequestBody CreatePropertyRequest req, HttpServletRequest httpReq) {
@@ -41,9 +41,9 @@ public class PropertyController {
                 .body(svc.create(resolveUserId(httpReq), req));
     }
 
-    @Operation(summary = "Update a property listing", description = "Only the owning seller/agent may update their own listing.")
+    @Operation(summary = "Update a property listing", description = "Only the owning seller or landlord may update their own listing.")
     @PutMapping("/{id}")
-    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('SELLER','AGENT')")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('SELLER','LANDLORD')")
     public ResponseEntity<PropertyResponse> update(
             @PathVariable UUID id,
             @Valid @RequestBody UpdatePropertyRequest req,
@@ -51,9 +51,17 @@ public class PropertyController {
         return ResponseEntity.ok(svc.update(id, resolveUserId(httpReq), req));
     }
 
-    @Operation(summary = "Delete a property listing", description = "Only the owning seller/agent may delete their own listing.")
+    @Operation(summary = "Publish a managed property",
+            description = "Moves a management-only property onto the marketplace. It enters the ordinary verification path rather than skipping it.")
+    @PutMapping("/{id}/publish")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('SELLER','LANDLORD')")
+    public ResponseEntity<PropertyResponse> publish(HttpServletRequest httpReq, @PathVariable UUID id) {
+        return ResponseEntity.ok(svc.publish(resolveUserId(httpReq), id));
+    }
+
+    @Operation(summary = "Delete a property listing", description = "Only the owning seller or landlord may delete their own listing.")
     @DeleteMapping("/{id}")
-    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('SELLER','AGENT')")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('SELLER','LANDLORD')")
     public ResponseEntity<Void> delete(@PathVariable UUID id, HttpServletRequest httpReq) {
         svc.delete(id, resolveUserId(httpReq));
         return ResponseEntity.noContent().build();

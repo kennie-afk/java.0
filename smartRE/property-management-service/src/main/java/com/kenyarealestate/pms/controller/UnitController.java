@@ -42,11 +42,14 @@ public class UnitController {
     @Operation(summary = "Your units, newest first")
     @GetMapping("/my")
     public ResponseEntity<Page<UnitResponse>> mine(
+            @RequestParam(required = false) UUID propertyId,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "0")  @Min(0)           int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
             HttpServletRequest r) {
-        return ResponseEntity.ok(units.listMine(caller.userId(r), status, PageRequest.of(page, size)));
+        return ResponseEntity.ok(
+                units.listMine(caller.userId(r), propertyId, status, q, PageRequest.of(page, size)));
     }
 
     @Operation(summary = "Portfolio totals for the signed-in landlord")

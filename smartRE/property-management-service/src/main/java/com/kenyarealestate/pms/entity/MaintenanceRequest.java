@@ -86,6 +86,15 @@ public class MaintenanceRequest {
     @Column(name = "acknowledged_at")
     private LocalDateTime acknowledgedAt;
 
+    /** Who bears the cost. Null until resolved and a decision has been taken. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "cost_borne_by", length = 16)
+    private CostBearer costBorneBy;
+
+    /** The tenant's portion when SHARED. Null for LANDLORD; equals cost for TENANT. */
+    @Column(name = "tenant_charge", precision = 12, scale = 2)
+    private BigDecimal tenantCharge;
+
     @Column(name = "resolved_at")
     private LocalDateTime resolvedAt;
 

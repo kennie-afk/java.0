@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -13,7 +14,7 @@ public interface OfferRepository extends JpaRepository<Offer, UUID> {
 
     Optional<Offer> findByIdAndTenantId(UUID id, UUID tenantId);
 
-    Page<Offer> findAllByTenantId(UUID tenantId, Pageable pageable);
+    Slice<Offer> findAllByTenantId(UUID tenantId, Pageable pageable);
 
     boolean existsByIdAndTenantId(UUID id, UUID tenantId);
 

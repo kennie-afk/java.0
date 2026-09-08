@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.ledger.domain.Account;
+import com.smartseason.ledger.platform.CountCache;
+import com.smartseason.ledger.platform.CountCache;
 import com.smartseason.ledger.platform.EventPublisher;
 import com.smartseason.ledger.platform.ResourceNotFoundException;
 import com.smartseason.ledger.platform.TenantContext;
@@ -29,7 +31,10 @@ class AccountServiceTest {
 
     private final AccountRepository repository = mock(AccountRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final AccountService service = new AccountService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final AccountService service = new AccountService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

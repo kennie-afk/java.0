@@ -70,7 +70,7 @@ export default function ReportButton({ targetType, targetId, label = 'Report', c
   return (
     <>
       <button type="button" onClick={openModal}
-        className={cn('inline-flex items-center gap-1 text-[11px] text-muted hover:text-red-500 transition-colors', className)}>
+        className={cn('inline-flex items-center gap-1 text-xs text-muted hover:text-red-500 transition-colors', className)}>
         <Flag size={11}/>{label}
       </button>
       <Modal open={open} onClose={() => setOpen(false)} title="Report a problem" size="sm"

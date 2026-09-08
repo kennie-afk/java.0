@@ -35,19 +35,21 @@ public class PayoutHoldController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE')")
     @Operation(summary = "List payout-holds for the caller's tenant")
     public PageResponse<PayoutHoldResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE')")
     @Operation(summary = "Fetch a single PayoutHold by id")
     public PayoutHoldResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Create a PayoutHold")
     public ResponseEntity<PayoutHoldResponse> create(@Valid @RequestBody PayoutHoldCreateRequest request) {
         PayoutHoldResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class PayoutHoldController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Apply a partial update to a PayoutHold")
     public PayoutHoldResponse update(@PathVariable UUID id, @Valid @RequestBody PayoutHoldUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Delete a PayoutHold")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

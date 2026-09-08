@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.audit.domain.AuditAnchor;
+import com.smartseason.audit.platform.CountCache;
+import com.smartseason.audit.platform.CountCache;
 import com.smartseason.audit.platform.EventPublisher;
 import com.smartseason.audit.platform.ResourceNotFoundException;
 import com.smartseason.audit.platform.TenantContext;
@@ -29,7 +31,10 @@ class AuditAnchorServiceTest {
 
     private final AuditAnchorRepository repository = mock(AuditAnchorRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final AuditAnchorService service = new AuditAnchorService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final AuditAnchorService service = new AuditAnchorService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

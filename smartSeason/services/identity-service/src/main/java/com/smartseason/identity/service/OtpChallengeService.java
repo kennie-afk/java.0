@@ -1,6 +1,8 @@
 package com.smartseason.identity.service;
 
 import com.smartseason.identity.domain.OtpChallenge;
+import com.smartseason.identity.platform.CountCache;
+import com.smartseason.identity.platform.CountCache;
 import com.smartseason.identity.platform.EventPublisher;
 import com.smartseason.identity.platform.PageResponse;
 import com.smartseason.identity.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class OtpChallengeService {
 
     private static final String RESOURCE = "OtpChallenge";
+    private static final String ENTITY = "otp_challenges";
 
     private final OtpChallengeRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public OtpChallengeService(OtpChallengeRepository repository, EventPublisher events) {
+    public OtpChallengeService(OtpChallengeRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<OtpChallengeResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(OtpChallengeResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(OtpChallengeResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public OtpChallengeResponse get(UUID id) {
@@ -56,6 +63,7 @@ public class OtpChallengeService {
         entity.setAttempts(request.attempts());
 
         OtpChallenge saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("identity", "OtpChallengeCreated", saved.getId(), OtpChallengeResponse.from(saved));
         return OtpChallengeResponse.from(saved);
     }
@@ -97,6 +105,7 @@ public class OtpChallengeService {
     public void delete(UUID id) {
         OtpChallenge entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("identity", "OtpChallengeDeleted", id, null);
     }
 

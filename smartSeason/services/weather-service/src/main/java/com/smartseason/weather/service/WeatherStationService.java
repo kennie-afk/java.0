@@ -1,6 +1,8 @@
 package com.smartseason.weather.service;
 
 import com.smartseason.weather.domain.WeatherStation;
+import com.smartseason.weather.platform.CountCache;
+import com.smartseason.weather.platform.CountCache;
 import com.smartseason.weather.platform.EventPublisher;
 import com.smartseason.weather.platform.PageResponse;
 import com.smartseason.weather.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class WeatherStationService {
 
     private static final String RESOURCE = "WeatherStation";
+    private static final String ENTITY = "weather_stations";
 
     private final WeatherStationRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public WeatherStationService(WeatherStationRepository repository, EventPublisher events) {
+    public WeatherStationService(WeatherStationRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<WeatherStationResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(WeatherStationResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(WeatherStationResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public WeatherStationResponse get(UUID id) {
@@ -56,6 +63,7 @@ public class WeatherStationService {
         entity.setActive(request.active());
 
         WeatherStation saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("farm", "WeatherStationCreated", saved.getId(), WeatherStationResponse.from(saved));
         return WeatherStationResponse.from(saved);
     }
@@ -97,6 +105,7 @@ public class WeatherStationService {
     public void delete(UUID id) {
         WeatherStation entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("farm", "WeatherStationDeleted", id, null);
     }
 

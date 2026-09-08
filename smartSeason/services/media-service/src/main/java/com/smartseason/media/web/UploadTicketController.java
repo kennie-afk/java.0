@@ -35,19 +35,21 @@ public class UploadTicketController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'STOREKEEPER')")
     @Operation(summary = "List upload-tickets for the caller's tenant")
     public PageResponse<UploadTicketResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'STOREKEEPER')")
     @Operation(summary = "Fetch a single UploadTicket by id")
     public UploadTicketResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'STOREKEEPER')")
     @Operation(summary = "Create a UploadTicket")
     public ResponseEntity<UploadTicketResponse> create(@Valid @RequestBody UploadTicketCreateRequest request) {
         UploadTicketResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class UploadTicketController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'STOREKEEPER')")
     @Operation(summary = "Apply a partial update to a UploadTicket")
     public UploadTicketResponse update(@PathVariable UUID id, @Valid @RequestBody UploadTicketUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a UploadTicket")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

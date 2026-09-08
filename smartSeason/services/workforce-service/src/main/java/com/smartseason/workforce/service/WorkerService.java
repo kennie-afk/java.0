@@ -1,6 +1,8 @@
 package com.smartseason.workforce.service;
 
 import com.smartseason.workforce.domain.Worker;
+import com.smartseason.workforce.platform.CountCache;
+import com.smartseason.workforce.platform.CountCache;
 import com.smartseason.workforce.platform.EventPublisher;
 import com.smartseason.workforce.platform.PageResponse;
 import com.smartseason.workforce.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class WorkerService {
 
     private static final String RESOURCE = "Worker";
+    private static final String ENTITY = "workers";
 
     private final WorkerRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public WorkerService(WorkerRepository repository, EventPublisher events) {
+    public WorkerService(WorkerRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<WorkerResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(WorkerResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(WorkerResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public WorkerResponse get(UUID id) {
@@ -46,6 +53,7 @@ public class WorkerService {
     public WorkerResponse create(WorkerCreateRequest request) {
         Worker entity = new Worker();
         entity.setTenantId(TenantContext.requireTenantId());
+        entity.setUserId(request.userId());
         entity.setNationalId(request.nationalId());
         entity.setFullName(request.fullName());
         entity.setPhone(request.phone());
@@ -61,6 +69,7 @@ public class WorkerService {
         entity.setPhotoUrl(request.photoUrl());
 
         Worker saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("workforce", "WorkerCreated", saved.getId(), WorkerResponse.from(saved));
         return WorkerResponse.from(saved);
     }
@@ -68,6 +77,9 @@ public class WorkerService {
     @Transactional
     public WorkerResponse update(UUID id, WorkerUpdateRequest request) {
         Worker entity = require(id);
+        if (request.userId() != null) {
+            entity.setUserId(request.userId());
+        }
         if (request.nationalId() != null) {
             entity.setNationalId(request.nationalId());
         }
@@ -117,6 +129,7 @@ public class WorkerService {
     public void delete(UUID id) {
         Worker entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("workforce", "WorkerDeleted", id, null);
     }
 

@@ -10,6 +10,7 @@ import java.util.UUID;
 public record TaskAssignmentUpdateRequest(
         UUID workOrderId,
         UUID workerId,
+        UUID workerUserId,
         UUID gangId,
         UUID assignedBy,
         Instant assignedAt,

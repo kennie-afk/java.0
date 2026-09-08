@@ -70,6 +70,38 @@ spec:
                 configMapKeyRef:
                   name: smartre-config
                   key: ARDHISASA_ENABLED
+            - name: GATEWAY_SIGNING_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: smartre-secrets
+                  key: GATEWAY_SIGNING_SECRET
+            - name: INTERNAL_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: smartre-secrets
+                  key: INTERNAL_SECRET
+            # Turning this on without GEMINI_API_KEY set gives you an analysis path
+            # that fails on every document, so the two move together.
+            - name: DOCUMENT_ANALYSIS_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: smartre-config
+                  key: DOCUMENT_ANALYSIS_ENABLED
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: smartre-secrets
+                  key: GEMINI_API_KEY
+            - name: BIOMETRIC_HARD_BLOCK
+              valueFrom:
+                configMapKeyRef:
+                  name: smartre-config
+                  key: BIOMETRIC_HARD_BLOCK
+            - name: DOCUMENT_URL_ALLOWED_HOSTS
+              valueFrom:
+                configMapKeyRef:
+                  name: smartre-config
+                  key: DOCUMENT_URL_ALLOWED_HOSTS
           resources:
             requests:
               memory: "256Mi"

@@ -1,6 +1,8 @@
 package com.smartseason.order.service;
 
 import com.smartseason.order.domain.Dispute;
+import com.smartseason.order.platform.CountCache;
+import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.EventPublisher;
 import com.smartseason.order.platform.PageResponse;
 import com.smartseason.order.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class DisputeService {
 
     private static final String RESOURCE = "Dispute";
+    private static final String ENTITY = "disputes";
 
     private final DisputeRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public DisputeService(DisputeRepository repository, EventPublisher events) {
+    public DisputeService(DisputeRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<DisputeResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(DisputeResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(DisputeResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public DisputeResponse get(UUID id) {
@@ -57,6 +64,7 @@ public class DisputeService {
         entity.setResolvedBy(request.resolvedBy());
 
         Dispute saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "DisputeCreated", saved.getId(), DisputeResponse.from(saved));
         return DisputeResponse.from(saved);
     }
@@ -101,6 +109,7 @@ public class DisputeService {
     public void delete(UUID id) {
         Dispute entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "DisputeDeleted", id, null);
     }
 

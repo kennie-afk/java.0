@@ -1,6 +1,8 @@
 package com.smartseason.traceability.service;
 
 import com.smartseason.traceability.domain.QrPass;
+import com.smartseason.traceability.platform.CountCache;
+import com.smartseason.traceability.platform.CountCache;
 import com.smartseason.traceability.platform.EventPublisher;
 import com.smartseason.traceability.platform.PageResponse;
 import com.smartseason.traceability.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class QrPassService {
 
     private static final String RESOURCE = "QrPass";
+    private static final String ENTITY = "qr_passes";
 
     private final QrPassRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public QrPassService(QrPassRepository repository, EventPublisher events) {
+    public QrPassService(QrPassRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<QrPassResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(QrPassResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(QrPassResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public QrPassResponse get(UUID id) {
@@ -57,6 +64,7 @@ public class QrPassService {
         entity.setStatus(request.status());
 
         QrPass saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("platform", "QrPassCreated", saved.getId(), QrPassResponse.from(saved));
         return QrPassResponse.from(saved);
     }
@@ -101,6 +109,7 @@ public class QrPassService {
     public void delete(UUID id) {
         QrPass entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("platform", "QrPassDeleted", id, null);
     }
 

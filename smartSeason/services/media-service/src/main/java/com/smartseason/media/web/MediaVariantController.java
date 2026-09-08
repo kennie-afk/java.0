@@ -35,19 +35,21 @@ public class MediaVariantController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'STOREKEEPER')")
     @Operation(summary = "List media-variants for the caller's tenant")
     public PageResponse<MediaVariantResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'STOREKEEPER')")
     @Operation(summary = "Fetch a single MediaVariant by id")
     public MediaVariantResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'STOREKEEPER')")
     @Operation(summary = "Create a MediaVariant")
     public ResponseEntity<MediaVariantResponse> create(@Valid @RequestBody MediaVariantCreateRequest request) {
         MediaVariantResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class MediaVariantController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'STOREKEEPER')")
     @Operation(summary = "Apply a partial update to a MediaVariant")
     public MediaVariantResponse update(@PathVariable UUID id, @Valid @RequestBody MediaVariantUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a MediaVariant")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

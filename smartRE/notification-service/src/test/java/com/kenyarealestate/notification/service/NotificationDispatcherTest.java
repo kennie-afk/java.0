@@ -48,12 +48,17 @@ class NotificationDispatcherTest {
 
         when(renderer.findTemplate(anyString(), eq(Channel.IN_APP)))
                 .thenThrow(new NotFoundException("no in-app template"));
+        // Most template codes have no SMS variant, and the renderer says so by throwing.
+        // Stubbing it that way here is not convenience — it is what production does, and
+        // it is the mechanism that stops every notification reaching a billable rail.
+        when(renderer.findTemplate(anyString(), eq(Channel.SMS)))
+                .thenThrow(new NotFoundException("no sms template"));
         when(renderer.findTemplate(anyString(), eq(Channel.EMAIL)))
                 .thenReturn(NotificationTemplate.builder()
                         .code("PAYMENT_COMPLETED").channel(Channel.EMAIL)
                         .category(Category.PAYMENT).bodyTemplate("body").build());
         when(renderer.render(any(), any()))
-                .thenReturn(new TemplateRenderer.Rendered("Payment received", "body"));
+                .thenReturn(new TemplateRenderer.Rendered("Payment received", "body", null));
         when(store.createIfAbsent(any()))
                 .thenAnswer(inv -> Optional.of(inv.getArgument(0, Notification.class)));
     }
@@ -156,5 +161,50 @@ class NotificationDispatcherTest {
         assertEquals("there", model.getValue().get("fullName"));
 
         verify(store).markFailed(any(), anyString(), anyInt());
+    }
+
+    @Test
+    void aTemplateWithNoSmsVariantSendsNoSms() throws Exception {
+        // The dispatcher fans out to SMS, but only templates written for it are sent.
+        // Without this the addition of the channel would silently start texting people
+        // about everything.
+        DeliveryChannel smsChannel = mock(DeliveryChannel.class);
+        when(smsChannel.type()).thenReturn(Channel.SMS);
+
+        new NotificationDispatcher(List.of(emailChannel, smsChannel), store, renderer,
+                preferences, userClient, new SendRateLimiter(10), 5)
+                .dispatch(paymentCommand());
+
+        // Not verifyNoInteractions: the dispatcher calls type() on every channel at
+        // construction to build its registry. What matters is that nothing was delivered.
+        verify(smsChannel, never()).deliver(any());
+        verify(emailChannel).deliver(any());
+    }
+
+    @Test
+    void aTemplateWithAnSmsVariantIsTextedToTheRecipientsPhone() throws Exception {
+        DeliveryChannel smsChannel = mock(DeliveryChannel.class);
+        when(smsChannel.type()).thenReturn(Channel.SMS);
+        reset(renderer);
+        when(renderer.findTemplate(anyString(), eq(Channel.IN_APP)))
+                .thenThrow(new NotFoundException("no in-app template"));
+        when(renderer.findTemplate(anyString(), eq(Channel.EMAIL)))
+                .thenThrow(new NotFoundException("no email template"));
+        when(renderer.findTemplate(anyString(), eq(Channel.SMS)))
+                .thenReturn(NotificationTemplate.builder()
+                        .code("SALE_PAYMENT_RECEIVED").channel(Channel.SMS)
+                        .category(Category.PAYMENT).bodyTemplate("body").build());
+        when(renderer.render(any(), any()))
+                .thenReturn(new TemplateRenderer.Rendered(null, "SmartRE: a buyer has paid.", null));
+
+        new NotificationDispatcher(List.of(emailChannel, smsChannel), store, renderer,
+                preferences, userClient, new SendRateLimiter(10), 5)
+                .dispatch(paymentCommand());
+
+        ArgumentCaptor<Notification> sent = ArgumentCaptor.forClass(Notification.class);
+        verify(smsChannel).deliver(sent.capture());
+        assertEquals("+254700000000", sent.getValue().getRecipientPhone(),
+                "the phone comes from the resolved contact, not the command");
+        assertNull(sent.getValue().getHtmlBody(), "a phone has no use for HTML");
     }
 }

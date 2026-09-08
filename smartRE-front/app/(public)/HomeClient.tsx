@@ -90,13 +90,13 @@ export default function HomeClient() {
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-gold-200/40 dark:bg-gold-500/10 rounded-full blur-3xl -z-10"/>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-12 pb-10 sm:pt-16 sm:pb-14">
           <div className="max-w-2xl">
-            <motion.span {...fadeUp(0)} className="inline-flex items-center gap-1.5 badge bg-gold-50 text-gold-600 dark:bg-gold-500/10 dark:text-gold-400 mb-3 text-[10px]">
+            <motion.span {...fadeUp(0)} className="inline-flex items-center gap-1.5 badge bg-gold-50 text-gold-600 dark:bg-gold-500/10 dark:text-gold-400 mb-3 text-2xs">
               <ShieldCheck size={10}/> Identity + title verified, every listing
             </motion.span>
             <motion.h1 {...fadeUp(0.08)} className="font-display text-2xl sm:text-4xl font-bold text-gray-900 dark:text-white leading-[1.15] mb-3">
               Find property in Kenya without wondering who you&apos;re paying.
             </motion.h1>
-            <motion.p {...fadeUp(0.16)} className="text-[13px] text-muted mb-6 max-w-xl">
+            <motion.p {...fadeUp(0.16)} className="text-base text-muted mb-4 max-w-xl">
               Every seller on SmartRE has proven their National ID, KRA PIN and Ardhisasa land title before a listing
               ever goes live. Pay safely through M-Pesa escrow, never straight to a stranger&apos;s phone.
             </motion.p>
@@ -107,18 +107,18 @@ export default function HomeClient() {
               <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
               <input value={keyword} onChange={e => setKeyword(e.target.value)}
                 placeholder="Search by title, estate, or keyword..."
-                className="w-full h-9 pl-8 pr-3 rounded-md bg-transparent border border-transparent text-[13px] placeholder:text-gray-400 transition-all focus:outline-none focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500 focus:bg-white dark:focus:bg-white/10"/>
+                className="w-full h-9 pl-8 pr-3 rounded-md bg-transparent border border-transparent text-base placeholder:text-gray-400 transition-all focus:outline-none focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500 focus:bg-white dark:focus:bg-white/10"/>
             </div>
             <div className="relative sm:w-40">
               <MapPin size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10"/>
               <select value={county} onChange={e => setCounty(e.target.value)}
-                className="w-full h-9 pl-8 pr-3 rounded-md bg-gray-50 dark:bg-white/5 border border-transparent text-[13px] text-gray-700 dark:text-gray-200 cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500">
+                className="w-full h-9 pl-8 pr-3 rounded-md bg-gray-50 dark:bg-white/5 border border-transparent text-base text-gray-700 dark:text-gray-200 cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500">
                 <option value="">County</option>
                 {KENYA_COUNTIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <select value={listingType} onChange={e => setListingType(e.target.value)}
-              className="h-9 px-2.5 rounded-md bg-gray-50 dark:bg-white/5 border border-transparent text-[13px] text-gray-700 dark:text-gray-200 transition-all focus:outline-none focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500 sm:w-32">
+              className="h-9 px-2.5 rounded-md bg-gray-50 dark:bg-white/5 border border-transparent text-base text-gray-700 dark:text-gray-200 transition-all focus:outline-none focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500 sm:w-32">
               <option value="">Buy or rent</option>
               <option value="SALE">For sale</option>
               <option value="RENT">To rent</option>
@@ -128,21 +128,21 @@ export default function HomeClient() {
             </button>
           </motion.form>
 
-          <motion.div {...fadeUp(0.32)} className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-6 text-[13px]">
+          <motion.div {...fadeUp(0.32)} className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-6 text-base">
             <div className="flex items-center gap-1.5">
               <TrendingUp size={13} className="text-gold-500"/>
               <span className="font-display font-bold text-gray-900 dark:text-white">{stats.total.toLocaleString()}</span>
-              <span className="text-muted text-[12px]">live listings</span>
+              <span className="text-muted text-sm">live listings</span>
             </div>
             <div className="flex items-center gap-1.5">
               <ShieldCheck size={13} className="text-emerald-500"/>
               <span className="font-display font-bold text-gray-900 dark:text-white">7</span>
-              <span className="text-muted text-[12px]">verification checks per seller</span>
+              <span className="text-muted text-sm">verification checks per seller</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Users size={13} className="text-blue-500"/>
               <span className="font-display font-bold text-gray-900 dark:text-white">2.5%</span>
-              <span className="text-muted text-[12px]">flat commission, no hidden fees</span>
+              <span className="text-muted text-sm">flat commission, no hidden fees</span>
             </div>
           </motion.div>
         </div>
@@ -157,7 +157,7 @@ export default function HomeClient() {
                 <div className="w-8 h-8 rounded-lg bg-gold-50 dark:bg-gold-500/10 text-gold-500 flex items-center justify-center">
                   <c.icon size={15}/>
                 </div>
-                <span className="text-[11px] font-medium text-gray-700 dark:text-gray-200">{c.label}</span>
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-200">{c.label}</span>
               </Link>
             </RevealCard>
           ))}
@@ -168,20 +168,20 @@ export default function HomeClient() {
         <div className="flex items-end justify-between mb-4">
           <div>
             <h2 className="font-display text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Newest verified listings</h2>
-            <p className="text-[12px] text-muted mt-0.5">Fresh onto the market, with identity and ownership already confirmed.</p>
+            <p className="text-sm text-muted mt-0.5">Fresh onto the market, with identity and ownership already confirmed.</p>
           </div>
-          <Link href="/properties" className="hidden sm:flex items-center gap-1 text-[12px] font-medium text-gold-500 hover:text-gold-600">
+          <Link href="/properties" className="hidden sm:flex items-center gap-1 text-sm font-medium text-gold-500 hover:text-gold-600">
             View all <ArrowRight size={12}/>
           </Link>
         </div>
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
             {Array(4).fill(0).map((_, i) => <SkeletonCard key={i}/>)}
           </div>
         ) : featured.length === 0 ? (
-          <div className="card p-8 text-center text-muted text-[13px]">New listings are being verified. Check back soon.</div>
+          <div className="card p-8 text-center text-muted text-base">New listings are being verified. Check back soon.</div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
             {featured.map((p, i) => <RevealCard key={p.id} index={i}><PropertyCard property={p} priority={i < 4}/></RevealCard>)}
           </div>
         )}
@@ -191,7 +191,7 @@ export default function HomeClient() {
       <section id="how-it-works" className="bg-surface-2 border-y border-base py-12 mt-3">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="max-w-xl mb-7">
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-gold-500">How SmartRE works</span>
+            <span className="text-2xs font-semibold uppercase tracking-widest text-gold-500">How SmartRE works</span>
             <h2 className="font-display text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mt-1.5">
               Three checks stand between a listing and your money.
             </h2>
@@ -199,13 +199,13 @@ export default function HomeClient() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {steps.map((s, i) => (
               <RevealCard key={s.n} index={i}>
-                <div className="card p-5 relative h-full">
+                <div className="card p-3.5 relative h-full">
                   <span className="font-display text-3xl font-bold text-gold-100 dark:text-gold-500/10 absolute top-3 right-4">{s.n}</span>
                   <div className="w-8 h-8 rounded-lg bg-gold-50 dark:bg-gold-500/10 text-gold-500 flex items-center justify-center mb-3">
                     <s.icon size={15}/>
                   </div>
-                  <h3 className="font-display font-semibold text-gray-900 dark:text-white text-[14px] mb-1.5">{s.title}</h3>
-                  <p className="text-[12px] text-muted leading-relaxed">{s.desc}</p>
+                  <h3 className="font-display font-semibold text-gray-900 dark:text-white text-lg mb-1.5">{s.title}</h3>
+                  <p className="text-sm text-muted leading-relaxed">{s.desc}</p>
                 </div>
               </RevealCard>
             ))}
@@ -215,7 +215,7 @@ export default function HomeClient() {
 
       <section id="trust" className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
         <div className="max-w-xl mb-7">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-gold-500">Why it&apos;s different</span>
+          <span className="text-2xs font-semibold uppercase tracking-widest text-gold-500">Why it&apos;s different</span>
           <h2 className="font-display text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mt-1.5">
             Built for a market where anyone can list a property they don&apos;t own.
           </h2>
@@ -223,12 +223,12 @@ export default function HomeClient() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {trustPoints.map((t, i) => (
             <RevealCard key={t.label} index={i}>
-              <div className="card p-5 h-full">
+              <div className="card p-3.5 h-full">
                 <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-3">
                   <t.icon size={15}/>
                 </div>
-                <h3 className="font-semibold text-gray-900 dark:text-white text-[13px] mb-1">{t.label}</h3>
-                <p className="text-[12px] text-muted leading-relaxed">{t.detail}</p>
+                <h3 className="font-semibold text-gray-900 dark:text-white text-base mb-1">{t.label}</h3>
+                <p className="text-sm text-muted leading-relaxed">{t.detail}</p>
               </div>
             </RevealCard>
           ))}
@@ -237,15 +237,15 @@ export default function HomeClient() {
 
       <section className="max-w-7xl mx-auto px-4 sm:px-6 pb-16">
         <RevealCard>
-          <div className="rounded-2xl bg-gradient-to-br from-gold-500 to-gold-600 p-6 sm:p-9 flex flex-col sm:flex-row items-center justify-between gap-5 relative overflow-hidden">
+          <div className="rounded-lg bg-gradient-to-br from-gold-500 to-gold-600 p-4 sm:p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3.5 relative overflow-hidden">
             <div className="absolute -right-10 -top-10 w-48 h-48 bg-white/10 rounded-full"/>
             <div className="relative">
               <h2 className="font-display text-lg sm:text-xl font-bold text-white mb-1.5">Selling a property?</h2>
-              <p className="text-gold-50 text-[13px] max-w-md">
+              <p className="text-gold-50 text-base max-w-md">
                 List for free. You only pay a 2.5% commission when a sale actually closes, with verified buyers and secure M-Pesa payouts.
               </p>
             </div>
-            <Link href="/register" className="relative bg-white text-gold-600 hover:bg-gold-50 h-9 px-5 rounded-lg font-semibold text-[13px] inline-flex items-center gap-2 shrink-0 transition-colors">
+            <Link href="/register" className="relative bg-white text-gold-600 hover:bg-gold-50 h-9 px-5 rounded-lg font-semibold text-base inline-flex items-center gap-2 shrink-0 transition-colors">
               Start selling <ArrowRight size={13}/>
             </Link>
           </div>

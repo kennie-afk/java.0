@@ -1,6 +1,8 @@
 package com.smartseason.order.service;
 
 import com.smartseason.order.domain.CartItem;
+import com.smartseason.order.platform.CountCache;
+import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.EventPublisher;
 import com.smartseason.order.platform.PageResponse;
 import com.smartseason.order.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class CartItemService {
 
     private static final String RESOURCE = "CartItem";
+    private static final String ENTITY = "cart_items";
 
     private final CartItemRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public CartItemService(CartItemRepository repository, EventPublisher events) {
+    public CartItemService(CartItemRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<CartItemResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(CartItemResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(CartItemResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public CartItemResponse get(UUID id) {
@@ -55,6 +62,7 @@ public class CartItemService {
         entity.setSellerOrgId(request.sellerOrgId());
 
         CartItem saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "CartItemCreated", saved.getId(), CartItemResponse.from(saved));
         return CartItemResponse.from(saved);
     }
@@ -93,6 +101,7 @@ public class CartItemService {
     public void delete(UUID id) {
         CartItem entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "CartItemDeleted", id, null);
     }
 

@@ -1,0 +1,35 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: smartseason
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: smartseason-config
+  namespace: smartseason
+data:
+  DB_HOST: postgres.smartseason.svc.cluster.local
+  DB_USERNAME: postgres
+  JWT_ISSUER: smartseason-identity
+  KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+  # The application code defaults this to false. Leaving it unset here means 27 services
+  # write to their outbox tables and relay nothing — a silent failure with no error.
+  EVENTS_ENABLED: "true"
+  LOG_LEVEL: INFO
+  # The public origin. Used for absolute links and as the gateway's allowed origin; its
+  # code default is a localhost URL, which is correct locally and wrong everywhere else.
+  PUBLIC_URL: https://smartseason.co.ke
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: smartseason-secrets
+  namespace: smartseason
+type: Opaque
+stringData:
+  # Replace before applying. The services refuse to start with a weak JWT secret outside
+  # a dev profile, so this fails loudly rather than running insecurely.
+  JWT_SECRET: "placeholder"
+  DB_PASSWORD: "placeholder"

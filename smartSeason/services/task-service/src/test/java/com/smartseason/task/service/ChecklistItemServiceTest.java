@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.task.domain.ChecklistItem;
+import com.smartseason.task.platform.CountCache;
+import com.smartseason.task.platform.CountCache;
 import com.smartseason.task.platform.EventPublisher;
 import com.smartseason.task.platform.ResourceNotFoundException;
 import com.smartseason.task.platform.TenantContext;
@@ -29,7 +31,10 @@ class ChecklistItemServiceTest {
 
     private final ChecklistItemRepository repository = mock(ChecklistItemRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final ChecklistItemService service = new ChecklistItemService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final ChecklistItemService service = new ChecklistItemService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

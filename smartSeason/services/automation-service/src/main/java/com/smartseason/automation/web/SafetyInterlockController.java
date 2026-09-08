@@ -35,19 +35,21 @@ public class SafetyInterlockController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "List safety-interlocks for the caller's tenant")
     public PageResponse<SafetyInterlockResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "Fetch a single SafetyInterlock by id")
     public SafetyInterlockResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER')")
     @Operation(summary = "Create a SafetyInterlock")
     public ResponseEntity<SafetyInterlockResponse> create(@Valid @RequestBody SafetyInterlockCreateRequest request) {
         SafetyInterlockResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class SafetyInterlockController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER')")
     @Operation(summary = "Apply a partial update to a SafetyInterlock")
     public SafetyInterlockResponse update(@PathVariable UUID id, @Valid @RequestBody SafetyInterlockUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a SafetyInterlock")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

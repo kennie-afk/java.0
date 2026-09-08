@@ -35,19 +35,21 @@ public class TaskEvidenceController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'WORKER')")
     @Operation(summary = "List task-evidence for the caller's tenant")
     public PageResponse<TaskEvidenceResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'WORKER')")
     @Operation(summary = "Fetch a single TaskEvidence by id")
     public TaskEvidenceResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER')")
     @Operation(summary = "Create a TaskEvidence")
     public ResponseEntity<TaskEvidenceResponse> create(@Valid @RequestBody TaskEvidenceCreateRequest request) {
         TaskEvidenceResponse created = service.create(request);
@@ -55,7 +57,7 @@ public class TaskEvidenceController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER')")
     @Operation(summary = "Apply a partial update to a TaskEvidence")
     public TaskEvidenceResponse update(@PathVariable UUID id, @Valid @RequestBody TaskEvidenceUpdateRequest request) {
         return service.update(id, request);

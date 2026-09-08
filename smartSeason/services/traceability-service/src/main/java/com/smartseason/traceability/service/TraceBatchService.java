@@ -1,6 +1,8 @@
 package com.smartseason.traceability.service;
 
 import com.smartseason.traceability.domain.TraceBatch;
+import com.smartseason.traceability.platform.CountCache;
+import com.smartseason.traceability.platform.CountCache;
 import com.smartseason.traceability.platform.EventPublisher;
 import com.smartseason.traceability.platform.PageResponse;
 import com.smartseason.traceability.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class TraceBatchService {
 
     private static final String RESOURCE = "TraceBatch";
+    private static final String ENTITY = "trace_batches";
 
     private final TraceBatchRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public TraceBatchService(TraceBatchRepository repository, EventPublisher events) {
+    public TraceBatchService(TraceBatchRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<TraceBatchResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(TraceBatchResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(TraceBatchResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public TraceBatchResponse get(UUID id) {
@@ -58,6 +65,7 @@ public class TraceBatchService {
         entity.setStatus(request.status());
 
         TraceBatch saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("platform", "TraceBatchCreated", saved.getId(), TraceBatchResponse.from(saved));
         return TraceBatchResponse.from(saved);
     }
@@ -105,6 +113,7 @@ public class TraceBatchService {
     public void delete(UUID id) {
         TraceBatch entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("platform", "TraceBatchDeleted", id, null);
     }
 

@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.order.domain.OrderSagaState;
+import com.smartseason.order.platform.CountCache;
+import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.EventPublisher;
 import com.smartseason.order.platform.ResourceNotFoundException;
 import com.smartseason.order.platform.TenantContext;
@@ -29,7 +31,10 @@ class OrderSagaStateServiceTest {
 
     private final OrderSagaStateRepository repository = mock(OrderSagaStateRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final OrderSagaStateService service = new OrderSagaStateService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final OrderSagaStateService service = new OrderSagaStateService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

@@ -1,6 +1,8 @@
 package com.smartseason.inventory.service;
 
 import com.smartseason.inventory.domain.Warehouse;
+import com.smartseason.inventory.platform.CountCache;
+import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.EventPublisher;
 import com.smartseason.inventory.platform.PageResponse;
 import com.smartseason.inventory.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class WarehouseService {
 
     private static final String RESOURCE = "Warehouse";
+    private static final String ENTITY = "warehouses";
 
     private final WarehouseRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public WarehouseService(WarehouseRepository repository, EventPublisher events) {
+    public WarehouseService(WarehouseRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<WarehouseResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(WarehouseResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(WarehouseResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public WarehouseResponse get(UUID id) {
@@ -56,6 +63,7 @@ public class WarehouseService {
         entity.setStatus(request.status());
 
         Warehouse saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "WarehouseCreated", saved.getId(), WarehouseResponse.from(saved));
         return WarehouseResponse.from(saved);
     }
@@ -97,6 +105,7 @@ public class WarehouseService {
     public void delete(UUID id) {
         Warehouse entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "WarehouseDeleted", id, null);
     }
 

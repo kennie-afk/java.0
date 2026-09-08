@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -13,7 +14,7 @@ public interface BatchRepository extends JpaRepository<Batch, UUID> {
 
     Optional<Batch> findByIdAndTenantId(UUID id, UUID tenantId);
 
-    Page<Batch> findAllByTenantId(UUID tenantId, Pageable pageable);
+    Slice<Batch> findAllByTenantId(UUID tenantId, Pageable pageable);
 
     boolean existsByIdAndTenantId(UUID id, UUID tenantId);
 

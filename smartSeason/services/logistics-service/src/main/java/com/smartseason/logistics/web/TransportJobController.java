@@ -35,19 +35,21 @@ public class TransportJobController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'STOREKEEPER', 'BUYER')")
     @Operation(summary = "List transport-jobs for the caller's tenant")
     public PageResponse<TransportJobResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'STOREKEEPER', 'BUYER')")
     @Operation(summary = "Fetch a single TransportJob by id")
     public TransportJobResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STOREKEEPER')")
     @Operation(summary = "Create a TransportJob")
     public ResponseEntity<TransportJobResponse> create(@Valid @RequestBody TransportJobCreateRequest request) {
         TransportJobResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class TransportJobController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STOREKEEPER')")
     @Operation(summary = "Apply a partial update to a TransportJob")
     public TransportJobResponse update(@PathVariable UUID id, @Valid @RequestBody TransportJobUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a TransportJob")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

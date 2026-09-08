@@ -1,6 +1,8 @@
 package com.smartseason.logistics.service;
 
 import com.smartseason.logistics.domain.ProofOfDelivery;
+import com.smartseason.logistics.platform.CountCache;
+import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.EventPublisher;
 import com.smartseason.logistics.platform.PageResponse;
 import com.smartseason.logistics.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProofOfDeliveryService {
 
     private static final String RESOURCE = "ProofOfDelivery";
+    private static final String ENTITY = "proofs_of_delivery";
 
     private final ProofOfDeliveryRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public ProofOfDeliveryService(ProofOfDeliveryRepository repository, EventPublisher events) {
+    public ProofOfDeliveryService(ProofOfDeliveryRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<ProofOfDeliveryResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(ProofOfDeliveryResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(ProofOfDeliveryResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public ProofOfDeliveryResponse get(UUID id) {
@@ -59,6 +66,7 @@ public class ProofOfDeliveryService {
         entity.setDisputed(request.disputed());
 
         ProofOfDelivery saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "ProofOfDeliveryCreated", saved.getId(), ProofOfDeliveryResponse.from(saved));
         return ProofOfDeliveryResponse.from(saved);
     }
@@ -109,6 +117,7 @@ public class ProofOfDeliveryService {
     public void delete(UUID id) {
         ProofOfDelivery entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "ProofOfDeliveryDeleted", id, null);
     }
 

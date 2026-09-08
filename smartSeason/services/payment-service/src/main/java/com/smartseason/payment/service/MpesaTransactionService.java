@@ -1,6 +1,8 @@
 package com.smartseason.payment.service;
 
 import com.smartseason.payment.domain.MpesaTransaction;
+import com.smartseason.payment.platform.CountCache;
+import com.smartseason.payment.platform.CountCache;
 import com.smartseason.payment.platform.EventPublisher;
 import com.smartseason.payment.platform.PageResponse;
 import com.smartseason.payment.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class MpesaTransactionService {
 
     private static final String RESOURCE = "MpesaTransaction";
+    private static final String ENTITY = "mpesa_transactions";
 
     private final MpesaTransactionRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public MpesaTransactionService(MpesaTransactionRepository repository, EventPublisher events) {
+    public MpesaTransactionService(MpesaTransactionRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<MpesaTransactionResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(MpesaTransactionResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(MpesaTransactionResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public MpesaTransactionResponse get(UUID id) {
@@ -61,6 +68,7 @@ public class MpesaTransactionService {
         entity.setStatus(request.status());
 
         MpesaTransaction saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("money", "MpesaTransactionCreated", saved.getId(), MpesaTransactionResponse.from(saved));
         return MpesaTransactionResponse.from(saved);
     }
@@ -117,6 +125,7 @@ public class MpesaTransactionService {
     public void delete(UUID id) {
         MpesaTransaction entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("money", "MpesaTransactionDeleted", id, null);
     }
 

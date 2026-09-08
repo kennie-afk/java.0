@@ -35,19 +35,21 @@ public class SupplyListingController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'BUYER')")
     @Operation(summary = "List supply-listings for the caller's tenant")
     public PageResponse<SupplyListingResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'BUYER')")
     @Operation(summary = "Fetch a single SupplyListing by id")
     public SupplyListingResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'BUYER')")
     @Operation(summary = "Create a SupplyListing")
     public ResponseEntity<SupplyListingResponse> create(@Valid @RequestBody SupplyListingCreateRequest request) {
         SupplyListingResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class SupplyListingController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'BUYER')")
     @Operation(summary = "Apply a partial update to a SupplyListing")
     public SupplyListingResponse update(@PathVariable UUID id, @Valid @RequestBody SupplyListingUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'BUYER')")
     @Operation(summary = "Delete a SupplyListing")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

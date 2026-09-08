@@ -116,10 +116,7 @@ public class RentInvoiceService {
 
     @Transactional(readOnly = true)
     public Page<InvoiceResponse> listForTenantUser(UUID userId, Pageable pageable) {
-        List<UUID> tenantIds = tenants.findAll().stream()
-                .filter(t -> userId.equals(t.getUserId()))
-                .map(Tenant::getId)
-                .toList();
+        List<UUID> tenantIds = tenantIdsFor(userId);
         if (tenantIds.isEmpty()) return Page.empty(pageable);
         return invoices.findByTenantIdInOrderByDueDateDesc(tenantIds, pageable).map(this::toResponse);
     }
@@ -155,6 +152,28 @@ public class RentInvoiceService {
     }
 
     @Transactional(readOnly = true)
+    /** The tenant records belonging to one account, across every landlord they rent from. */
+    private List<UUID> tenantIdsFor(UUID userId) {
+        return tenants.findByUserId(userId).stream().map(Tenant::getId).toList();
+    }
+
+    /**
+     * An invoice the caller is entitled to see, as either side of it.
+     *
+     * <p>{@link #requireOwned} is the landlord's check and stays that way — it guards
+     * writes, and a tenant must never write to an invoice. This is the read equivalent:
+     * the tenant an invoice is addressed to has an obvious right to look at it, and
+     * without this they cannot see the payments they themselves made.
+     */
+    @Transactional(readOnly = true)
+    public RentInvoice requireVisibleTo(UUID userId, UUID invoiceId) {
+        RentInvoice invoice = invoices.findById(invoiceId)
+                .orElseThrow(() -> new NotFoundException("Invoice not found"));
+        if (invoice.getLandlordId().equals(userId)) return invoice;
+        if (tenantIdsFor(userId).contains(invoice.getTenantId())) return invoice;
+        throw new ForbiddenException("This invoice belongs to another tenancy.");
+    }
+
     public RentInvoice requireOwned(UUID landlordId, UUID invoiceId) {
         RentInvoice invoice = invoices.findById(invoiceId)
                 .orElseThrow(() -> new NotFoundException("Invoice not found"));

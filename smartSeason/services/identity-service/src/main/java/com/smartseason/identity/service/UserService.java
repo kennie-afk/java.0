@@ -1,6 +1,8 @@
 package com.smartseason.identity.service;
 
 import com.smartseason.identity.domain.User;
+import com.smartseason.identity.platform.CountCache;
+import com.smartseason.identity.platform.CountCache;
 import com.smartseason.identity.platform.EventPublisher;
 import com.smartseason.identity.platform.PageResponse;
 import com.smartseason.identity.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private static final String RESOURCE = "User";
+    private static final String ENTITY = "users";
 
     private final UserRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public UserService(UserRepository repository, EventPublisher events) {
+    public UserService(UserRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<UserResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(UserResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(UserResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public UserResponse get(UUID id) {
@@ -59,6 +66,7 @@ public class UserService {
         entity.setLocale(request.locale());
 
         User saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("identity", "UserCreated", saved.getId(), UserResponse.from(saved));
         return UserResponse.from(saved);
     }
@@ -109,6 +117,7 @@ public class UserService {
     public void delete(UUID id) {
         User entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("identity", "UserDeleted", id, null);
     }
 

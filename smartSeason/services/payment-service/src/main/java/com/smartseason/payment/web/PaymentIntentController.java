@@ -35,19 +35,21 @@ public class PaymentIntentController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE', 'BUYER')")
     @Operation(summary = "List payment-intents for the caller's tenant")
     public PageResponse<PaymentIntentResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE', 'BUYER')")
     @Operation(summary = "Fetch a single PaymentIntent by id")
     public PaymentIntentResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Create a PaymentIntent")
     public ResponseEntity<PaymentIntentResponse> create(@Valid @RequestBody PaymentIntentCreateRequest request) {
         PaymentIntentResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class PaymentIntentController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Apply a partial update to a PaymentIntent")
     public PaymentIntentResponse update(@PathVariable UUID id, @Valid @RequestBody PaymentIntentUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Delete a PaymentIntent")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

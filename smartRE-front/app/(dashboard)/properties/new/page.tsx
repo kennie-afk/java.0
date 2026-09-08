@@ -10,7 +10,7 @@ import { useQuery } from '@tanstack/react-query'
 import { X, ImageIcon, MapPin, ShieldAlert, ShieldCheck, ArrowRight } from 'lucide-react'
 import { propertyApi, verifApi } from '@/lib/api'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
-import { SELLER_ROLES } from '@/lib/roles'
+import { PROPERTY_OWNER_ROLES } from '@/lib/roles'
 import { Card } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
@@ -40,7 +40,7 @@ type Form = z.infer<typeof schema>
 
 export default function NewPropertyPage() {
   const router = useRouter()
-  const { ready } = useAuthGuard(SELLER_ROLES, '/dashboard')
+  const { ready } = useAuthGuard(PROPERTY_OWNER_ROLES, '/dashboard')
   const { register, handleSubmit, watch, setValue, formState:{ errors, isSubmitting } } = useForm<Form>({
     resolver: zodResolver(schema), defaultValues:{ propertyType:'HOUSE', listingType:'SALE' }
   })
@@ -69,7 +69,7 @@ export default function NewPropertyPage() {
   if (!ready) return null
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-4">
       <div>
         <h1 className="font-display text-lg font-semibold text-gray-900 dark:text-white">List a property</h1>
         <p className="text-muted text-sm mt-1">Fill in the details below.</p>
@@ -77,18 +77,18 @@ export default function NewPropertyPage() {
 
       {!verifLoading && (
         identityApproved ? (
-          <div className="rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 px-4 py-3 flex items-center gap-3">
+          <div className="rounded-lg border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 px-3 py-2 flex items-center gap-3">
             <ShieldCheck size={18} className="text-emerald-600 shrink-0"/>
-            <p className="text-[13px] text-emerald-800 dark:text-emerald-300">Your identity is verified. This listing will go live once its land title is also verified.</p>
+            <p className="text-base text-emerald-800 dark:text-emerald-300">Your identity is verified. This listing will go live once its land title is also verified.</p>
           </div>
         ) : (
-          <div className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-4 py-3.5 flex items-center gap-3">
+          <div className="rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-3 py-2.5 flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-white dark:bg-amber-500/15 text-amber-600 flex items-center justify-center shrink-0 shadow-sm">
               <ShieldAlert size={16}/>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-[13px] text-amber-900 dark:text-amber-200">Identity not verified yet</p>
-              <p className="text-[12px] text-amber-700 dark:text-amber-400/90 mt-0.5">You can still fill this in, but the listing will stay in Draft - invisible to buyers - until your identity is verified.</p>
+              <p className="font-semibold text-base text-amber-900 dark:text-amber-200">Identity not verified yet</p>
+              <p className="text-sm text-amber-700 dark:text-amber-400/90 mt-0.5">You can still fill this in, but the listing will stay in Draft - invisible to buyers - until your identity is verified.</p>
             </div>
             <Link href="/verification" className="shrink-0">
               <Button size="sm" variant="secondary">Verify now <ArrowRight size={13}/></Button>
@@ -96,9 +96,9 @@ export default function NewPropertyPage() {
           </div>
         )
       )}
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <Card>
-          <h2 className="font-display font-semibold text-[14px] mb-4">Basic details</h2>
+          <h2 className="font-display font-semibold text-lg mb-4">Basic details</h2>
           <div className="space-y-4">
             <Input label="Property title" placeholder="e.g. 3 Bedroom House in Westlands" required {...register('title')} error={errors.title?.message}/>
             <Textarea label="Description" placeholder="Describe the property in detail..." {...register('description')}/>
@@ -116,7 +116,7 @@ export default function NewPropertyPage() {
         </Card>
 
         <Card>
-          <h2 className="font-display font-semibold text-[14px] mb-4 flex items-center gap-2"><ImageIcon size={17} className="text-gold-500"/>Photos</h2>
+          <h2 className="font-display font-semibold text-lg mb-4 flex items-center gap-2"><ImageIcon size={17} className="text-gold-500"/>Photos</h2>
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-3">
             {imageUrls.map((url, i) => (
               <div key={url} className="relative aspect-square rounded-lg overflow-hidden group">
@@ -133,7 +133,7 @@ export default function NewPropertyPage() {
         </Card>
 
         <Card>
-          <h2 className="font-display font-semibold text-[14px] mb-4">Location</h2>
+          <h2 className="font-display font-semibold text-lg mb-4">Location</h2>
           <div className="space-y-4">
             <Select label="County" required options={COUNTY_OPTIONS}
               {...register('county', { onChange: () => setValue('subCounty', '') })}
@@ -151,7 +151,7 @@ export default function NewPropertyPage() {
         </Card>
 
         <Card>
-          <h2 className="font-display font-semibold text-[14px] mb-4">Pricing & details</h2>
+          <h2 className="font-display font-semibold text-lg mb-4">Pricing & details</h2>
           <div className="space-y-4">
             <Input label="Price (KES)" type="number" placeholder="15000000" required {...register('price')} error={errors.price?.message}/>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

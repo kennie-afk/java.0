@@ -1,6 +1,8 @@
 package com.smartseason.identity.service;
 
 import com.smartseason.identity.domain.KycRecord;
+import com.smartseason.identity.platform.CountCache;
+import com.smartseason.identity.platform.CountCache;
 import com.smartseason.identity.platform.EventPublisher;
 import com.smartseason.identity.platform.PageResponse;
 import com.smartseason.identity.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class KycRecordService {
 
     private static final String RESOURCE = "KycRecord";
+    private static final String ENTITY = "kyc_records";
 
     private final KycRecordRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public KycRecordService(KycRecordRepository repository, EventPublisher events) {
+    public KycRecordService(KycRecordRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<KycRecordResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(KycRecordResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(KycRecordResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public KycRecordResponse get(UUID id) {
@@ -55,6 +62,7 @@ public class KycRecordService {
         entity.setReviewNotes(request.reviewNotes());
 
         KycRecord saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("identity", "KycRecordCreated", saved.getId(), KycRecordResponse.from(saved));
         return KycRecordResponse.from(saved);
     }
@@ -93,6 +101,7 @@ public class KycRecordService {
     public void delete(UUID id) {
         KycRecord entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("identity", "KycRecordDeleted", id, null);
     }
 

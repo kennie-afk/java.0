@@ -1,6 +1,8 @@
 package com.smartseason.traceability.service;
 
 import com.smartseason.traceability.domain.TraceLink;
+import com.smartseason.traceability.platform.CountCache;
+import com.smartseason.traceability.platform.CountCache;
 import com.smartseason.traceability.platform.EventPublisher;
 import com.smartseason.traceability.platform.PageResponse;
 import com.smartseason.traceability.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class TraceLinkService {
 
     private static final String RESOURCE = "TraceLink";
+    private static final String ENTITY = "trace_links";
 
     private final TraceLinkRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public TraceLinkService(TraceLinkRepository repository, EventPublisher events) {
+    public TraceLinkService(TraceLinkRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<TraceLinkResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(TraceLinkResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(TraceLinkResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public TraceLinkResponse get(UUID id) {
@@ -59,6 +66,7 @@ public class TraceLinkService {
         entity.setEvidenceUrl(request.evidenceUrl());
 
         TraceLink saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("platform", "TraceLinkCreated", saved.getId(), TraceLinkResponse.from(saved));
         return TraceLinkResponse.from(saved);
     }
@@ -109,6 +117,7 @@ public class TraceLinkService {
     public void delete(UUID id) {
         TraceLink entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("platform", "TraceLinkDeleted", id, null);
     }
 

@@ -1,6 +1,8 @@
 package com.smartseason.farm.service;
 
 import com.smartseason.farm.domain.SoilProfile;
+import com.smartseason.farm.platform.CountCache;
+import com.smartseason.farm.platform.CountCache;
 import com.smartseason.farm.platform.EventPublisher;
 import com.smartseason.farm.platform.PageResponse;
 import com.smartseason.farm.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class SoilProfileService {
 
     private static final String RESOURCE = "SoilProfile";
+    private static final String ENTITY = "soil_profiles";
 
     private final SoilProfileRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public SoilProfileService(SoilProfileRepository repository, EventPublisher events) {
+    public SoilProfileService(SoilProfileRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<SoilProfileResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(SoilProfileResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(SoilProfileResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public SoilProfileResponse get(UUID id) {
@@ -58,6 +65,7 @@ public class SoilProfileService {
         entity.setReportUrl(request.reportUrl());
 
         SoilProfile saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("farm", "SoilProfileCreated", saved.getId(), SoilProfileResponse.from(saved));
         return SoilProfileResponse.from(saved);
     }
@@ -105,6 +113,7 @@ public class SoilProfileService {
     public void delete(UUID id) {
         SoilProfile entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("farm", "SoilProfileDeleted", id, null);
     }
 

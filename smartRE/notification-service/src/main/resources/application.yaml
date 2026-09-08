@@ -4,7 +4,7 @@ spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://notification-db:5432/notification_db}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:bantu007#}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driverClassName: org.postgresql.Driver
     hikari:
       maximum-pool-size: 20
@@ -143,3 +143,12 @@ springdoc:
 
 gateway:
   signing-secret: ${GATEWAY_SIGNING_SECRET}
+
+# Outbound SMS (Africa's Talking). Without an api-key the channel logs what it would have
+# sent rather than failing, so the notification preferences screen can offer the toggle
+# honestly and delivery starts the moment credentials arrive.
+sms:
+  username:  ${SMS_USERNAME:}
+  api-key:   ${SMS_API_KEY:}
+  sender-id: ${SMS_SENDER_ID:}
+  endpoint:  ${SMS_ENDPOINT:https://api.africastalking.com/version1/messaging}

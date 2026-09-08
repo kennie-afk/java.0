@@ -14,6 +14,7 @@ import java.util.UUID;
 @Table(name = "task_assignments", indexes = {
         @Index(name = "ix_task_assignments_work_order_id", columnList = "work_order_id"),
         @Index(name = "ix_task_assignments_worker_id", columnList = "worker_id"),
+        @Index(name = "ix_task_assignments_worker_user_id", columnList = "worker_user_id"),
         @Index(name = "ix_task_assignments_gang_id", columnList = "gang_id")
 })
 public class TaskAssignment extends BaseEntity {
@@ -23,6 +24,9 @@ public class TaskAssignment extends BaseEntity {
 
     @Column(name = "worker_id")
     private UUID workerId;
+
+    @Column(name = "worker_user_id")
+    private UUID workerUserId;
 
     @Column(name = "gang_id")
     private UUID gangId;
@@ -51,6 +55,9 @@ public class TaskAssignment extends BaseEntity {
 
     public UUID getWorkerId() { return workerId; }
     public void setWorkerId(UUID workerId) { this.workerId = workerId; }
+
+    public UUID getWorkerUserId() { return workerUserId; }
+    public void setWorkerUserId(UUID workerUserId) { this.workerUserId = workerUserId; }
 
     public UUID getGangId() { return gangId; }
     public void setGangId(UUID gangId) { this.gangId = gangId; }

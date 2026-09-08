@@ -12,6 +12,8 @@ import Select from '@/components/ui/Select'
 import Textarea from '@/components/ui/Textarea'
 import FileUpload from '@/components/ui/FileUpload'
 import MaintenancePhotos from '@/components/property/MaintenancePhotos'
+import RentReceipt from '@/components/property/RentReceipt'
+import RentInvoiceDocument from '@/components/property/RentInvoiceDocument'
 import { cn, fmt } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
@@ -34,6 +36,8 @@ export default function MyTenancyPage() {
   const [reportOpen, setReportOpen] = useState(false)
   const [busy, setBusy]         = useState(false)
   const [report, setReport]     = useState({ category:'PLUMBING', priority:'MEDIUM', title:'', description:'', imageUrls:[] as string[] })
+  const [receiptFor, setReceiptFor] = useState<InvoiceResponse | null>(null)
+  const [invoiceFor, setInvoiceFor] = useState<InvoiceResponse | null>(null)
 
   const reload = useCallback(async () => {
     const [l, i, m] = await Promise.allSettled([
@@ -90,7 +94,7 @@ export default function MyTenancyPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         <StatCard label="Your home" value={activeLease?.unitLabel || '—'}
           sub={activeLease ? `${fmt.currency(activeLease.rentAmount)} / month` : 'No active lease'}
@@ -105,12 +109,12 @@ export default function MyTenancyPage() {
 
       {activeLease && (
         <Card>
-          <p className="text-[11px] font-medium text-muted uppercase tracking-wide mb-2">Your lease</p>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-[13px]">
-            <div><p className="text-muted text-[11.5px]">Unit</p><p className="font-medium">{activeLease.unitLabel}</p></div>
-            <div><p className="text-muted text-[11.5px]">Rent</p><p className="font-medium tabular-nums">{fmt.currency(activeLease.rentAmount)}</p></div>
-            <div><p className="text-muted text-[11.5px]">Rent falls due</p><p className="font-medium">Day {activeLease.billingDay} of each month</p></div>
-            <div><p className="text-muted text-[11.5px]">Notice period</p><p className="font-medium">{activeLease.noticePeriodDays} days</p></div>
+          <p className="text-xs font-medium text-muted uppercase tracking-wide mb-2">Your lease</p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-base">
+            <div><p className="text-muted text-xs">Unit</p><p className="font-medium">{activeLease.unitLabel}</p></div>
+            <div><p className="text-muted text-xs">Rent</p><p className="font-medium tabular-nums">{fmt.currency(activeLease.rentAmount)}</p></div>
+            <div><p className="text-muted text-xs">Rent falls due</p><p className="font-medium">Day {activeLease.billingDay} of each month</p></div>
+            <div><p className="text-muted text-xs">Notice period</p><p className="font-medium">{activeLease.noticePeriodDays} days</p></div>
           </div>
         </Card>
       )}
@@ -126,30 +130,43 @@ export default function MyTenancyPage() {
           <Card padding="none">
             <ul className="divide-y divide-[color:var(--border)]">
               {invoices.map(inv => (
-                <li key={inv.id} className="px-4 py-3.5 flex items-start gap-3 flex-wrap">
+                <li key={inv.id} className="px-3 py-2.5 flex items-start gap-3 flex-wrap">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-[13.5px] font-medium text-gray-900 dark:text-white">
+                      <p className="text-base font-medium text-gray-900 dark:text-white">
                         {fmt.date(inv.periodStart)} — {fmt.date(inv.periodEnd)}
                       </p>
                       <Badge variant={INVOICE_STATUS_VARIANT[inv.status] ?? 'muted'} size="sm">{readable(inv.status)}</Badge>
                     </div>
-                    <p className="text-[11.5px] text-muted mt-0.5 tabular-nums">
+                    <p className="text-xs text-muted mt-0.5 tabular-nums">
                       {inv.invoiceNumber} · due {fmt.date(inv.dueDate)}
                     </p>
-                    <p className={cn('text-[12px] mt-1 tabular-nums',
+                    <p className={cn('text-sm mt-1 tabular-nums',
                       inv.balance > 0 ? 'text-gray-900 dark:text-white' : 'text-muted')}>
                       {inv.balance > 0
                         ? <>{fmt.currency(inv.balance)} outstanding <span className="text-muted">of {fmt.currency(inv.amountDue)}</span></>
                         : <>Paid in full — {fmt.currency(inv.amountDue)}</>}
                     </p>
                   </div>
-                  {inv.balance > 0 && inv.status !== 'WRITTEN_OFF' && (
-                    <Button size="sm" leftIcon={<Smartphone size={14}/>} loading={paying === inv.id}
-                      onClick={() => pay(inv)}>
-                      Pay {fmt.currency(inv.balance)}
+                  <div className="flex items-center gap-2">
+                    {/* The invoice is available whatever its state — an unpaid one is
+                        exactly the copy a tenant is asked to produce. */}
+                    <Button size="sm" variant="ghost" onClick={() => setInvoiceFor(inv)}>
+                      Invoice
                     </Button>
-                  )}
+                    {inv.amountPaid > 0 && (
+                      <Button size="sm" variant="ghost" leftIcon={<Receipt size={14}/>}
+                        onClick={() => setReceiptFor(inv)}>
+                        Receipt
+                      </Button>
+                    )}
+                    {inv.balance > 0 && inv.status !== 'WRITTEN_OFF' && (
+                      <Button size="sm" leftIcon={<Smartphone size={14}/>} loading={paying === inv.id}
+                        onClick={() => pay(inv)}>
+                        Pay {fmt.currency(inv.balance)}
+                      </Button>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>
@@ -175,16 +192,16 @@ export default function MyTenancyPage() {
             {jobs.map(job => (
               <Card key={job.id}>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-[14px] font-semibold text-gray-900 dark:text-white">{job.title}</p>
+                  <p className="text-lg font-semibold text-gray-900 dark:text-white">{job.title}</p>
                   <Badge variant={MAINT_STATUS_VARIANT[job.status] ?? 'muted'} size="sm">{readable(job.status)}</Badge>
                 </div>
-                <p className="text-[11.5px] text-muted mt-0.5">
+                <p className="text-xs text-muted mt-0.5">
                   {job.reference} · {job.category.toLowerCase()} · reported {fmt.ago(job.createdAt)}
                 </p>
-                <p className="text-[13px] text-gray-700 dark:text-gray-300 mt-2 whitespace-pre-line">{job.description}</p>
+                <p className="text-base text-gray-700 dark:text-gray-300 mt-2 whitespace-pre-line">{job.description}</p>
                 <MaintenancePhotos requestId={job.id} count={job.imageUrls.length} className="mt-2.5"/>
                 {job.resolutionNotes && (
-                  <p className="text-[12px] text-emerald-700 dark:text-emerald-400 mt-2">
+                  <p className="text-sm text-emerald-700 dark:text-emerald-400 mt-2">
                     From your landlord: {job.resolutionNotes}
                   </p>
                 )}
@@ -193,6 +210,13 @@ export default function MyTenancyPage() {
           </div>
         )}
       </div>
+
+      {/* The tenant's own copy. Nothing here names the landlord: the lease this page
+          holds carries a landlordId and no name, and printing "Landlord" on a receipt
+          says less than leaving the row off. The figures come from the server. */}
+      <RentReceipt invoice={receiptFor} onClose={() => setReceiptFor(null)}/>
+
+      <RentInvoiceDocument invoice={invoiceFor} onClose={() => setInvoiceFor(null)}/>
 
       <Modal open={reportOpen} onClose={() => setReportOpen(false)} title="Report a problem"
         footer={<><Button variant="ghost" onClick={() => setReportOpen(false)}>Cancel</Button>
@@ -211,12 +235,12 @@ export default function MyTenancyPage() {
           <Textarea label="What is happening" rows={3} placeholder="Water pools under the sink overnight."
             value={report.description} onChange={e => setReport(f => ({...f, description:e.target.value}))}/>
           <div>
-            <p className="text-[12px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">Photos (optional)</p>
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Photos (optional)</p>
             <FileUpload category="MAINTENANCE_PHOTO" accept=".jpg,.jpeg,.png" compact
               label="Add a photo of the problem"
               onUploaded={url => setReport(f => ({...f, imageUrls:[...f.imageUrls, url].slice(0,6)}))}/>
             {report.imageUrls.length > 0 && (
-              <p className="text-[11.5px] text-muted mt-1.5">{report.imageUrls.length} photo(s) attached</p>
+              <p className="text-xs text-muted mt-1.5">{report.imageUrls.length} photo(s) attached</p>
             )}
           </div>
         </div>

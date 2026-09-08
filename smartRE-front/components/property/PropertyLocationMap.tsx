@@ -27,25 +27,25 @@ export default function PropertyLocationMap({ latitude, longitude, title, fallba
 
   if (!API_KEY) {
     return (
-      <div className={`${heightClass} rounded-xl bg-gray-50 dark:bg-white/5 border border-dashed border-base flex flex-col items-center justify-center gap-2 text-center px-4`}>
+      <div className={`${heightClass} rounded-lg bg-gray-50 dark:bg-white/5 border border-dashed border-base flex flex-col items-center justify-center gap-2 text-center px-4`}>
         <MapPinOff size={22} className="text-gray-400"/>
-        <p className="text-[12px] text-muted">{fallbackLabel || 'Map unavailable'}</p>
-        <p className="text-[10px] text-muted">Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to enable maps</p>
+        <p className="text-sm text-muted">{fallbackLabel || 'Map unavailable'}</p>
+        <p className="text-2xs text-muted">Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to enable maps</p>
       </div>
     )
   }
 
   if (typeof latitude !== 'number' || typeof longitude !== 'number') {
     return (
-      <div className={`${heightClass} rounded-xl bg-gray-50 dark:bg-white/5 border border-dashed border-base flex flex-col items-center justify-center gap-2 text-center px-4`}>
+      <div className={`${heightClass} rounded-lg bg-gray-50 dark:bg-white/5 border border-dashed border-base flex flex-col items-center justify-center gap-2 text-center px-4`}>
         <MapPin size={22} className="text-gray-400"/>
-        <p className="text-[12px] text-muted">{fallbackLabel || 'Exact location not pinned yet'}</p>
+        <p className="text-sm text-muted">{fallbackLabel || 'Exact location not pinned yet'}</p>
       </div>
     )
   }
 
   if (!isLoaded) {
-    return <div className={`${heightClass} rounded-xl bg-gray-100 dark:bg-white/5 animate-pulse`}/>
+    return <div className={`${heightClass} rounded-lg bg-gray-100 dark:bg-white/5 animate-pulse`}/>
   }
 
   const center = { lat: latitude, lng: longitude }

@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.inventory.domain.Reservation;
+import com.smartseason.inventory.platform.CountCache;
+import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.EventPublisher;
 import com.smartseason.inventory.platform.ResourceNotFoundException;
 import com.smartseason.inventory.platform.TenantContext;
@@ -29,7 +31,10 @@ class ReservationServiceTest {
 
     private final ReservationRepository repository = mock(ReservationRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final ReservationService service = new ReservationService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final ReservationService service = new ReservationService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

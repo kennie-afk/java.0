@@ -1,6 +1,8 @@
 package com.smartseason.ledger.service;
 
 import com.smartseason.ledger.domain.AccountBalance;
+import com.smartseason.ledger.platform.CountCache;
+import com.smartseason.ledger.platform.CountCache;
 import com.smartseason.ledger.platform.EventPublisher;
 import com.smartseason.ledger.platform.PageResponse;
 import com.smartseason.ledger.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class AccountBalanceService {
 
     private static final String RESOURCE = "AccountBalance";
+    private static final String ENTITY = "account_balances";
 
     private final AccountBalanceRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public AccountBalanceService(AccountBalanceRepository repository, EventPublisher events) {
+    public AccountBalanceService(AccountBalanceRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<AccountBalanceResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(AccountBalanceResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(AccountBalanceResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public AccountBalanceResponse get(UUID id) {
@@ -56,6 +63,7 @@ public class AccountBalanceService {
         entity.setLastPostedAt(request.lastPostedAt());
 
         AccountBalance saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("money", "AccountBalanceCreated", saved.getId(), AccountBalanceResponse.from(saved));
         return AccountBalanceResponse.from(saved);
     }
@@ -97,6 +105,7 @@ public class AccountBalanceService {
     public void delete(UUID id) {
         AccountBalance entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("money", "AccountBalanceDeleted", id, null);
     }
 

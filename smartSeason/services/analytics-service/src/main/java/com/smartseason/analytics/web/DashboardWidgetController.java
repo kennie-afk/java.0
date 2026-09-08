@@ -35,19 +35,21 @@ public class DashboardWidgetController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'FINANCE')")
     @Operation(summary = "List dashboard-widgets for the caller's tenant")
     public PageResponse<DashboardWidgetResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'FINANCE')")
     @Operation(summary = "Fetch a single DashboardWidget by id")
     public DashboardWidgetResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Create a DashboardWidget")
     public ResponseEntity<DashboardWidgetResponse> create(@Valid @RequestBody DashboardWidgetCreateRequest request) {
         DashboardWidgetResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class DashboardWidgetController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Apply a partial update to a DashboardWidget")
     public DashboardWidgetResponse update(@PathVariable UUID id, @Valid @RequestBody DashboardWidgetUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a DashboardWidget")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

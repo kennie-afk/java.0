@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.pricing.domain.PriceQuote;
+import com.smartseason.pricing.platform.CountCache;
+import com.smartseason.pricing.platform.CountCache;
 import com.smartseason.pricing.platform.EventPublisher;
 import com.smartseason.pricing.platform.ResourceNotFoundException;
 import com.smartseason.pricing.platform.TenantContext;
@@ -29,7 +31,10 @@ class PriceQuoteServiceTest {
 
     private final PriceQuoteRepository repository = mock(PriceQuoteRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final PriceQuoteService service = new PriceQuoteService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final PriceQuoteService service = new PriceQuoteService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

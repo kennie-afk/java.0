@@ -1,5 +1,5 @@
 
-export type Role = 'BUYER' | 'SELLER' | 'AGENT' | 'LANDLORD' | 'ADMIN'
+export type Role = 'BUYER' | 'SELLER' | 'LANDLORD' | 'ADMIN'
 
 export interface AuthResponse {
   token: string
@@ -38,7 +38,7 @@ export interface UserResponse {
 
 export type PropertyType = 'HOUSE' | 'APARTMENT' | 'LAND' | 'COMMERCIAL' | 'TOWNHOUSE' | 'STUDIO' | 'VILLA'
 export type ListingType = 'SALE' | 'RENT'
-export type ListingStatus = 'DRAFT' | 'PENDING_VERIFICATION' | 'ACTIVE' | 'SUSPENDED' | 'SOLD' | 'RENTED' | 'WITHDRAWN'
+export type ListingStatus = 'DRAFT' | 'PENDING_VERIFICATION' | 'ACTIVE' | 'SUSPENDED' | 'SOLD' | 'RENTED' | 'WITHDRAWN' | 'UNLISTED'
 
 export interface PropertyResponse {
   id: string
@@ -365,20 +365,7 @@ export interface ReportResponse {
   updatedAt: string
 }
 
-export type AgentApplicationStatus = 'SUBMITTED' | 'APPROVED' | 'REJECTED'
 
-export interface AgentApplicationResponse {
-  id: string
-  userId: string
-  status: AgentApplicationStatus
-  businessName?: string
-  businessDocUrl: string
-  rejectionReason?: string
-  reviewedBy?: string
-  reviewedAt?: string
-  createdAt: string
-  updatedAt: string
-}
 
 export type NotificationCategory =
   | 'ACCOUNT' | 'VERIFICATION' | 'PAYMENT' | 'VIEWING'
@@ -409,6 +396,15 @@ export interface NotificationPreferenceResponse {
   emailEnabled: boolean
   smsEnabled: boolean
   inAppEnabled: boolean
+  /**
+   * Whether a template exists for this category on each channel. A switch for a channel
+   * with nothing to send controls nothing, so the UI renders those inert rather than
+   * promising a message that will never arrive. SMS is reserved for time-sensitive and
+   * money-related updates, so most categories are false there.
+   */
+  emailAvailable: boolean
+  smsAvailable: boolean
+  inAppAvailable: boolean
 }
 
 export interface AdminNotificationResponse {
@@ -541,6 +537,8 @@ export interface PortfolioSummaryResponse {
 export type MaintenanceStatus = 'OPEN' | 'ACKNOWLEDGED' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED' | 'REJECTED'
 export type MaintenancePriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
 
+export type CostBearer = 'LANDLORD' | 'TENANT' | 'SHARED'
+
 export interface MaintenanceResponse {
   id: string
   unitId: string
@@ -560,6 +558,10 @@ export interface MaintenanceResponse {
   assignedTo?: string
   resolutionNotes?: string
   cost?: number
+  /** Who pays for the repair. Absent until the job is resolved with a cost. */
+  costBorneBy?: CostBearer
+  /** The tenant's portion. Equal to cost when TENANT, null when LANDLORD. */
+  tenantCharge?: number
   createdAt: string
   acknowledgedAt?: string
   resolvedAt?: string

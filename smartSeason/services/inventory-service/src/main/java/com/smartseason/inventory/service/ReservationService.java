@@ -1,6 +1,8 @@
 package com.smartseason.inventory.service;
 
 import com.smartseason.inventory.domain.Reservation;
+import com.smartseason.inventory.platform.CountCache;
+import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.EventPublisher;
 import com.smartseason.inventory.platform.PageResponse;
 import com.smartseason.inventory.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class ReservationService {
 
     private static final String RESOURCE = "Reservation";
+    private static final String ENTITY = "reservations";
 
     private final ReservationRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public ReservationService(ReservationRepository repository, EventPublisher events) {
+    public ReservationService(ReservationRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<ReservationResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(ReservationResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(ReservationResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public ReservationResponse get(UUID id) {
@@ -55,6 +62,7 @@ public class ReservationService {
         entity.setStatus(request.status());
 
         Reservation saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "ReservationCreated", saved.getId(), ReservationResponse.from(saved));
         return ReservationResponse.from(saved);
     }
@@ -93,6 +101,7 @@ public class ReservationService {
     public void delete(UUID id) {
         Reservation entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "ReservationDeleted", id, null);
     }
 

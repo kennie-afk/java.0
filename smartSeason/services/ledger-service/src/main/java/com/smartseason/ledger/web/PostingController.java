@@ -35,19 +35,21 @@ public class PostingController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE')")
     @Operation(summary = "List postings for the caller's tenant")
     public PageResponse<PostingResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE')")
     @Operation(summary = "Fetch a single Posting by id")
     public PostingResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Create a Posting")
     public ResponseEntity<PostingResponse> create(@Valid @RequestBody PostingCreateRequest request) {
         PostingResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class PostingController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Apply a partial update to a Posting")
     public PostingResponse update(@PathVariable UUID id, @Valid @RequestBody PostingUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Delete a Posting")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

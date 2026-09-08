@@ -1,6 +1,8 @@
 package com.smartseason.farm.service;
 
 import com.smartseason.farm.domain.FarmMembership;
+import com.smartseason.farm.platform.CountCache;
+import com.smartseason.farm.platform.CountCache;
 import com.smartseason.farm.platform.EventPublisher;
 import com.smartseason.farm.platform.PageResponse;
 import com.smartseason.farm.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class FarmMembershipService {
 
     private static final String RESOURCE = "FarmMembership";
+    private static final String ENTITY = "farm_memberships";
 
     private final FarmMembershipRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public FarmMembershipService(FarmMembershipRepository repository, EventPublisher events) {
+    public FarmMembershipService(FarmMembershipRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<FarmMembershipResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(FarmMembershipResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(FarmMembershipResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public FarmMembershipResponse get(UUID id) {
@@ -54,6 +61,7 @@ public class FarmMembershipService {
         entity.setStatus(request.status());
 
         FarmMembership saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("farm", "FarmMembershipCreated", saved.getId(), FarmMembershipResponse.from(saved));
         return FarmMembershipResponse.from(saved);
     }
@@ -89,6 +97,7 @@ public class FarmMembershipService {
     public void delete(UUID id) {
         FarmMembership entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("farm", "FarmMembershipDeleted", id, null);
     }
 

@@ -35,19 +35,21 @@ public class ActuatorCommandController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "List actuator-commands for the caller's tenant")
     public PageResponse<ActuatorCommandResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "Fetch a single ActuatorCommand by id")
     public ActuatorCommandResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER')")
     @Operation(summary = "Create a ActuatorCommand")
     public ResponseEntity<ActuatorCommandResponse> create(@Valid @RequestBody ActuatorCommandCreateRequest request) {
         ActuatorCommandResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class ActuatorCommandController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER')")
     @Operation(summary = "Apply a partial update to a ActuatorCommand")
     public ActuatorCommandResponse update(@PathVariable UUID id, @Valid @RequestBody ActuatorCommandUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a ActuatorCommand")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

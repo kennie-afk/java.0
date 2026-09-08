@@ -1,6 +1,8 @@
 package com.smartseason.attendance.service;
 
 import com.smartseason.attendance.domain.Geofence;
+import com.smartseason.attendance.platform.CountCache;
+import com.smartseason.attendance.platform.CountCache;
 import com.smartseason.attendance.platform.EventPublisher;
 import com.smartseason.attendance.platform.PageResponse;
 import com.smartseason.attendance.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class GeofenceService {
 
     private static final String RESOURCE = "Geofence";
+    private static final String ENTITY = "geofences";
 
     private final GeofenceRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public GeofenceService(GeofenceRepository repository, EventPublisher events) {
+    public GeofenceService(GeofenceRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<GeofenceResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(GeofenceResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(GeofenceResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public GeofenceResponse get(UUID id) {
@@ -55,6 +62,7 @@ public class GeofenceService {
         entity.setActive(request.active());
 
         Geofence saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("workforce", "GeofenceCreated", saved.getId(), GeofenceResponse.from(saved));
         return GeofenceResponse.from(saved);
     }
@@ -93,6 +101,7 @@ public class GeofenceService {
     public void delete(UUID id) {
         Geofence entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("workforce", "GeofenceDeleted", id, null);
     }
 

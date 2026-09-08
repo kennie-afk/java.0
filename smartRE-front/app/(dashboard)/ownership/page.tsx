@@ -172,12 +172,12 @@ export default function OwnershipPage() {
     <div className="max-w-3xl mx-auto space-y-5">
       <div>
         <h1 className="font-display text-lg font-semibold text-gray-900 dark:text-white">Land title verification</h1>
-        <p className="text-muted text-[13px] mt-1">Required for each listing before it can go active</p>
+        <p className="text-muted text-base mt-1">Required for each listing before it can go active</p>
       </div>
 
       {propertiesWithoutVerification.length > 0 && (
         <Card>
-          <h2 className="font-display font-semibold text-[14px] mb-3 flex items-center gap-1.5"><Building2 size={15} className="text-gold-500"/>Start a new verification</h2>
+          <h2 className="font-display font-semibold text-lg mb-3 flex items-center gap-1.5"><Building2 size={15} className="text-gold-500"/>Start a new verification</h2>
           <div className="space-y-3">
             <Select label="Property" required options={
               propertiesWithoutVerification.map(p => ({ value: p.id, label: p.title }))
@@ -186,7 +186,7 @@ export default function OwnershipPage() {
               <>
                 <Select label="Title type" required options={PROPERTY_TYPES} value={startForm.propertyType} onChange={e => setStartForm(f => ({ ...f, propertyType: e.target.value }))}/>
                 {tenureMismatch && (
-                  <p className="text-[12px] text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                  <p className="text-sm text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
                     <AlertTriangle size={12}/>
                     {selectedProperty?.propertyType?.toLowerCase()} listings are usually {tenureHint!.plausible.map(t => t.toLowerCase().replace('_', ' ')).join(' or ')} — double-check this is right.
                   </p>
@@ -219,21 +219,21 @@ export default function OwnershipPage() {
         return (
           <Card key={v.id}>
             <div className="flex items-center gap-4">
-              <div className={cn('w-12 h-12 rounded-2xl flex items-center justify-center shrink-0', v.status === 'APPROVED' ? 'bg-emerald-100 dark:bg-emerald-500/15' : v.status === 'REJECTED' ? 'bg-red-50 dark:bg-red-500/10' : 'bg-gold-50 dark:bg-gold-500/10')}>
+              <div className={cn('w-12 h-12 rounded-lg flex items-center justify-center shrink-0', v.status === 'APPROVED' ? 'bg-emerald-100 dark:bg-emerald-500/15' : v.status === 'REJECTED' ? 'bg-red-50 dark:bg-red-500/10' : 'bg-gold-50 dark:bg-gold-500/10')}>
                 <info.icon size={22} className={info.color}/>
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-0.5">
-                  <h3 className="font-display font-semibold text-[14px] text-gray-900 dark:text-white">{property?.title || 'Listing'}</h3>
+                  <h3 className="font-display font-semibold text-lg text-gray-900 dark:text-white">{property?.title || 'Listing'}</h3>
                   <StatusBadge status={v.status} size="sm"/>
                 </div>
-                <p className="text-[12px] text-muted">{info.desc}</p>
+                <p className="text-sm text-muted">{info.desc}</p>
               </div>
             </div>
 
             {v.rejectionReason && (
               <div className="mt-3 p-3 bg-red-50 dark:bg-red-500/10 rounded-lg">
-                <p className="text-[12px] text-red-600 dark:text-red-400"><strong>Rejection reason:</strong> {v.rejectionReason}</p>
+                <p className="text-sm text-red-600 dark:text-red-400"><strong>Rejection reason:</strong> {v.rejectionReason}</p>
               </div>
             )}
 
@@ -242,14 +242,14 @@ export default function OwnershipPage() {
                 {(v.allRequiredDocuments || []).length > 0 && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                     {v.allRequiredDocuments!.map(r => (
-                      <div key={r.documentCategory} className="flex items-center gap-1.5 text-[11px]">
+                      <div key={r.documentCategory} className="flex items-center gap-1.5 text-xs">
                         {r.uploaded
                           ? <CheckCircle2 size={12} className="text-emerald-500 shrink-0"/>
                           : <Circle size={12} className="text-gray-300 dark:text-gray-600 shrink-0"/>}
                         <span className={cn('truncate', r.uploaded ? 'text-gray-700 dark:text-gray-300' : 'text-muted')}>
                           {DOC_CATEGORY_LABELS[r.documentCategory] || r.documentCategory.replace(/_/g, ' ')}
                         </span>
-                        {!r.isMandatory && <span className="text-[9px] text-muted shrink-0">(optional)</span>}
+                        {!r.isMandatory && <span className="text-2xs text-muted shrink-0">(optional)</span>}
                       </div>
                     ))}
                   </div>
@@ -290,7 +290,7 @@ export default function OwnershipPage() {
 
       {verifications.length === 0 && propertiesWithoutVerification.length === 0 && properties.length === 0 && (
         <Card>
-          <p className="text-[13px] text-muted text-center py-6 flex items-center justify-center gap-2"><AlertTriangle size={14}/>List a property first, then start its ownership verification here.</p>
+          <p className="text-base text-muted text-center py-4 flex items-center justify-center gap-2"><AlertTriangle size={14}/>List a property first, then start its ownership verification here.</p>
         </Card>
       )}
     </div>

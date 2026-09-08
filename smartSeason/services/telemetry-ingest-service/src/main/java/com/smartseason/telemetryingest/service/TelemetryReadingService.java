@@ -1,6 +1,8 @@
 package com.smartseason.telemetryingest.service;
 
 import com.smartseason.telemetryingest.domain.TelemetryReading;
+import com.smartseason.telemetryingest.platform.CountCache;
+import com.smartseason.telemetryingest.platform.CountCache;
 import com.smartseason.telemetryingest.platform.EventPublisher;
 import com.smartseason.telemetryingest.platform.PageResponse;
 import com.smartseason.telemetryingest.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class TelemetryReadingService {
 
     private static final String RESOURCE = "TelemetryReading";
+    private static final String ENTITY = "telemetry_readings";
 
     private final TelemetryReadingRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public TelemetryReadingService(TelemetryReadingRepository repository, EventPublisher events) {
+    public TelemetryReadingService(TelemetryReadingRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<TelemetryReadingResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(TelemetryReadingResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(TelemetryReadingResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public TelemetryReadingResponse get(UUID id) {
@@ -57,6 +64,7 @@ public class TelemetryReadingService {
         entity.setRaw(request.raw());
 
         TelemetryReading saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("iot", "TelemetryReadingCreated", saved.getId(), TelemetryReadingResponse.from(saved));
         return TelemetryReadingResponse.from(saved);
     }
@@ -101,6 +109,7 @@ public class TelemetryReadingService {
     public void delete(UUID id) {
         TelemetryReading entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("iot", "TelemetryReadingDeleted", id, null);
     }
 

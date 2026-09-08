@@ -59,12 +59,13 @@ public class TenantController {
 
     @Operation(summary = "Link this tenant record to a registered SmartRE account")
     @PutMapping("/{id}/link-user")
-    public ResponseEntity<TenantResponse> linkUser(@PathVariable UUID id,
-                                                   @RequestBody Map<String, String> body,
-                                                   HttpServletRequest r) {
-        String raw = body.get("userId");
-        if (raw == null) throw new IllegalArgumentException("userId is required");
-        return ResponseEntity.ok(tenants.linkUser(caller.userId(r), id, UUID.fromString(raw)));
+    public ResponseEntity<TenantResponse> linkUser(@PathVariable UUID id, HttpServletRequest r) {
+        return ResponseEntity.ok(tenants.linkUser(caller.userId(r), id));
+    }
+
+    @PutMapping("/{id}/unlink-user")
+    public ResponseEntity<TenantResponse> unlinkUser(@PathVariable UUID id, HttpServletRequest r) {
+        return ResponseEntity.ok(tenants.unlinkUser(caller.userId(r), id));
     }
 
     @DeleteMapping("/{id}")

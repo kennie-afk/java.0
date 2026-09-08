@@ -1,6 +1,8 @@
 package com.smartseason.attendance.service;
 
 import com.smartseason.attendance.domain.Shift;
+import com.smartseason.attendance.platform.CountCache;
+import com.smartseason.attendance.platform.CountCache;
 import com.smartseason.attendance.platform.EventPublisher;
 import com.smartseason.attendance.platform.PageResponse;
 import com.smartseason.attendance.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class ShiftService {
 
     private static final String RESOURCE = "Shift";
+    private static final String ENTITY = "shifts";
 
     private final ShiftRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public ShiftService(ShiftRepository repository, EventPublisher events) {
+    public ShiftService(ShiftRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<ShiftResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(ShiftResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(ShiftResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public ShiftResponse get(UUID id) {
@@ -58,6 +65,7 @@ public class ShiftService {
         entity.setAnomalyFlags(request.anomalyFlags());
 
         Shift saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("workforce", "ShiftCreated", saved.getId(), ShiftResponse.from(saved));
         return ShiftResponse.from(saved);
     }
@@ -105,6 +113,7 @@ public class ShiftService {
     public void delete(UUID id) {
         Shift entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("workforce", "ShiftDeleted", id, null);
     }
 

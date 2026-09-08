@@ -1,6 +1,8 @@
 package com.smartseason.inventory.service;
 
 import com.smartseason.inventory.domain.InputConsumption;
+import com.smartseason.inventory.platform.CountCache;
+import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.EventPublisher;
 import com.smartseason.inventory.platform.PageResponse;
 import com.smartseason.inventory.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class InputConsumptionService {
 
     private static final String RESOURCE = "InputConsumption";
+    private static final String ENTITY = "input_consumptions";
 
     private final InputConsumptionRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public InputConsumptionService(InputConsumptionRepository repository, EventPublisher events) {
+    public InputConsumptionService(InputConsumptionRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<InputConsumptionResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(InputConsumptionResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(InputConsumptionResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public InputConsumptionResponse get(UUID id) {
@@ -60,6 +67,7 @@ public class InputConsumptionService {
         entity.setVarianceKg(request.varianceKg());
 
         InputConsumption saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "InputConsumptionCreated", saved.getId(), InputConsumptionResponse.from(saved));
         return InputConsumptionResponse.from(saved);
     }
@@ -113,6 +121,7 @@ public class InputConsumptionService {
     public void delete(UUID id) {
         InputConsumption entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "InputConsumptionDeleted", id, null);
     }
 

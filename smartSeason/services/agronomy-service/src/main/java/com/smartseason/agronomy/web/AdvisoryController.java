@@ -35,19 +35,21 @@ public class AdvisoryController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "List advisories for the caller's tenant")
     public PageResponse<AdvisoryResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "Fetch a single Advisory by id")
     public AdvisoryResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "Create a Advisory")
     public ResponseEntity<AdvisoryResponse> create(@Valid @RequestBody AdvisoryCreateRequest request) {
         AdvisoryResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class AdvisoryController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "Apply a partial update to a Advisory")
     public AdvisoryResponse update(@PathVariable UUID id, @Valid @RequestBody AdvisoryUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGRONOMIST')")
     @Operation(summary = "Delete a Advisory")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

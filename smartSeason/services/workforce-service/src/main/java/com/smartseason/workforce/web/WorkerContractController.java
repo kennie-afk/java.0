@@ -35,19 +35,21 @@ public class WorkerContractController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'FINANCE')")
     @Operation(summary = "List worker-contracts for the caller's tenant")
     public PageResponse<WorkerContractResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'FINANCE')")
     @Operation(summary = "Fetch a single WorkerContract by id")
     public WorkerContractResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Create a WorkerContract")
     public ResponseEntity<WorkerContractResponse> create(@Valid @RequestBody WorkerContractCreateRequest request) {
         WorkerContractResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class WorkerContractController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Apply a partial update to a WorkerContract")
     public WorkerContractResponse update(@PathVariable UUID id, @Valid @RequestBody WorkerContractUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Delete a WorkerContract")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

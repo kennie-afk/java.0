@@ -1,6 +1,8 @@
 package com.smartseason.season.service;
 
 import com.smartseason.season.domain.Season;
+import com.smartseason.season.platform.CountCache;
+import com.smartseason.season.platform.CountCache;
 import com.smartseason.season.platform.EventPublisher;
 import com.smartseason.season.platform.PageResponse;
 import com.smartseason.season.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class SeasonService {
 
     private static final String RESOURCE = "Season";
+    private static final String ENTITY = "seasons";
 
     private final SeasonRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public SeasonService(SeasonRepository repository, EventPublisher events) {
+    public SeasonService(SeasonRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<SeasonResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(SeasonResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(SeasonResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public SeasonResponse get(UUID id) {
@@ -59,6 +66,7 @@ public class SeasonService {
         entity.setStatus(request.status());
 
         Season saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("farm", "SeasonCreated", saved.getId(), SeasonResponse.from(saved));
         return SeasonResponse.from(saved);
     }
@@ -109,6 +117,7 @@ public class SeasonService {
     public void delete(UUID id) {
         Season entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("farm", "SeasonDeleted", id, null);
     }
 

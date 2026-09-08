@@ -35,19 +35,21 @@ public class OtpChallengeController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "List otp-challenges for the caller's tenant")
     public PageResponse<OtpChallengeResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Fetch a single OtpChallenge by id")
     public OtpChallengeResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Create a OtpChallenge")
     public ResponseEntity<OtpChallengeResponse> create(@Valid @RequestBody OtpChallengeCreateRequest request) {
         OtpChallengeResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class OtpChallengeController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Apply a partial update to a OtpChallenge")
     public OtpChallengeResponse update(@PathVariable UUID id, @Valid @RequestBody OtpChallengeUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a OtpChallenge")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

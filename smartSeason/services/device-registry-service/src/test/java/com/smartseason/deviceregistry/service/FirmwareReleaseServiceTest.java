@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.deviceregistry.domain.FirmwareRelease;
+import com.smartseason.deviceregistry.platform.CountCache;
+import com.smartseason.deviceregistry.platform.CountCache;
 import com.smartseason.deviceregistry.platform.EventPublisher;
 import com.smartseason.deviceregistry.platform.ResourceNotFoundException;
 import com.smartseason.deviceregistry.platform.TenantContext;
@@ -29,7 +31,10 @@ class FirmwareReleaseServiceTest {
 
     private final FirmwareReleaseRepository repository = mock(FirmwareReleaseRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final FirmwareReleaseService service = new FirmwareReleaseService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final FirmwareReleaseService service = new FirmwareReleaseService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

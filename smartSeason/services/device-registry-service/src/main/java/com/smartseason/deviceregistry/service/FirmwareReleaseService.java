@@ -1,6 +1,8 @@
 package com.smartseason.deviceregistry.service;
 
 import com.smartseason.deviceregistry.domain.FirmwareRelease;
+import com.smartseason.deviceregistry.platform.CountCache;
+import com.smartseason.deviceregistry.platform.CountCache;
 import com.smartseason.deviceregistry.platform.EventPublisher;
 import com.smartseason.deviceregistry.platform.PageResponse;
 import com.smartseason.deviceregistry.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class FirmwareReleaseService {
 
     private static final String RESOURCE = "FirmwareRelease";
+    private static final String ENTITY = "firmware_releases";
 
     private final FirmwareReleaseRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public FirmwareReleaseService(FirmwareReleaseRepository repository, EventPublisher events) {
+    public FirmwareReleaseService(FirmwareReleaseRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<FirmwareReleaseResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(FirmwareReleaseResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(FirmwareReleaseResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public FirmwareReleaseResponse get(UUID id) {
@@ -55,6 +62,7 @@ public class FirmwareReleaseService {
         entity.setPublishedAt(request.publishedAt());
 
         FirmwareRelease saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("iot", "FirmwareReleaseCreated", saved.getId(), FirmwareReleaseResponse.from(saved));
         return FirmwareReleaseResponse.from(saved);
     }
@@ -93,6 +101,7 @@ public class FirmwareReleaseService {
     public void delete(UUID id) {
         FirmwareRelease entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("iot", "FirmwareReleaseDeleted", id, null);
     }
 

@@ -35,19 +35,21 @@ public class JournalEntryController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE')")
     @Operation(summary = "List journal-entries for the caller's tenant")
     public PageResponse<JournalEntryResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE')")
     @Operation(summary = "Fetch a single JournalEntry by id")
     public JournalEntryResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Create a JournalEntry")
     public ResponseEntity<JournalEntryResponse> create(@Valid @RequestBody JournalEntryCreateRequest request) {
         JournalEntryResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class JournalEntryController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Apply a partial update to a JournalEntry")
     public JournalEntryResponse update(@PathVariable UUID id, @Valid @RequestBody JournalEntryUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Delete a JournalEntry")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

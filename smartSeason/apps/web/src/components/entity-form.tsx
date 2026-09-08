@@ -54,7 +54,7 @@ export function EntityForm({
     <form
       ref={formRef}
       action={formAction}
-      className="mb-6 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] p-5"
+      className="mb-4 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] p-3.5"
     >
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-sm font-semibold">{title}</h2>

@@ -35,19 +35,21 @@ public class NotificationController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "List notifications for the caller's tenant")
     public PageResponse<NotificationResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Fetch a single Notification by id")
     public NotificationResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Create a Notification")
     public ResponseEntity<NotificationResponse> create(@Valid @RequestBody NotificationCreateRequest request) {
         NotificationResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class NotificationController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Apply a partial update to a Notification")
     public NotificationResponse update(@PathVariable UUID id, @Valid @RequestBody NotificationUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a Notification")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

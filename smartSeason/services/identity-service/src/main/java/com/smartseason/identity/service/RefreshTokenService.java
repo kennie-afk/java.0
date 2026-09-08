@@ -1,6 +1,8 @@
 package com.smartseason.identity.service;
 
 import com.smartseason.identity.domain.RefreshToken;
+import com.smartseason.identity.platform.CountCache;
+import com.smartseason.identity.platform.CountCache;
 import com.smartseason.identity.platform.EventPublisher;
 import com.smartseason.identity.platform.PageResponse;
 import com.smartseason.identity.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class RefreshTokenService {
 
     private static final String RESOURCE = "RefreshToken";
+    private static final String ENTITY = "refresh_tokens";
 
     private final RefreshTokenRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public RefreshTokenService(RefreshTokenRepository repository, EventPublisher events) {
+    public RefreshTokenService(RefreshTokenRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<RefreshTokenResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(RefreshTokenResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(RefreshTokenResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public RefreshTokenResponse get(UUID id) {
@@ -54,6 +61,7 @@ public class RefreshTokenService {
         entity.setIp(request.ip());
 
         RefreshToken saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("identity", "RefreshTokenCreated", saved.getId(), RefreshTokenResponse.from(saved));
         return RefreshTokenResponse.from(saved);
     }
@@ -89,6 +97,7 @@ public class RefreshTokenService {
     public void delete(UUID id) {
         RefreshToken entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("identity", "RefreshTokenDeleted", id, null);
     }
 

@@ -1,4 +1,5 @@
 """Service, controller, test and SQL-migration generators."""
+import rbac
 from gen_support import lower_first
 
 
@@ -18,6 +19,8 @@ def service_source(pkg, name, table, fields, domain):
     return f"""package com.smartseason.{pkg}.service;
 
 import com.smartseason.{pkg}.domain.{name};
+import com.smartseason.{pkg}.platform.CountCache;
+import com.smartseason.{pkg}.platform.CountCache;
 import com.smartseason.{pkg}.platform.EventPublisher;
 import com.smartseason.{pkg}.platform.PageResponse;
 import com.smartseason.{pkg}.platform.ResourceNotFoundException;
@@ -43,19 +46,25 @@ import org.springframework.transaction.annotation.Transactional;
 public class {name}Service {{
 
     private static final String RESOURCE = "{name}";
+    private static final String ENTITY = "{table}";
 
     private final {name}Repository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public {name}Service({name}Repository repository, EventPublisher events) {{
+    public {name}Service({name}Repository repository, EventPublisher events, CountCache counts) {{
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }}
 
     public PageResponse<{name}Response> list(Pageable pageable) {{
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map({name}Response::from));
+        UUID tenantId = TenantContext.requireTenantId();
+        // Slice for the rows, cached total for the caption. Bound together they
+        // cost a COUNT over every row the tenant owns on every request.
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map({name}Response::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }}
 
     public {name}Response get(UUID id) {{
@@ -73,6 +82,7 @@ public class {name}Service {{
 {setters_create}
 
         {name} saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("{domain}", "{name}Created", saved.getId(), {name}Response.from(saved));
         return {name}Response.from(saved);
     }}
@@ -91,6 +101,7 @@ public class {name}Service {{
     public void delete(UUID id) {{
         {name} entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("{domain}", "{name}Deleted", id, null);
     }}
 
@@ -105,6 +116,11 @@ public class {name}Service {{
 def controller_source(pkg, name, table, domain, desc):
     var = lower_first(name)
     path = resource_path(table)
+    # `domain` is the service slug (generate.py passes `slug` here), which is the
+    # key rbac.MATRIX is written against.
+    read_roles = rbac.read_expression(domain)
+    write_roles = rbac.write_expression(domain)
+    delete_roles = rbac.delete_expression(domain)
     return f"""package com.smartseason.{pkg}.web;
 
 import com.smartseason.{pkg}.platform.PageResponse;
@@ -143,19 +159,21 @@ public class {name}Controller {{
     }}
 
     @GetMapping
+    @PreAuthorize("{read_roles}")
     @Operation(summary = "List {path} for the caller's tenant")
     public PageResponse<{name}Response> list(@PageableDefault(size = 20) Pageable pageable) {{
         return service.list(pageable);
     }}
 
     @GetMapping("/{{id}}")
+    @PreAuthorize("{read_roles}")
     @Operation(summary = "Fetch a single {name} by id")
     public {name}Response get(@PathVariable UUID id) {{
         return service.get(id);
     }}
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("{write_roles}")
     @Operation(summary = "Create a {name}")
     public ResponseEntity<{name}Response> create(@Valid @RequestBody {name}CreateRequest request) {{
         {name}Response created = service.create(request);
@@ -163,14 +181,14 @@ public class {name}Controller {{
     }}
 
     @PatchMapping("/{{id}}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("{write_roles}")
     @Operation(summary = "Apply a partial update to a {name}")
     public {name}Response update(@PathVariable UUID id, @Valid @RequestBody {name}UpdateRequest request) {{
         return service.update(id, request);
     }}
 
     @DeleteMapping("/{{id}}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("{delete_roles}")
     @Operation(summary = "Delete a {name}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {{
         service.delete(id);
@@ -249,6 +267,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.{pkg}.domain.{name};
+import com.smartseason.{pkg}.platform.CountCache;
+import com.smartseason.{pkg}.platform.CountCache;
 import com.smartseason.{pkg}.platform.EventPublisher;
 import com.smartseason.{pkg}.platform.ResourceNotFoundException;
 import com.smartseason.{pkg}.platform.TenantContext;
@@ -269,7 +289,14 @@ class {name}ServiceTest {{
 
     private final {name}Repository repository = mock({name}Repository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final {name}Service service = new {name}Service(repository, events);
+
+    /**
+     * A cache that always misses and simply runs the loader, so these tests
+     * exercise the service rather than Redis. The cache has its own tests.
+     */
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final {name}Service service = new {name}Service(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

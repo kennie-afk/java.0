@@ -35,19 +35,21 @@ public class FraudEvidenceController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'FINANCE')")
     @Operation(summary = "List fraud-evidence for the caller's tenant")
     public PageResponse<FraudEvidenceResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'FINANCE')")
     @Operation(summary = "Fetch a single FraudEvidence by id")
     public FraudEvidenceResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Create a FraudEvidence")
     public ResponseEntity<FraudEvidenceResponse> create(@Valid @RequestBody FraudEvidenceCreateRequest request) {
         FraudEvidenceResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class FraudEvidenceController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Apply a partial update to a FraudEvidence")
     public FraudEvidenceResponse update(@PathVariable UUID id, @Valid @RequestBody FraudEvidenceUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a FraudEvidence")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

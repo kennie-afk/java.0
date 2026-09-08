@@ -1,6 +1,8 @@
 package com.smartseason.weather.service;
 
 import com.smartseason.weather.domain.Forecast;
+import com.smartseason.weather.platform.CountCache;
+import com.smartseason.weather.platform.CountCache;
 import com.smartseason.weather.platform.EventPublisher;
 import com.smartseason.weather.platform.PageResponse;
 import com.smartseason.weather.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class ForecastService {
 
     private static final String RESOURCE = "Forecast";
+    private static final String ENTITY = "forecasts";
 
     private final ForecastRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public ForecastService(ForecastRepository repository, EventPublisher events) {
+    public ForecastService(ForecastRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<ForecastResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(ForecastResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(ForecastResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public ForecastResponse get(UUID id) {
@@ -58,6 +65,7 @@ public class ForecastService {
         entity.setProvider(request.provider());
 
         Forecast saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("farm", "ForecastCreated", saved.getId(), ForecastResponse.from(saved));
         return ForecastResponse.from(saved);
     }
@@ -105,6 +113,7 @@ public class ForecastService {
     public void delete(UUID id) {
         Forecast entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("farm", "ForecastDeleted", id, null);
     }
 

@@ -1,6 +1,8 @@
 package com.smartseason.farm.service;
 
 import com.smartseason.farm.domain.Plot;
+import com.smartseason.farm.platform.CountCache;
+import com.smartseason.farm.platform.CountCache;
 import com.smartseason.farm.platform.EventPublisher;
 import com.smartseason.farm.platform.PageResponse;
 import com.smartseason.farm.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class PlotService {
 
     private static final String RESOURCE = "Plot";
+    private static final String ENTITY = "plots";
 
     private final PlotRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public PlotService(PlotRepository repository, EventPublisher events) {
+    public PlotService(PlotRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<PlotResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(PlotResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(PlotResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public PlotResponse get(UUID id) {
@@ -57,6 +64,7 @@ public class PlotService {
         entity.setStatus(request.status());
 
         Plot saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("farm", "PlotCreated", saved.getId(), PlotResponse.from(saved));
         return PlotResponse.from(saved);
     }
@@ -101,6 +109,7 @@ public class PlotService {
     public void delete(UUID id) {
         Plot entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("farm", "PlotDeleted", id, null);
     }
 

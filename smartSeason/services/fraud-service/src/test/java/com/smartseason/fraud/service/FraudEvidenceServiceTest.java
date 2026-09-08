@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.fraud.domain.FraudEvidence;
+import com.smartseason.fraud.platform.CountCache;
+import com.smartseason.fraud.platform.CountCache;
 import com.smartseason.fraud.platform.EventPublisher;
 import com.smartseason.fraud.platform.ResourceNotFoundException;
 import com.smartseason.fraud.platform.TenantContext;
@@ -29,7 +31,10 @@ class FraudEvidenceServiceTest {
 
     private final FraudEvidenceRepository repository = mock(FraudEvidenceRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final FraudEvidenceService service = new FraudEvidenceService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final FraudEvidenceService service = new FraudEvidenceService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

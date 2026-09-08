@@ -118,7 +118,7 @@ export default function VerificationPage() {
   const allUploaded = missingCategories.length === 0
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-4">
       <div>
         <h1 className="font-display text-lg font-semibold text-gray-900 dark:text-white">Identity Verification</h1>
         <p className="text-muted text-sm mt-1">Required to list and sell properties on SmartRE</p>
@@ -126,7 +126,7 @@ export default function VerificationPage() {
 
       <Card>
         <div className="flex items-center gap-4">
-          <div className={cn('w-14 h-14 rounded-2xl flex items-center justify-center shrink-0', status === 'APPROVED' ? 'bg-emerald-100 dark:bg-emerald-500/15' : status === 'REJECTED' ? 'bg-red-50 dark:bg-red-500/10' : 'bg-gold-50 dark:bg-gold-500/10')}>
+          <div className={cn('w-14 h-14 rounded-lg flex items-center justify-center shrink-0', status === 'APPROVED' ? 'bg-emerald-100 dark:bg-emerald-500/15' : status === 'REJECTED' ? 'bg-red-50 dark:bg-red-500/10' : 'bg-gold-50 dark:bg-gold-500/10')}>
             <info.icon size={28} className={info.color}/>
           </div>
           <div className="flex-1">
@@ -167,23 +167,23 @@ export default function VerificationPage() {
 
       {!verif && (
         <Card>
-          <div className="text-center py-6">
-            <ShieldCheck size={48} className="mx-auto text-gold-400 mb-4"/>
-            <h3 className="font-display font-semibold text-lg mb-2">Start verification</h3>
-            <p className="text-sm text-muted mb-6 max-w-sm mx-auto">Upload your National ID, KRA PIN certificate, and a selfie. Our system verifies your identity automatically.</p>
-            <Button onClick={start} loading={starting} size="lg">Begin verification</Button>
+          <div className="text-center py-4">
+            <ShieldCheck size={28} className="mx-auto text-gold-400 mb-4"/>
+            <h3 className="font-display font-semibold text-base mb-1">Start verification</h3>
+            <p className="text-xs text-muted mb-3 max-w-sm mx-auto">Upload your National ID, KRA PIN certificate, and a selfie. Our system verifies your identity automatically.</p>
+            <Button onClick={start} loading={starting}>Begin verification</Button>
           </div>
         </Card>
       )}
 
       {verif && ['DRAFT','REJECTED','EXPIRED','REQUIRES_RESUBMISSION'].includes(status) && (
         <Card>
-          <h2 className="font-display font-semibold text-[14px] mb-4 flex items-center gap-2"><Upload size={17} className="text-gold-500"/>Upload documents</h2>
+          <h2 className="font-display font-semibold text-lg mb-4 flex items-center gap-2"><Upload size={17} className="text-gold-500"/>Upload documents</h2>
           <div className="space-y-2 mb-4">
             {DOC_CATEGORIES.map(doc => {
               const uploaded = requiredCategories.find(r => r.documentCategory === doc.key)?.uploaded
               return (
-                <div key={doc.key} className="flex items-center gap-2 text-[13px]">
+                <div key={doc.key} className="flex items-center gap-2 text-base">
                   {uploaded ? <CheckCircle2 size={14} className="text-emerald-500 shrink-0"/> : <Circle size={14} className="text-gray-300 dark:text-gray-600 shrink-0"/>}
                   <span className={cn(uploaded ? 'text-gray-700 dark:text-gray-300' : 'text-muted')}>{doc.label}</span>
                   <span className="text-xs text-muted">— {doc.desc}</span>
@@ -231,7 +231,7 @@ export default function VerificationPage() {
 
       {verif?.documents && verif.documents.length > 0 && !['DRAFT'].includes(status) && (
         <Card>
-          <h2 className="font-display font-semibold text-[14px] mb-4">Submitted documents</h2>
+          <h2 className="font-display font-semibold text-lg mb-4">Submitted documents</h2>
           <div className="space-y-3">
             {verif.documents.map(doc => (
               <div key={doc.id} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-[#1A1A35]">

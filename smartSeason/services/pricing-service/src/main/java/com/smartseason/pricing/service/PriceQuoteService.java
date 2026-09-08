@@ -1,6 +1,8 @@
 package com.smartseason.pricing.service;
 
 import com.smartseason.pricing.domain.PriceQuote;
+import com.smartseason.pricing.platform.CountCache;
+import com.smartseason.pricing.platform.CountCache;
 import com.smartseason.pricing.platform.EventPublisher;
 import com.smartseason.pricing.platform.PageResponse;
 import com.smartseason.pricing.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class PriceQuoteService {
 
     private static final String RESOURCE = "PriceQuote";
+    private static final String ENTITY = "price_quotes";
 
     private final PriceQuoteRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public PriceQuoteService(PriceQuoteRepository repository, EventPublisher events) {
+    public PriceQuoteService(PriceQuoteRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<PriceQuoteResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(PriceQuoteResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(PriceQuoteResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public PriceQuoteResponse get(UUID id) {
@@ -58,6 +65,7 @@ public class PriceQuoteService {
         entity.setRequestedBy(request.requestedBy());
 
         PriceQuote saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "PriceQuoteCreated", saved.getId(), PriceQuoteResponse.from(saved));
         return PriceQuoteResponse.from(saved);
     }
@@ -105,6 +113,7 @@ public class PriceQuoteService {
     public void delete(UUID id) {
         PriceQuote entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "PriceQuoteDeleted", id, null);
     }
 

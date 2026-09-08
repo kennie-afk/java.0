@@ -35,19 +35,21 @@ public class ClockEventController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'FINANCE')")
     @Operation(summary = "List clock-events for the caller's tenant")
     public PageResponse<ClockEventResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'FINANCE')")
     @Operation(summary = "Fetch a single ClockEvent by id")
     public ClockEventResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     @Operation(summary = "Create a ClockEvent")
     public ResponseEntity<ClockEventResponse> create(@Valid @RequestBody ClockEventCreateRequest request) {
         ClockEventResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class ClockEventController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     @Operation(summary = "Apply a partial update to a ClockEvent")
     public ClockEventResponse update(@PathVariable UUID id, @Valid @RequestBody ClockEventUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a ClockEvent")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

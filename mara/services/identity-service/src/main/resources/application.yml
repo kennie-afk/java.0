@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: identity-service
+  # Flyway is configured in FlywayConfig against the owner connection, not here.
+  flyway:
+    enabled: false
+
+server:
+  port: 8081
+  error:
+    include-message: never
+    include-stacktrace: never
+
+mara:
+  datasource:
+    # Owns the schema. Runs migrations. Never serves a request.
+    owner:
+      url: ${MARA_DB_URL}
+      username: ${MARA_DB_OWNER_USER}
+      password: ${MARA_DB_OWNER_PASSWORD}
+      hikari:
+        maximum-pool-size: 2
+        pool-name: mara-owner
+    # What request handling uses. Cannot create tables, cannot bypass row-level
+    # security. This is the distinction that makes the RLS policies real.
+    app:
+      url: ${MARA_DB_URL}
+      username: ${MARA_DB_APP_USER}
+      password: ${MARA_DB_APP_PASSWORD}
+      hikari:
+        maximum-pool-size: 20
+        pool-name: mara-app
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    com.mara: INFO

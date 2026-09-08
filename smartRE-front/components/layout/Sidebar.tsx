@@ -11,14 +11,15 @@ import {
   LayoutDashboard, Building2, ShieldCheck, Calendar,
   CreditCard, Star, BarChart3, Users, X, ListChecks, Search, Gauge, Landmark, Briefcase, Flag,
   ChevronsLeft, ChevronsRight, ChevronDown, Bell, KeyRound, FileText,
-  List, Plus, UserCheck, Home, Store, PieChart, Receipt, CheckCircle, FileEdit, Ban, AlertCircle, XCircle, Clock, EyeOff,
+  List, Plus, UserCheck, Home, Store, PieChart, Receipt, CheckCircle, FileEdit, Ban, AlertCircle, XCircle, Clock, EyeOff, Wrench,
 } from 'lucide-react'
+import Logo from '@/components/brand/Logo'
 
 type Child = { label:string; href:string; roles?:string[]; icon?:any }
 type NavItem = { label:string; href:string; icon:any; roles?:string[]; children?:Child[] }
 
 const nav: NavItem[] = [
-  { label:'Dashboard',    href:'/dashboard',           icon:LayoutDashboard, roles:['BUYER',...SELLER_ROLES,'ADMIN'] },
+  { label:'Dashboard',    href:'/dashboard',           icon:LayoutDashboard, roles:['BUYER',...SELLER_ROLES,'LANDLORD','ADMIN'] },
   { label:'Browse',       href:'/properties',          icon:Search,          roles:['BUYER',...SELLER_ROLES,'ADMIN'] },
   { label:'My Listings',  href:'/listings',            icon:Building2,       roles:SELLER_ROLES,
     children:[
@@ -30,7 +31,6 @@ const nav: NavItem[] = [
       { label:'Identity verification', href:'/verification', icon:UserCheck },
       { label:'Land title',            href:'/ownership',    icon:Landmark },
     ] },
-  { label:'Become an Agent', href:'/agent-application', icon:Briefcase,      roles:['SELLER'] },
   { label:'Viewings',     href:'/viewings',            icon:Calendar,        roles:['BUYER',...SELLER_ROLES],
     children:[
       { label:'As buyer',  href:'/viewings?tab=buyer',  roles:SELLER_ROLES, icon:Home },
@@ -40,10 +40,21 @@ const nav: NavItem[] = [
   { label:'Reviews',      href:'/reviews',             icon:Star,            roles:['BUYER',...SELLER_ROLES] },
   { label:'Portfolio',    href:'/portfolio',           icon:KeyRound,        roles:LANDLORD_ROLES,
     children:[
-      { label:'Units',   href:'/portfolio?tab=units',   icon:Building2 },
-      { label:'Tenants', href:'/portfolio?tab=tenants', icon:Users },
-      { label:'Leases',  href:'/portfolio?tab=leases',  icon:FileText },
-      { label:'Rent',    href:'/portfolio?tab=rent',    icon:Receipt },
+      { label:'Units',       href:'/portfolio?tab=units',       icon:Building2 },
+      { label:'Tenants',     href:'/portfolio?tab=tenants',     icon:Users },
+      { label:'Leases',      href:'/portfolio?tab=leases',      icon:FileText },
+      { label:'Rent',        href:'/portfolio?tab=rent',        icon:Receipt },
+      { label:'Maintenance', href:'/portfolio?tab=maintenance', icon:Wrench },
+    ] },
+  // A landlord could not previously reach this at all: property creation sat under
+  // "My Listings", which is seller-only, while every unit requires a propertyId. That
+  // left a landlord unable to add a property, therefore unable to add a unit, with a
+  // portfolio they could never populate. The backend always permitted it — see
+  // PropertyController @PreAuthorize("hasAnyRole('SELLER','LANDLORD')").
+  { label:'Properties',   href:'/listings',            icon:Building2,       roles:LANDLORD_ROLES,
+    children:[
+      { label:'My properties', href:'/listings',       icon:List },
+      { label:'Add property',  href:'/properties/new', icon:Plus },
     ] },
   { label:'My Tenancy',   href:'/my-tenancy',          icon:Home,            roles:['BUYER',...SELLER_ROLES,'LANDLORD'] },
   { label:'Notifications', href:'/notifications',      icon:Bell,            roles:['BUYER',...SELLER_ROLES,'LANDLORD','ADMIN'] },
@@ -60,7 +71,6 @@ const adminNav: NavItem[] = [
     children:[
       { label:'All users', href:'/users',              icon:Users },
       { label:'Sellers',   href:'/users?role=SELLER',  icon:Store },
-      { label:'Agents',    href:'/users?role=AGENT',   icon:Briefcase },
       { label:'Buyers',    href:'/users?role=BUYER',   icon:Home },
     ] },
   { label:'Verif Queue',  href:'/verification-queue',  icon:ListChecks,
@@ -81,12 +91,6 @@ const adminNav: NavItem[] = [
       { label:'Open',      href:'/reports?status=OPEN',      icon:AlertCircle },
       { label:'Resolved',  href:'/reports?status=RESOLVED',  icon:CheckCircle },
       { label:'Dismissed', href:'/reports?status=DISMISSED', icon:XCircle },
-    ] },
-  { label:'Agent Apps',   href:'/agent-applications',  icon:Briefcase,
-    children:[
-      { label:'Submitted', href:'/agent-applications?status=SUBMITTED', icon:Clock },
-      { label:'Approved',  href:'/agent-applications?status=APPROVED',  icon:CheckCircle },
-      { label:'Rejected',  href:'/agent-applications?status=REJECTED',  icon:XCircle },
     ] },
   { label:'Reviews',      href:'/reviews',             icon:Star,
     children:[
@@ -173,7 +177,7 @@ export default function Sidebar({ open, onClose }:{ open:boolean; onClose():void
             </button>
           )}
           {rail && (
-            <span className="pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-md bg-gray-900 dark:bg-black px-2.5 py-1.5 text-[12px] font-medium text-white opacity-0 scale-95 origin-left group-hover:opacity-100 group-hover:scale-100 transition-all duration-150 z-50 shadow-lg">
+            <span className="pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-md bg-gray-900 dark:bg-black px-2.5 py-1.5 text-sm font-medium text-white opacity-0 scale-95 origin-left group-hover:opacity-100 group-hover:scale-100 transition-all duration-150 z-50 shadow-lg">
               {item.label}
             </span>
           )}
@@ -182,7 +186,7 @@ export default function Sidebar({ open, onClose }:{ open:boolean; onClose():void
           <div className="ml-[26px] pl-3 border-l border-base space-y-0.5 my-0.5">
             {children.map(child => (
               <Link key={child.href} href={child.href} onClick={onClose}
-                className={cn('flex items-center gap-2 px-3 py-1.5 rounded-md text-[12.5px] transition-colors truncate',
+                className={cn('flex items-center gap-2 px-2.5 py-1 rounded-md text-xs transition-colors truncate',
                   isChildActive(children, child)
                     ? 'text-gold-600 dark:text-gold-400 font-medium bg-gold-50 dark:bg-gold-500/10'
                     : 'text-muted hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5')}>
@@ -210,8 +214,9 @@ export default function Sidebar({ open, onClose }:{ open:boolean; onClose():void
       >
         <div className={cn('flex items-center h-16 px-4 border-b border-base shrink-0', rail ? 'justify-center px-2' : 'justify-between')}>
           <Link href="/" className="flex items-center gap-2.5 min-w-0" onClick={onClose}>
-            <div className="w-8 h-8 bg-gold-500 rounded-lg flex items-center justify-center text-white font-display font-bold text-base shrink-0">S</div>
-            {!rail && <span className="font-display font-bold text-lg text-gray-900 dark:text-white truncate">SmartRE</span>}
+            {/* In rail mode the wordmark is dropped and the mark stands alone, which is
+                the case the mark was drawn to survive. */}
+            <Logo size={30} showWordmark={!rail} idSuffix="sidebar"/>
           </Link>
           {!rail && (
             <button onClick={onClose} className="lg:hidden w-8 h-8 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-500 transition-colors" aria-label="Close menu">
@@ -220,14 +225,14 @@ export default function Sidebar({ open, onClose }:{ open:boolean; onClose():void
           )}
         </div>
 
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden py-3 px-3 space-y-0.5">
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden py-2 px-2.5 space-y-px">
           {visible.map(item => <NavItem key={item.href} item={item}/>)}
 
           {user?.role === 'ADMIN' && (
             <>
               <div className={cn('pt-4 pb-1', rail ? 'flex justify-center' : 'px-3')}>
                 {rail ? <div className="w-6 border-t border-base"/> : (
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-600">Admin</p>
+                  <p className="text-2xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-600">Admin</p>
                 )}
               </div>
               {adminNav.map(item => <NavItem key={item.href} item={item}/>)}
@@ -237,7 +242,7 @@ export default function Sidebar({ open, onClose }:{ open:boolean; onClose():void
 
         <button onClick={toggleCollapsed}
           className={cn('hidden lg:flex items-center h-10 border-t border-base shrink-0 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#1A1A35] transition-colors',
-            rail ? 'justify-center' : 'justify-start gap-2 px-4 text-[12px] font-medium')}
+            rail ? 'justify-center' : 'justify-start gap-2 px-4 text-xs font-medium')}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
           {collapsed ? <ChevronsRight size={16}/> : <><ChevronsLeft size={16}/>Collapse</>}
         </button>
@@ -245,18 +250,18 @@ export default function Sidebar({ open, onClose }:{ open:boolean; onClose():void
         {user && (
           <div className="p-3 border-t border-base shrink-0">
             <Link href="/profile" onClick={onClose}
-              className={cn('group relative flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-[#1A1A35] transition-colors', rail && 'justify-center p-2')}>
-              <div className="w-9 h-9 rounded-full bg-gold-500 text-white flex items-center justify-center text-xs font-bold shrink-0">
+              className={cn('group relative flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#1A1A35] transition-colors', rail && 'justify-center p-2')}>
+              <div className="w-8 h-8 rounded-full bg-gold-500 text-white flex items-center justify-center text-2xs font-bold shrink-0">
                 {fmt.initials(user.fullName)}
               </div>
               {!rail && (
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{user.fullName}</p>
-                  <p className="text-xs text-muted truncate">{user.role}</p>
+                  <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{user.fullName}</p>
+                  <p className="text-2xs text-muted truncate">{user.role}</p>
                 </div>
               )}
               {rail && (
-                <span className="pointer-events-none absolute left-full ml-3 bottom-1 whitespace-nowrap rounded-md bg-gray-900 dark:bg-black px-2.5 py-1.5 text-[12px] font-medium text-white opacity-0 scale-95 origin-left group-hover:opacity-100 group-hover:scale-100 transition-all duration-150 z-50 shadow-lg">
+                <span className="pointer-events-none absolute left-full ml-3 bottom-1 whitespace-nowrap rounded-md bg-gray-900 dark:bg-black px-2.5 py-1.5 text-sm font-medium text-white opacity-0 scale-95 origin-left group-hover:opacity-100 group-hover:scale-100 transition-all duration-150 z-50 shadow-lg">
                   {user.fullName} · {user.role}
                 </span>
               )}

@@ -1,6 +1,8 @@
 package com.smartseason.payment.service;
 
 import com.smartseason.payment.domain.PaymentIntent;
+import com.smartseason.payment.platform.CountCache;
+import com.smartseason.payment.platform.CountCache;
 import com.smartseason.payment.platform.EventPublisher;
 import com.smartseason.payment.platform.PageResponse;
 import com.smartseason.payment.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class PaymentIntentService {
 
     private static final String RESOURCE = "PaymentIntent";
+    private static final String ENTITY = "payment_intents";
 
     private final PaymentIntentRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public PaymentIntentService(PaymentIntentRepository repository, EventPublisher events) {
+    public PaymentIntentService(PaymentIntentRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<PaymentIntentResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(PaymentIntentResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(PaymentIntentResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public PaymentIntentResponse get(UUID id) {
@@ -64,6 +71,7 @@ public class PaymentIntentService {
         entity.setEscrow(request.escrow());
 
         PaymentIntent saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("money", "PaymentIntentCreated", saved.getId(), PaymentIntentResponse.from(saved));
         return PaymentIntentResponse.from(saved);
     }
@@ -129,6 +137,7 @@ public class PaymentIntentService {
     public void delete(UUID id) {
         PaymentIntent entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("money", "PaymentIntentDeleted", id, null);
     }
 

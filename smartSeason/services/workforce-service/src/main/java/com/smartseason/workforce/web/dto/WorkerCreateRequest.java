@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 public record WorkerCreateRequest(
+        UUID userId,
         @Size(max = 255) String nationalId,
         @NotBlank @Size(max = 255) String fullName,
         @Size(max = 255) String phone,

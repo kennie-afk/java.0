@@ -6,16 +6,17 @@ import { Building2, Plus, MapPin, Eye } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { useMyListings } from '@/hooks/useMyListings'
-import { SELLER_ROLES } from '@/lib/roles'
+import { PROPERTY_OWNER_ROLES } from '@/lib/roles'
 import Button from '@/components/ui/Button'
 import { Card, StatCard } from '@/components/ui/Card'
 import { StatusBadge, TrustBadge } from '@/components/ui/Badge'
 import { EmptyState, SkeletonCard, PageLoader } from '@/components/ui/Modal'
 import { InlineError } from '@/components/ui/InlineError'
 import { fmt } from '@/lib/utils'
+import { mediaSrc } from "@/lib/media"
 
 export default function MyListingsPage() {
-  const { ready } = useAuthGuard(SELLER_ROLES, '/dashboard')
+  const { ready } = useAuthGuard(PROPERTY_OWNER_ROLES, '/dashboard')
   const { items, loading, error, active, inReview, closed, totalViews, hasMore, loadMore, loadingMore } = useMyListings()
 
   const viewsChart = useMemo(() => {
@@ -28,7 +29,7 @@ export default function MyListingsPage() {
   if (!ready) return <PageLoader/>
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-lg font-semibold text-gray-900 dark:text-white">My listings</h1>
@@ -51,8 +52,8 @@ export default function MyListingsPage() {
       {!loading && items.length > 0 && (
         <Card>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display font-semibold text-[13px] flex items-center gap-1"><Eye size={13} className="text-gold-500"/>Views by listing</h2>
-            <span className="text-[11px] text-muted">Top {Math.min(6, items.length)}</span>
+            <h2 className="font-display font-semibold text-base flex items-center gap-1"><Eye size={13} className="text-gold-500"/>Views by listing</h2>
+            <span className="text-xs text-muted">Top {Math.min(6, items.length)}</span>
           </div>
           <ResponsiveContainer width="100%" height={Math.max(120, viewsChart.length * 34)}>
             <BarChart data={viewsChart} layout="vertical" margin={{ left: 0, right: 12 }}>
@@ -77,17 +78,17 @@ export default function MyListingsPage() {
         <Card padding="none">
           <div className="divide-y divide-gray-100 dark:divide-[#1E1E3A]">
             {items.map(p => (
-              <Link key={p.id} href={`/properties/${p.id}`} className="flex items-center gap-3 p-3.5 hover:bg-gray-50 dark:hover:bg-[#1A1A35] transition-colors">
+              <Link key={p.id} href={`/properties/${p.id}`} className="flex items-center gap-3 p-2.5 hover:bg-gray-50 dark:hover:bg-[#1A1A35] transition-colors">
                 <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-gold-100 to-amber-50 dark:from-gold-500/10 dark:to-amber-500/5 flex items-center justify-center shrink-0 overflow-hidden relative">
                   {p.imageUrls?.[0] ? (
-                    <Image src={p.imageUrls[0]} alt={p.title} fill sizes="56px" className="object-cover"/>
+                    <Image src={mediaSrc(p.imageUrls[0])} alt={p.title} fill sizes="56px" className="object-cover"/>
                   ) : <Building2 size={20} className="text-gold-300"/>}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-semibold text-gray-900 dark:text-white truncate">{p.title}</p>
-                  <p className="text-[11px] text-muted flex items-center gap-1"><MapPin size={10}/>{p.county} · {fmt.currency(p.price)}</p>
+                  <p className="text-base font-semibold text-gray-900 dark:text-white truncate">{p.title}</p>
+                  <p className="text-xs text-muted flex items-center gap-1"><MapPin size={10}/>{p.county} · {fmt.currency(p.price)}</p>
                 </div>
-                <div className="hidden sm:flex items-center gap-1 text-[11px] text-muted"><Eye size={11}/>{p.viewCount}</div>
+                <div className="hidden sm:flex items-center gap-1 text-xs text-muted"><Eye size={11}/>{p.viewCount}</div>
                 <TrustBadge identityVerified={p.sellerIdentityVerified} ownershipVerified={p.propertyOwnershipVerified} fullyTrusted={p.fullyTrusted} size="sm"/>
                 <StatusBadge status={p.status} size="sm"/>
               </Link>

@@ -52,7 +52,7 @@ export default function RegisterForm() {
     <Card padding="sm" className="sm:p-6">
       <div className="mb-5">
         <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-white">Create your account</h1>
-        <p className="text-[13px] text-muted mt-1">Free for buyers. Free to list for sellers, and you only pay when a sale closes.</p>
+        <p className="text-base text-muted mt-1">Free for buyers. Free to list for sellers, and you only pay when a sale closes.</p>
       </div>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5">
         <div>
@@ -67,8 +67,8 @@ export default function RegisterForm() {
                     ${active ? 'border-gold-500 bg-gold-50 dark:bg-gold-500/10' : 'border-gray-200 dark:border-[#3A2F1F] hover:border-gold-300'}`}>
                     <info.icon size={17} className={active ? 'text-gold-600 dark:text-gold-400' : 'text-gray-400'}/>
                     <div>
-                      <p className={`text-[13px] font-semibold leading-tight ${active ? 'text-gold-700 dark:text-gold-400' : 'text-gray-700 dark:text-gray-200'}`}>{info.label}</p>
-                      <p className="text-[10px] text-muted leading-tight">{info.desc}</p>
+                      <p className={`text-base font-semibold leading-tight ${active ? 'text-gold-700 dark:text-gold-400' : 'text-gray-700 dark:text-gray-200'}`}>{info.label}</p>
+                      <p className="text-2xs text-muted leading-tight">{info.desc}</p>
                     </div>
                   </div>
                 </label>

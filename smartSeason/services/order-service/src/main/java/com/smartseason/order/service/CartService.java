@@ -1,6 +1,8 @@
 package com.smartseason.order.service;
 
 import com.smartseason.order.domain.Cart;
+import com.smartseason.order.platform.CountCache;
+import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.EventPublisher;
 import com.smartseason.order.platform.PageResponse;
 import com.smartseason.order.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class CartService {
 
     private static final String RESOURCE = "Cart";
+    private static final String ENTITY = "carts";
 
     private final CartRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public CartService(CartRepository repository, EventPublisher events) {
+    public CartService(CartRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<CartResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(CartResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(CartResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public CartResponse get(UUID id) {
@@ -53,6 +60,7 @@ public class CartService {
         entity.setExpiresAt(request.expiresAt());
 
         Cart saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "CartCreated", saved.getId(), CartResponse.from(saved));
         return CartResponse.from(saved);
     }
@@ -85,6 +93,7 @@ public class CartService {
     public void delete(UUID id) {
         Cart entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "CartDeleted", id, null);
     }
 

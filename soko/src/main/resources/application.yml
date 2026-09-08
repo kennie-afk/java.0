@@ -4,7 +4,7 @@ spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/soko}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     hikari:
       maximum-pool-size: ${DB_POOL_MAX:24}
       minimum-idle: 4
@@ -33,7 +33,7 @@ server:
 
 soko:
   jwt:
-    secret: ${SOKO_JWT_SECRET:a-local-development-secret-of-at-least-32-characters}
+    secret: ${SOKO_JWT_SECRET}
     ttl-minutes: ${SOKO_JWT_TTL_MINUTES:720}
 
 management:

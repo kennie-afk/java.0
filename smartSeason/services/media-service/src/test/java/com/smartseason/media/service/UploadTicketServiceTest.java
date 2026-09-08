@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.media.domain.UploadTicket;
+import com.smartseason.media.platform.CountCache;
+import com.smartseason.media.platform.CountCache;
 import com.smartseason.media.platform.EventPublisher;
 import com.smartseason.media.platform.ResourceNotFoundException;
 import com.smartseason.media.platform.TenantContext;
@@ -29,7 +31,10 @@ class UploadTicketServiceTest {
 
     private final UploadTicketRepository repository = mock(UploadTicketRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final UploadTicketService service = new UploadTicketService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final UploadTicketService service = new UploadTicketService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

@@ -56,6 +56,16 @@ spec:
                   name: smartre-config
                   key: KAFKA_BOOTSTRAP_SERVERS
 
+            - name: GATEWAY_SIGNING_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: smartre-secrets
+                  key: GATEWAY_SIGNING_SECRET
+            - name: INTERNAL_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: smartre-secrets
+                  key: INTERNAL_SECRET
           resources:
             requests:
               memory: "256Mi"

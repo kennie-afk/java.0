@@ -110,7 +110,7 @@ export default function RevenuePage() {
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
         <h1 className="font-display text-lg font-semibold text-gray-900 dark:text-white">Revenue</h1>
         <p className="text-muted text-sm mt-1">Platform earnings and escrow management</p>
@@ -126,11 +126,11 @@ export default function RevenuePage() {
       </div>
 
       <Card>
-        <h2 className="font-display font-semibold text-[14px] mb-4">Revenue breakdown</h2>
+        <h2 className="font-display font-semibold text-lg mb-4">Revenue breakdown</h2>
         {chartData.every(d => d.value === 0) ? (
           <div className="h-[200px] flex flex-col items-center justify-center text-center">
             <BarChart3 size={24} className="text-gray-300 dark:text-gray-700 mb-2"/>
-            <p className="text-[13px] text-muted">No revenue recorded yet</p>
+            <p className="text-base text-muted">No revenue recorded yet</p>
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={200}>
@@ -147,18 +147,18 @@ export default function RevenuePage() {
       <Card id="pending-release" className="scroll-mt-20">
         <div className="flex items-center gap-1.5 mb-4">
           <Clock size={15} className="text-amber-500"/>
-          <h2 className="font-display font-semibold text-[14px]">Pending escrow release</h2>
+          <h2 className="font-display font-semibold text-lg">Pending escrow release</h2>
           {pending.length > 0 && <Badge variant="warning">{pending.length}</Badge>}
         </div>
         {pendingError && <InlineError message="Failed to load pending escrow releases."/>}
         {pendingLoading ? (
           <div className="space-y-2">{[0,1].map(i => <div key={i} className="skeleton h-16 rounded-lg"/>)}</div>
         ) : pending.length === 0 ? (
-          <p className="text-muted text-sm text-center py-8">No completed deals awaiting escrow release</p>
+          <p className="text-muted text-sm text-center py-5">No completed deals awaiting escrow release</p>
         ) : (
           <div className="space-y-3">
             {pending.map(p => (
-              <div key={p.id} className="flex items-center gap-4 p-3 rounded-xl bg-amber-50/50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/20 flex-wrap">
+              <div key={p.id} className="flex items-center gap-4 p-3 rounded-lg bg-amber-50/50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/20 flex-wrap">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
                     <p className="text-sm font-semibold text-gray-900 dark:text-white">{p.paymentType.replace(/_/g,' ')}</p>
@@ -175,13 +175,13 @@ export default function RevenuePage() {
       </Card>
 
       <Card id="ledger" className="scroll-mt-20">
-        <h2 className="font-display font-semibold text-[14px] mb-4">Transactions</h2>
+        <h2 className="font-display font-semibold text-lg mb-4">Transactions</h2>
         {items.length===0 ? (
-          <p className="text-muted text-sm text-center py-8">No revenue transactions yet</p>
+          <p className="text-muted text-sm text-center py-5">No revenue transactions yet</p>
         ) : (
           <div className="space-y-3">
             {items.map(item => (
-              <div key={item.id} className="flex items-center gap-4 p-3 rounded-xl bg-gray-50 dark:bg-[#1A1A35] flex-wrap">
+              <div key={item.id} className="flex items-center gap-4 p-3 rounded-lg bg-gray-50 dark:bg-[#1A1A35] flex-wrap">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
                     <p className="text-sm font-semibold text-gray-900 dark:text-white">{item.revenueType.replace(/_/g,' ')}</p>
@@ -214,7 +214,7 @@ export default function RevenuePage() {
         {modal && (
           <div className="space-y-4">
             {dealProperty && (
-              <div className="p-3 bg-gray-50 dark:bg-[#2E2518] rounded-lg text-[13px] space-y-1.5">
+              <div className="p-3 bg-gray-50 dark:bg-[#2E2518] rounded-lg text-base space-y-1.5">
                 <p className="font-semibold text-gray-900 dark:text-white">{dealProperty.title}</p>
                 <p className="text-muted">{dealProperty.county}</p>
                 <div className="flex items-center gap-3 pt-1">
@@ -223,14 +223,14 @@ export default function RevenuePage() {
                 </div>
               </div>
             )}
-            <div className="text-[12px] text-muted grid grid-cols-2 gap-1">
+            <div className="text-sm text-muted grid grid-cols-2 gap-1">
               <span>Buyer: {modal.buyerId.slice(0,8)}...</span>
               <span>Seller: {modal.sellerId.slice(0,8)}...</span>
             </div>
             {dealProperty && !dealProperty.fullyTrusted && (
               <div className="p-3 bg-red-50 dark:bg-red-500/10 rounded-lg space-y-2">
-                <p className="text-[13px] text-red-700 dark:text-red-400 flex items-center gap-1.5"><ShieldAlert size={14}/>This listing is not fully verified.</p>
-                <label className="flex items-center gap-2 text-[12px] text-red-700 dark:text-red-400 cursor-pointer">
+                <p className="text-base text-red-700 dark:text-red-400 flex items-center gap-1.5"><ShieldAlert size={14}/>This listing is not fully verified.</p>
+                <label className="flex items-center gap-2 text-sm text-red-700 dark:text-red-400 cursor-pointer">
                   <input type="checkbox" checked={overrideAck} onChange={e => setOverrideAck(e.target.checked)}/>
                   I have manually confirmed this deal and want to release escrow anyway
                 </label>
@@ -276,7 +276,7 @@ export default function RevenuePage() {
           <Button variant="danger" onClick={submitRefund} loading={refunding} leftIcon={<XCircle size={13}/>}>Refund buyer</Button></>}>
         {refundTarget && (
           <div className="space-y-4">
-            <div className="p-3 bg-red-50 dark:bg-red-500/10 rounded-lg text-[13px] text-red-700 dark:text-red-400">
+            <div className="p-3 bg-red-50 dark:bg-red-500/10 rounded-lg text-base text-red-700 dark:text-red-400">
               This sends {fmt.currency(refundTarget.amount)} back to the buyer&apos;s M-Pesa number via B2C. This cannot be undone.
             </div>
             <Input label="Reason for refund" required placeholder="e.g. Seller withdrew, dispute resolved in buyer's favor..."

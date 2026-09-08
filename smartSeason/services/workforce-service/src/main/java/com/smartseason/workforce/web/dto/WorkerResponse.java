@@ -7,6 +7,7 @@ import java.util.UUID;
 
 public record WorkerResponse(
         UUID id,
+        UUID userId,
         String nationalId,
         String fullName,
         String phone,
@@ -26,6 +27,7 @@ public record WorkerResponse(
     public static WorkerResponse from(Worker entity) {
         return new WorkerResponse(
                 entity.getId(),
+                entity.getUserId(),
                 entity.getNationalId(),
                 entity.getFullName(),
                 entity.getPhone(),

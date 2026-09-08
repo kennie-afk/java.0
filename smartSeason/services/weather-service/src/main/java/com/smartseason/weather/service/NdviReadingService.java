@@ -1,6 +1,8 @@
 package com.smartseason.weather.service;
 
 import com.smartseason.weather.domain.NdviReading;
+import com.smartseason.weather.platform.CountCache;
+import com.smartseason.weather.platform.CountCache;
 import com.smartseason.weather.platform.EventPublisher;
 import com.smartseason.weather.platform.PageResponse;
 import com.smartseason.weather.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class NdviReadingService {
 
     private static final String RESOURCE = "NdviReading";
+    private static final String ENTITY = "ndvi_readings";
 
     private final NdviReadingRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public NdviReadingService(NdviReadingRepository repository, EventPublisher events) {
+    public NdviReadingService(NdviReadingRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<NdviReadingResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(NdviReadingResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(NdviReadingResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public NdviReadingResponse get(UUID id) {
@@ -55,6 +62,7 @@ public class NdviReadingService {
         entity.setTileUrl(request.tileUrl());
 
         NdviReading saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("farm", "NdviReadingCreated", saved.getId(), NdviReadingResponse.from(saved));
         return NdviReadingResponse.from(saved);
     }
@@ -93,6 +101,7 @@ public class NdviReadingService {
     public void delete(UUID id) {
         NdviReading entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("farm", "NdviReadingDeleted", id, null);
     }
 

@@ -1,6 +1,8 @@
 package com.smartseason.notification.service;
 
 import com.smartseason.notification.domain.DeliveryReceipt;
+import com.smartseason.notification.platform.CountCache;
+import com.smartseason.notification.platform.CountCache;
 import com.smartseason.notification.platform.EventPublisher;
 import com.smartseason.notification.platform.PageResponse;
 import com.smartseason.notification.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class DeliveryReceiptService {
 
     private static final String RESOURCE = "DeliveryReceipt";
+    private static final String ENTITY = "delivery_receipts";
 
     private final DeliveryReceiptRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public DeliveryReceiptService(DeliveryReceiptRepository repository, EventPublisher events) {
+    public DeliveryReceiptService(DeliveryReceiptRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<DeliveryReceiptResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(DeliveryReceiptResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(DeliveryReceiptResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public DeliveryReceiptResponse get(UUID id) {
@@ -55,6 +62,7 @@ public class DeliveryReceiptService {
         entity.setRaw(request.raw());
 
         DeliveryReceipt saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("platform", "DeliveryReceiptCreated", saved.getId(), DeliveryReceiptResponse.from(saved));
         return DeliveryReceiptResponse.from(saved);
     }
@@ -93,6 +101,7 @@ public class DeliveryReceiptService {
     public void delete(UUID id) {
         DeliveryReceipt entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("platform", "DeliveryReceiptDeleted", id, null);
     }
 

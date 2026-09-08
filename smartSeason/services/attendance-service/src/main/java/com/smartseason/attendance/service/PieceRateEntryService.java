@@ -1,6 +1,8 @@
 package com.smartseason.attendance.service;
 
 import com.smartseason.attendance.domain.PieceRateEntry;
+import com.smartseason.attendance.platform.CountCache;
+import com.smartseason.attendance.platform.CountCache;
 import com.smartseason.attendance.platform.EventPublisher;
 import com.smartseason.attendance.platform.PageResponse;
 import com.smartseason.attendance.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class PieceRateEntryService {
 
     private static final String RESOURCE = "PieceRateEntry";
+    private static final String ENTITY = "piece_rate_entries";
 
     private final PieceRateEntryRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public PieceRateEntryService(PieceRateEntryRepository repository, EventPublisher events) {
+    public PieceRateEntryService(PieceRateEntryRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<PieceRateEntryResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(PieceRateEntryResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(PieceRateEntryResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public PieceRateEntryResponse get(UUID id) {
@@ -61,6 +68,7 @@ public class PieceRateEntryService {
         entity.setStatus(request.status());
 
         PieceRateEntry saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("workforce", "PieceRateEntryCreated", saved.getId(), PieceRateEntryResponse.from(saved));
         return PieceRateEntryResponse.from(saved);
     }
@@ -117,6 +125,7 @@ public class PieceRateEntryService {
     public void delete(UUID id) {
         PieceRateEntry entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("workforce", "PieceRateEntryDeleted", id, null);
     }
 

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { ShieldCheck, Smartphone, Landmark, Github, Mail } from 'lucide-react'
+import Logo from '@/components/brand/Logo'
 
 const counties = ['Nairobi','Mombasa','Kiambu','Nakuru','Kajiado','Machakos','Uasin Gishu','Kisumu']
 
@@ -15,26 +16,25 @@ export default function PublicFooter() {
   return (
     <footer className="border-t border-base bg-surface-2 mt-14">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-6 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
           <div className="col-span-2">
             <Link href="/" className="flex items-center gap-2 mb-3">
-              <div className="w-7 h-7 bg-gold-500 rounded-lg flex items-center justify-center text-white font-display font-bold text-sm">S</div>
-              <span className="font-display font-bold text-base text-gray-900 dark:text-white">SmartRE</span>
+              <Logo size={28} idSuffix="footer"/>
             </Link>
-            <p className="text-[13px] text-muted leading-relaxed max-w-sm mb-4">
+            <p className="text-base text-muted leading-relaxed max-w-sm mb-4">
               Kenya&apos;s identity-verified property marketplace. Every seller passes National ID and KRA PIN checks;
               every listing is confirmed against the Ministry of Lands Ardhisasa registry before it goes live.
               Payments move through M-Pesa escrow, so buyers never pay an unverified seller.
             </p>
-            <div className="flex items-center gap-3 text-[11px] text-muted">
+            <div className="flex items-center gap-3 text-xs text-muted">
               <span className="flex items-center gap-1"><ShieldCheck size={12} className="text-emerald-500"/>Ardhisasa-verified</span>
               <span className="flex items-center gap-1"><Smartphone size={12} className="text-emerald-500"/>M-Pesa escrow</span>
               <span className="flex items-center gap-1"><Landmark size={12} className="text-emerald-500"/>KRA + ID checked</span>
             </div>
           </div>
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-600 mb-3">Browse</p>
-            <ul className="space-y-2 text-[13px] text-muted">
+            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-600 mb-3">Browse</p>
+            <ul className="space-y-2 text-base text-muted">
               <li><Link href="/properties?listingType=SALE" className="hover:text-gold-500">Property for sale</Link></li>
               <li><Link href="/properties?listingType=RENT" className="hover:text-gold-500">Property to rent</Link></li>
               <li><Link href="/properties?propertyType=LAND" className="hover:text-gold-500">Land</Link></li>
@@ -43,16 +43,16 @@ export default function PublicFooter() {
             </ul>
           </div>
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-600 mb-3">Popular counties</p>
-            <ul className="space-y-2 text-[13px] text-muted">
+            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-600 mb-3">Popular counties</p>
+            <ul className="space-y-2 text-base text-muted">
               {counties.slice(0,5).map(c => (
                 <li key={c}><Link href={`/properties?county=${encodeURIComponent(c)}`} className="hover:text-gold-500">{c}</Link></li>
               ))}
             </ul>
           </div>
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-600 mb-3">Company</p>
-            <ul className="space-y-2 text-[13px] text-muted">
+            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-600 mb-3">Company</p>
+            <ul className="space-y-2 text-base text-muted">
               <li><Link href="/#how-it-works" className="hover:text-gold-500">How it works</Link></li>
               <li><Link href="/#trust" className="hover:text-gold-500">Trust & verification</Link></li>
               <li><Link href="/register" className="hover:text-gold-500">Sell a property</Link></li>
@@ -61,7 +61,7 @@ export default function PublicFooter() {
           </div>
         </div>
         <div className="pt-5 border-t border-base flex flex-col-reverse sm:flex-row items-center justify-between gap-4">
-          <p className="text-[11px] text-muted text-center sm:text-left">© {new Date().getFullYear()} SmartRE Kenya. All rights reserved.</p>
+          <p className="text-xs text-muted text-center sm:text-left">© {new Date().getFullYear()} SmartRE Kenya. All rights reserved.</p>
           <div className="flex items-center gap-2">
             <a href="https://github.com/kennie-afk" target="_blank" rel="noopener noreferrer" aria-label="GitHub"
               className="w-8 h-8 rounded-md border border-base flex items-center justify-center text-muted hover:text-gold-600 hover:border-gold-300 dark:hover:border-gold-500/40 transition-colors">

@@ -10,19 +10,41 @@ x-service-env: &service-env
   SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
   SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
   KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+  # Rate-limit counters. Shared, so every replica of a service spends one
+  # allowance per caller instead of one each.
+  REDIS_HOST: ${REDIS_HOST:-redis}
+  REDIS_PORT: ${REDIS_PORT:-6379}
+  RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
   EVENTS_ENABLED: ${EVENTS_ENABLED:-true}
   JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
   JWT_ISSUER: ${JWT_ISSUER:-smartseason-identity}
   LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  # Application-side pool. These are PgBouncer connections, which are cheap, so
+  # this can be generous; what reaches Postgres is capped by default_pool_size
+  # in pgbouncer.ini. Raise the two together, never one alone.
+  DB_POOL_MAX: ${DB_POOL_MAX:-15}
+  # Returns the password-reset code in the response so the flow can be walked
+  # without a mail provider. Local demo only - it hands the code to anyone who
+  # can name an email address.
+  SMARTSEASON_AUTH_EXPOSE_RESET_CODE: ${EXPOSE_RESET_CODE:-false}
+  # Advisory model. With no key the agronomy service answers from its built-in
+  # rules and says so; with one it reads photographs. Set it in .env or, in a
+  # real deployment, from a secret - never in this file.
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  SMARTSEASON_AI_MODEL: ${SMARTSEASON_AI_MODEL:-claude-sonnet-5}
 
 services:
   postgres:
     image: postgres:16-alpine
+    mem_limit: 768m
+    mem_reservation: 512m
     restart: unless-stopped
     logging: *default-logging
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+    # 27 services each hold a small pool; the 100-connection default is not enough.
+    command: ["postgres", "-c", "max_connections=200"]
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./infra/docker/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
@@ -34,8 +56,35 @@ services:
       timeout: 5s
       retries: 10
 
+  pgbouncer:
+    image: edoburu/pgbouncer:v1.23.1-p2
+    mem_limit: 128m
+    mem_reservation: 64m
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    volumes:
+      - ./infra/docker/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./infra/docker/pgbouncer/entrypoint.sh:/entrypoint.sh:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # Queries a real database through the pooler rather than the admin console,
+      # so the check proves the whole path works, not just that a port is open.
+      test: ["CMD-SHELL", "PGPASSWORD=$$POSTGRES_PASSWORD psql -h 127.0.0.1 -p 6432 -U $$POSTGRES_USER -d identity_db -tAc 'SELECT 1' >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
   redis:
     image: redis:7-alpine
+    mem_limit: 256m
+    mem_reservation: 128m
     restart: unless-stopped
     logging: *default-logging
     command: ["redis-server", "--appendonly", "yes"]
@@ -49,6 +98,8 @@ services:
 
   redpanda:
     image: redpandadata/redpanda:v24.2.8
+    mem_limit: 1g
+    mem_reservation: 512m
     restart: unless-stopped
     logging: *default-logging
     command:
@@ -71,6 +122,8 @@ services:
 
   prometheus:
     image: prom/prometheus:v2.55.1
+    mem_limit: 512m
+    mem_reservation: 256m
     restart: unless-stopped
     logging: *default-logging
     profiles: ["observability"]
@@ -81,6 +134,8 @@ services:
 
   grafana:
     image: grafana/grafana:11.3.1
+    mem_limit: 384m
+    mem_reservation: 192m
     restart: unless-stopped
     logging: *default-logging
     profiles: ["observability"]
@@ -94,6 +149,8 @@ services:
 
   api-gateway:
     build: ./apps/api-gateway
+    mem_limit: 512m
+    mem_reservation: 256m
     restart: unless-stopped
     logging: *default-logging
     environment:
@@ -108,392 +165,729 @@ services:
 
   web:
     build: ./apps/web
+    mem_limit: 512m
+    mem_reservation: 256m
     restart: unless-stopped
     logging: *default-logging
     environment:
       GATEWAY_URL: http://api-gateway:8080
       NODE_ENV: production
+      # Lets the sign-in page open the platform as any configured account
+      # without asking for a password, so each role can be checked quickly.
+      # Off by default; belongs on a build or staging deployment only.
+      QUICK_SIGN_IN: ${QUICK_SIGN_IN:-false}
+      QUICK_SIGN_IN_PASSWORD: ${QUICK_SIGN_IN_PASSWORD:-}
     ports:
       - "${WEB_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     depends_on:
       - api-gateway
 
   identity-service:
+    mem_limit: 384m
+    mem_reservation: 128m
+    # A serial collector and tier-1 compilation keep an idle service near 300MB
+    # instead of 350MB, which is what lets all 27 run at once. Metaspace is
+    # capped at 160m, not lower: Spring Boot with JPA and Kafka loads about
+    # 140MB of classes, and a tighter cap dies on the first write request.
+    entrypoint:
+      ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=35.0",
+       "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=160m", "-XX:TieredStopAtLevel=1",
+       "-Xss512k", "-jar", "app.jar"]
     build: ./services/identity-service
     restart: unless-stopped
     logging: *default-logging
     profiles: ["core", "all"]
     environment:
       <<: *service-env
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/identity_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/identity_db?prepareThreshold=0
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   farm-service:
+    mem_limit: 384m
+    mem_reservation: 128m
+    # A serial collector and tier-1 compilation keep an idle service near 300MB
+    # instead of 350MB, which is what lets all 27 run at once. Metaspace is
+    # capped at 160m, not lower: Spring Boot with JPA and Kafka loads about
+    # 140MB of classes, and a tighter cap dies on the first write request.
+    entrypoint:
+      ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=35.0",
+       "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=160m", "-XX:TieredStopAtLevel=1",
+       "-Xss512k", "-jar", "app.jar"]
     build: ./services/farm-service
     restart: unless-stopped
     logging: *default-logging
     profiles: ["core", "all"]
     environment:
       <<: *service-env
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/farm_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/farm_db?prepareThreshold=0
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   season-service:
+    mem_limit: 384m
+    mem_reservation: 128m
+    # A serial collector and tier-1 compilation keep an idle service near 300MB
+    # instead of 350MB, which is what lets all 27 run at once. Metaspace is
+    # capped at 160m, not lower: Spring Boot with JPA and Kafka loads about
+    # 140MB of classes, and a tighter cap dies on the first write request.
+    entrypoint:
+      ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=35.0",
+       "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=160m", "-XX:TieredStopAtLevel=1",
+       "-Xss512k", "-jar", "app.jar"]
     build: ./services/season-service
     restart: unless-stopped
     logging: *default-logging
     profiles: ["core", "all"]
     environment:
       <<: *service-env
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/season_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/season_db?prepareThreshold=0
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   agronomy-service:
+    mem_limit: 384m
+    mem_reservation: 128m
+    # A serial collector and tier-1 compilation keep an idle service near 300MB
+    # instead of 350MB, which is what lets all 27 run at once. Metaspace is
+    # capped at 160m, not lower: Spring Boot with JPA and Kafka loads about
+    # 140MB of classes, and a tighter cap dies on the first write request.
+    entrypoint:
+      ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=35.0",
+       "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=160m", "-XX:TieredStopAtLevel=1",
+       "-Xss512k", "-jar", "app.jar"]
     build: ./services/agronomy-service
     restart: unless-stopped
     logging: *default-logging
     profiles: ["core", "all"]
     environment:
       <<: *service-env
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/agronomy_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/agronomy_db?prepareThreshold=0
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   weather-service:
+    mem_limit: 384m
+    mem_reservation: 128m
+    # A serial collector and tier-1 compilation keep an idle service near 300MB
+    # instead of 350MB, which is what lets all 27 run at once. Metaspace is
+    # capped at 160m, not lower: Spring Boot with JPA and Kafka loads about
+    # 140MB of classes, and a tighter cap dies on the first write request.
+    entrypoint:
+      ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=35.0",
+       "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=160m", "-XX:TieredStopAtLevel=1",
+       "-Xss512k", "-jar", "app.jar"]
     build: ./services/weather-service
     restart: unless-stopped
     logging: *default-logging
     profiles: ["core", "all"]
     environment:
       <<: *service-env
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/weather_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/weather_db?prepareThreshold=0
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   device-registry-service:
+    mem_limit: 384m
+    mem_reservation: 128m
+    # A serial collector and tier-1 compilation keep an idle service near 300MB
+    # instead of 350MB, which is what lets all 27 run at once. Metaspace is
+    # capped at 160m, not lower: Spring Boot with JPA and Kafka loads about
+    # 140MB of classes, and a tighter cap dies on the first write request.
+    entrypoint:
+      ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=35.0",
+       "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=160m", "-XX:TieredStopAtLevel=1",
+       "-Xss512k", "-jar", "app.jar"]
     build: ./services/device-registry-service
     restart: unless-stopped
     logging: *default-logging
     profiles: ["iot", "all"]
     environment:
       <<: *service-env
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/device_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/device_db?prepareThreshold=0
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   telemetry-ingest-service:
+    mem_limit: 384m
+    mem_reservation: 128m
+    # A serial collector and tier-1 compilation keep an idle service near 300MB
+    # instead of 350MB, which is what lets all 27 run at once. Metaspace is
+    # capped at 160m, not lower: Spring Boot with JPA and Kafka loads about
+    # 140MB of classes, and a tighter cap dies on the first write request.
+    entrypoint:
+      ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=35.0",
+       "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=160m", "-XX:TieredStopAtLevel=1",
+       "-Xss512k", "-jar", "app.jar"]
     build: ./services/telemetry-ingest-service
     restart: unless-stopped
     logging: *default-logging
     profiles: ["iot", "all"]
     environment:
       <<: *service-env
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/telemetry_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/telemetry_db?prepareThreshold=0
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   automation-service:
+    mem_limit: 384m
+    mem_reservation: 128m
+    # A serial collector and tier-1 compilation keep an idle service near 300MB
+    # instead of 350MB, which is what lets all 27 run at once. Metaspace is
+    # capped at 160m, not lower: Spring Boot with JPA and Kafka loads about
+    # 140MB of classes, and a tighter cap dies on the first write request.
+    entrypoint:
+      ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=35.0",
+       "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=160m", "-XX:TieredStopAtLevel=1",
+       "-Xss512k", "-jar", "app.jar"]
     build: ./services/automation-service
     restart: unless-stopped
     logging: *default-logging
     profiles: ["iot", "all"]
     environment:
       <<: *service-env
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/automation_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/automation_db?prepareThreshold=0
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   workforce-service:
+    mem_limit: 384m
+    mem_reservation: 128m
+    # A serial collector and tier-1 compilation keep an idle service near 300MB
+    # instead of 350MB, which is what lets all 27 run at once. Metaspace is
+    # capped at 160m, not lower: Spring Boot with JPA and Kafka loads about
+    # 140MB of classes, and a tighter cap dies on the first write request.
+    entrypoint:
+      ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=35.0",
+       "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=160m", "-XX:TieredStopAtLevel=1",
+       "-Xss512k", "-jar", "app.jar"]
     build: ./services/workforce-service
     restart: unless-stopped
     logging: *default-logging
     profiles: ["workforce", "all"]
     environment:
       <<: *service-env
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/workforce_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/workforce_db?prepareThreshold=0
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   attendance-service:
+    mem_limit: 384m
+    mem_reservation: 128m
+    # A serial collector and tier-1 compilation keep an idle service near 300MB
+    # instead of 350MB, which is what lets all 27 run at once. Metaspace is
+    # capped at 160m, not lower: Spring Boot with JPA and Kafka loads about
+    # 140MB of classes, and a tighter cap dies on the first write request.
+    entrypoint:
+      ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=35.0",
+       "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=160m", "-XX:TieredStopAtLevel=1",
+       "-Xss512k", "-jar", "app.jar"]
     build: ./services/attendance-service
     restart: unless-stopped
     logging: *default-logging
     profiles: ["workforce", "all"]
     environment:
       <<: *service-env
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/attendance_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/attendance_db?prepareThreshold=0
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   task-service:
+    mem_limit: 384m
+    mem_reservation: 128m
+    # A serial collector and tier-1 compilation keep an idle service near 300MB
+    # instead of 350MB, which is what lets all 27 run at once. Metaspace is
+    # capped at 160m, not lower: Spring Boot with JPA and Kafka loads about
+    # 140MB of classes, and a tighter cap dies on the first write request.
+    entrypoint:
+      ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=35.0",
+       "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=160m", "-XX:TieredStopAtLevel=1",
+       "-Xss512k", "-jar", "app.jar"]
     build: ./services/task-service
     restart: unless-stopped
     logging: *default-logging
     profiles: ["workforce", "all"]
     environment:
       <<: *service-env
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/task_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/task_db?prepareThreshold=0
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   fraud-service:
+    mem_limit: 384m
+    mem_reservation: 128m
+    # A serial collector and tier-1 compilation keep an idle service near 300MB
+    # instead of 350MB, which is what lets all 27 run at once. Metaspace is
+    # capped at 160m, not lower: Spring Boot with JPA and Kafka loads about
+    # 140MB of classes, and a tighter cap dies on the first write request.
+    entrypoint:
+      ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=35.0",
+       "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=160m", "-XX:TieredStopAtLevel=1",
+       "-Xss512k", "-jar", "app.jar"]
     build: ./services/fraud-service
     restart: unless-stopped
     logging: *default-logging
     profiles: ["workforce", "all"]
     environment:
       <<: *service-env
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/fraud_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/fraud_db?prepareThreshold=0
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   catalog-service:
+    mem_limit: 384m
+    mem_reservation: 128m
+    # A serial collector and tier-1 compilation keep an idle service near 300MB
+    # instead of 350MB, which is what lets all 27 run at once. Metaspace is
+    # capped at 160m, not lower: Spring Boot with JPA and Kafka loads about
+    # 140MB of classes, and a tighter cap dies on the first write request.
+    entrypoint:
+      ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=35.0",
+       "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=160m", "-XX:TieredStopAtLevel=1",
+       "-Xss512k", "-jar", "app.jar"]
     build: ./services/catalog-service
     restart: unless-stopped
     logging: *default-logging
     profiles: ["market", "all"]
     environment:
       <<: *service-env
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/catalog_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/catalog_db?prepareThreshold=0
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   marketplace-service:
+    mem_limit: 384m
+    mem_reservation: 128m
+    # A serial collector and tier-1 compilation keep an idle service near 300MB
+    # instead of 350MB, which is what lets all 27 run at once. Metaspace is
+    # capped at 160m, not lower: Spring Boot with JPA and Kafka loads about
+    # 140MB of classes, and a tighter cap dies on the first write request.
+    entrypoint:
+      ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=35.0",
+       "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=160m", "-XX:TieredStopAtLevel=1",
+       "-Xss512k", "-jar", "app.jar"]
     build: ./services/marketplace-service
     restart: unless-stopped
     logging: *default-logging
     profiles: ["market", "all"]
     environment:
       <<: *service-env
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/marketplace_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/marketplace_db?prepareThreshold=0
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   pricing-service:
+    mem_limit: 384m
+    mem_reservation: 128m
+    # A serial collector and tier-1 compilation keep an idle service near 300MB
+    # instead of 350MB, which is what lets all 27 run at once. Metaspace is
+    # capped at 160m, not lower: Spring Boot with JPA and Kafka loads about
+    # 140MB of classes, and a tighter cap dies on the first write request.
+    entrypoint:
+      ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=35.0",
+       "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=160m", "-XX:TieredStopAtLevel=1",
+       "-Xss512k", "-jar", "app.jar"]
     build: ./services/pricing-service
     restart: unless-stopped
     logging: *default-logging
     profiles: ["market", "all"]
     environment:
       <<: *service-env
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/pricing_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/pricing_db?prepareThreshold=0
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   order-service:
+    mem_limit: 384m
+    mem_reservation: 128m
+    # A serial collector and tier-1 compilation keep an idle service near 300MB
+    # instead of 350MB, which is what lets all 27 run at once. Metaspace is
+    # capped at 160m, not lower: Spring Boot with JPA and Kafka loads about
+    # 140MB of classes, and a tighter cap dies on the first write request.
+    entrypoint:
+      ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=35.0",
+       "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=160m", "-XX:TieredStopAtLevel=1",
+       "-Xss512k", "-jar", "app.jar"]
     build: ./services/order-service
     restart: unless-stopped
     logging: *default-logging
     profiles: ["market", "all"]
     environment:
       <<: *service-env
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/order_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/order_db?prepareThreshold=0
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   inventory-service:
+    mem_limit: 384m
+    mem_reservation: 128m
+    # A serial collector and tier-1 compilation keep an idle service near 300MB
+    # instead of 350MB, which is what lets all 27 run at once. Metaspace is
+    # capped at 160m, not lower: Spring Boot with JPA and Kafka loads about
+    # 140MB of classes, and a tighter cap dies on the first write request.
+    entrypoint:
+      ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=35.0",
+       "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=160m", "-XX:TieredStopAtLevel=1",
+       "-Xss512k", "-jar", "app.jar"]
     build: ./services/inventory-service
     restart: unless-stopped
     logging: *default-logging
     profiles: ["market", "all"]
     environment:
       <<: *service-env
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/inventory_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/inventory_db?prepareThreshold=0
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   logistics-service:
+    mem_limit: 384m
+    mem_reservation: 128m
+    # A serial collector and tier-1 compilation keep an idle service near 300MB
+    # instead of 350MB, which is what lets all 27 run at once. Metaspace is
+    # capped at 160m, not lower: Spring Boot with JPA and Kafka loads about
+    # 140MB of classes, and a tighter cap dies on the first write request.
+    entrypoint:
+      ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=35.0",
+       "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=160m", "-XX:TieredStopAtLevel=1",
+       "-Xss512k", "-jar", "app.jar"]
     build: ./services/logistics-service
     restart: unless-stopped
     logging: *default-logging
     profiles: ["market", "all"]
     environment:
       <<: *service-env
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/logistics_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/logistics_db?prepareThreshold=0
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   payment-service:
+    mem_limit: 384m
+    mem_reservation: 128m
+    # A serial collector and tier-1 compilation keep an idle service near 300MB
+    # instead of 350MB, which is what lets all 27 run at once. Metaspace is
+    # capped at 160m, not lower: Spring Boot with JPA and Kafka loads about
+    # 140MB of classes, and a tighter cap dies on the first write request.
+    entrypoint:
+      ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=35.0",
+       "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=160m", "-XX:TieredStopAtLevel=1",
+       "-Xss512k", "-jar", "app.jar"]
     build: ./services/payment-service
     restart: unless-stopped
     logging: *default-logging
     profiles: ["money", "all"]
     environment:
       <<: *service-env
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/payment_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/payment_db?prepareThreshold=0
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   ledger-service:
+    mem_limit: 384m
+    mem_reservation: 128m
+    # A serial collector and tier-1 compilation keep an idle service near 300MB
+    # instead of 350MB, which is what lets all 27 run at once. Metaspace is
+    # capped at 160m, not lower: Spring Boot with JPA and Kafka loads about
+    # 140MB of classes, and a tighter cap dies on the first write request.
+    entrypoint:
+      ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=35.0",
+       "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=160m", "-XX:TieredStopAtLevel=1",
+       "-Xss512k", "-jar", "app.jar"]
     build: ./services/ledger-service
     restart: unless-stopped
     logging: *default-logging
     profiles: ["money", "all"]
     environment:
       <<: *service-env
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ledger_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/ledger_db?prepareThreshold=0
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   payout-service:
+    mem_limit: 384m
+    mem_reservation: 128m
+    # A serial collector and tier-1 compilation keep an idle service near 300MB
+    # instead of 350MB, which is what lets all 27 run at once. Metaspace is
+    # capped at 160m, not lower: Spring Boot with JPA and Kafka loads about
+    # 140MB of classes, and a tighter cap dies on the first write request.
+    entrypoint:
+      ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=35.0",
+       "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=160m", "-XX:TieredStopAtLevel=1",
+       "-Xss512k", "-jar", "app.jar"]
     build: ./services/payout-service
     restart: unless-stopped
     logging: *default-logging
     profiles: ["money", "all"]
     environment:
       <<: *service-env
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/payout_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/payout_db?prepareThreshold=0
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   traceability-service:
+    mem_limit: 384m
+    mem_reservation: 128m
+    # A serial collector and tier-1 compilation keep an idle service near 300MB
+    # instead of 350MB, which is what lets all 27 run at once. Metaspace is
+    # capped at 160m, not lower: Spring Boot with JPA and Kafka loads about
+    # 140MB of classes, and a tighter cap dies on the first write request.
+    entrypoint:
+      ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=35.0",
+       "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=160m", "-XX:TieredStopAtLevel=1",
+       "-Xss512k", "-jar", "app.jar"]
     build: ./services/traceability-service
     restart: unless-stopped
     logging: *default-logging
     profiles: ["platform", "all"]
     environment:
       <<: *service-env
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/traceability_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/traceability_db?prepareThreshold=0
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   notification-service:
+    mem_limit: 384m
+    mem_reservation: 128m
+    # A serial collector and tier-1 compilation keep an idle service near 300MB
+    # instead of 350MB, which is what lets all 27 run at once. Metaspace is
+    # capped at 160m, not lower: Spring Boot with JPA and Kafka loads about
+    # 140MB of classes, and a tighter cap dies on the first write request.
+    entrypoint:
+      ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=35.0",
+       "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=160m", "-XX:TieredStopAtLevel=1",
+       "-Xss512k", "-jar", "app.jar"]
     build: ./services/notification-service
     restart: unless-stopped
     logging: *default-logging
     profiles: ["platform", "all"]
     environment:
       <<: *service-env
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/notification_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/notification_db?prepareThreshold=0
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   media-service:
+    mem_limit: 384m
+    mem_reservation: 128m
+    # A serial collector and tier-1 compilation keep an idle service near 300MB
+    # instead of 350MB, which is what lets all 27 run at once. Metaspace is
+    # capped at 160m, not lower: Spring Boot with JPA and Kafka loads about
+    # 140MB of classes, and a tighter cap dies on the first write request.
+    entrypoint:
+      ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=35.0",
+       "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=160m", "-XX:TieredStopAtLevel=1",
+       "-Xss512k", "-jar", "app.jar"]
     build: ./services/media-service
     restart: unless-stopped
     logging: *default-logging
     profiles: ["platform", "all"]
     environment:
       <<: *service-env
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/media_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/media_db?prepareThreshold=0
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   search-service:
+    mem_limit: 384m
+    mem_reservation: 128m
+    # A serial collector and tier-1 compilation keep an idle service near 300MB
+    # instead of 350MB, which is what lets all 27 run at once. Metaspace is
+    # capped at 160m, not lower: Spring Boot with JPA and Kafka loads about
+    # 140MB of classes, and a tighter cap dies on the first write request.
+    entrypoint:
+      ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=35.0",
+       "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=160m", "-XX:TieredStopAtLevel=1",
+       "-Xss512k", "-jar", "app.jar"]
     build: ./services/search-service
     restart: unless-stopped
     logging: *default-logging
     profiles: ["platform", "all"]
     environment:
       <<: *service-env
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/search_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/search_db?prepareThreshold=0
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   analytics-service:
+    mem_limit: 384m
+    mem_reservation: 128m
+    # A serial collector and tier-1 compilation keep an idle service near 300MB
+    # instead of 350MB, which is what lets all 27 run at once. Metaspace is
+    # capped at 160m, not lower: Spring Boot with JPA and Kafka loads about
+    # 140MB of classes, and a tighter cap dies on the first write request.
+    entrypoint:
+      ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=35.0",
+       "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=160m", "-XX:TieredStopAtLevel=1",
+       "-Xss512k", "-jar", "app.jar"]
     build: ./services/analytics-service
     restart: unless-stopped
     logging: *default-logging
     profiles: ["platform", "all"]
     environment:
       <<: *service-env
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/analytics_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/analytics_db?prepareThreshold=0
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
   audit-service:
+    mem_limit: 384m
+    mem_reservation: 128m
+    # A serial collector and tier-1 compilation keep an idle service near 300MB
+    # instead of 350MB, which is what lets all 27 run at once. Metaspace is
+    # capped at 160m, not lower: Spring Boot with JPA and Kafka loads about
+    # 140MB of classes, and a tighter cap dies on the first write request.
+    entrypoint:
+      ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=35.0",
+       "-XX:+UseSerialGC", "-XX:MaxMetaspaceSize=160m", "-XX:TieredStopAtLevel=1",
+       "-Xss512k", "-jar", "app.jar"]
     build: ./services/audit-service
     restart: unless-stopped
     logging: *default-logging
     profiles: ["platform", "all"]
     environment:
       <<: *service-env
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/audit_db
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/audit_db?prepareThreshold=0
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redpanda:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
 volumes:

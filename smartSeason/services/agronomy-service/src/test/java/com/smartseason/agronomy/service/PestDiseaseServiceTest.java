@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.agronomy.domain.PestDisease;
+import com.smartseason.agronomy.platform.CountCache;
+import com.smartseason.agronomy.platform.CountCache;
 import com.smartseason.agronomy.platform.EventPublisher;
 import com.smartseason.agronomy.platform.ResourceNotFoundException;
 import com.smartseason.agronomy.platform.TenantContext;
@@ -29,7 +31,10 @@ class PestDiseaseServiceTest {
 
     private final PestDiseaseRepository repository = mock(PestDiseaseRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final PestDiseaseService service = new PestDiseaseService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final PestDiseaseService service = new PestDiseaseService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

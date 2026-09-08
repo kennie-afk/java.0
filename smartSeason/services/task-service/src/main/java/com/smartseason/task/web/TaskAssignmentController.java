@@ -35,19 +35,21 @@ public class TaskAssignmentController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'WORKER')")
     @Operation(summary = "List task-assignments for the caller's tenant")
     public PageResponse<TaskAssignmentResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'WORKER')")
     @Operation(summary = "Fetch a single TaskAssignment by id")
     public TaskAssignmentResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER')")
     @Operation(summary = "Create a TaskAssignment")
     public ResponseEntity<TaskAssignmentResponse> create(@Valid @RequestBody TaskAssignmentCreateRequest request) {
         TaskAssignmentResponse created = service.create(request);
@@ -55,7 +57,7 @@ public class TaskAssignmentController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER')")
     @Operation(summary = "Apply a partial update to a TaskAssignment")
     public TaskAssignmentResponse update(@PathVariable UUID id, @Valid @RequestBody TaskAssignmentUpdateRequest request) {
         return service.update(id, request);

@@ -88,7 +88,11 @@ class UserServiceTest {
 
     @BeforeEach
     void setup() {
-        when(repo.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(repo.save(any(User.class))).thenAnswer(inv -> {
+            User saved = inv.getArgument(0);
+            if (saved.getId() == null) saved.setId(UUID.randomUUID());
+            return saved;
+        });
         lenient().when(redis.opsForValue()).thenReturn(valueOperations);
     }
 
@@ -125,7 +129,7 @@ class UserServiceTest {
         BadRequestException ex = assertThrows(BadRequestException.class,
                 () -> userService.register(registerRequest("SUPERUSER")));
 
-        assertTrue(ex.getMessage().contains("Role must be BUYER or SELLER"));
+        assertTrue(ex.getMessage().contains("Role must be BUYER, SELLER or LANDLORD"));
         verify(repo, never()).save(any());
     }
 

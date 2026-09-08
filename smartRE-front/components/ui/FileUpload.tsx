@@ -41,7 +41,7 @@ export default function FileUpload({ category, onUploaded, accept = '.jpg,.jpeg,
       onDragLeave={() => setDragOver(false)}
       onDrop={e => { e.preventDefault(); setDragOver(false); handleFile(e.dataTransfer.files?.[0]) }}
       className={cn(
-        'border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors text-center',
+        'border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors text-center',
         compact ? 'p-4' : 'p-8',
         dragOver ? 'border-gold-500 bg-gold-50 dark:bg-gold-500/10' : 'border-gray-200 dark:border-[#1E1E3A] hover:border-gold-300',
       )}
@@ -52,8 +52,8 @@ export default function FileUpload({ category, onUploaded, accept = '.jpg,.jpeg,
       ) : (
         <Upload size={compact ? 18 : 24} className="text-gray-400"/>
       )}
-      <p className={cn('text-muted', compact ? 'text-[11px]' : 'text-sm')}>{uploading ? 'Uploading...' : label}</p>
-      {!compact && <p className="text-[11px] text-muted">JPG, PNG or PDF, up to 10MB</p>}
+      <p className={cn('text-muted', compact ? 'text-xs' : 'text-sm')}>{uploading ? 'Uploading...' : label}</p>
+      {!compact && <p className="text-xs text-muted">JPG, PNG or PDF, up to 10MB</p>}
     </div>
   )
 }

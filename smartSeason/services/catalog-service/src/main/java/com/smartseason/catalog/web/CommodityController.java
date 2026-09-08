@@ -35,19 +35,21 @@ public class CommodityController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'STOREKEEPER', 'BUYER')")
     @Operation(summary = "List commodities for the caller's tenant")
     public PageResponse<CommodityResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'STOREKEEPER', 'BUYER')")
     @Operation(summary = "Fetch a single Commodity by id")
     public CommodityResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Create a Commodity")
     public ResponseEntity<CommodityResponse> create(@Valid @RequestBody CommodityCreateRequest request) {
         CommodityResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class CommodityController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Apply a partial update to a Commodity")
     public CommodityResponse update(@PathVariable UUID id, @Valid @RequestBody CommodityUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a Commodity")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

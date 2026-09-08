@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.task.domain.TaskAssignment;
+import com.smartseason.task.platform.CountCache;
+import com.smartseason.task.platform.CountCache;
 import com.smartseason.task.platform.EventPublisher;
 import com.smartseason.task.platform.ResourceNotFoundException;
 import com.smartseason.task.platform.TenantContext;
@@ -29,7 +31,10 @@ class TaskAssignmentServiceTest {
 
     private final TaskAssignmentRepository repository = mock(TaskAssignmentRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final TaskAssignmentService service = new TaskAssignmentService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final TaskAssignmentService service = new TaskAssignmentService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -54,7 +59,7 @@ class TaskAssignmentServiceTest {
             return saved;
         });
 
-        var response = service.create(new TaskAssignmentCreateRequest(UUID.randomUUID(), null, null, UUID.randomUUID(), Instant.now(), null, null, null, TaskAssignment.Status.ASSIGNED));
+        var response = service.create(new TaskAssignmentCreateRequest(UUID.randomUUID(), null, null, null, UUID.randomUUID(), Instant.now(), null, null, null, TaskAssignment.Status.ASSIGNED));
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("TaskAssignmentCreated"), any(), any());

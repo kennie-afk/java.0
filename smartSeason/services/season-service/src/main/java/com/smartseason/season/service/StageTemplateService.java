@@ -1,6 +1,8 @@
 package com.smartseason.season.service;
 
 import com.smartseason.season.domain.StageTemplate;
+import com.smartseason.season.platform.CountCache;
+import com.smartseason.season.platform.CountCache;
 import com.smartseason.season.platform.EventPublisher;
 import com.smartseason.season.platform.PageResponse;
 import com.smartseason.season.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class StageTemplateService {
 
     private static final String RESOURCE = "StageTemplate";
+    private static final String ENTITY = "stage_templates";
 
     private final StageTemplateRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public StageTemplateService(StageTemplateRepository repository, EventPublisher events) {
+    public StageTemplateService(StageTemplateRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<StageTemplateResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(StageTemplateResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(StageTemplateResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public StageTemplateResponse get(UUID id) {
@@ -54,6 +61,7 @@ public class StageTemplateService {
         entity.setKeyActivities(request.keyActivities());
 
         StageTemplate saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("farm", "StageTemplateCreated", saved.getId(), StageTemplateResponse.from(saved));
         return StageTemplateResponse.from(saved);
     }
@@ -89,6 +97,7 @@ public class StageTemplateService {
     public void delete(UUID id) {
         StageTemplate entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("farm", "StageTemplateDeleted", id, null);
     }
 

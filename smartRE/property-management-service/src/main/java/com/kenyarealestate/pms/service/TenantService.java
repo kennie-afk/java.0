@@ -1,5 +1,6 @@
 package com.kenyarealestate.pms.service;
 
+import com.kenyarealestate.pms.client.UserLookupClient;
 import com.kenyarealestate.pms.dto.*;
 import com.kenyarealestate.pms.entity.Lease;
 import com.kenyarealestate.pms.entity.LeaseStatus;
@@ -23,10 +24,13 @@ public class TenantService {
 
     private final TenantRepository tenants;
     private final LeaseRepository leases;
+    private final UserLookupClient userLookup;
 
-    public TenantService(TenantRepository tenants, LeaseRepository leases) {
+    public TenantService(TenantRepository tenants, LeaseRepository leases,
+                         UserLookupClient userLookup) {
         this.tenants = tenants;
         this.leases = leases;
+        this.userLookup = userLookup;
     }
 
     public TenantResponse create(UUID landlordId, CreateTenantRequest req) {
@@ -80,9 +84,44 @@ public class TenantService {
         return toResponse(tenants.save(t));
     }
 
-    public TenantResponse linkUser(UUID landlordId, UUID tenantId, UUID userId) {
+    /**
+     * Connects a tenant record to the SmartRE account that owns its email address.
+     *
+     * <p>Takes no user id. The previous signature accepted one from the caller and set
+     * it without checking anything, which let a landlord attach any account they could
+     * name to a tenancy — that person would then see the landlord's invoices through
+     * /my-tenancy and could raise maintenance against the unit. Resolving the id from
+     * the address already on the record removes the choice: a landlord can only link
+     * the person they already recorded as living there.
+     *
+     * <p>This is still landlord-asserted rather than tenant-accepted, which is a
+     * weaker guarantee than an invitation the tenant confirms. It is bounded by the
+     * landlord having had to know and record the address first.
+     */
+    public TenantResponse linkUser(UUID landlordId, UUID tenantId) {
         Tenant t = owned(landlordId, tenantId);
+
+        if (t.getUserId() != null) {
+            throw new ConflictException("This tenant is already linked to an account.");
+        }
+        if (t.getEmail() == null || t.getEmail().isBlank()) {
+            throw new ConflictException(
+                    "Add an email address to this tenant before linking their account.");
+        }
+
+        UUID userId = userLookup.findIdByEmail(t.getEmail()).orElseThrow(() ->
+                new ConflictException(
+                        "Nobody has registered with " + t.getEmail()
+                        + ". Ask them to create a SmartRE account with that address first."));
+
         t.setUserId(userId);
+        return toResponse(tenants.save(t));
+    }
+
+    /** Detaches the account, leaving the tenant record and its history intact. */
+    public TenantResponse unlinkUser(UUID landlordId, UUID tenantId) {
+        Tenant t = owned(landlordId, tenantId);
+        t.setUserId(null);
         return toResponse(tenants.save(t));
     }
 

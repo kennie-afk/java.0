@@ -12,7 +12,6 @@ import lombok.NoArgsConstructor;
 public class UserAdminStatsResponse {
     private long buyers;
     private long sellers;
-    private long agents;
     private long admins;
     private long total;
     private long verified;

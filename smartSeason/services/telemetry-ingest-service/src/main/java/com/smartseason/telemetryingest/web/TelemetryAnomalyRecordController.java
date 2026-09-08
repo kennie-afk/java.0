@@ -35,19 +35,21 @@ public class TelemetryAnomalyRecordController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "List telemetry-anomalies for the caller's tenant")
     public PageResponse<TelemetryAnomalyRecordResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "Fetch a single TelemetryAnomalyRecord by id")
     public TelemetryAnomalyRecordResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Create a TelemetryAnomalyRecord")
     public ResponseEntity<TelemetryAnomalyRecordResponse> create(@Valid @RequestBody TelemetryAnomalyRecordCreateRequest request) {
         TelemetryAnomalyRecordResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class TelemetryAnomalyRecordController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Apply a partial update to a TelemetryAnomalyRecord")
     public TelemetryAnomalyRecordResponse update(@PathVariable UUID id, @Valid @RequestBody TelemetryAnomalyRecordUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a TelemetryAnomalyRecord")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

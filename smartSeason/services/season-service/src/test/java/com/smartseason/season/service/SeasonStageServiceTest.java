@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.season.domain.SeasonStage;
+import com.smartseason.season.platform.CountCache;
+import com.smartseason.season.platform.CountCache;
 import com.smartseason.season.platform.EventPublisher;
 import com.smartseason.season.platform.ResourceNotFoundException;
 import com.smartseason.season.platform.TenantContext;
@@ -29,7 +31,10 @@ class SeasonStageServiceTest {
 
     private final SeasonStageRepository repository = mock(SeasonStageRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final SeasonStageService service = new SeasonStageService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final SeasonStageService service = new SeasonStageService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

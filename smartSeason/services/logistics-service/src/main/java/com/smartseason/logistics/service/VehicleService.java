@@ -1,6 +1,8 @@
 package com.smartseason.logistics.service;
 
 import com.smartseason.logistics.domain.Vehicle;
+import com.smartseason.logistics.platform.CountCache;
+import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.EventPublisher;
 import com.smartseason.logistics.platform.PageResponse;
 import com.smartseason.logistics.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class VehicleService {
 
     private static final String RESOURCE = "Vehicle";
+    private static final String ENTITY = "vehicles";
 
     private final VehicleRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public VehicleService(VehicleRepository repository, EventPublisher events) {
+    public VehicleService(VehicleRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<VehicleResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(VehicleResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(VehicleResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public VehicleResponse get(UUID id) {
@@ -56,6 +63,7 @@ public class VehicleService {
         entity.setLastServiceAt(request.lastServiceAt());
 
         Vehicle saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "VehicleCreated", saved.getId(), VehicleResponse.from(saved));
         return VehicleResponse.from(saved);
     }
@@ -97,6 +105,7 @@ public class VehicleService {
     public void delete(UUID id) {
         Vehicle entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "VehicleDeleted", id, null);
     }
 

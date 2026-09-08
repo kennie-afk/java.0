@@ -1,5 +1,6 @@
 package com.kenyarealestate.pms.service;
 
+import java.math.BigDecimal;
 import com.kenyarealestate.pms.dto.*;
 import com.kenyarealestate.pms.entity.*;
 import com.kenyarealestate.pms.exception.ConflictException;
@@ -128,7 +129,57 @@ public class MaintenanceService {
         if (req.getResolutionNotes() != null)              r.setResolutionNotes(req.getResolutionNotes());
         if (req.getCost() != null)                         r.setCost(req.getCost());
 
+        applyCostAttribution(r, req);
+
         return toResponse(requests.save(r), false);
+    }
+
+    /**
+     * Records who pays, and refuses the combinations that are not a decision.
+     *
+     * <p>A cost with no bearer is the state this exists to eliminate: it tells you a
+     * repair was expensive without telling you whose expense it was, which settles no
+     * argument and cannot feed a deposit deduction later. Equally, a SHARED job with no
+     * split is an unfinished thought, and a landlord-borne job with a tenant charge is a
+     * contradiction. All three are rejected here and again by the database.
+     */
+    private void applyCostAttribution(MaintenanceRequest r, UpdateMaintenanceRequest req) {
+        if (StringUtils.hasText(req.getCostBorneBy())) {
+            CostBearer bearer;
+            try {
+                bearer = CostBearer.valueOf(req.getCostBorneBy().trim().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new ConflictException("Cost must be borne by LANDLORD, TENANT or SHARED.");
+            }
+            r.setCostBorneBy(bearer);
+        }
+        if (req.getTenantCharge() != null) {
+            r.setTenantCharge(req.getTenantCharge());
+        }
+
+        CostBearer bearer = r.getCostBorneBy();
+        if (bearer == null) {
+            return;
+        }
+
+        BigDecimal cost = r.getCost() == null ? BigDecimal.ZERO : r.getCost();
+
+        switch (bearer) {
+            case LANDLORD -> r.setTenantCharge(null);
+            // The tenant pays all of it, so the charge is the cost. Deriving it rather
+            // than asking removes a field the caller can get wrong.
+            case TENANT   -> r.setTenantCharge(cost);
+            case SHARED   -> {
+                if (r.getTenantCharge() == null) {
+                    throw new ConflictException(
+                            "Say how much of this the tenant is paying, or mark it as borne by one side.");
+                }
+                if (r.getTenantCharge().compareTo(cost) > 0) {
+                    throw new ConflictException(
+                            "The tenant's share cannot be more than the repair cost.");
+                }
+            }
+        }
     }
 
     private void applyStatus(MaintenanceRequest r, MaintenanceStatus target) {
@@ -271,6 +322,8 @@ public class MaintenanceService {
                 .assignedTo(r.getAssignedTo())
                 .resolutionNotes(r.getResolutionNotes())
                 .cost(r.getCost())
+                .costBorneBy(r.getCostBorneBy() == null ? null : r.getCostBorneBy().name())
+                .tenantCharge(r.getTenantCharge())
                 .createdAt(r.getCreatedAt())
                 .acknowledgedAt(r.getAcknowledgedAt())
                 .resolvedAt(r.getResolvedAt())

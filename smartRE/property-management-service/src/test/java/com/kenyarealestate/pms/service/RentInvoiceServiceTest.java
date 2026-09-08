@@ -18,6 +18,8 @@ import com.kenyarealestate.pms.repository.RentInvoiceRepository;
 import com.kenyarealestate.pms.repository.TenantRepository;
 import com.kenyarealestate.pms.repository.UnitRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -326,5 +328,76 @@ class RentInvoiceServiceTest {
         assertEquals("254700000000", response.getTenantPhone());
         assertEquals(0, BigDecimal.valueOf(25000).compareTo(response.getBalance()));
         assertNotNull(response.getInvoiceNumber());
+    }
+
+    @Nested
+    @DisplayName("who may look at an invoice")
+    class Visibility {
+
+        private final UUID landlord = UUID.randomUUID();
+        private final UUID tenantId = UUID.randomUUID();
+        private final UUID tenantUser = UUID.randomUUID();
+        private final UUID invoiceId = UUID.randomUUID();
+
+        private RentInvoice theInvoice() {
+            return RentInvoice.builder()
+                    .id(invoiceId).leaseId(UUID.randomUUID()).unitId(UUID.randomUUID())
+                    .tenantId(tenantId).landlordId(landlord).invoiceNumber("RNT-202610-B1-0001")
+                    .periodStart(LocalDate.of(2026, 10, 5)).periodEnd(LocalDate.of(2026, 11, 4))
+                    .dueDate(LocalDate.of(2026, 10, 10))
+                    .amountDue(new BigDecimal("120000")).amountPaid(BigDecimal.ZERO)
+                    .status(InvoiceStatus.PENDING).build();
+        }
+
+        @BeforeEach
+        void invoiceExists() {
+            when(invoices.findById(invoiceId)).thenReturn(Optional.of(theInvoice()));
+        }
+
+        @Test
+        @DisplayName("the landlord who issued it")
+        void landlordMaySee() {
+            assertEquals(invoiceId, service.requireVisibleTo(landlord, invoiceId).getId());
+        }
+
+        @Test
+        @DisplayName("the tenant it is addressed to — without this they cannot see a receipt for money they paid")
+        void linkedTenantMaySee() {
+            when(tenants.findByUserId(tenantUser)).thenReturn(List.of(
+                    Tenant.builder().id(tenantId).landlordId(landlord).userId(tenantUser)
+                            .fullName("David Kimani").phone("254733444555").build()));
+
+            assertEquals(invoiceId, service.requireVisibleTo(tenantUser, invoiceId).getId());
+        }
+
+        @Test
+        @DisplayName("nobody else — a stranger with a valid account is refused")
+        void strangerRefused() {
+            UUID stranger = UUID.randomUUID();
+            when(tenants.findByUserId(stranger)).thenReturn(List.of());
+
+            assertThrows(ForbiddenException.class, () -> service.requireVisibleTo(stranger, invoiceId));
+        }
+
+        @Test
+        @DisplayName("another landlord's tenant is refused, even though they are somebody's tenant")
+        void otherTenancyRefused() {
+            UUID otherUser = UUID.randomUUID();
+            when(tenants.findByUserId(otherUser)).thenReturn(List.of(
+                    Tenant.builder().id(UUID.randomUUID()).landlordId(UUID.randomUUID()).userId(otherUser)
+                            .fullName("Someone Else").phone("254700000000").build()));
+
+            assertThrows(ForbiddenException.class, () -> service.requireVisibleTo(otherUser, invoiceId));
+        }
+
+        @Test
+        @DisplayName("visibility is read-only — it does not make a tenant the owner")
+        void visibilityIsNotOwnership() {
+            when(tenants.findByUserId(tenantUser)).thenReturn(List.of(
+                    Tenant.builder().id(tenantId).landlordId(landlord).userId(tenantUser)
+                            .fullName("David Kimani").phone("254733444555").build()));
+
+            assertThrows(ForbiddenException.class, () -> service.requireOwned(tenantUser, invoiceId));
+        }
     }
 }

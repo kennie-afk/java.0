@@ -35,19 +35,21 @@ public class DigitalTwinController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "List digital-twins for the caller's tenant")
     public PageResponse<DigitalTwinResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "Fetch a single DigitalTwin by id")
     public DigitalTwinResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER')")
     @Operation(summary = "Create a DigitalTwin")
     public ResponseEntity<DigitalTwinResponse> create(@Valid @RequestBody DigitalTwinCreateRequest request) {
         DigitalTwinResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class DigitalTwinController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER')")
     @Operation(summary = "Apply a partial update to a DigitalTwin")
     public DigitalTwinResponse update(@PathVariable UUID id, @Valid @RequestBody DigitalTwinUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a DigitalTwin")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

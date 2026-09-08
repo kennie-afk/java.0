@@ -18,6 +18,7 @@ import Select from '@/components/ui/Select'
 import { StatusBadge } from '@/components/ui/Badge'
 import { fmt } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import { mediaSrc } from "@/lib/media"
 
 const TARGET_LINK: Record<string, (id: string) => string> = {
   LISTING: id => `/properties/${id}`,
@@ -95,7 +96,7 @@ function ReportsQueuePageInner() {
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="font-display text-lg font-semibold text-gray-900 dark:text-white">Reports</h1>
-          <p className="text-muted text-[13px] mt-1">{queue.length} {status.toLowerCase()} report{queue.length !== 1 ? 's' : ''} from buyers and sellers</p>
+          <p className="text-muted text-base mt-1">{queue.length} {status.toLowerCase()} report{queue.length !== 1 ? 's' : ''} from buyers and sellers</p>
         </div>
         <div className="w-48">
           <Select label="Status" options={[
@@ -123,21 +124,21 @@ function ReportsQueuePageInner() {
             return (
               <Card key={item.id}>
                 <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-500/10 text-red-500 flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-500 flex items-center justify-center shrink-0">
                     <Flag size={17}/>
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <p className="font-semibold text-gray-900 dark:text-white text-[13px]">{item.reason.replace(/_/g, ' ')}</p>
+                      <p className="font-semibold text-gray-900 dark:text-white text-base">{item.reason.replace(/_/g, ' ')}</p>
                       <StatusBadge status={item.status} size="sm"/>
                     </div>
-                    <p className="text-[12px] text-muted">
+                    <p className="text-sm text-muted">
                       {item.targetType} · {item.targetId.slice(0, 8)}... · reported by {item.reporterId.slice(0, 8)}... · {fmt.date(item.createdAt)}
                     </p>
-                    {item.details && <p className="text-[12px] text-gray-600 dark:text-gray-300 mt-1">{item.details}</p>}
+                    {item.details && <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{item.details}</p>}
                     {linkFn && (
                       <a href={linkFn(item.targetId)} target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[11px] text-gold-600 dark:text-gold-400 mt-1.5 hover:underline">
+                        className="inline-flex items-center gap-1 text-xs text-gold-600 dark:text-gold-400 mt-1.5 hover:underline">
                         View {item.targetType.toLowerCase()} <ExternalLink size={10}/>
                       </a>
                     )}
@@ -158,7 +159,7 @@ function ReportsQueuePageInner() {
           </Button></>}>
         {modal && (
           <div className="space-y-4">
-            <div className="p-3 bg-gray-50 dark:bg-[#2E2518] rounded-lg text-[13px] space-y-1">
+            <div className="p-3 bg-gray-50 dark:bg-[#2E2518] rounded-lg text-base space-y-1">
               <p>Target: {modal.targetType} {modal.targetId}</p>
               <p>Reason: {modal.reason.replace(/_/g, ' ')}</p>
               {modal.details && <p>Details: {modal.details}</p>}
@@ -172,18 +173,18 @@ function ReportsQueuePageInner() {
                   <>
                     <div className="relative w-14 h-14 rounded-md overflow-hidden bg-gray-100 dark:bg-[#1A1509] shrink-0">
                       {evidenceQuery.data.imageUrls?.[0] ? (
-                        <Image src={evidenceQuery.data.imageUrls[0]} alt={evidenceQuery.data.title} fill sizes="56px" className="object-cover"/>
+                        <Image src={mediaSrc(evidenceQuery.data.imageUrls[0])} alt={evidenceQuery.data.title} fill sizes="56px" className="object-cover"/>
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gold-300"><Building2 size={20}/></div>
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[12px] font-medium text-gray-900 dark:text-white truncate">{evidenceQuery.data.title}</p>
-                      <p className="text-[11px] text-muted">{evidenceQuery.data.county} · {fmt.currency(evidenceQuery.data.price)} · <StatusBadge status={evidenceQuery.data.status} size="sm"/></p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{evidenceQuery.data.title}</p>
+                      <p className="text-xs text-muted">{evidenceQuery.data.county} · {fmt.currency(evidenceQuery.data.price)} · <StatusBadge status={evidenceQuery.data.status} size="sm"/></p>
                     </div>
                   </>
                 ) : (
-                  <p className="text-[12px] text-muted">Listing not found - it may have been deleted.</p>
+                  <p className="text-sm text-muted">Listing not found - it may have been deleted.</p>
                 )}
               </div>
             )}
@@ -195,7 +196,7 @@ function ReportsQueuePageInner() {
               <label className="flex items-start gap-2.5 p-2.5 rounded-lg border border-base cursor-pointer hover:bg-gray-50 dark:hover:bg-[#2E2518]">
                 <input type="checkbox" className="mt-0.5" checked={form.takeAction}
                   onChange={e => setForm(f => ({ ...f, takeAction: e.target.checked }))}/>
-                <span className="text-[12px] text-gray-700 dark:text-gray-300">
+                <span className="text-sm text-gray-700 dark:text-gray-300">
                   {modal.targetType === 'LISTING'
                     ? 'Also suspend this listing immediately — it will disappear from search until reactivated.'
                     : modal.targetType === 'USER'

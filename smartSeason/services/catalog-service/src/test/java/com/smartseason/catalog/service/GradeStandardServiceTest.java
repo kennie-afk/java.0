@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.catalog.domain.GradeStandard;
+import com.smartseason.catalog.platform.CountCache;
+import com.smartseason.catalog.platform.CountCache;
 import com.smartseason.catalog.platform.EventPublisher;
 import com.smartseason.catalog.platform.ResourceNotFoundException;
 import com.smartseason.catalog.platform.TenantContext;
@@ -29,7 +31,10 @@ class GradeStandardServiceTest {
 
     private final GradeStandardRepository repository = mock(GradeStandardRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final GradeStandardService service = new GradeStandardService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final GradeStandardService service = new GradeStandardService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

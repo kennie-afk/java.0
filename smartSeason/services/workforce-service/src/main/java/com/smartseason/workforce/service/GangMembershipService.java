@@ -1,6 +1,8 @@
 package com.smartseason.workforce.service;
 
 import com.smartseason.workforce.domain.GangMembership;
+import com.smartseason.workforce.platform.CountCache;
+import com.smartseason.workforce.platform.CountCache;
 import com.smartseason.workforce.platform.EventPublisher;
 import com.smartseason.workforce.platform.PageResponse;
 import com.smartseason.workforce.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class GangMembershipService {
 
     private static final String RESOURCE = "GangMembership";
+    private static final String ENTITY = "gang_memberships";
 
     private final GangMembershipRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public GangMembershipService(GangMembershipRepository repository, EventPublisher events) {
+    public GangMembershipService(GangMembershipRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<GangMembershipResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(GangMembershipResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(GangMembershipResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public GangMembershipResponse get(UUID id) {
@@ -53,6 +60,7 @@ public class GangMembershipService {
         entity.setRole(request.role());
 
         GangMembership saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("workforce", "GangMembershipCreated", saved.getId(), GangMembershipResponse.from(saved));
         return GangMembershipResponse.from(saved);
     }
@@ -85,6 +93,7 @@ public class GangMembershipService {
     public void delete(UUID id) {
         GangMembership entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("workforce", "GangMembershipDeleted", id, null);
     }
 

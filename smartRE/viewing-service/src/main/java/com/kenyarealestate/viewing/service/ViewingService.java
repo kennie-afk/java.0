@@ -192,7 +192,7 @@ public class ViewingService {
         Viewing saved = repo.save(v);
         audit(id, "VIEWING_COMPLETED", prevStatus, ViewingStatus.COMPLETED.name(),
                 null, "SYSTEM", null, "Viewing marked completed");
-        eventPublisher.publishViewingCompleted(saved);
+        eventPublisher.recordAndPublish(saved);
         return toResponse(saved);
     }
 

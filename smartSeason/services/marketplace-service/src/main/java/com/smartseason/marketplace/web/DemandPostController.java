@@ -35,19 +35,21 @@ public class DemandPostController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'BUYER')")
     @Operation(summary = "List demand-posts for the caller's tenant")
     public PageResponse<DemandPostResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'BUYER')")
     @Operation(summary = "Fetch a single DemandPost by id")
     public DemandPostResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'BUYER')")
     @Operation(summary = "Create a DemandPost")
     public ResponseEntity<DemandPostResponse> create(@Valid @RequestBody DemandPostCreateRequest request) {
         DemandPostResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class DemandPostController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'BUYER')")
     @Operation(summary = "Apply a partial update to a DemandPost")
     public DemandPostResponse update(@PathVariable UUID id, @Valid @RequestBody DemandPostUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'BUYER')")
     @Operation(summary = "Delete a DemandPost")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

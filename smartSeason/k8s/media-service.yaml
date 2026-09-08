@@ -1,0 +1,176 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: media-service
+  namespace: smartseason
+  labels:
+    app: media-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: media-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: media-service
+    spec:
+      containers:
+        - name: media-service
+          image: smartseason/media-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8104
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://$(DB_HOST):5432/media_db
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: smartseason-config
+                  key: DB_HOST
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: smartseason-config
+                  key: DB_USERNAME
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smartseason-secrets
+                  key: DB_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: smartseason-secrets
+                  key: JWT_SECRET
+            - name: JWT_ISSUER
+              valueFrom:
+                configMapKeyRef:
+                  name: smartseason-config
+                  key: JWT_ISSUER
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              valueFrom:
+                configMapKeyRef:
+                  name: smartseason-config
+                  key: KAFKA_BOOTSTRAP_SERVERS
+            # The outbox relay is off unless this says otherwise, and its code default is
+            # false. A cluster that does not set it publishes nothing, silently.
+            - name: EVENTS_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: smartseason-config
+                  key: EVENTS_ENABLED
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: smartseason-config
+                  key: LOG_LEVEL
+          resources:
+            requests:
+              memory: "320Mi"
+              cpu: "100m"
+            limits:
+              memory: "640Mi"
+              cpu: "1000m"
+          # Spring Boot needs a minute to bring up a context, a pool and run migrations,
+          # so the liveness probe waits long enough not to kill a service that is simply
+          # still starting.
+          startupProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8104
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8104
+            periodSeconds: 15
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8104
+            periodSeconds: 10
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: media-service
+  namespace: smartseason
+spec:
+  selector:
+    app: media-service
+  ports:
+    - port: 8104
+      targetPort: 8104
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: media-service
+  namespace: smartseason
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: media-service
+  minReplicas: 2
+  maxReplicas: 20
+  metrics:
+    # CPU at 70% of request, not of limit. Request is what the scheduler packs
+    # against, so scaling on it keeps nodes from being oversubscribed.
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    # Memory is a weaker signal for a JVM - a heap that has grown does not shrink,
+    # so utilisation stays high and never falls again. The threshold is set high
+    # enough to catch real pressure without ratcheting replicas up permanently.
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 85
+  behavior:
+    scaleUp:
+      # React quickly to load, but not to a single spike.
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 60
+    scaleDown:
+      # Slowly. A Spring Boot service costs about a minute to start, so shedding
+      # replicas eagerly means paying that again on the next rise.
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 120
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: media-service
+  namespace: smartseason
+spec:
+  # Voluntary disruption only - node drains, cluster upgrades. Without this a
+  # drain can take every replica of a service at once and the service simply
+  # disappears mid-upgrade.
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: media-service

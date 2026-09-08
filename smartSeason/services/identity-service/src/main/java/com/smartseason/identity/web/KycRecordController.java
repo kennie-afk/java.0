@@ -35,19 +35,21 @@ public class KycRecordController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "List kyc-records for the caller's tenant")
     public PageResponse<KycRecordResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Fetch a single KycRecord by id")
     public KycRecordResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Create a KycRecord")
     public ResponseEntity<KycRecordResponse> create(@Valid @RequestBody KycRecordCreateRequest request) {
         KycRecordResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class KycRecordController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Apply a partial update to a KycRecord")
     public KycRecordResponse update(@PathVariable UUID id, @Valid @RequestBody KycRecordUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a KycRecord")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

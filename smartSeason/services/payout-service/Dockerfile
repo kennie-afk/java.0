@@ -2,10 +2,10 @@ FROM maven:3.9-eclipse-temurin-21-alpine AS build
 WORKDIR /app
 
 COPY pom.xml .
-RUN mvn dependency:go-offline --batch-mode -q
+RUN --mount=type=cache,target=/root/.m2 mvn dependency:go-offline --batch-mode -q
 
 COPY src ./src
-RUN mvn package -DskipTests --batch-mode -q
+RUN --mount=type=cache,target=/root/.m2 mvn package -DskipTests --batch-mode -q
 
 FROM eclipse-temurin:21-jre-alpine
 RUN apk add --no-cache curl && addgroup -S app && adduser -S app -G app

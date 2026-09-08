@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.identity.domain.KycRecord;
+import com.smartseason.identity.platform.CountCache;
+import com.smartseason.identity.platform.CountCache;
 import com.smartseason.identity.platform.EventPublisher;
 import com.smartseason.identity.platform.ResourceNotFoundException;
 import com.smartseason.identity.platform.TenantContext;
@@ -29,7 +31,10 @@ class KycRecordServiceTest {
 
     private final KycRecordRepository repository = mock(KycRecordRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final KycRecordService service = new KycRecordService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final KycRecordService service = new KycRecordService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

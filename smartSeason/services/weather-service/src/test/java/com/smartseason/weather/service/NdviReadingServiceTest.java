@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.weather.domain.NdviReading;
+import com.smartseason.weather.platform.CountCache;
+import com.smartseason.weather.platform.CountCache;
 import com.smartseason.weather.platform.EventPublisher;
 import com.smartseason.weather.platform.ResourceNotFoundException;
 import com.smartseason.weather.platform.TenantContext;
@@ -29,7 +31,10 @@ class NdviReadingServiceTest {
 
     private final NdviReadingRepository repository = mock(NdviReadingRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final NdviReadingService service = new NdviReadingService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final NdviReadingService service = new NdviReadingService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

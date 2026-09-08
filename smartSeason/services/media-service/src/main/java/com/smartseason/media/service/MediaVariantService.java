@@ -1,6 +1,8 @@
 package com.smartseason.media.service;
 
 import com.smartseason.media.domain.MediaVariant;
+import com.smartseason.media.platform.CountCache;
+import com.smartseason.media.platform.CountCache;
 import com.smartseason.media.platform.EventPublisher;
 import com.smartseason.media.platform.PageResponse;
 import com.smartseason.media.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class MediaVariantService {
 
     private static final String RESOURCE = "MediaVariant";
+    private static final String ENTITY = "media_variants";
 
     private final MediaVariantRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public MediaVariantService(MediaVariantRepository repository, EventPublisher events) {
+    public MediaVariantService(MediaVariantRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<MediaVariantResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(MediaVariantResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(MediaVariantResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public MediaVariantResponse get(UUID id) {
@@ -56,6 +63,7 @@ public class MediaVariantService {
         entity.setPublicUrl(request.publicUrl());
 
         MediaVariant saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("platform", "MediaVariantCreated", saved.getId(), MediaVariantResponse.from(saved));
         return MediaVariantResponse.from(saved);
     }
@@ -97,6 +105,7 @@ public class MediaVariantService {
     public void delete(UUID id) {
         MediaVariant entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("platform", "MediaVariantDeleted", id, null);
     }
 

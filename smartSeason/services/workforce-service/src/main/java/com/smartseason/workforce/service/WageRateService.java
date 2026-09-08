@@ -1,6 +1,8 @@
 package com.smartseason.workforce.service;
 
 import com.smartseason.workforce.domain.WageRate;
+import com.smartseason.workforce.platform.CountCache;
+import com.smartseason.workforce.platform.CountCache;
 import com.smartseason.workforce.platform.EventPublisher;
 import com.smartseason.workforce.platform.PageResponse;
 import com.smartseason.workforce.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class WageRateService {
 
     private static final String RESOURCE = "WageRate";
+    private static final String ENTITY = "wage_rates";
 
     private final WageRateRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public WageRateService(WageRateRepository repository, EventPublisher events) {
+    public WageRateService(WageRateRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<WageRateResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(WageRateResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(WageRateResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public WageRateResponse get(UUID id) {
@@ -56,6 +63,7 @@ public class WageRateService {
         entity.setEffectiveTo(request.effectiveTo());
 
         WageRate saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("workforce", "WageRateCreated", saved.getId(), WageRateResponse.from(saved));
         return WageRateResponse.from(saved);
     }
@@ -97,6 +105,7 @@ public class WageRateService {
     public void delete(UUID id) {
         WageRate entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("workforce", "WageRateDeleted", id, null);
     }
 

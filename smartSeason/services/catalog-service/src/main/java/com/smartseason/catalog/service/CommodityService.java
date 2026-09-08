@@ -1,6 +1,8 @@
 package com.smartseason.catalog.service;
 
 import com.smartseason.catalog.domain.Commodity;
+import com.smartseason.catalog.platform.CountCache;
+import com.smartseason.catalog.platform.CountCache;
 import com.smartseason.catalog.platform.EventPublisher;
 import com.smartseason.catalog.platform.PageResponse;
 import com.smartseason.catalog.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class CommodityService {
 
     private static final String RESOURCE = "Commodity";
+    private static final String ENTITY = "commodities";
 
     private final CommodityRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public CommodityService(CommodityRepository repository, EventPublisher events) {
+    public CommodityService(CommodityRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<CommodityResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(CommodityResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(CommodityResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public CommodityResponse get(UUID id) {
@@ -55,6 +62,7 @@ public class CommodityService {
         entity.setImageUrl(request.imageUrl());
 
         Commodity saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "CommodityCreated", saved.getId(), CommodityResponse.from(saved));
         return CommodityResponse.from(saved);
     }
@@ -93,6 +101,7 @@ public class CommodityService {
     public void delete(UUID id) {
         Commodity entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "CommodityDeleted", id, null);
     }
 

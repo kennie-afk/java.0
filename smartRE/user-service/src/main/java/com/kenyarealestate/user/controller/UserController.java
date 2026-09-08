@@ -12,6 +12,7 @@ import org.springframework.validation.annotation.Validated;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.UUID;
 
 @Validated
@@ -54,6 +55,18 @@ public class UserController {
     @GetMapping("/internal/{id}/contact")
     public ResponseEntity<UserContactResponse> internalContact(@PathVariable UUID id) {
         return ResponseEntity.ok(svc.getContact(id));
+    }
+
+    @Operation(summary = "Resolve a user id from an email address (internal only)",
+               description = "Called by property-management-service when a landlord links a tenant "
+                           + "record to a SmartRE account. Returns only the id, and only for an "
+                           + "exact email match, so it cannot be used to enumerate users or to "
+                           + "confirm which addresses are registered without already knowing one.")
+    @GetMapping("/internal/resolve")
+    public ResponseEntity<Map<String, String>> internalResolve(@RequestParam String email) {
+        return svc.findIdByEmail(email)
+                .map(id -> ResponseEntity.ok(Map.of("userId", id.toString())))
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping("/admin/all")

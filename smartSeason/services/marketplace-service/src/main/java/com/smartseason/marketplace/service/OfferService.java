@@ -1,6 +1,8 @@
 package com.smartseason.marketplace.service;
 
 import com.smartseason.marketplace.domain.Offer;
+import com.smartseason.marketplace.platform.CountCache;
+import com.smartseason.marketplace.platform.CountCache;
 import com.smartseason.marketplace.platform.EventPublisher;
 import com.smartseason.marketplace.platform.PageResponse;
 import com.smartseason.marketplace.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class OfferService {
 
     private static final String RESOURCE = "Offer";
+    private static final String ENTITY = "offers";
 
     private final OfferRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public OfferService(OfferRepository repository, EventPublisher events) {
+    public OfferService(OfferRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<OfferResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(OfferResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(OfferResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public OfferResponse get(UUID id) {
@@ -60,6 +67,7 @@ public class OfferService {
         entity.setRespondedAt(request.respondedAt());
 
         Offer saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "OfferCreated", saved.getId(), OfferResponse.from(saved));
         return OfferResponse.from(saved);
     }
@@ -113,6 +121,7 @@ public class OfferService {
     public void delete(UUID id) {
         Offer entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "OfferDeleted", id, null);
     }
 

@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.search.domain.IndexJob;
+import com.smartseason.search.platform.CountCache;
+import com.smartseason.search.platform.CountCache;
 import com.smartseason.search.platform.EventPublisher;
 import com.smartseason.search.platform.ResourceNotFoundException;
 import com.smartseason.search.platform.TenantContext;
@@ -29,7 +31,10 @@ class IndexJobServiceTest {
 
     private final IndexJobRepository repository = mock(IndexJobRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final IndexJobService service = new IndexJobService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final IndexJobService service = new IndexJobService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

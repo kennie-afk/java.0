@@ -35,19 +35,21 @@ public class ReportController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'FINANCE')")
     @Operation(summary = "List reports for the caller's tenant")
     public PageResponse<ReportResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'FINANCE')")
     @Operation(summary = "Fetch a single Report by id")
     public ReportResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Create a Report")
     public ResponseEntity<ReportResponse> create(@Valid @RequestBody ReportCreateRequest request) {
         ReportResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class ReportController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Apply a partial update to a Report")
     public ReportResponse update(@PathVariable UUID id, @Valid @RequestBody ReportUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a Report")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

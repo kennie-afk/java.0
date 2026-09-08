@@ -35,19 +35,21 @@ public class PayoutItemController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE')")
     @Operation(summary = "List payout-items for the caller's tenant")
     public PageResponse<PayoutItemResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE')")
     @Operation(summary = "Fetch a single PayoutItem by id")
     public PayoutItemResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Create a PayoutItem")
     public ResponseEntity<PayoutItemResponse> create(@Valid @RequestBody PayoutItemCreateRequest request) {
         PayoutItemResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class PayoutItemController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Apply a partial update to a PayoutItem")
     public PayoutItemResponse update(@PathVariable UUID id, @Valid @RequestBody PayoutItemUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Delete a PayoutItem")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

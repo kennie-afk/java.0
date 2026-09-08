@@ -1,6 +1,8 @@
 package com.smartseason.automation.service;
 
 import com.smartseason.automation.domain.AutomationRule;
+import com.smartseason.automation.platform.CountCache;
+import com.smartseason.automation.platform.CountCache;
 import com.smartseason.automation.platform.EventPublisher;
 import com.smartseason.automation.platform.PageResponse;
 import com.smartseason.automation.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class AutomationRuleService {
 
     private static final String RESOURCE = "AutomationRule";
+    private static final String ENTITY = "automation_rules";
 
     private final AutomationRuleRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public AutomationRuleService(AutomationRuleRepository repository, EventPublisher events) {
+    public AutomationRuleService(AutomationRuleRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<AutomationRuleResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(AutomationRuleResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(AutomationRuleResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public AutomationRuleResponse get(UUID id) {
@@ -59,6 +66,7 @@ public class AutomationRuleService {
         entity.setLastTriggeredAt(request.lastTriggeredAt());
 
         AutomationRule saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("iot", "AutomationRuleCreated", saved.getId(), AutomationRuleResponse.from(saved));
         return AutomationRuleResponse.from(saved);
     }
@@ -109,6 +117,7 @@ public class AutomationRuleService {
     public void delete(UUID id) {
         AutomationRule entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("iot", "AutomationRuleDeleted", id, null);
     }
 

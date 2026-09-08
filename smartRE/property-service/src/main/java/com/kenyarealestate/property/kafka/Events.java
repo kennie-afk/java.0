@@ -67,4 +67,21 @@ public class Events {
         private Integer rating;
         private LocalDateTime postedAt;
     }
+
+    /**
+     * A seller's listings were taken out of the marketplace.
+     *
+     * <p>One event per suspension, carrying the count, rather than one per listing: the
+     * seller wants to be told once with the reason, not three times. The reason travels
+     * with it because "your listings were suspended" without a cause is worse than
+     * useless — it is the thing that generates a support ticket.
+     */
+    @Data @Builder @NoArgsConstructor @AllArgsConstructor
+    public static class ListingsSuspendedEvent {
+        private String eventType;
+        private UUID sellerId;
+        private int suspendedCount;
+        private String reason;
+        private LocalDateTime suspendedAt;
+    }
 }

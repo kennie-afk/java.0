@@ -46,6 +46,10 @@ public class EventRouter {
             case "RENT_RECEIVED"       -> rentReceived(e);
             case "MAINTENANCE_RAISED"   -> maintenanceRaised(e);
             case "MAINTENANCE_RESOLVED" -> maintenanceResolved(e);
+            case "LEASE_ACTIVATED"      -> leaseActivated(e);
+            case "LEASE_ENDED"          -> leaseEnded(e);
+            case "VIEWING_COMPLETED"    -> viewingCompleted(e);
+            case "LISTINGS_SUSPENDED"   -> listingsSuspended(e);
             default -> log.debug("No notification mapped for eventType={} on topic={}", eventType, topic);
         }
     }
@@ -101,7 +105,7 @@ public class EventRouter {
 
         String paymentId = text(e, "paymentId");
         Map<String, Object> model = new HashMap<>();
-        model.put("amount", orDash(text(e, "amount")));
+        model.put("amount", money(text(e, "amount")));
         model.put("currency", e.hasNonNull("currency") ? e.get("currency").asText() : "KES");
         model.put("mpesaReceiptNumber", orDash(text(e, "mpesaReceiptNumber")));
         model.put("paymentType", orDash(text(e, "paymentType")));
@@ -119,6 +123,56 @@ public class EventRouter {
                 .actionUrl(paymentId == null ? "/payments" : "/payments/" + paymentId)
                 .model(model)
                 .build());
+
+        notifySellerOfPayment(e, paymentId);
+    }
+
+    /**
+     * The other side of a payment.
+     *
+     * <p>Only the buyer used to be told, which meant a seller could have their property
+     * paid for and learn about it by refreshing a page. The event has always carried
+     * sellerId; nothing was reading it.
+     *
+     * <p>Not every payment is a sale. A VIEWING_FEE or PROFILE_ACCESS payment is money to
+     * the seller but does not move the property, so it gets the neutral "payment
+     * received" wording; a DEPOSIT or FULL_PAYMENT is the thing they have been waiting
+     * for and says so. Telling a seller their house has sold when a stranger paid to view
+     * it would be a serious message to get wrong.
+     */
+    private void notifySellerOfPayment(JsonNode e, String paymentId) {
+        UUID sellerId = uuid(e, "sellerId");
+        if (sellerId == null) return;
+
+        // Rent is settled between landlord and tenant through RENT_RECEIVED, which is
+        // already delivered with the right wording and the right link. Sending this as
+        // well would be the same news twice.
+        String paymentType = text(e, "paymentType");
+        if ("RENT".equals(paymentType)) return;
+
+        boolean isSale = "DEPOSIT".equals(paymentType) || "FULL_PAYMENT".equals(paymentType);
+
+        Map<String, Object> model = new HashMap<>();
+        model.put("amount", money(text(e, "amount")));
+        model.put("currency", e.hasNonNull("currency") ? e.get("currency").asText() : "KES");
+        model.put("mpesaReceiptNumber", orDash(text(e, "mpesaReceiptNumber")));
+        model.put("paymentType", orDash(paymentType));
+        model.put("receiptLink", paymentId == null ? frontendUrl + "/payments"
+                : frontendUrl + "/payments/" + paymentId);
+
+        dispatcher.dispatch(DispatchCommand.builder()
+                .userId(sellerId)
+                .templateCode(isSale ? "SALE_PAYMENT_RECEIVED" : "SELLER_PAYMENT_RECEIVED")
+                .category(Category.PAYMENT)
+                .sourceEventType("PAYMENT_COMPLETED")
+                // Distinct from the buyer's key: the dedup key is per user and channel,
+                // so both sides can be told about the same payment exactly once each.
+                .sourceEventId(paymentId)
+                .entityType("PAYMENT")
+                .entityId(uuid(e, "paymentId"))
+                .actionUrl(paymentId == null ? "/payments" : "/payments/" + paymentId)
+                .model(model)
+                .build());
     }
 
     private void rentInvoiceIssued(JsonNode e) {
@@ -128,7 +182,7 @@ public class EventRouter {
         Map<String, Object> model = new HashMap<>();
         model.put("unitLabel", orDash(text(e, "unitLabel")));
         model.put("invoiceNumber", orDash(text(e, "invoiceNumber")));
-        model.put("amountDue", orDash(text(e, "amountDue")));
+        model.put("amountDue", money(text(e, "amountDue")));
         model.put("dueDate", orDash(text(e, "dueDate")));
         model.put("invoiceLink", frontendUrl + "/my-tenancy");
 
@@ -153,7 +207,7 @@ public class EventRouter {
         Map<String, Object> model = new HashMap<>();
         model.put("unitLabel", orDash(text(e, "unitLabel")));
         model.put("invoiceNumber", orDash(text(e, "invoiceNumber")));
-        model.put("balance", orDash(text(e, "balance")));
+        model.put("balance", money(text(e, "balance")));
         model.put("dueDate", orDash(text(e, "dueDate")));
         model.put("daysOverdue", days);
         model.put("invoiceLink", frontendUrl + "/my-tenancy");
@@ -178,8 +232,8 @@ public class EventRouter {
         Map<String, Object> model = new HashMap<>();
         model.put("unitLabel", orDash(text(e, "unitLabel")));
         model.put("invoiceNumber", orDash(text(e, "invoiceNumber")));
-        model.put("amount", orDash(text(e, "amount")));
-        model.put("balance", orDash(text(e, "balance")));
+        model.put("amount", money(text(e, "amount")));
+        model.put("balance", money(text(e, "balance")));
         model.put("invoiceLink", frontendUrl + "/my-tenancy");
 
         dispatcher.dispatch(DispatchCommand.builder()
@@ -262,4 +316,141 @@ public class EventRouter {
     }
 
     private static String orDash(String v) { return v == null ? "—" : v; }
+
+    /**
+     * Money, as a person expects to read it.
+     *
+     * <p>The raw value arrives from JSON as whatever the producing service's BigDecimal
+     * serialised to — "25000.0", "15000", "4500000.00" — and putting that straight into
+     * a template produced lines like "KES 25000.0" in real emails. Grouping separators
+     * and exactly two decimal places, or none at all when the amount is whole, because
+     * "KES 25,000" reads as money and "KES 25000.0" reads as a database field.
+     *
+     * <p>Anything unparseable is passed through untouched rather than replaced with a
+     * dash: a number we cannot format is still better information than no number.
+     */
+    private static String money(String raw) {
+        if (raw == null) return "—";
+        try {
+            java.math.BigDecimal v = new java.math.BigDecimal(raw.trim());
+            boolean whole = v.stripTrailingZeros().scale() <= 0;
+            java.text.DecimalFormat f = new java.text.DecimalFormat(whole ? "#,##0" : "#,##0.00");
+            return f.format(v);
+        } catch (NumberFormatException e) {
+            return raw;
+        }
+    }
+
+    /**
+     * A tenancy going live is the moment rent starts and the dashboard becomes the
+     * tenant's, so it is worth an email rather than only a row appearing somewhere.
+     *
+     * <p>Addressed to tenantUserId, not tenantId: the latter is a row in the landlord's
+     * book and may belong to nobody with an account. When it is absent there is simply
+     * no one to write to, which is a normal state and not a failure.
+     */
+    private void leaseActivated(JsonNode e) {
+        UUID tenantUserId = uuid(e, "tenantUserId");
+        if (tenantUserId == null) return;
+
+        Map<String, Object> model = new HashMap<>();
+        model.put("unitLabel", orDash(text(e, "unitLabel")));
+        model.put("rentAmount", money(text(e, "rentAmount")));
+        model.put("billingDay", orDash(text(e, "billingDay")));
+        model.put("startDate", orDash(text(e, "startDate")));
+        model.put("tenancyLink", frontendUrl + "/my-tenancy");
+
+        dispatcher.dispatch(DispatchCommand.builder()
+                .userId(tenantUserId)
+                .templateCode("LEASE_ACTIVATED")
+                .category(Category.TENANCY)
+                .sourceEventType("LEASE_ACTIVATED")
+                .sourceEventId(text(e, "leaseId"))
+                .entityType("LEASE")
+                .entityId(uuid(e, "leaseId"))
+                .actionUrl("/my-tenancy")
+                .model(model)
+                .build());
+    }
+
+    /** The end of a tenancy has deposit and notice consequences; silence is not kind. */
+    private void leaseEnded(JsonNode e) {
+        UUID tenantUserId = uuid(e, "tenantUserId");
+        if (tenantUserId == null) return;
+
+        Map<String, Object> model = new HashMap<>();
+        model.put("unitLabel", orDash(text(e, "unitLabel")));
+        model.put("reason", orDash(text(e, "reason")));
+        model.put("tenancyLink", frontendUrl + "/my-tenancy");
+
+        dispatcher.dispatch(DispatchCommand.builder()
+                .userId(tenantUserId)
+                .templateCode("LEASE_ENDED")
+                .category(Category.TENANCY)
+                .sourceEventType("LEASE_ENDED")
+                .sourceEventId(text(e, "leaseId"))
+                .entityType("LEASE")
+                .entityId(uuid(e, "leaseId"))
+                .actionUrl("/my-tenancy")
+                .model(model)
+                .build());
+    }
+
+    /**
+     * Completing a viewing is what earns a buyer the right to review, and a right nobody
+     * mentions is one nobody exercises. This is the event that makes the review system
+     * work at all.
+     */
+    private void viewingCompleted(JsonNode e) {
+        UUID buyerId = uuid(e, "buyerId");
+        if (buyerId == null) return;
+
+        String propertyId = text(e, "propertyId");
+        Map<String, Object> model = new HashMap<>();
+        model.put("reviewLink", propertyId == null ? frontendUrl + "/reviews"
+                : frontendUrl + "/properties/" + propertyId + "#review");
+
+        dispatcher.dispatch(DispatchCommand.builder()
+                .userId(buyerId)
+                .templateCode("VIEWING_COMPLETED")
+                .category(Category.VIEWING)
+                .sourceEventType("VIEWING_COMPLETED")
+                .sourceEventId(text(e, "viewingId"))
+                .entityType("VIEWING")
+                .entityId(uuid(e, "viewingId"))
+                .actionUrl(propertyId == null ? "/reviews" : "/properties/" + propertyId)
+                .model(model)
+                .build());
+    }
+
+    /**
+     * A seller's listings have been pulled from the marketplace.
+     *
+     * <p>Reaches the seller on every channel they allow, SMS included — this is the case
+     * the SMS budget exists for. Their property has stopped earning and the reason is
+     * something only we know.
+     */
+    private void listingsSuspended(JsonNode e) {
+        UUID sellerId = uuid(e, "sellerId");
+        if (sellerId == null) return;
+
+        Map<String, Object> model = new HashMap<>();
+        model.put("suspendedCount", orDash(text(e, "suspendedCount")));
+        model.put("reason", orDash(text(e, "reason")));
+        model.put("listingsLink", frontendUrl + "/manage-listings");
+
+        dispatcher.dispatch(DispatchCommand.builder()
+                .userId(sellerId)
+                .templateCode("LISTINGS_SUSPENDED")
+                .category(Category.PROPERTY)
+                .sourceEventType("LISTINGS_SUSPENDED")
+                // Keyed on the suspension moment rather than the seller, so a later
+                // suspension for a different reason is a new message rather than a
+                // duplicate that gets swallowed.
+                .sourceEventId(sellerId + ":" + text(e, "suspendedAt"))
+                .entityType("PROPERTY")
+                .actionUrl("/manage-listings")
+                .model(model)
+                .build());
+    }
 }

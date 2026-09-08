@@ -19,13 +19,29 @@
   --color-warn-soft: #fdf4e6;
   --color-danger: #dc2626;
   --color-danger-soft: #fdeded;
+
+  /* The house type scale. Nine steps, each with an explicit line height, because
+     Tailwind's defaults are a size and a half larger than a dense operations UI wants and
+     its leading is generous on top of that. Matches SmartRE so the two products read as
+     one company's work. */
+  --text-2xs: 9.5px;  --text-2xs--line-height: 13px;
+  --text-xs: 10.5px;  --text-xs--line-height: 14px;
+  --text-sm: 11.5px;  --text-sm--line-height: 16px;
+  --text-base: 12px;  --text-base--line-height: 17px;
+  --text-lg: 13px;    --text-lg--line-height: 18px;
+  --text-xl: 14.5px;  --text-xl--line-height: 20px;
+  --text-2xl: 16.5px; --text-2xl--line-height: 22px;
+  --text-3xl: 19px;   --text-3xl--line-height: 25px;
+  --text-4xl: 23px;   --text-4xl--line-height: 29px;
 }
 
 html,
 body {
   background: var(--color-canvas);
   color: var(--color-ink);
-  font-size: 15px;
+  /* 12px, not 15px. This is an operations console read by scanning, and every step of
+     type size costs a row of information on screen. */
+  font-size: 12px;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }

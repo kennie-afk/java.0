@@ -1,6 +1,8 @@
 package com.smartseason.logistics.service;
 
 import com.smartseason.logistics.domain.Driver;
+import com.smartseason.logistics.platform.CountCache;
+import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.EventPublisher;
 import com.smartseason.logistics.platform.PageResponse;
 import com.smartseason.logistics.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class DriverService {
 
     private static final String RESOURCE = "Driver";
+    private static final String ENTITY = "drivers";
 
     private final DriverRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public DriverService(DriverRepository repository, EventPublisher events) {
+    public DriverService(DriverRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<DriverResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(DriverResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(DriverResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public DriverResponse get(UUID id) {
@@ -56,6 +63,7 @@ public class DriverService {
         entity.setStatus(request.status());
 
         Driver saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "DriverCreated", saved.getId(), DriverResponse.from(saved));
         return DriverResponse.from(saved);
     }
@@ -97,6 +105,7 @@ public class DriverService {
     public void delete(UUID id) {
         Driver entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "DriverDeleted", id, null);
     }
 

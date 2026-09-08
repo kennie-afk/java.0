@@ -1,6 +1,8 @@
 package com.smartseason.fraud.service;
 
 import com.smartseason.fraud.domain.FraudEvidence;
+import com.smartseason.fraud.platform.CountCache;
+import com.smartseason.fraud.platform.CountCache;
 import com.smartseason.fraud.platform.EventPublisher;
 import com.smartseason.fraud.platform.PageResponse;
 import com.smartseason.fraud.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class FraudEvidenceService {
 
     private static final String RESOURCE = "FraudEvidence";
+    private static final String ENTITY = "fraud_evidence";
 
     private final FraudEvidenceRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public FraudEvidenceService(FraudEvidenceRepository repository, EventPublisher events) {
+    public FraudEvidenceService(FraudEvidenceRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<FraudEvidenceResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(FraudEvidenceResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(FraudEvidenceResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public FraudEvidenceResponse get(UUID id) {
@@ -54,6 +61,7 @@ public class FraudEvidenceService {
         entity.setCollectedAt(request.collectedAt());
 
         FraudEvidence saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("workforce", "FraudEvidenceCreated", saved.getId(), FraudEvidenceResponse.from(saved));
         return FraudEvidenceResponse.from(saved);
     }
@@ -89,6 +97,7 @@ public class FraudEvidenceService {
     public void delete(UUID id) {
         FraudEvidence entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("workforce", "FraudEvidenceDeleted", id, null);
     }
 

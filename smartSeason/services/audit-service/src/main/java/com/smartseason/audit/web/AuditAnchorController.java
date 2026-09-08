@@ -35,19 +35,21 @@ public class AuditAnchorController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE')")
     @Operation(summary = "List audit-anchors for the caller's tenant")
     public PageResponse<AuditAnchorResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE')")
     @Operation(summary = "Fetch a single AuditAnchor by id")
     public AuditAnchorResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Create a AuditAnchor")
     public ResponseEntity<AuditAnchorResponse> create(@Valid @RequestBody AuditAnchorCreateRequest request) {
         AuditAnchorResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class AuditAnchorController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Apply a partial update to a AuditAnchor")
     public AuditAnchorResponse update(@PathVariable UUID id, @Valid @RequestBody AuditAnchorUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a AuditAnchor")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

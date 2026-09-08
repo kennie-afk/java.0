@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.deviceregistry.domain.DeviceCredential;
+import com.smartseason.deviceregistry.platform.CountCache;
+import com.smartseason.deviceregistry.platform.CountCache;
 import com.smartseason.deviceregistry.platform.EventPublisher;
 import com.smartseason.deviceregistry.platform.ResourceNotFoundException;
 import com.smartseason.deviceregistry.platform.TenantContext;
@@ -29,7 +31,10 @@ class DeviceCredentialServiceTest {
 
     private final DeviceCredentialRepository repository = mock(DeviceCredentialRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final DeviceCredentialService service = new DeviceCredentialService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final DeviceCredentialService service = new DeviceCredentialService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

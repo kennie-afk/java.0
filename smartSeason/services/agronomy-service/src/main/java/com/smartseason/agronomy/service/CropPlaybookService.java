@@ -1,6 +1,8 @@
 package com.smartseason.agronomy.service;
 
 import com.smartseason.agronomy.domain.CropPlaybook;
+import com.smartseason.agronomy.platform.CountCache;
+import com.smartseason.agronomy.platform.CountCache;
 import com.smartseason.agronomy.platform.EventPublisher;
 import com.smartseason.agronomy.platform.PageResponse;
 import com.smartseason.agronomy.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class CropPlaybookService {
 
     private static final String RESOURCE = "CropPlaybook";
+    private static final String ENTITY = "crop_playbooks";
 
     private final CropPlaybookRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public CropPlaybookService(CropPlaybookRepository repository, EventPublisher events) {
+    public CropPlaybookService(CropPlaybookRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<CropPlaybookResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(CropPlaybookResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(CropPlaybookResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public CropPlaybookResponse get(UUID id) {
@@ -54,6 +61,7 @@ public class CropPlaybookService {
         entity.setRevision(request.revision());
 
         CropPlaybook saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("farm", "CropPlaybookCreated", saved.getId(), CropPlaybookResponse.from(saved));
         return CropPlaybookResponse.from(saved);
     }
@@ -89,6 +97,7 @@ public class CropPlaybookService {
     public void delete(UUID id) {
         CropPlaybook entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("farm", "CropPlaybookDeleted", id, null);
     }
 

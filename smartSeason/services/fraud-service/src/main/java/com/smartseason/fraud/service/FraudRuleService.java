@@ -1,6 +1,8 @@
 package com.smartseason.fraud.service;
 
 import com.smartseason.fraud.domain.FraudRule;
+import com.smartseason.fraud.platform.CountCache;
+import com.smartseason.fraud.platform.CountCache;
 import com.smartseason.fraud.platform.EventPublisher;
 import com.smartseason.fraud.platform.PageResponse;
 import com.smartseason.fraud.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class FraudRuleService {
 
     private static final String RESOURCE = "FraudRule";
+    private static final String ENTITY = "fraud_rules";
 
     private final FraudRuleRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public FraudRuleService(FraudRuleRepository repository, EventPublisher events) {
+    public FraudRuleService(FraudRuleRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<FraudRuleResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(FraudRuleResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(FraudRuleResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public FraudRuleResponse get(UUID id) {
@@ -58,6 +65,7 @@ public class FraudRuleService {
         entity.setAutoHoldPayout(request.autoHoldPayout());
 
         FraudRule saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("workforce", "FraudRuleCreated", saved.getId(), FraudRuleResponse.from(saved));
         return FraudRuleResponse.from(saved);
     }
@@ -105,6 +113,7 @@ public class FraudRuleService {
     public void delete(UUID id) {
         FraudRule entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("workforce", "FraudRuleDeleted", id, null);
     }
 

@@ -15,6 +15,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
@@ -44,7 +45,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         boolean headersTrusted = StringUtils.hasText(email)
                 && StringUtils.hasText(signature)
-                && signature.equals(sign(email, role, userId));
+                && signaturesMatch(signature, sign(email, role, userId));
 
         if (!headersTrusted) {
             email = null; role = null; userId = null;
@@ -69,6 +70,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         chain.doFilter(request, response);
+    }
+
+    private boolean signaturesMatch(String presented, String expected) {
+        if (!StringUtils.hasText(expected)) {
+            return false;
+        }
+        return MessageDigest.isEqual(
+                presented.getBytes(StandardCharsets.UTF_8),
+                expected.getBytes(StandardCharsets.UTF_8));
     }
 
     private String sign(String email, String role, String userId) {

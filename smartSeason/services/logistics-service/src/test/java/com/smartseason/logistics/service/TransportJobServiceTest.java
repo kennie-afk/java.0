@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.logistics.domain.TransportJob;
+import com.smartseason.logistics.platform.CountCache;
+import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.EventPublisher;
 import com.smartseason.logistics.platform.ResourceNotFoundException;
 import com.smartseason.logistics.platform.TenantContext;
@@ -29,7 +31,10 @@ class TransportJobServiceTest {
 
     private final TransportJobRepository repository = mock(TransportJobRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final TransportJobService service = new TransportJobService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final TransportJobService service = new TransportJobService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

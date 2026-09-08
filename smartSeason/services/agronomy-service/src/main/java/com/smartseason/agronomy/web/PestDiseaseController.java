@@ -35,19 +35,21 @@ public class PestDiseaseController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "List pest-diseases for the caller's tenant")
     public PageResponse<PestDiseaseResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "Fetch a single PestDisease by id")
     public PestDiseaseResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "Create a PestDisease")
     public ResponseEntity<PestDiseaseResponse> create(@Valid @RequestBody PestDiseaseCreateRequest request) {
         PestDiseaseResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class PestDiseaseController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "Apply a partial update to a PestDisease")
     public PestDiseaseResponse update(@PathVariable UUID id, @Valid @RequestBody PestDiseaseUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGRONOMIST')")
     @Operation(summary = "Delete a PestDisease")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

@@ -1,6 +1,8 @@
 package com.smartseason.catalog.service;
 
 import com.smartseason.catalog.domain.Product;
+import com.smartseason.catalog.platform.CountCache;
+import com.smartseason.catalog.platform.CountCache;
 import com.smartseason.catalog.platform.EventPublisher;
 import com.smartseason.catalog.platform.PageResponse;
 import com.smartseason.catalog.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProductService {
 
     private static final String RESOURCE = "Product";
+    private static final String ENTITY = "products";
 
     private final ProductRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public ProductService(ProductRepository repository, EventPublisher events) {
+    public ProductService(ProductRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<ProductResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(ProductResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(ProductResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public ProductResponse get(UUID id) {
@@ -53,6 +60,7 @@ public class ProductService {
         entity.setStatus(request.status());
 
         Product saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "ProductCreated", saved.getId(), ProductResponse.from(saved));
         return ProductResponse.from(saved);
     }
@@ -85,6 +93,7 @@ public class ProductService {
     public void delete(UUID id) {
         Product entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "ProductDeleted", id, null);
     }
 

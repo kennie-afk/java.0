@@ -35,19 +35,21 @@ public class MediaAssetController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'STOREKEEPER')")
     @Operation(summary = "List media-assets for the caller's tenant")
     public PageResponse<MediaAssetResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'STOREKEEPER')")
     @Operation(summary = "Fetch a single MediaAsset by id")
     public MediaAssetResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'STOREKEEPER')")
     @Operation(summary = "Create a MediaAsset")
     public ResponseEntity<MediaAssetResponse> create(@Valid @RequestBody MediaAssetCreateRequest request) {
         MediaAssetResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class MediaAssetController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'STOREKEEPER')")
     @Operation(summary = "Apply a partial update to a MediaAsset")
     public MediaAssetResponse update(@PathVariable UUID id, @Valid @RequestBody MediaAssetUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a MediaAsset")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

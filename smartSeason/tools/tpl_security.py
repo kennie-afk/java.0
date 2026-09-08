@@ -147,7 +147,9 @@ public class SecurityConfig {{
     }}
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {{
+    public SecurityFilterChain filterChain(HttpSecurity http,
+                                          com.smartseason.{pkg}.ratelimit.RateLimitFilter rateLimitFilter)
+            throws Exception {{
         http
             .csrf(AbstractHttpConfigurer::disable)
             .cors(Customizer.withDefaults())
@@ -160,7 +162,11 @@ public class SecurityConfig {{
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 {public_matchers}                .anyRequest().authenticated())
-            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+            // After authentication, so a caller is counted as a person rather
+            // than an address. Addresses are poor identity at scale: a mobile
+            // network hides thousands of people behind a handful of them.
+            .addFilterAfter(rateLimitFilter, JwtAuthenticationFilter.class);
         return http.build();
     }}
 

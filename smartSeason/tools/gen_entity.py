@@ -112,6 +112,7 @@ import com.smartseason.{pkg}.domain.{name};
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -127,7 +128,12 @@ public interface {name}Repository extends JpaRepository<{name}, UUID> {{
 
     Optional<{name}> findByIdAndTenantId(UUID id, UUID tenantId);
 
-    Page<{name}> findAllByTenantId(UUID tenantId, Pageable pageable);
+    /**
+     * Returns a slice, not a page: a {{@code Page}} issues a second COUNT query
+     * on every call, which walks every row the tenant owns to render a caption.
+     * The total comes from {{@code CountCache}} instead.
+     */
+    Slice<{name}> findAllByTenantId(UUID tenantId, Pageable pageable);
 
     boolean existsByIdAndTenantId(UUID id, UUID tenantId);
 

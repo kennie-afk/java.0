@@ -25,7 +25,21 @@ const mediaHosts = remotePatterns
   .map((p) => `${p.protocol}://${p.hostname}${p.port ? ':' + p.port : ''}`)
   .join(' ')
 
+// Where the server itself reaches the API. The public URL is for the browser;
+// inside the container `localhost:8080` is the container's own loopback, so
+// server-side fetches — the image optimiser above all — need the service name.
+const internalApiUrl = process.env.INTERNAL_API_URL || 'http://api-gateway:8080'
+
 const nextConfig = {
+  output: 'standalone',
+  poweredByHeader: false,
+  async rewrites() {
+    return [
+      // Media is referenced as a root-relative path (see lib/media.ts) so the
+      // optimiser can resolve it. This forwards those paths to the gateway.
+      { source: '/api/documents/files/:path*', destination: `${internalApiUrl}/api/documents/files/:path*` },
+    ]
+  },
   images: {
     remotePatterns,
     dangerouslyAllowSVG: true,

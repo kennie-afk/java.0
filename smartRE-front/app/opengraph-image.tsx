@@ -20,8 +20,24 @@ export default async function Image() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 28 }}>
-          <div style={{ width: 84, height: 84, borderRadius: 20, background: '#C9A227', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48, fontWeight: 700, color: '#FCFAF2' }}>S</div>
-          <div style={{ fontSize: 64, fontWeight: 700, color: '#3A2F1F' }}>SmartRE</div>
+          {/* Satori renders a subset of SVG and no <use>, gradients or filters, so the
+              mark is redrawn here as plain paths in a single gold rather than imported.
+              It is the same geometry as public/logo-icon.svg — if that changes, this
+              must change with it. */}
+          <svg width="104" height="104" viewBox="0 0 512 512">
+            <path d="M 96 372 A 196 196 0 1 1 404 372"
+                  fill="none" stroke="#C9A227" strokeWidth="22" strokeLinecap="round"/>
+            <path d="M 46 206 H 84 L 106 228 H 150" fill="none" stroke="#AD8620" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M 46 256 H 150" fill="none" stroke="#C9A227" strokeWidth="8" strokeLinecap="round"/>
+            <path d="M 46 306 H 84 L 106 284 H 150" fill="none" stroke="#AD8620" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M 268 174 L 164 174 L 164 246 L 258 246 L 258 318 L 154 318"
+                  fill="none" stroke="#C9A227" strokeWidth="34" strokeLinejoin="miter"/>
+            <path d="M 296 157 H 392 L 416 181 V 223 L 394 245 L 420 335 H 380 L 357 251 H 330 V 335 H 296 Z M 330 191 H 382 V 217 H 330 Z"
+                  fill="#C9A227" fillRule="evenodd"/>
+          </svg>
+          <div style={{ fontSize: 64, fontWeight: 700, color: '#3A2F1F', display: 'flex' }}>
+            <span>Smart</span><span style={{ color: '#C9A227' }}>RE</span>
+          </div>
         </div>
         <div style={{ fontSize: 30, color: '#6B5114', maxWidth: 820, textAlign: 'center' }}>
           Identity-Verified Property Marketplace for Kenya

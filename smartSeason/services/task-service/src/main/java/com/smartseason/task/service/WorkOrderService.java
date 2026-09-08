@@ -1,6 +1,8 @@
 package com.smartseason.task.service;
 
 import com.smartseason.task.domain.WorkOrder;
+import com.smartseason.task.platform.CountCache;
+import com.smartseason.task.platform.CountCache;
 import com.smartseason.task.platform.EventPublisher;
 import com.smartseason.task.platform.PageResponse;
 import com.smartseason.task.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class WorkOrderService {
 
     private static final String RESOURCE = "WorkOrder";
+    private static final String ENTITY = "work_orders";
 
     private final WorkOrderRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public WorkOrderService(WorkOrderRepository repository, EventPublisher events) {
+    public WorkOrderService(WorkOrderRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<WorkOrderResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(WorkOrderResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(WorkOrderResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public WorkOrderResponse get(UUID id) {
@@ -59,6 +66,7 @@ public class WorkOrderService {
         entity.setStatus(request.status());
 
         WorkOrder saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("workforce", "WorkOrderCreated", saved.getId(), WorkOrderResponse.from(saved));
         return WorkOrderResponse.from(saved);
     }
@@ -109,6 +117,7 @@ public class WorkOrderService {
     public void delete(UUID id) {
         WorkOrder entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("workforce", "WorkOrderDeleted", id, null);
     }
 

@@ -1,0 +1,36 @@
+<!--
+  SmartSeason mark, simplified for small sizes.
+
+  Same construction as logo-icon.svg - broken ring, traces entering from the left,
+  traces becoming the leaf's veins - but drawn to survive 32px: flat colour instead
+  of gradients, no drop shadow, heavier strokes, and only the midrib kept of the
+  vein structure. Below roughly 56px the detailed mark collapses into a smudge,
+  which is the same threshold SmartRE's mark uses.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"
+     role="img" aria-label="SmartSeason">
+  <title>SmartSeason</title>
+
+  <!-- Ring: thicker than the detailed mark so it holds at a favicon's size. -->
+  <path d="M 96 372 A 196 196 0 1 1 404 372"
+        fill="none" stroke="#15803D" stroke-width="34" stroke-linecap="round"/>
+
+  <!-- Three traces in, reduced to one weight and one colour. -->
+  <g fill="none" stroke="#15803D" stroke-width="26" stroke-linecap="round"
+     stroke-linejoin="round">
+    <path d="M 40 206 H 92 L 116 230 H 156"/>
+    <path d="M 40 256 H 150 L 186 276"/>
+    <path d="M 40 306 H 92 L 116 282 H 156"/>
+  </g>
+
+  <!-- Leaf: solid, with the midrib cut out in the page ground so it still reads as
+       a leaf rather than a filled blob. -->
+  <g transform="translate(14 -22)">
+    <path d="M 176 300
+             C 196 224, 268 166, 372 156
+             C 366 258, 300 322, 176 300 Z"
+          fill="#15803D"/>
+    <path d="M 186 296 L 366 164"
+          fill="none" stroke="#FFFFFF" stroke-width="22" stroke-linecap="round"/>
+  </g>
+</svg>

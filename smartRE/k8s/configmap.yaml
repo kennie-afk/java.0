@@ -8,8 +8,40 @@ data:
   KAFKA_BOOTSTRAP_SERVERS: kafka-service:9092
   PROPERTY_SERVICE_URL: http://property-service:8083
   VERIFICATION_SERVICE_URL: http://verification-service:8082
+  # The public origin. Used for absolute links in emails, and as the gateway's CORS
+  # allowed origin. Its default is http://localhost:3000, which is correct for local
+  # development and silently wrong everywhere else — an email whose buttons point at
+  # localhost is worse than one with no buttons.
+  FRONTEND_URL: https://smartre.co.ke
+  # The public origin of the API. Same host as the front end because the Ingress routes
+  # /api to the gateway — see the note in k8s/ingress.yaml about why one origin rather
+  # than two.
+  #
+  # user-service builds the absolute download URL for every uploaded document from this,
+  # so a localhost default hands clients a link that resolves to their own machine.
+  PUBLIC_API_URL: https://smartre.co.ke
+  # Hosts verification-service is willing to fetch a document from. This is an SSRF
+  # allowlist, so it is deliberately short.
+  #
+  # It must include the host in PUBLIC_API_URL above: user-service hands out document
+  # URLs on that origin, and verification-service refuses to fetch anything whose host is
+  # not listed here. Change one without the other and document analysis fails closed —
+  # correct behaviour, opaque symptom. user-service stays listed for in-cluster fetches
+  # that use the service name directly.
+  DOCUMENT_URL_ALLOWED_HOSTS: smartre.co.ke,user-service
+  MAIL_HOST: smtp.gmail.com
+  # Alphanumeric sender id, if one has been registered with the provider.
+  SMS_SENDER_ID: ""
   SMILE_IDENTITY_ENABLED: "false"
   ARDHISASA_ENABLED: "false"
   DOCUMENT_ANALYSIS_ENABLED: "false"
-  BIOMETRIC_HARD_BLOCK: "false"
+  # A biometric mismatch stops the verification rather than merely scoring it.
+  # This was "false" here while the application default was "true"; since the key
+  # was never wired into a container, the ConfigMap was describing a posture the
+  # cluster did not have. It is now wired, and set to the stricter of the two.
+  BIOMETRIC_HARD_BLOCK: "true"
+  # See the note in k8s/user-service.yaml before deploying with this false.
   S3_ENABLED: "false"
+  S3_REGION: us-east-1
+  S3_BUCKET: smartre-documents
+  S3_PUBLIC_BASE_URL: https://smartre-documents.s3.amazonaws.com

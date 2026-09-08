@@ -306,10 +306,11 @@ class PropertyOwnershipVerificationServiceTest {
         when(ownershipRepo.findById(verif.getId())).thenReturn(Optional.of(verif));
         when(requirementRepo.findByPropertyTypeAndIsMandatoryTrue("FREEHOLD")).thenReturn(List.of());
         when(documentIntelligenceService.isEnabled()).thenReturn(true);
-        when(documentIntelligenceService.analyseAndClassify(anyString(), any(), anyString(), eq(false)))
-                .thenReturn(new DocumentIntelligenceService.DocumentIntelligenceResult(
-                        true, "TITLE_DEED", 90, "N/A", 20, true, false, false, false, false, false, false,
-                        null, java.util.Map.of(), "tampered"));
+        when(documentIntelligenceService.analyseAndClassifyAsync(anyString(), any(), anyString(), eq(false)))
+                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(
+                        new DocumentIntelligenceService.DocumentIntelligenceResult(
+                                true, "TITLE_DEED", 90, "N/A", 20, true, false, false, false, false, false, false,
+                                null, java.util.Map.of(), "tampered")));
         when(fraudFlagService.flagOwnershipFraud(any(), any(), any(), any(), any(), any())).thenReturn(1);
 
         var res = service.submitForReview(SELLER_ID, verif.getId());
@@ -336,10 +337,11 @@ class PropertyOwnershipVerificationServiceTest {
         when(ownershipRepo.findById(verif.getId())).thenReturn(Optional.of(verif));
         when(requirementRepo.findByPropertyTypeAndIsMandatoryTrue("FREEHOLD")).thenReturn(List.of());
         when(documentIntelligenceService.isEnabled()).thenReturn(true);
-        when(documentIntelligenceService.analyseAndClassify(anyString(), any(), anyString(), eq(false)))
-                .thenReturn(new DocumentIntelligenceService.DocumentIntelligenceResult(
-                        false, "UNKNOWN_OR_UNRELATED", 0, "N/A", 0, false, false, true, false, false, false, false,
-                        null, java.util.Map.of(), "Does not look like a title deed."));
+        when(documentIntelligenceService.analyseAndClassifyAsync(anyString(), any(), anyString(), eq(false)))
+                .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(
+                        new DocumentIntelligenceService.DocumentIntelligenceResult(
+                                false, "UNKNOWN_OR_UNRELATED", 0, "N/A", 0, false, false, true, false, false, false, false,
+                                null, java.util.Map.of(), "Does not look like a title deed.")));
 
         var res = service.submitForReview(SELLER_ID, verif.getId());
 

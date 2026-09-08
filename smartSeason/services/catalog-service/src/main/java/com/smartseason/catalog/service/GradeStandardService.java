@@ -1,6 +1,8 @@
 package com.smartseason.catalog.service;
 
 import com.smartseason.catalog.domain.GradeStandard;
+import com.smartseason.catalog.platform.CountCache;
+import com.smartseason.catalog.platform.CountCache;
 import com.smartseason.catalog.platform.EventPublisher;
 import com.smartseason.catalog.platform.PageResponse;
 import com.smartseason.catalog.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class GradeStandardService {
 
     private static final String RESOURCE = "GradeStandard";
+    private static final String ENTITY = "grade_standards";
 
     private final GradeStandardRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public GradeStandardService(GradeStandardRepository repository, EventPublisher events) {
+    public GradeStandardService(GradeStandardRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<GradeStandardResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(GradeStandardResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(GradeStandardResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public GradeStandardResponse get(UUID id) {
@@ -55,6 +62,7 @@ public class GradeStandardService {
         entity.setRevision(request.revision());
 
         GradeStandard saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "GradeStandardCreated", saved.getId(), GradeStandardResponse.from(saved));
         return GradeStandardResponse.from(saved);
     }
@@ -93,6 +101,7 @@ public class GradeStandardService {
     public void delete(UUID id) {
         GradeStandard entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "GradeStandardDeleted", id, null);
     }
 

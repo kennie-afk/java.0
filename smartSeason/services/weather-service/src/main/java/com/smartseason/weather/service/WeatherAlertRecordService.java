@@ -1,6 +1,8 @@
 package com.smartseason.weather.service;
 
 import com.smartseason.weather.domain.WeatherAlertRecord;
+import com.smartseason.weather.platform.CountCache;
+import com.smartseason.weather.platform.CountCache;
 import com.smartseason.weather.platform.EventPublisher;
 import com.smartseason.weather.platform.PageResponse;
 import com.smartseason.weather.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class WeatherAlertRecordService {
 
     private static final String RESOURCE = "WeatherAlertRecord";
+    private static final String ENTITY = "weather_alerts";
 
     private final WeatherAlertRecordRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public WeatherAlertRecordService(WeatherAlertRecordRepository repository, EventPublisher events) {
+    public WeatherAlertRecordService(WeatherAlertRecordRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<WeatherAlertRecordResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(WeatherAlertRecordResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(WeatherAlertRecordResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public WeatherAlertRecordResponse get(UUID id) {
@@ -56,6 +63,7 @@ public class WeatherAlertRecordService {
         entity.setSource(request.source());
 
         WeatherAlertRecord saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("farm", "WeatherAlertRecordCreated", saved.getId(), WeatherAlertRecordResponse.from(saved));
         return WeatherAlertRecordResponse.from(saved);
     }
@@ -97,6 +105,7 @@ public class WeatherAlertRecordService {
     public void delete(UUID id) {
         WeatherAlertRecord entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("farm", "WeatherAlertRecordDeleted", id, null);
     }
 

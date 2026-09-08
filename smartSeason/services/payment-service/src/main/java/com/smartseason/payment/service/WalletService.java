@@ -1,6 +1,8 @@
 package com.smartseason.payment.service;
 
 import com.smartseason.payment.domain.Wallet;
+import com.smartseason.payment.platform.CountCache;
+import com.smartseason.payment.platform.CountCache;
 import com.smartseason.payment.platform.EventPublisher;
 import com.smartseason.payment.platform.PageResponse;
 import com.smartseason.payment.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class WalletService {
 
     private static final String RESOURCE = "Wallet";
+    private static final String ENTITY = "wallets";
 
     private final WalletRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public WalletService(WalletRepository repository, EventPublisher events) {
+    public WalletService(WalletRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<WalletResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(WalletResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(WalletResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public WalletResponse get(UUID id) {
@@ -55,6 +62,7 @@ public class WalletService {
         entity.setLastTransactionAt(request.lastTransactionAt());
 
         Wallet saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("money", "WalletCreated", saved.getId(), WalletResponse.from(saved));
         return WalletResponse.from(saved);
     }
@@ -93,6 +101,7 @@ public class WalletService {
     public void delete(UUID id) {
         Wallet entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("money", "WalletDeleted", id, null);
     }
 

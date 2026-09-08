@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.workforce.domain.Worker;
+import com.smartseason.workforce.platform.CountCache;
+import com.smartseason.workforce.platform.CountCache;
 import com.smartseason.workforce.platform.EventPublisher;
 import com.smartseason.workforce.platform.ResourceNotFoundException;
 import com.smartseason.workforce.platform.TenantContext;
@@ -29,7 +31,10 @@ class WorkerServiceTest {
 
     private final WorkerRepository repository = mock(WorkerRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final WorkerService service = new WorkerService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final WorkerService service = new WorkerService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -54,7 +59,7 @@ class WorkerServiceTest {
             return saved;
         });
 
-        var response = service.create(new WorkerCreateRequest(null, "test", null, null, null, null, null, null, null, Worker.Status.ACTIVE, 1, null, null));
+        var response = service.create(new WorkerCreateRequest(null, null, "test", null, null, null, null, null, null, null, Worker.Status.ACTIVE, 1, null, null));
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("WorkerCreated"), any(), any());

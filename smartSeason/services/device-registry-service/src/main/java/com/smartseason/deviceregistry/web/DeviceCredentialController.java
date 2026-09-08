@@ -35,19 +35,21 @@ public class DeviceCredentialController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER')")
     @Operation(summary = "List device-credentials for the caller's tenant")
     public PageResponse<DeviceCredentialResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER')")
     @Operation(summary = "Fetch a single DeviceCredential by id")
     public DeviceCredentialResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Create a DeviceCredential")
     public ResponseEntity<DeviceCredentialResponse> create(@Valid @RequestBody DeviceCredentialCreateRequest request) {
         DeviceCredentialResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class DeviceCredentialController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Apply a partial update to a DeviceCredential")
     public DeviceCredentialResponse update(@PathVariable UUID id, @Valid @RequestBody DeviceCredentialUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a DeviceCredential")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

@@ -1,6 +1,8 @@
 package com.smartseason.fraud.service;
 
 import com.smartseason.fraud.domain.WorkerRiskScore;
+import com.smartseason.fraud.platform.CountCache;
+import com.smartseason.fraud.platform.CountCache;
 import com.smartseason.fraud.platform.EventPublisher;
 import com.smartseason.fraud.platform.PageResponse;
 import com.smartseason.fraud.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class WorkerRiskScoreService {
 
     private static final String RESOURCE = "WorkerRiskScore";
+    private static final String ENTITY = "worker_risk_scores";
 
     private final WorkerRiskScoreRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public WorkerRiskScoreService(WorkerRiskScoreRepository repository, EventPublisher events) {
+    public WorkerRiskScoreService(WorkerRiskScoreRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<WorkerRiskScoreResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(WorkerRiskScoreResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(WorkerRiskScoreResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public WorkerRiskScoreResponse get(UUID id) {
@@ -56,6 +63,7 @@ public class WorkerRiskScoreService {
         entity.setComponents(request.components());
 
         WorkerRiskScore saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("workforce", "WorkerRiskScoreCreated", saved.getId(), WorkerRiskScoreResponse.from(saved));
         return WorkerRiskScoreResponse.from(saved);
     }
@@ -97,6 +105,7 @@ public class WorkerRiskScoreService {
     public void delete(UUID id) {
         WorkerRiskScore entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("workforce", "WorkerRiskScoreDeleted", id, null);
     }
 

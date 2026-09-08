@@ -35,19 +35,21 @@ public class WeatherStationController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "List weather-stations for the caller's tenant")
     public PageResponse<WeatherStationResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "Fetch a single WeatherStation by id")
     public WeatherStationResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGRONOMIST')")
     @Operation(summary = "Create a WeatherStation")
     public ResponseEntity<WeatherStationResponse> create(@Valid @RequestBody WeatherStationCreateRequest request) {
         WeatherStationResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class WeatherStationController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGRONOMIST')")
     @Operation(summary = "Apply a partial update to a WeatherStation")
     public WeatherStationResponse update(@PathVariable UUID id, @Valid @RequestBody WeatherStationUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a WeatherStation")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

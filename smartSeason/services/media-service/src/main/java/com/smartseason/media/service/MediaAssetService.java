@@ -1,6 +1,8 @@
 package com.smartseason.media.service;
 
 import com.smartseason.media.domain.MediaAsset;
+import com.smartseason.media.platform.CountCache;
+import com.smartseason.media.platform.CountCache;
 import com.smartseason.media.platform.EventPublisher;
 import com.smartseason.media.platform.PageResponse;
 import com.smartseason.media.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class MediaAssetService {
 
     private static final String RESOURCE = "MediaAsset";
+    private static final String ENTITY = "media_assets";
 
     private final MediaAssetRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public MediaAssetService(MediaAssetRepository repository, EventPublisher events) {
+    public MediaAssetService(MediaAssetRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<MediaAssetResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(MediaAssetResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(MediaAssetResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public MediaAssetResponse get(UUID id) {
@@ -67,6 +74,7 @@ public class MediaAssetService {
         entity.setStatus(request.status());
 
         MediaAsset saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("platform", "MediaAssetCreated", saved.getId(), MediaAssetResponse.from(saved));
         return MediaAssetResponse.from(saved);
     }
@@ -141,6 +149,7 @@ public class MediaAssetService {
     public void delete(UUID id) {
         MediaAsset entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("platform", "MediaAssetDeleted", id, null);
     }
 

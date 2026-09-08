@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.*;
+import com.kenyarealestate.property.kafka.PropertyEventPublisher;
 
 @Slf4j
 @Service
@@ -30,6 +31,7 @@ public class PropertyService {
     private final PropertyAuditService auditService;
     private final PropertyImageHashRepository imageHashRepo;
     private final ImageHashService imageHashService;
+    private final PropertyEventPublisher eventPublisher;
 
     private static final String CACHE_DETAIL_PREFIX = "property:detail:";
     private static final String CACHE_SEARCH_PREFIX = "property:search:";
@@ -49,7 +51,9 @@ public class PropertyService {
                            RedisTemplate<String, Object> redis,
                            PropertyAuditService auditService,
                            PropertyImageHashRepository imageHashRepo,
-                           ImageHashService imageHashService) {
+                           ImageHashService imageHashService,
+                           PropertyEventPublisher eventPublisher) {
+        this.eventPublisher = eventPublisher;
         this.repo = repo;
         this.verifClient = verifClient;
         this.redis = redis;
@@ -60,6 +64,10 @@ public class PropertyService {
 
     public PropertyResponse create(UUID sellerId, CreatePropertyRequest req) {
         boolean identityVerified = verifClient.isIdentityVerified(sellerId);
+
+        if (!req.isManageOnly() && (req.getImageUrls() == null || req.getImageUrls().isEmpty())) {
+            throw new IllegalArgumentException("At least one photo is required to advertise a property");
+        }
 
         Property p = repo.save(Property.builder()
                 .sellerId(sellerId)
@@ -80,7 +88,11 @@ public class PropertyService {
                 .yearBuilt(req.getYearBuilt())
                 .imageUrls(req.getImageUrls() != null ? req.getImageUrls() : new ArrayList<>())
                 .sellerIdentityVerified(identityVerified)
-                .status(identityVerified ? ListingStatus.PENDING_VERIFICATION : ListingStatus.DRAFT)
+                // A management-only property never enters the verification queue,
+                // because nothing is being offered to the public for it to protect.
+                .status(req.isManageOnly()
+                        ? ListingStatus.UNLISTED
+                        : (identityVerified ? ListingStatus.PENDING_VERIFICATION : ListingStatus.DRAFT))
                 .build());
 
         syncImageHashes(sellerId, p.getId(), p.getImageUrls());
@@ -260,6 +272,43 @@ public class PropertyService {
         return toResponse(repo.findById(id).orElseThrow(() -> new NotFoundException("Property not found")));
     }
 
+    /**
+     * Moves a management-only property onto the public marketplace.
+     *
+     * <p>The two paths are not separate products, and this is the hinge between them:
+     * a landlord who set up a block to manage it can later decide to advertise a unit,
+     * and should not have to recreate the property to do so. Publishing puts it into
+     * the ordinary verification path — it does not shortcut it, because a property that
+     * skipped verification on the way in must not skip it on the way out.
+     */
+    public PropertyResponse publish(UUID sellerId, UUID propertyId) {
+        Property p = repo.findById(propertyId)
+                .orElseThrow(() -> new NotFoundException("Property not found"));
+
+        if (!p.getSellerId().equals(sellerId)) {
+            throw new NotFoundException("Property not found");
+        }
+        if (p.getStatus() != ListingStatus.UNLISTED) {
+            throw new IllegalArgumentException("Only an unlisted property can be published");
+        }
+        if (p.getImageUrls() == null || p.getImageUrls().isEmpty()) {
+            throw new IllegalArgumentException("Add at least one photo before advertising this property");
+        }
+
+        boolean identityVerified = verifClient.isIdentityVerified(sellerId);
+        String prevStatus = p.getStatus().name();
+
+        p.setSellerIdentityVerified(identityVerified);
+        p.setStatus(identityVerified ? ListingStatus.PENDING_VERIFICATION : ListingStatus.DRAFT);
+        repo.save(p);
+
+        auditService.log(p.getId(), "PROPERTY_PUBLISHED", prevStatus, p.getStatus().name(),
+                sellerId, "SELLER", null, "identityVerified=" + identityVerified);
+
+        evictSearchCache();
+        return toResponse(p);
+    }
+
     public void activateAllForSeller(UUID sellerId) {
         List<Property> props = new ArrayList<>(repo.findBySellerIdAndStatus(sellerId, ListingStatus.DRAFT));
         props.addAll(repo.findBySellerIdAndStatus(sellerId, ListingStatus.PENDING_VERIFICATION));
@@ -277,6 +326,13 @@ public class PropertyService {
         log.info("Activated {} properties for sellerId={}", props.size(), sellerId);
     }
 
+    /**
+     * Takes every one of a seller's listings out of the marketplace.
+     *
+     * <p>Called when an admin bans the seller, and when the fraud-flag threshold is
+     * reached. Until this published an event, both paths were silent: a seller's property
+     * stopped appearing in search and nothing told them, or why.
+     */
     public void suspendAllForSeller(UUID sellerId, String reason) {
         List<Property> props = new ArrayList<>(repo.findBySellerIdAndStatus(sellerId, ListingStatus.ACTIVE));
         props.addAll(repo.findBySellerIdAndStatus(sellerId, ListingStatus.PENDING_VERIFICATION));
@@ -292,6 +348,12 @@ public class PropertyService {
         });
         evictSearchCache();
         log.info("Suspended {} properties for banned sellerId={}", props.size(), sellerId);
+
+        // One event carrying the count, not one per listing: the seller wants telling
+        // once, with the reason.
+        if (!props.isEmpty()) {
+            eventPublisher.publishListingsSuspended(sellerId, props.size(), reason);
+        }
     }
 
     public void markOwnershipVerified(UUID propertyId, String parcelNumber, String titleDeedNumber) {

@@ -1,6 +1,8 @@
 package com.smartseason.payout.service;
 
 import com.smartseason.payout.domain.Settlement;
+import com.smartseason.payout.platform.CountCache;
+import com.smartseason.payout.platform.CountCache;
 import com.smartseason.payout.platform.EventPublisher;
 import com.smartseason.payout.platform.PageResponse;
 import com.smartseason.payout.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class SettlementService {
 
     private static final String RESOURCE = "Settlement";
+    private static final String ENTITY = "settlements";
 
     private final SettlementRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public SettlementService(SettlementRepository repository, EventPublisher events) {
+    public SettlementService(SettlementRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<SettlementResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(SettlementResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(SettlementResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public SettlementResponse get(UUID id) {
@@ -62,6 +69,7 @@ public class SettlementService {
         entity.setApprovedBy(request.approvedBy());
 
         Settlement saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("money", "SettlementCreated", saved.getId(), SettlementResponse.from(saved));
         return SettlementResponse.from(saved);
     }
@@ -121,6 +129,7 @@ public class SettlementService {
     public void delete(UUID id) {
         Settlement entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("money", "SettlementDeleted", id, null);
     }
 

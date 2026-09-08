@@ -45,7 +45,7 @@ import type {
   ViewingResponse, PaymentResponse, PaymentAuditResponse,
   PaymentReceiptResponse, RevenueSummaryResponse, RevenueResponse,
   ReviewResponse, SellerRatingResponse, ReviewAdminStatsResponse,
-  ReportResponse, AgentApplicationResponse,
+  ReportResponse,
   NotificationResponse, UnreadCountResponse, NotificationPreferenceResponse,
   AdminNotificationResponse, NotificationStatus,
   UnitResponse, TenantRecord, LeaseResponse, PortfolioSummaryResponse,
@@ -69,7 +69,7 @@ export const userApi = {
   changePassword: (d:object) => pu<void>('/api/users/me/password', d),
   getById:  (id:string) => g<UserResponse>(`/api/users/${id}`),
   allAdmin: (page = 0, size = 20) => g<PageResponse<UserResponse>>('/api/users/admin/all', { page, size }),
-  adminStats: () => g<{ buyers: number; sellers: number; agents: number; admins: number; total: number; verified: number }>('/api/users/admin/stats'),
+  adminStats: () => g<{ buyers: number; sellers: number; admins: number; total: number; verified: number }>('/api/users/admin/stats'),
   promote:  (id:string) => pu<UserResponse>(`/api/users/admin/${id}/promote`),
   ban:      (id:string) => pu<UserResponse>(`/api/users/admin/${id}/ban`),
   unban:    (id:string) => pu<UserResponse>(`/api/users/admin/${id}/unban`),
@@ -167,12 +167,6 @@ export const reportApi = {
   adminResolve:(id:string, d:object) => pu<ReportResponse>(`/api/verification/reports/admin/${id}/resolve`, d),
 }
 
-export const agentApplicationApi = {
-  submit:     (d:object) => po<AgentApplicationResponse>('/api/agent-applications', d),
-  mine:       () => g<AgentApplicationResponse>('/api/agent-applications/mine'),
-  adminQueue: (status = 'SUBMITTED', size = 500) => g<PageResponse<AgentApplicationResponse>>('/api/agent-applications/admin/queue', { status, size }),
-  adminReview:(id:string, d:object) => pu<AgentApplicationResponse>(`/api/agent-applications/admin/${id}/review`, d),
-}
 
 export const notificationApi = {
   feed:        (page = 0, size = 20) => g<PageResponse<NotificationResponse>>('/api/notifications/my', { page, size }),
@@ -190,7 +184,10 @@ export const notificationApi = {
 export const pmsApi = {
   units: {
     create:      (d:object) => po<UnitResponse>('/api/units', d),
-    mine:        (p?: { status?:string; page?:number; size?:number }) => g<PageResponse<UnitResponse>>('/api/units/my', p),
+    // propertyId and q are filtered in the database, not in the browser. A landlord with
+    // several hundred units cannot download them all to search three of them.
+    mine:        (p?: { propertyId?:string; status?:string; q?:string; page?:number; size?:number }) =>
+                   g<PageResponse<UnitResponse>>('/api/units/my', p),
     summary:     () => g<PortfolioSummaryResponse>('/api/units/my/summary'),
     byProperty:  (propertyId:string) => g<UnitResponse[]>(`/api/units/property/${propertyId}`),
     get:         (id:string) => g<UnitResponse>(`/api/units/${id}`),
@@ -203,7 +200,11 @@ export const pmsApi = {
     mine:     (p?: { q?:string; page?:number; size?:number }) => g<PageResponse<TenantRecord>>('/api/tenants/my', p),
     get:      (id:string) => g<TenantRecord>(`/api/tenants/${id}`),
     update:   (id:string, d:object) => pu<TenantRecord>(`/api/tenants/${id}`, d),
-    linkUser: (id:string, userId:string) => pu<TenantRecord>(`/api/tenants/${id}/link-user`, { userId }),
+    // No body: the server resolves the account from the email already recorded against
+    // the tenant. Passing a userId here would let a landlord attach any account they
+    // could name to a tenant record they own.
+    linkUser:   (id:string) => pu<TenantRecord>(`/api/tenants/${id}/link-user`),
+    unlinkUser: (id:string) => pu<TenantRecord>(`/api/tenants/${id}/unlink-user`),
     remove:   (id:string) => de(`/api/tenants/${id}`),
   },
   leases: {

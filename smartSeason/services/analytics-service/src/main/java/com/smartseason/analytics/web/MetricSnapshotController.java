@@ -35,19 +35,21 @@ public class MetricSnapshotController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'FINANCE')")
     @Operation(summary = "List metric-snapshots for the caller's tenant")
     public PageResponse<MetricSnapshotResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'FINANCE')")
     @Operation(summary = "Fetch a single MetricSnapshot by id")
     public MetricSnapshotResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Create a MetricSnapshot")
     public ResponseEntity<MetricSnapshotResponse> create(@Valid @RequestBody MetricSnapshotCreateRequest request) {
         MetricSnapshotResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class MetricSnapshotController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Apply a partial update to a MetricSnapshot")
     public MetricSnapshotResponse update(@PathVariable UUID id, @Valid @RequestBody MetricSnapshotUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a MetricSnapshot")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

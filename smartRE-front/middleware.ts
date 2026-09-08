@@ -3,8 +3,8 @@ import type { NextRequest } from 'next/server'
 import { jwtVerify } from 'jose'
 
 
-export const PROTECTED_PREFIXES = ['/dashboard', '/listings', '/properties/new', '/verification', '/ownership', '/viewings', '/payments', '/reviews', '/profile', '/agent-application', '/overview', '/revenue', '/users', '/verification-queue', '/manage-listings', '/reports', '/agent-applications']
-export const ADMIN_PREFIXES = ['/overview', '/revenue', '/users', '/verification-queue', '/manage-listings', '/reports', '/agent-applications']
+export const PROTECTED_PREFIXES = ['/dashboard', '/listings', '/properties/new', '/verification', '/ownership', '/viewings', '/payments', '/reviews', '/profile', '/overview', '/revenue', '/users', '/verification-queue', '/manage-listings', '/reports', ]
+export const ADMIN_PREFIXES = ['/overview', '/revenue', '/users', '/verification-queue', '/manage-listings', '/reports', ]
 
 export interface AuthClaims {
   exp?: number
@@ -30,9 +30,18 @@ export function secretFromEnv(): Uint8Array | null {
   return raw ? new TextEncoder().encode(raw) : null
 }
 
+// Whether an unverified decode is allowed to stand in for a real signature check.
+// Only in development, where running without a shared secret is a convenience. In
+// production a missing secret is a deployment fault, and the safe reading of a token
+// we cannot verify is "no session" — not "whatever the token claims about itself".
+export function allowsUnverifiedFallback(): boolean {
+  return process.env.NODE_ENV !== 'production'
+}
+
 export async function resolveAuth(
   token: string | undefined,
-  secret: Uint8Array | null = secretFromEnv()
+  secret: Uint8Array | null = secretFromEnv(),
+  allowUnverified: boolean = allowsUnverifiedFallback()
 ): Promise<ResolvedAuth> {
   if (!token) return { claims: null, verified: !!secret }
 
@@ -44,6 +53,8 @@ export async function resolveAuth(
       return { claims: null, verified: true }
     }
   }
+
+  if (!allowUnverified) return { claims: null, verified: false }
 
   return { claims: decodeUnverified(token), verified: false }
 }
@@ -80,5 +91,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/listings/:path*', '/properties/new', '/verification/:path*', '/ownership/:path*', '/viewings/:path*', '/payments/:path*', '/reviews/:path*', '/profile/:path*', '/agent-application/:path*', '/overview/:path*', '/revenue/:path*', '/users/:path*', '/verification-queue/:path*', '/manage-listings/:path*', '/reports/:path*', '/agent-applications/:path*'],
+  matcher: ['/dashboard/:path*', '/listings/:path*', '/properties/new', '/verification/:path*', '/ownership/:path*', '/viewings/:path*', '/payments/:path*', '/reviews/:path*', '/profile/:path*', '/overview/:path*', '/revenue/:path*', '/users/:path*', '/verification-queue/:path*', '/manage-listings/:path*', '/reports/:path*'],
 }

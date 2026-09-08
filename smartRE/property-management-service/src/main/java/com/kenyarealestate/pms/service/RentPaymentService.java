@@ -215,9 +215,14 @@ public class RentPaymentService {
         return tenants.findById(tenantId).map(Tenant::getUserId).orElse(null);
     }
 
+    /**
+     * Payments against one invoice, readable by either side of it — the landlord who
+     * issued it or the tenant it is addressed to. A tenant who cannot read this cannot
+     * see a receipt for money they have already paid.
+     */
     @Transactional(readOnly = true)
-    public List<RentPaymentResponse> forInvoice(UUID landlordId, UUID invoiceId) {
-        invoiceService.requireOwned(landlordId, invoiceId);
+    public List<RentPaymentResponse> forInvoice(UUID callerId, UUID invoiceId) {
+        invoiceService.requireVisibleTo(callerId, invoiceId);
         return payments.findByInvoiceIdOrderByCreatedAtDesc(invoiceId).stream().map(this::toResponse).toList();
     }
 

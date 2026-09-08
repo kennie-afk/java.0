@@ -35,19 +35,21 @@ public class SearchDocumentController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'STOREKEEPER', 'FINANCE', 'BUYER')")
     @Operation(summary = "List search-documents for the caller's tenant")
     public PageResponse<SearchDocumentResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'STOREKEEPER', 'FINANCE', 'BUYER')")
     @Operation(summary = "Fetch a single SearchDocument by id")
     public SearchDocumentResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Create a SearchDocument")
     public ResponseEntity<SearchDocumentResponse> create(@Valid @RequestBody SearchDocumentCreateRequest request) {
         SearchDocumentResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class SearchDocumentController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Apply a partial update to a SearchDocument")
     public SearchDocumentResponse update(@PathVariable UUID id, @Valid @RequestBody SearchDocumentUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a SearchDocument")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

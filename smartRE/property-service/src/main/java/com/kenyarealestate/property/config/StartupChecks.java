@@ -45,12 +45,12 @@ public class StartupChecks implements CommandLineRunner {
             log.warn("# requests to property-service.");
             log.warn("############################################################");
         } else {
-            log.error("############################################################");
-            log.error("# PROPERTY-SERVICE: services.internal-secret {}", reason);
-            log.error("# Set INTERNAL_SECRET to a unique, randomly generated value of");
-            log.error("# at least {} characters before running outside local", MIN_INTERNAL_SECRET_LENGTH);
-            log.error("# development - every internal-only endpoint trusts this secret.");
-            log.error("############################################################");
+            throw new IllegalStateException(
+                    "PROPERTY-SERVICE: services.internal-secret " + reason
+                            + "; set INTERNAL_SECRET to a unique, randomly generated value of at least "
+                            + MIN_INTERNAL_SECRET_LENGTH
+                            + " characters before running outside local development, because every "
+                            + "internal-only endpoint trusts this secret");
         }
     }
 

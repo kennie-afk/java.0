@@ -1,6 +1,8 @@
 package com.smartseason.notification.service;
 
 import com.smartseason.notification.domain.UssdSession;
+import com.smartseason.notification.platform.CountCache;
+import com.smartseason.notification.platform.CountCache;
 import com.smartseason.notification.platform.EventPublisher;
 import com.smartseason.notification.platform.PageResponse;
 import com.smartseason.notification.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class UssdSessionService {
 
     private static final String RESOURCE = "UssdSession";
+    private static final String ENTITY = "ussd_sessions";
 
     private final UssdSessionRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public UssdSessionService(UssdSessionRepository repository, EventPublisher events) {
+    public UssdSessionService(UssdSessionRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<UssdSessionResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(UssdSessionResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(UssdSessionResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public UssdSessionResponse get(UUID id) {
@@ -59,6 +66,7 @@ public class UssdSessionService {
         entity.setHops(request.hops());
 
         UssdSession saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("platform", "UssdSessionCreated", saved.getId(), UssdSessionResponse.from(saved));
         return UssdSessionResponse.from(saved);
     }
@@ -109,6 +117,7 @@ public class UssdSessionService {
     public void delete(UUID id) {
         UssdSession entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("platform", "UssdSessionDeleted", id, null);
     }
 

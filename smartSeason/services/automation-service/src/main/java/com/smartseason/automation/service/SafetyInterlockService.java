@@ -1,6 +1,8 @@
 package com.smartseason.automation.service;
 
 import com.smartseason.automation.domain.SafetyInterlock;
+import com.smartseason.automation.platform.CountCache;
+import com.smartseason.automation.platform.CountCache;
 import com.smartseason.automation.platform.EventPublisher;
 import com.smartseason.automation.platform.PageResponse;
 import com.smartseason.automation.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class SafetyInterlockService {
 
     private static final String RESOURCE = "SafetyInterlock";
+    private static final String ENTITY = "safety_interlocks";
 
     private final SafetyInterlockRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public SafetyInterlockService(SafetyInterlockRepository repository, EventPublisher events) {
+    public SafetyInterlockService(SafetyInterlockRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<SafetyInterlockResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(SafetyInterlockResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(SafetyInterlockResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public SafetyInterlockResponse get(UUID id) {
@@ -55,6 +62,7 @@ public class SafetyInterlockService {
         entity.setReason(request.reason());
 
         SafetyInterlock saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("iot", "SafetyInterlockCreated", saved.getId(), SafetyInterlockResponse.from(saved));
         return SafetyInterlockResponse.from(saved);
     }
@@ -93,6 +101,7 @@ public class SafetyInterlockService {
     public void delete(UUID id) {
         SafetyInterlock entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("iot", "SafetyInterlockDeleted", id, null);
     }
 

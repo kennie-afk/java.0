@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -13,7 +14,7 @@ public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, 
 
     Optional<TaskAssignment> findByIdAndTenantId(UUID id, UUID tenantId);
 
-    Page<TaskAssignment> findAllByTenantId(UUID tenantId, Pageable pageable);
+    Slice<TaskAssignment> findAllByTenantId(UUID tenantId, Pageable pageable);
 
     boolean existsByIdAndTenantId(UUID id, UUID tenantId);
 
@@ -23,5 +24,6 @@ public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, 
 
     Page<TaskAssignment> findAllByWorkOrderIdAndTenantId(UUID workOrderId, UUID tenantId, Pageable pageable);
     Page<TaskAssignment> findAllByWorkerIdAndTenantId(UUID workerId, UUID tenantId, Pageable pageable);
+    Page<TaskAssignment> findAllByWorkerUserIdAndTenantId(UUID workerUserId, UUID tenantId, Pageable pageable);
     Page<TaskAssignment> findAllByGangIdAndTenantId(UUID gangId, UUID tenantId, Pageable pageable);
 }

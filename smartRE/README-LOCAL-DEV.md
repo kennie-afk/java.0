@@ -151,5 +151,5 @@ follow-up, not covered here.
 | Tool        | URL                   | Credentials       |
 |-------------|-----------------------|-------------------|
 | Kafka UI    | http://localhost:8090 | —                 |
-| Grafana     | http://localhost:3000 | admin / smartre2026 |
+| Grafana     | http://localhost:3000 | admin / the GRAFANA_PASSWORD you set in .env |
 | Prometheus  | http://localhost:9090 | —                 |

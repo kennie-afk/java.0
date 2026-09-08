@@ -1,6 +1,8 @@
 package com.smartseason.ledger.service;
 
 import com.smartseason.ledger.domain.Account;
+import com.smartseason.ledger.platform.CountCache;
+import com.smartseason.ledger.platform.CountCache;
 import com.smartseason.ledger.platform.EventPublisher;
 import com.smartseason.ledger.platform.PageResponse;
 import com.smartseason.ledger.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class AccountService {
 
     private static final String RESOURCE = "Account";
+    private static final String ENTITY = "accounts";
 
     private final AccountRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public AccountService(AccountRepository repository, EventPublisher events) {
+    public AccountService(AccountRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<AccountResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(AccountResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(AccountResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public AccountResponse get(UUID id) {
@@ -57,6 +64,7 @@ public class AccountService {
         entity.setParentAccountId(request.parentAccountId());
 
         Account saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("money", "AccountCreated", saved.getId(), AccountResponse.from(saved));
         return AccountResponse.from(saved);
     }
@@ -101,6 +109,7 @@ public class AccountService {
     public void delete(UUID id) {
         Account entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("money", "AccountDeleted", id, null);
     }
 

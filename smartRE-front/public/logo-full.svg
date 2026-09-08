@@ -1,0 +1,131 @@
+<!--
+  SmartRE horizontal lockup: the mark from logo-icon.svg, unchanged, with the wordmark
+  beside it.
+
+  The wordmark splits the way TechMara's does — the first half in the neutral, the second
+  in the brand colour — so the two logotypes read as one system. "RE" carries the gold
+  because that is the half that names the domain.
+
+  It is set in <text> in Fraunces, the app's display face, with a serif stack behind it,
+  so it depends on the reader having the font. Inside the app use
+  components/brand/Logo.tsx instead: same lockup, real HTML text, follows the theme.
+  This file is for places that can only take an image — a README, an og:image, a slide.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1420 512" width="1420" height="512"
+     role="img" aria-label="SmartRE">
+  <title>SmartRE</title>
+
+  <title>SmartRE</title>
+
+  <defs>
+    <!-- Gold is not one colour. A believable metal needs a bright specular, a saturated
+         midtone, a shadow, and then a second lift where light bounces back off whatever
+         the object sits on. Flat gold reads as mustard. -->
+    <linearGradient id="sre-gold" x1="0.05" y1="0" x2="0.95" y2="1">
+      <stop offset="0%"   stop-color="#FBEFC0"/>
+      <stop offset="16%"  stop-color="#E8CE7A"/>
+      <stop offset="40%"  stop-color="#C9A227"/>
+      <stop offset="64%"  stop-color="#9C7A1C"/>
+      <stop offset="85%"  stop-color="#C9A227"/>
+      <stop offset="100%" stop-color="#7E6116"/>
+    </linearGradient>
+
+    <!-- The extruded side never catches the key light, so it stays low in the ramp with
+         a little bounce along its bottom edge. -->
+    <linearGradient id="sre-extrude" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#7E6116"/>
+      <stop offset="55%"  stop-color="#584410"/>
+      <stop offset="100%" stop-color="#8C6B1A"/>
+    </linearGradient>
+
+    <!-- Specular pass: strong along the top-left, gone by the middle. -->
+    <linearGradient id="sre-spec" x1="0" y1="0" x2="0.72" y2="1">
+      <stop offset="0%"   stop-color="#FFFFFF" stop-opacity="0.80"/>
+      <stop offset="20%"  stop-color="#FFFFFF" stop-opacity="0.26"/>
+      <stop offset="46%"  stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+
+    <linearGradient id="sre-gold-arc" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#EBD48A"/>
+      <stop offset="32%"  stop-color="#D9BC66"/>
+      <stop offset="62%"  stop-color="#C9A227"/>
+      <stop offset="100%" stop-color="#8C6B1A"/>
+    </linearGradient>
+
+
+    <!-- Weak and tight on purpose. A large soft shadow would read as a sticker floating
+         above the page rather than as an object with thickness. -->
+    <filter id="sre-shadow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="3" dy="5" stdDeviation="5.5"
+                    flood-color="#3A2C08" flood-opacity="0.28"/>
+    </filter>
+
+    <!-- The letterforms, declared once so the extrusion, the face and the specular clip
+         are literally the same shape and cannot drift apart. -->
+    <g id="sre-letters">
+      <path d="M 268 168 L 164 168 L 164 240 L 258 240 L 258 312 L 154 312"
+            fill="none" stroke-width="34" stroke-linecap="butt" stroke-linejoin="miter"/>
+      <path d="M 296 151 H 392 L 416 175 V 217 L 394 239 L 420 329 H 380 L 357 245 H 330 V 329 H 296 Z
+               M 330 185 H 382 V 211 H 330 Z"
+            fill-rule="evenodd"/>
+    </g>
+
+    <clipPath id="sre-letter-clip">
+      <use href="#sre-letters" stroke="#000" stroke-width="34"
+           stroke-linecap="butt" stroke-linejoin="miter"/>
+    </clipPath>
+  </defs>
+
+  <g filter="url(#sre-shadow)">
+    <!-- Ring: one long arc carrying most of the circle, with a thin outer arc on the
+         left for the same layered feel as the parent mark. A second heavier arc across
+         the top right was removed: it competed with the monogram, and its endpoints sat
+         at different radii, which made the renderer sweep it inward across the R. -->
+    <g fill="none" stroke-linecap="round">
+      <path d="M 96 372 A 196 196 0 1 1 404 372"
+            stroke="url(#sre-gold-arc)" stroke-width="20"/>
+      <!-- A hairline of the specular colour, inset on the lit side, gives the band a
+           rounded section instead of a flat ribbon. -->
+      <path d="M 96 372 A 196 196 0 1 1 404 372"
+            stroke="#FBEFC0" stroke-width="4.5" opacity="0.38"
+            transform="translate(-2.5 -2.5)"/>
+      <path d="M 62 330 A 214 214 0 0 1 62 182"
+            stroke="#D9BC66" stroke-width="7" opacity="0.85"/>
+    </g>
+
+    <!-- Circuit traces. -->
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="7">
+      <g stroke="#AD8620">
+        <path d="M 46 206 H 84 L 106 228 H 150"/>
+        <path d="M 46 306 H 84 L 106 284 H 150"/>
+      </g>
+      <path d="M 46 256 H 150" stroke="#C9A227"/>
+      <g fill="#FFFFFF" stroke="#AD8620" stroke-width="6">
+        <circle cx="32" cy="206" r="10"/>
+        <circle cx="32" cy="306" r="10"/>
+      </g>
+      <circle cx="32" cy="256" r="10" fill="#FFFFFF" stroke="#C9A227" stroke-width="6"/>
+    </g>
+
+    <!-- Monogram: extruded side, metallic face, specular. Same paths and same 7px
+         offset as before; only the fills carry the extra dimension.
+
+         No outline pass here. Tracing the letters draws a line around the R's bowl and
+         leg as well as around its silhouette, which lands as a stray stroke across the
+         face — the extrusion already separates the planes without it. -->
+    <g transform="translate(0 6)">
+      <use href="#sre-letters" transform="translate(7 7)"
+           fill="url(#sre-extrude)" stroke="url(#sre-extrude)"/>
+      <use href="#sre-letters" fill="url(#sre-gold)" stroke="url(#sre-gold)"/>
+      <g clip-path="url(#sre-letter-clip)">
+        <rect x="130" y="130" width="310" height="220" fill="url(#sre-spec)"/>
+      </g>
+    </g>
+  </g>
+
+  <text x="560" y="256" dominant-baseline="central"
+        font-family="Fraunces, Georgia, 'Times New Roman', serif"
+        font-size="190" font-weight="700" letter-spacing="-4">
+    <tspan fill="#16181D">Smart</tspan><tspan fill="#C9A227">RE</tspan>
+  </text>
+</svg>

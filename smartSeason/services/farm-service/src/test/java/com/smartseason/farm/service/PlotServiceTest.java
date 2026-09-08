@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.farm.domain.Plot;
+import com.smartseason.farm.platform.CountCache;
+import com.smartseason.farm.platform.CountCache;
 import com.smartseason.farm.platform.EventPublisher;
 import com.smartseason.farm.platform.ResourceNotFoundException;
 import com.smartseason.farm.platform.TenantContext;
@@ -29,7 +31,10 @@ class PlotServiceTest {
 
     private final PlotRepository repository = mock(PlotRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final PlotService service = new PlotService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final PlotService service = new PlotService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

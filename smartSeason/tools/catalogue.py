@@ -174,7 +174,7 @@ SERVICES += [
       publishes=["WorkerOnboarded","ContractChanged"],
       entities=[
         ("Worker","workers",[
-          "nationalId:string:ix","fullName:string:nn","phone:string:ix","gender:enum(MALE|FEMALE|OTHER)",
+          "userId:uuid:ix","nationalId:string:ix","fullName:string:nn","phone:string:ix","gender:enum(MALE|FEMALE|OTHER)",
           "dateOfBirth:date","farmId:uuid:ix","payoutPhone:string","payoutAccount:string",
           "biometricRef:string","status:enum(ACTIVE|SUSPENDED|TERMINATED):nn","riskScore:int:nn",
           "onboardedAt:ts","photoUrl:string"]),
@@ -228,7 +228,7 @@ SERVICES += [
           "estimatedHours:decimal","createdBy:uuid",
           "status:enum(DRAFT|OPEN|IN_PROGRESS|COMPLETED|VERIFIED|CANCELLED):nn"]),
         ("TaskAssignment","task_assignments",[
-          "workOrderId:uuid:ix,nn","workerId:uuid:ix","gangId:uuid:ix","assignedBy:uuid:nn","assignedAt:ts:nn",
+          "workOrderId:uuid:ix,nn","workerId:uuid:ix","workerUserId:uuid:ix","gangId:uuid:ix","assignedBy:uuid:nn","assignedAt:ts:nn",
           "acceptedAt:ts","startedAt:ts","completedAt:ts",
           "status:enum(ASSIGNED|ACCEPTED|IN_PROGRESS|COMPLETED|REJECTED):nn"]),
         ("TaskEvidence","task_evidence",[

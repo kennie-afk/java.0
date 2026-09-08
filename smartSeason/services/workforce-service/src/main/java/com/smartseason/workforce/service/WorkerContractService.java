@@ -1,6 +1,8 @@
 package com.smartseason.workforce.service;
 
 import com.smartseason.workforce.domain.WorkerContract;
+import com.smartseason.workforce.platform.CountCache;
+import com.smartseason.workforce.platform.CountCache;
 import com.smartseason.workforce.platform.EventPublisher;
 import com.smartseason.workforce.platform.PageResponse;
 import com.smartseason.workforce.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class WorkerContractService {
 
     private static final String RESOURCE = "WorkerContract";
+    private static final String ENTITY = "worker_contracts";
 
     private final WorkerContractRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public WorkerContractService(WorkerContractRepository repository, EventPublisher events) {
+    public WorkerContractService(WorkerContractRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<WorkerContractResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(WorkerContractResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(WorkerContractResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public WorkerContractResponse get(UUID id) {
@@ -59,6 +66,7 @@ public class WorkerContractService {
         entity.setTerms(request.terms());
 
         WorkerContract saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("workforce", "WorkerContractCreated", saved.getId(), WorkerContractResponse.from(saved));
         return WorkerContractResponse.from(saved);
     }
@@ -109,6 +117,7 @@ public class WorkerContractService {
     public void delete(UUID id) {
         WorkerContract entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("workforce", "WorkerContractDeleted", id, null);
     }
 

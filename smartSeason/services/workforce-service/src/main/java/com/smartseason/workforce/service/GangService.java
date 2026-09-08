@@ -1,6 +1,8 @@
 package com.smartseason.workforce.service;
 
 import com.smartseason.workforce.domain.Gang;
+import com.smartseason.workforce.platform.CountCache;
+import com.smartseason.workforce.platform.CountCache;
 import com.smartseason.workforce.platform.EventPublisher;
 import com.smartseason.workforce.platform.PageResponse;
 import com.smartseason.workforce.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class GangService {
 
     private static final String RESOURCE = "Gang";
+    private static final String ENTITY = "gangs";
 
     private final GangRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public GangService(GangRepository repository, EventPublisher events) {
+    public GangService(GangRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<GangResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(GangResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(GangResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public GangResponse get(UUID id) {
@@ -54,6 +61,7 @@ public class GangService {
         entity.setNotes(request.notes());
 
         Gang saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("workforce", "GangCreated", saved.getId(), GangResponse.from(saved));
         return GangResponse.from(saved);
     }
@@ -89,6 +97,7 @@ public class GangService {
     public void delete(UUID id) {
         Gang entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("workforce", "GangDeleted", id, null);
     }
 

@@ -35,19 +35,21 @@ public class CropPlaybookController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "List crop-playbooks for the caller's tenant")
     public PageResponse<CropPlaybookResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "Fetch a single CropPlaybook by id")
     public CropPlaybookResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "Create a CropPlaybook")
     public ResponseEntity<CropPlaybookResponse> create(@Valid @RequestBody CropPlaybookCreateRequest request) {
         CropPlaybookResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class CropPlaybookController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "Apply a partial update to a CropPlaybook")
     public CropPlaybookResponse update(@PathVariable UUID id, @Valid @RequestBody CropPlaybookUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGRONOMIST')")
     @Operation(summary = "Delete a CropPlaybook")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

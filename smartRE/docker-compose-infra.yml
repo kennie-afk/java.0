@@ -67,11 +67,6 @@ services:
       KAFKA_CLUSTERS_0_NAME: smartre-kafka
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
 
-  # NOTE: these 6 Postgres instances share one DB_PASSWORD for local-dev convenience only
-  # (one password to remember while running services out of IntelliJ). This file is not
-  # intended to ever run on a host reachable from outside localhost - see the port
-  # bindings below, all pinned to 127.0.0.1 - and DB_PASSWORD must be set via .env
-  # (see .env.example), never hardcoded here.
   user-db:
     image: postgres:16-alpine
     restart: unless-stopped

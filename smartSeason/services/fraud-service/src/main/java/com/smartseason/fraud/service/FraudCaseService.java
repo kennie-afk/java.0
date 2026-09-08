@@ -1,6 +1,8 @@
 package com.smartseason.fraud.service;
 
 import com.smartseason.fraud.domain.FraudCase;
+import com.smartseason.fraud.platform.CountCache;
+import com.smartseason.fraud.platform.CountCache;
 import com.smartseason.fraud.platform.EventPublisher;
 import com.smartseason.fraud.platform.PageResponse;
 import com.smartseason.fraud.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class FraudCaseService {
 
     private static final String RESOURCE = "FraudCase";
+    private static final String ENTITY = "fraud_cases";
 
     private final FraudCaseRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public FraudCaseService(FraudCaseRepository repository, EventPublisher events) {
+    public FraudCaseService(FraudCaseRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<FraudCaseResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(FraudCaseResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(FraudCaseResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public FraudCaseResponse get(UUID id) {
@@ -63,6 +70,7 @@ public class FraudCaseService {
         entity.setAppealOutcome(request.appealOutcome());
 
         FraudCase saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("workforce", "FraudCaseCreated", saved.getId(), FraudCaseResponse.from(saved));
         return FraudCaseResponse.from(saved);
     }
@@ -125,6 +133,7 @@ public class FraudCaseService {
     public void delete(UUID id) {
         FraudCase entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("workforce", "FraudCaseDeleted", id, null);
     }
 

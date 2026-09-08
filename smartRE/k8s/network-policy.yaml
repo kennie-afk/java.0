@@ -1,0 +1,155 @@
+# Who may open a connection to whom.
+#
+# Two claims elsewhere in the codebase depend on this file, so it is not optional
+# decoration:
+#
+#   1. Each service's RateLimitFilter trusts X-Forwarded-For to identify an
+#      unauthenticated caller. That header is forgeable by anyone who can reach the pod,
+#      so it is only safe while nothing outside the cluster can.
+#   2. Each service's JwtAuthenticationFilter accepts pre-validated X-Auth-* headers when
+#      they carry a valid gateway signature, and falls back to verifying the JWT itself
+#      otherwise. The signature is what makes that safe, but keeping outside traffic away
+#      from the pods removes the attempt entirely.
+#
+# Kubernetes NetworkPolicy is allow-list: once any policy selects a pod, only what the
+# policies permit reaches it. So the first rule below — a default deny — is what gives
+# the rest their meaning. Without it, adding allow rules changes nothing.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: smartre
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+---
+# The two pods that are meant to be reachable from outside the namespace: the gateway
+# (the API front door) and the front end. An Ingress controller lives in its own
+# namespace, so this cannot be restricted to in-namespace traffic.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-public-edge
+  namespace: smartre
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values: [api-gateway, web]
+  policyTypes:
+    - Ingress
+  ingress:
+    - {}
+---
+# The application tier. Reachable from the gateway and from each other — services do call
+# one another directly on their /internal/ endpoints, which are gated by a shared secret
+# rather than by network position — but from nothing outside the namespace.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-namespace-to-services
+  namespace: smartre
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - user-service
+          - verification-service
+          - property-service
+          - property-management-service
+          - viewing-service
+          - payment-service
+          - review-service
+          - notification-service
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector: {}
+---
+# Data stores.
+#
+# Read this before applying the file: the default deny above selects *every* pod in the
+# namespace, Helm-installed ones included. Redis and Kafka come from Bitnami charts (see
+# README), and their pods carry Bitnami's own labels rather than the `app` label used
+# here — so without this rule the deny would cut every service off from its cache and its
+# broker, and the whole namespace would fail readiness at once.
+#
+# Postgres is not deployed by these manifests at all; the services point at a managed
+# instance or at pgbouncer outside the namespace, so it needs no rule here. If you move
+# it in-namespace, label its pods `tier: data` and the second rule below starts covering
+# it. Until then that rule deliberately selects nothing.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-services-to-redis-and-kafka
+  namespace: smartre
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: [redis, kafka]
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector: {}
+---
+# Placeholder for in-namespace data stores. Selects nothing today by design; see the note
+# above.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-services-to-data-stores
+  namespace: smartre
+spec:
+  podSelector:
+    matchLabels:
+      tier: data
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - user-service
+                  - verification-service
+                  - property-service
+                  - property-management-service
+                  - viewing-service
+                  - payment-service
+                  - review-service
+                  - notification-service
+---
+# The ACME challenge.
+#
+# cert-manager answers an HTTP-01 challenge by creating a short-lived solver pod in this
+# namespace and pointing a temporary Ingress at it. Let's Encrypt then fetches a token
+# from it over plain HTTP from outside the cluster.
+#
+# The default deny at the top of this file selects that pod like any other, so without
+# this rule the challenge times out and the certificate is never issued — and the failure
+# reads as "cert-manager is stuck", with nothing pointing at the network policy. The
+# solver is labelled by cert-manager itself and exists only for the duration of a
+# challenge, serving one opaque token and nothing else.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-acme-solver
+  namespace: smartre
+spec:
+  podSelector:
+    matchLabels:
+      acme.cert-manager.io/http01-solver: "true"
+  policyTypes:
+    - Ingress
+  ingress:
+    - {}

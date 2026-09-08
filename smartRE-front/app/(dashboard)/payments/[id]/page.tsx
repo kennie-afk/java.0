@@ -10,6 +10,8 @@ import Button from '@/components/ui/Button'
 import { StatusBadge } from '@/components/ui/Badge'
 import { EmptyState, PageLoader } from '@/components/ui/Modal'
 import { fmt } from '@/lib/utils'
+import { useAuthStore } from '@/lib/store'
+import PaymentReceipt from '@/components/property/PaymentReceipt'
 
 export default function PaymentDetailPage() {
   return <Suspense fallback={<PageLoader/>}><PaymentDetail/></Suspense>
@@ -23,6 +25,8 @@ function PaymentDetail() {
   const [audit, setAudit] = useState<PaymentAuditResponse[]>([])
   const [receipt, setReceipt] = useState<PaymentReceiptResponse|null>(null)
   const [loading, setLoad] = useState(true)
+  const [receiptOpen, setReceiptOpen] = useState(false)
+  const viewerId = useAuthStore(s => s.user?.userId)
 
   useEffect(() => {
     if (!id) return
@@ -55,7 +59,7 @@ function PaymentDetail() {
   if (loading) return <PageLoader/>
   if (!payment) {
     return (
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="max-w-3xl mx-auto space-y-4">
         <Link href="/payments" className="inline-flex items-center gap-2 text-sm text-muted hover:text-gray-900 dark:hover:text-white">
           <ArrowLeft size={15}/>Back to payments
         </Link>
@@ -66,13 +70,13 @@ function PaymentDetail() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-4">
       <Link href="/payments" className="inline-flex items-center gap-2 text-sm text-muted hover:text-gray-900 dark:hover:text-white">
         <ArrowLeft size={15}/>Back to payments
       </Link>
 
       <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-2xl bg-gold-100 dark:bg-gold-500/10 text-gold-500 flex items-center justify-center">
+        <div className="w-12 h-12 rounded-lg bg-gold-100 dark:bg-gold-500/10 text-gold-500 flex items-center justify-center">
           <Receipt size={24}/>
         </div>
         <div>
@@ -93,14 +97,14 @@ function PaymentDetail() {
       )}
 
       {payment.status === 'COMPLETED' && returnTo && (
-        <div className="flex items-center justify-between gap-3 p-3.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
-          <p className="text-[13px] text-emerald-700 dark:text-emerald-400 font-medium">Payment confirmed. You can continue now.</p>
+        <div className="flex items-center justify-between gap-3 p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20">
+          <p className="text-base text-emerald-700 dark:text-emerald-400 font-medium">Payment confirmed. You can continue now.</p>
           <Link href={returnTo}><Button size="sm" rightIcon={<ArrowRight size={13}/>}>Continue</Button></Link>
         </div>
       )}
 
       <Card>
-        <h2 className="font-display font-semibold text-[14px] mb-4">Payment details</h2>
+        <h2 className="font-display font-semibold text-lg mb-4">Payment details</h2>
         <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
           {[
             ['Payment ID', payment.id.slice(0,8)+'...'],
@@ -119,21 +123,39 @@ function PaymentDetail() {
         <Card>
           <div className="flex items-center gap-2 mb-4">
             <Receipt size={16} className="text-gold-500"/>
-            <h2 className="font-display font-semibold text-[14px]">Official receipt</h2>
+            <h2 className="font-display font-semibold text-lg">Official receipt</h2>
             <span className="ml-auto font-mono text-sm text-gold-500 font-semibold">{receipt.receiptNumber}</span>
           </div>
-          <div className="bg-gray-50 dark:bg-[#1A1A35] rounded-xl p-4 space-y-3">
-            <div className="flex justify-between text-sm"><span className="text-muted">Gross amount</span><span className="font-semibold">{fmt.currency(receipt.grossAmount)}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-muted">Platform fee ({receipt.grossAmount ? ((receipt.platformFee / receipt.grossAmount) * 100).toFixed(1) : '0'}%)</span><span className="text-gray-600 dark:text-gray-400">{fmt.currency(receipt.platformFee)}</span></div>
-            <div className="border-t border-base pt-3 flex justify-between text-sm"><span className="font-semibold">Seller payout</span><span className="font-bold text-emerald-600">{fmt.currency(receipt.sellerPayout)}</span></div>
-            <div className="pt-2 text-xs text-muted">M-Pesa: {receipt.mpesaReceipt} · Issued: {fmt.datetime(receipt.issuedAt)}</div>
+          <div className="bg-gray-50 dark:bg-[#1A1A35] rounded-lg p-3 space-y-2.5">
+            {/* The fee split is the seller's commercial information. A buyer paid a
+                price and is shown that price; what the platform took out of it and what
+                the seller cleared is not theirs to see. */}
+            {viewerId === payment.sellerId ? (
+              <>
+                <div className="flex justify-between text-sm"><span className="text-muted">Buyer paid</span><span className="font-semibold">{fmt.currency(receipt.grossAmount)}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-muted">Platform fee ({receipt.grossAmount ? ((receipt.platformFee / receipt.grossAmount) * 100).toFixed(1) : '0'}%)</span><span className="text-gray-600 dark:text-gray-400">−{fmt.currency(receipt.platformFee)}</span></div>
+                <div className="border-t border-base pt-3 flex justify-between text-sm"><span className="font-semibold">Your payout</span><span className="font-bold text-emerald-600">{fmt.currency(receipt.sellerPayout)}</span></div>
+              </>
+            ) : (
+              <div className="flex justify-between text-sm"><span className="text-muted">Amount paid</span><span className="font-semibold">{fmt.currency(receipt.grossAmount)}</span></div>
+            )}
+            <div className="pt-2 flex items-center justify-between gap-3">
+              <span className="text-xs text-muted">M-Pesa: {receipt.mpesaReceipt} · Issued: {fmt.datetime(receipt.issuedAt)}</span>
+              <Button size="sm" variant="secondary" onClick={() => setReceiptOpen(true)}>Printable receipt</Button>
+            </div>
           </div>
         </Card>
       )}
 
+      <PaymentReceipt
+        payment={receiptOpen ? payment : null}
+        receipt={receipt}
+        viewerId={viewerId}
+        onClose={() => setReceiptOpen(false)}/>
+
       {audit.length>0 && (
         <Card>
-          <h2 className="font-display font-semibold text-[14px] mb-4 flex items-center gap-2"><Activity size={16} className="text-gold-500"/>Audit trail</h2>
+          <h2 className="font-display font-semibold text-lg mb-4 flex items-center gap-2"><Activity size={16} className="text-gold-500"/>Audit trail</h2>
           <div className="relative">
             <div className="absolute left-5 top-0 bottom-0 w-px bg-gray-200 dark:bg-gray-800"/>
             <div className="space-y-4">

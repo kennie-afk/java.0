@@ -35,19 +35,21 @@ public class AuditRecordController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE')")
     @Operation(summary = "List audit-records for the caller's tenant")
     public PageResponse<AuditRecordResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE')")
     @Operation(summary = "Fetch a single AuditRecord by id")
     public AuditRecordResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Create a AuditRecord")
     public ResponseEntity<AuditRecordResponse> create(@Valid @RequestBody AuditRecordCreateRequest request) {
         AuditRecordResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class AuditRecordController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Apply a partial update to a AuditRecord")
     public AuditRecordResponse update(@PathVariable UUID id, @Valid @RequestBody AuditRecordUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a AuditRecord")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

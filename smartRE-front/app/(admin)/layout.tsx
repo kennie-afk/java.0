@@ -21,7 +21,7 @@ export default function AdminLayout({ children }:{ children:React.ReactNode }) {
       <Topbar onMenu={() => setSidebar(true)}/>
       <main className="pt-16 min-h-screen transition-[padding-left] duration-300 ease-in-out"
         style={{ paddingLeft: isDesktop ? (collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH) : 0 }}>
-        <div className="p-6 max-w-7xl mx-auto animate-fade-in">{children}</div>
+        <div className="p-3 sm:p-4 max-w-7xl mx-auto animate-fade-in">{children}</div>
       </main>
     </div>
   )

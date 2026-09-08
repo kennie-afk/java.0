@@ -62,4 +62,48 @@ class OpenRouteAllowlistTest {
                 .anyMatch(f -> String.valueOf(f).contains("RemoveRequestHeader=X-Internal-Secret")),
                 "default-filters in application.yaml must contain RemoveRequestHeader=X-Internal-Secret to sanitize incoming requests.");
     }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void everyCredentialAcceptingAuthRouteCarriesItsOwnRateLimiter() throws Exception {
+        Yaml yaml = new Yaml();
+        InputStream in = getClass().getClassLoader().getResourceAsStream("application.yaml");
+        assertTrue(in != null, "application.yaml must be present on the test classpath");
+
+        Map<String, Object> root = yaml.load(in);
+        Map<String, Object> spring = (Map<String, Object>) root.get("spring");
+        Map<String, Object> cloud = (Map<String, Object>) spring.get("cloud");
+        Map<String, Object> gateway = (Map<String, Object>) cloud.get("gateway");
+        List<Map<String, Object>> routes = (List<Map<String, Object>>) gateway.get("routes");
+
+        List<String> guarded = new ArrayList<>();
+        List<String> matchedByOpenAuthRoute = new ArrayList<>();
+
+        for (Map<String, Object> route : routes) {
+            String predicates = String.valueOf(route.get("predicates"));
+            String filters = String.valueOf(route.get("filters"));
+
+            for (String path : List.of("/api/auth/login", "/api/auth/register",
+                                       "/api/auth/forgot-password", "/api/auth/reset-password")) {
+                if (!predicates.contains(path)) continue;
+                if (filters.contains("RequestRateLimiter")) {
+                    guarded.add(path);
+                } else {
+                    matchedByOpenAuthRoute.add(path + " via route " + route.get("id"));
+                }
+            }
+        }
+
+        if (!matchedByOpenAuthRoute.isEmpty()) {
+            fail("These credential endpoints have no dedicated rate limiter, so they fall back to the "
+                    + "general allowance and can be brute forced:\n"
+                    + String.join("\n", matchedByOpenAuthRoute));
+        }
+
+        for (String path : List.of("/api/auth/login", "/api/auth/register",
+                                   "/api/auth/forgot-password", "/api/auth/reset-password")) {
+            assertTrue(guarded.contains(path),
+                    path + " must have its own strict RequestRateLimiter route declared ahead of auth-open.");
+        }
+    }
 }

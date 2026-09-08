@@ -1,6 +1,8 @@
 package com.smartseason.farm.service;
 
 import com.smartseason.farm.domain.Farm;
+import com.smartseason.farm.platform.CountCache;
+import com.smartseason.farm.platform.CountCache;
 import com.smartseason.farm.platform.EventPublisher;
 import com.smartseason.farm.platform.PageResponse;
 import com.smartseason.farm.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class FarmService {
 
     private static final String RESOURCE = "Farm";
+    private static final String ENTITY = "farms";
 
     private final FarmRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public FarmService(FarmRepository repository, EventPublisher events) {
+    public FarmService(FarmRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<FarmResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(FarmResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(FarmResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public FarmResponse get(UUID id) {
@@ -59,6 +66,7 @@ public class FarmService {
         entity.setRegistrationNo(request.registrationNo());
 
         Farm saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("farm", "FarmCreated", saved.getId(), FarmResponse.from(saved));
         return FarmResponse.from(saved);
     }
@@ -109,6 +117,7 @@ public class FarmService {
     public void delete(UUID id) {
         Farm entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("farm", "FarmDeleted", id, null);
     }
 

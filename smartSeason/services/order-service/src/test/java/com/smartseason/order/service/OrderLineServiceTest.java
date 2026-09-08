@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.order.domain.OrderLine;
+import com.smartseason.order.platform.CountCache;
+import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.EventPublisher;
 import com.smartseason.order.platform.ResourceNotFoundException;
 import com.smartseason.order.platform.TenantContext;
@@ -29,7 +31,10 @@ class OrderLineServiceTest {
 
     private final OrderLineRepository repository = mock(OrderLineRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final OrderLineService service = new OrderLineService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final OrderLineService service = new OrderLineService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

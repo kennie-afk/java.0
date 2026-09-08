@@ -1,6 +1,8 @@
 package com.smartseason.deviceregistry.service;
 
 import com.smartseason.deviceregistry.domain.DeviceCredential;
+import com.smartseason.deviceregistry.platform.CountCache;
+import com.smartseason.deviceregistry.platform.CountCache;
 import com.smartseason.deviceregistry.platform.EventPublisher;
 import com.smartseason.deviceregistry.platform.PageResponse;
 import com.smartseason.deviceregistry.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class DeviceCredentialService {
 
     private static final String RESOURCE = "DeviceCredential";
+    private static final String ENTITY = "device_credentials";
 
     private final DeviceCredentialRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public DeviceCredentialService(DeviceCredentialRepository repository, EventPublisher events) {
+    public DeviceCredentialService(DeviceCredentialRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<DeviceCredentialResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(DeviceCredentialResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(DeviceCredentialResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public DeviceCredentialResponse get(UUID id) {
@@ -55,6 +62,7 @@ public class DeviceCredentialService {
         entity.setRevokedAt(request.revokedAt());
 
         DeviceCredential saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("iot", "DeviceCredentialCreated", saved.getId(), DeviceCredentialResponse.from(saved));
         return DeviceCredentialResponse.from(saved);
     }
@@ -93,6 +101,7 @@ public class DeviceCredentialService {
     public void delete(UUID id) {
         DeviceCredential entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("iot", "DeviceCredentialDeleted", id, null);
     }
 

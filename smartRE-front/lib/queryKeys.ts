@@ -13,7 +13,6 @@ export const queryKeys = {
   reviewsAdmin: (visible: string, page: number) => ['admin', 'reviews', visible, page] as const,
   reviewsAdminStats: ['admin', 'reviews', 'stats'] as const,
   reportEvidence: (targetId: string) => ['admin', 'reports', 'evidence', targetId] as const,
-  agentApplications: (status: string) => ['admin', 'agent-applications', status] as const,
   listingsAdmin: (status: string) => ['admin', 'listings', status] as const,
   listingsAdminPage: (status: string, page: number, size: number) => ['admin', 'listings', status, 'page', page, size] as const,
   myListings: ['listings', 'mine'] as const,

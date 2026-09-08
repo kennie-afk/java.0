@@ -1,6 +1,8 @@
 package com.smartseason.order.service;
 
 import com.smartseason.order.domain.OrderLine;
+import com.smartseason.order.platform.CountCache;
+import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.EventPublisher;
 import com.smartseason.order.platform.PageResponse;
 import com.smartseason.order.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class OrderLineService {
 
     private static final String RESOURCE = "OrderLine";
+    private static final String ENTITY = "order_lines";
 
     private final OrderLineRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public OrderLineService(OrderLineRepository repository, EventPublisher events) {
+    public OrderLineService(OrderLineRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<OrderLineResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(OrderLineResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(OrderLineResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public OrderLineResponse get(UUID id) {
@@ -58,6 +65,7 @@ public class OrderLineService {
         entity.setFulfilledQuantity(request.fulfilledQuantity());
 
         OrderLine saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("market", "OrderLineCreated", saved.getId(), OrderLineResponse.from(saved));
         return OrderLineResponse.from(saved);
     }
@@ -105,6 +113,7 @@ public class OrderLineService {
     public void delete(UUID id) {
         OrderLine entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("market", "OrderLineDeleted", id, null);
     }
 

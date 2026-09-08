@@ -35,6 +35,8 @@ POM = '''<?xml version="1.0" encoding="UTF-8"?>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-security</artifactId></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-validation</artifactId></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-actuator</artifactId></dependency>
+    <!-- Rate-limit counters are shared across replicas, so they live in Redis. -->
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-data-redis</artifactId></dependency>
     <dependency><groupId>org.springframework.kafka</groupId><artifactId>spring-kafka</artifactId></dependency>
 
     <dependency><groupId>io.micrometer</groupId><artifactId>micrometer-registry-prometheus</artifactId></dependency>
@@ -71,12 +73,14 @@ POM = '''<?xml version="1.0" encoding="UTF-8"?>
 DOCKERFILE = '''FROM maven:3.9-eclipse-temurin-21-alpine AS build
 WORKDIR /app
 
-# Dependency layer cached independently of source changes.
+# Dependency layer cached independently of source changes. The cache mount is
+# shared across every service build, so only the first one pays the download:
+# without it, 27 services each fetch the whole Spring tree from scratch.
 COPY pom.xml .
-RUN mvn dependency:go-offline --batch-mode -q
+RUN --mount=type=cache,target=/root/.m2 mvn dependency:go-offline --batch-mode -q
 
 COPY src ./src
-RUN mvn package -DskipTests --batch-mode -q
+RUN --mount=type=cache,target=/root/.m2 mvn package -DskipTests --batch-mode -q
 
 FROM eclipse-temurin:21-jre-alpine
 RUN apk add --no-cache curl && addgroup -S app && adduser -S app -G app
@@ -109,6 +113,19 @@ APPLICATION_YAML = '''spring:
         jdbc:
           batch_size: 50
         order_inserts: true
+  data:
+    redis:
+      host: ${{REDIS_HOST:localhost}}
+      port: ${{REDIS_PORT:6379}}
+      timeout: 2s
+      lettuce:
+        pool:
+          # One short call per request, so a small pool is plenty. 27 services
+          # times a large pool is a lot of sockets and client-side buffers for
+          # no gain.
+          max-active: 4
+          max-idle: 2
+          min-idle: 0
   flyway:
     enabled: true
     baseline-on-migrate: true
@@ -161,6 +178,19 @@ smartseason:
   events:
     enabled: ${{EVENTS_ENABLED:false}}
     topic-prefix: ss
+  cache:
+    # Row counts behind list endpoints. Stale by at most this long between a
+    # write on another replica and its eviction here.
+    enabled: ${{CACHE_ENABLED:true}}
+    count-ttl-seconds: ${{CACHE_COUNT_TTL:30}}
+  ratelimit:
+    enabled: ${{RATE_LIMIT_ENABLED:true}}
+    read-capacity: ${{RATE_LIMIT_READ_CAPACITY:300}}
+    read-refill-per-second: ${{RATE_LIMIT_READ_REFILL:5}}
+    write-capacity: ${{RATE_LIMIT_WRITE_CAPACITY:60}}
+    write-refill-per-second: ${{RATE_LIMIT_WRITE_REFILL:1}}
+    anonymous-capacity: ${{RATE_LIMIT_ANON_CAPACITY:30}}
+    anonymous-refill-per-second: ${{RATE_LIMIT_ANON_REFILL:0.5}}
 
 logging:
   level:
@@ -209,6 +239,7 @@ MAIN_CLASS = '''package com.smartseason.{pkg};
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
@@ -223,6 +254,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  */
 @SpringBootApplication(exclude = UserDetailsServiceAutoConfiguration.class)
 @EnableScheduling
+@EnableConfigurationProperties(com.smartseason.{pkg}.ratelimit.RateLimitProperties.class)
 public class {clazz} {{
 
     public static void main(String[] args) {{

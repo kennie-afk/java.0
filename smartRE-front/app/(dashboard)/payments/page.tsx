@@ -40,7 +40,7 @@ export default function PaymentsPage() {
   if (loading) return <PageLoader/>
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
         <h1 className="font-display text-lg font-semibold text-gray-900 dark:text-white">Payments</h1>
         <p className="text-muted text-sm mt-1">Your M-Pesa payment history</p>
@@ -61,7 +61,7 @@ export default function PaymentsPage() {
           {items.map(p => (
             <Card key={p.id} hover>
               <div className="flex items-center gap-4 flex-wrap">
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
+                <div className={`w-11 h-11 rounded-lg flex items-center justify-center shrink-0 ${
                   p.status==='COMPLETED' ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600' :
                   p.status==='FAILED'    ? 'bg-red-50 dark:bg-red-500/10 text-red-500' :
                   'bg-amber-50 dark:bg-amber-500/10 text-amber-600'

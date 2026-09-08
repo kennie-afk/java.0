@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.marketplace.domain.MarketMatch;
+import com.smartseason.marketplace.platform.CountCache;
+import com.smartseason.marketplace.platform.CountCache;
 import com.smartseason.marketplace.platform.EventPublisher;
 import com.smartseason.marketplace.platform.ResourceNotFoundException;
 import com.smartseason.marketplace.platform.TenantContext;
@@ -29,7 +31,10 @@ class MarketMatchServiceTest {
 
     private final MarketMatchRepository repository = mock(MarketMatchRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final MarketMatchService service = new MarketMatchService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final MarketMatchService service = new MarketMatchService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

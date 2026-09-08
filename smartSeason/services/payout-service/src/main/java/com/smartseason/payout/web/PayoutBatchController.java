@@ -35,19 +35,21 @@ public class PayoutBatchController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE')")
     @Operation(summary = "List payout-batches for the caller's tenant")
     public PageResponse<PayoutBatchResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE')")
     @Operation(summary = "Fetch a single PayoutBatch by id")
     public PayoutBatchResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Create a PayoutBatch")
     public ResponseEntity<PayoutBatchResponse> create(@Valid @RequestBody PayoutBatchCreateRequest request) {
         PayoutBatchResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class PayoutBatchController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Apply a partial update to a PayoutBatch")
     public PayoutBatchResponse update(@PathVariable UUID id, @Valid @RequestBody PayoutBatchUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
     @Operation(summary = "Delete a PayoutBatch")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

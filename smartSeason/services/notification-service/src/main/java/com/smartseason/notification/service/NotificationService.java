@@ -1,6 +1,8 @@
 package com.smartseason.notification.service;
 
 import com.smartseason.notification.domain.Notification;
+import com.smartseason.notification.platform.CountCache;
+import com.smartseason.notification.platform.CountCache;
 import com.smartseason.notification.platform.EventPublisher;
 import com.smartseason.notification.platform.PageResponse;
 import com.smartseason.notification.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class NotificationService {
 
     private static final String RESOURCE = "Notification";
+    private static final String ENTITY = "notifications";
 
     private final NotificationRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public NotificationService(NotificationRepository repository, EventPublisher events) {
+    public NotificationService(NotificationRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<NotificationResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(NotificationResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(NotificationResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public NotificationResponse get(UUID id) {
@@ -67,6 +74,7 @@ public class NotificationService {
         entity.setIdempotencyKey(request.idempotencyKey());
 
         Notification saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("platform", "NotificationCreated", saved.getId(), NotificationResponse.from(saved));
         return NotificationResponse.from(saved);
     }
@@ -141,6 +149,7 @@ public class NotificationService {
     public void delete(UUID id) {
         Notification entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("platform", "NotificationDeleted", id, null);
     }
 

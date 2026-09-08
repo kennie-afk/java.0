@@ -1,9 +1,9 @@
 /** @vitest-environment node */
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, afterEach } from 'vitest'
 import { SignJWT } from 'jose'
 import { NextRequest } from 'next/server'
 import {
-  decodeUnverified, resolveAuth, isExpired, middleware,
+  decodeUnverified, resolveAuth, isExpired, middleware, allowsUnverifiedFallback,
   PROTECTED_PREFIXES, ADMIN_PREFIXES,
 } from './middleware'
 
@@ -73,6 +73,50 @@ describe('resolveAuth', () => {
   it('returns no claims when there is no token at all', async () => {
     expect((await resolveAuth(undefined, secret)).claims).toBeNull()
     expect((await resolveAuth(undefined, null)).claims).toBeNull()
+  })
+
+  it('with no secret and no fallback allowed: refuses to read a forged token at all', async () => {
+    const forged = fakeToken({ role: 'ADMIN', exp: 9999999999 })
+    const result = await resolveAuth(forged, null, false)
+    expect(result.claims).toBeNull()
+    expect(result.verified).toBe(false)
+  })
+
+  it('with no secret and no fallback allowed: refuses an otherwise honest token too — fail closed, not fail selective', async () => {
+    const honest = await new SignJWT({ role: 'BUYER' })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setExpirationTime('1h')
+      .sign(secret)
+    expect((await resolveAuth(honest, null, false)).claims).toBeNull()
+  })
+})
+
+describe('allowsUnverifiedFallback', () => {
+  const original = process.env.NODE_ENV
+
+  afterEach(() => {
+    // NODE_ENV is readonly in Next's types but writable at runtime; restore it so the
+    // rest of the suite still sees the environment it was written against.
+    ;(process.env as Record<string, string | undefined>).NODE_ENV = original
+  })
+
+  it('is off in production, so a missing JWT_SECRET locks people out instead of letting forgeries through', () => {
+    ;(process.env as Record<string, string | undefined>).NODE_ENV = 'production'
+    expect(allowsUnverifiedFallback()).toBe(false)
+  })
+
+  it('is on outside production, so local development runs without a shared secret', () => {
+    ;(process.env as Record<string, string | undefined>).NODE_ENV = 'development'
+    expect(allowsUnverifiedFallback()).toBe(true)
+  })
+
+  it('an admin route in production with no secret redirects rather than trusting the claim', async () => {
+    ;(process.env as Record<string, string | undefined>).NODE_ENV = 'production'
+    const token = fakeToken({ role: 'ADMIN', exp: Math.floor(Date.now() / 1000) + 3600 })
+    const req = new NextRequest(new URL('http://localhost/users'), { headers: { cookie: `sre_token=${token}` } })
+    const res = await middleware(req)
+    expect(res.status).toBe(307)
+    expect(res.headers.get('location')).toContain('/login')
   })
 })
 

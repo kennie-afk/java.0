@@ -62,7 +62,11 @@ public class NotificationDispatcher {
         model.putIfAbsent("fullName", contact != null && StringUtils.hasText(contact.getFullName())
                 ? contact.getFullName() : "there");
 
-        for (Channel channel : List.of(Channel.EMAIL, Channel.IN_APP)) {
+        // SMS is included because a channel implementation now exists. Where a template
+        // has no SMS variant the renderer throws NotFoundException and the loop below
+        // skips it, so adding the channel here does not force every notification onto a
+        // billable rail — only the ones written for it.
+        for (Channel channel : List.of(Channel.EMAIL, Channel.SMS, Channel.IN_APP)) {
             try {
                 dispatchOnChannel(cmd, channel, email, phone, model);
             } catch (NotFoundException e) {
@@ -98,6 +102,7 @@ public class NotificationDispatcher {
                 .templateCode(cmd.getTemplateCode())
                 .subject(rendered.subject())
                 .body(rendered.body())
+                .htmlBody(rendered.html())
                 .dedupKey(dedupKey)
                 .sourceEventType(cmd.getSourceEventType())
                 .sourceEventId(cmd.getSourceEventId())

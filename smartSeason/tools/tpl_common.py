@@ -15,13 +15,6 @@ import jakarta.persistence.Version;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Fields every persisted row in this service carries.
- *
- * <p>{{@code tenantId}} is present from the first migration so that tenant-aligned
- * sharding stays possible without a data-model change; {{@code version}} gives
- * optimistic locking on concurrent writes.
- */
 @MappedSuperclass
 public abstract class BaseEntity {{
 
@@ -78,13 +71,6 @@ TENANT_CONTEXT = '''package com.smartseason.{pkg}.platform;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Request-scoped tenant identity, populated by {{@link JwtAuthenticationFilter}}.
- *
- * <p>Every repository query in this service is filtered by the value held here.
- * A missing tenant is a programming error, not a default-to-all: {{@link #requireTenantId()}}
- * throws rather than silently widening a query across tenants.
- */
 public final class TenantContext {{
 
     private static final ThreadLocal<UUID> CURRENT = new ThreadLocal<>();
@@ -116,7 +102,6 @@ public final class TenantContext {{
 
 TENANT_MISSING = '''package com.smartseason.{pkg}.platform;
 
-/** Raised when a tenant-scoped operation runs without a resolved tenant. */
 public class TenantMissingException extends RuntimeException {{
 
     public TenantMissingException() {{
@@ -129,7 +114,6 @@ NOT_FOUND = '''package com.smartseason.{pkg}.platform;
 
 import java.util.UUID;
 
-/** Raised when a resource does not exist, or exists outside the caller's tenant. */
 public class ResourceNotFoundException extends RuntimeException {{
 
     public ResourceNotFoundException(String resource, UUID id) {{
@@ -144,7 +128,6 @@ public class ResourceNotFoundException extends RuntimeException {{
 
 CONFLICT = '''package com.smartseason.{pkg}.platform;
 
-/** Raised when a request conflicts with current state (duplicate key, illegal transition). */
 public class ConflictException extends RuntimeException {{
 
     public ConflictException(String message) {{
@@ -155,7 +138,6 @@ public class ConflictException extends RuntimeException {{
 
 VALIDATION_EX = '''package com.smartseason.{pkg}.platform;
 
-/** Raised when a request is syntactically valid but violates a domain rule. */
 public class DomainRuleException extends RuntimeException {{
 
     public DomainRuleException(String message) {{
@@ -184,12 +166,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-/**
- * Translates exceptions into RFC 7807 {{@code application/problem+json}} responses.
- *
- * <p>Stack traces and driver messages never reach the client; they are logged
- * server-side and the caller gets a stable error code instead.
- */
 @RestControllerAdvice
 public class ApiExceptionHandler {{
 
@@ -365,10 +341,14 @@ public class OutboxEntry {{
 
 OUTBOX_REPOSITORY = '''package com.smartseason.{pkg}.platform;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -377,11 +357,24 @@ public interface OutboxRepository extends JpaRepository<OutboxEntry, UUID> {{
     List<OutboxEntry> findAllByStatusOrderByCreatedAtAsc(OutboxEntry.Status status, Pageable pageable);
 
     long countByStatus(OutboxEntry.Status status);
+
+    /**
+     * Removes entries that were published longer ago than the retention window.
+     *
+     * <p>Deliberately does not touch PENDING or FAILED rows: a FAILED entry is evidence
+     * of something that never reached its consumer and is the first thing anyone will
+     * look for, so it is kept until a person decides what to do with it.
+     */
+    @Modifying
+    @Query("DELETE FROM OutboxEntry e WHERE e.status = :status AND e.publishedAt < :before")
+    int deleteByStatusAndPublishedAtBefore(@Param("status") OutboxEntry.Status status,
+                                           @Param("before") Instant before);
 }}
 '''
 
 OUTBOX_RELAY = '''package com.smartseason.{pkg}.platform;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import org.slf4j.Logger;
@@ -403,15 +396,44 @@ public class OutboxRelay {{
     private final KafkaTemplate<String, Object> kafka;
     private final boolean enabled;
     private final int batchSize;
+    private final Duration retention;
 
     public OutboxRelay(OutboxRepository outbox,
                        KafkaTemplate<String, Object> kafka,
                        @Value("${{smartseason.events.enabled:false}}") boolean enabled,
-                       @Value("${{smartseason.events.relay-batch-size:100}}") int batchSize) {{
+                       @Value("${{smartseason.events.relay-batch-size:100}}") int batchSize,
+                       @Value("${{smartseason.events.retention-days:7}}") int retentionDays) {{
         this.outbox = outbox;
         this.kafka = kafka;
         this.enabled = enabled;
         this.batchSize = batchSize;
+        // Seven days is long enough to replay after a consumer outage and short enough
+        // that the table stays a queue rather than becoming an archive.
+        this.retention = Duration.ofDays(retentionDays);
+    }}
+
+    /**
+     * Deletes entries that were published longer ago than the retention window.
+     *
+     * <p>Without this the table only ever grows. Every write in this service emits an
+     * event, so the outbox accumulates a row per business operation forever — across 27
+     * services that is the largest table in each database within a year, holding rows
+     * whose only remaining purpose is to have already been sent.
+     *
+     * <p>Hourly rather than on every relay pass: this is housekeeping, and running a
+     * DELETE every two seconds to remove nothing is worse than useless.
+     */
+    @Scheduled(fixedDelayString = "${{smartseason.events.purge-interval-ms:3600000}}")
+    @Transactional
+    public void purgePublished() {{
+        if (!enabled) {{
+            return;
+        }}
+        int removed = outbox.deleteByStatusAndPublishedAtBefore(
+                OutboxEntry.Status.PUBLISHED, Instant.now().minus(retention));
+        if (removed > 0) {{
+            log.info("Purged {{}} published outbox entries older than {{}}", removed, retention);
+        }}
     }}
 
     @Scheduled(fixedDelayString = "${{smartseason.events.relay-interval-ms:2000}}")
@@ -429,8 +451,18 @@ public class OutboxRelay {{
                 kafka.send(entry.getTopic(), entry.getMessageKey(), entry.getPayload()).get();
                 entry.setStatus(OutboxEntry.Status.PUBLISHED);
                 entry.setPublishedAt(Instant.now());
-            }} catch (Exception ex) {{
+            }} catch (InterruptedException ex) {{
+                // Only an actual interruption restores the flag. Setting it for every
+                // failure — which this used to do — marks the scheduler thread as
+                // interrupted because a broker was briefly unreachable, and every later
+                // blocking call on that thread then fails for a reason that has nothing
+                // to do with what went wrong.
                 Thread.currentThread().interrupt();
+                entry.setAttempts(entry.getAttempts() + 1);
+                entry.setLastError("Relay interrupted");
+                outbox.save(entry);
+                return;
+            }} catch (Exception ex) {{
                 entry.setAttempts(entry.getAttempts() + 1);
                 entry.setLastError(ex.getMessage());
                 if (entry.getAttempts() >= MAX_ATTEMPTS) {{

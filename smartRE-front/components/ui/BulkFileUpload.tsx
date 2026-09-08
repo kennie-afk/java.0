@@ -133,7 +133,7 @@ export default function BulkFileUpload({ requiredCategories, categoryLabels, onF
         onDragLeave={() => setDragOver(false)}
         onDrop={e => { e.preventDefault(); setDragOver(false); addFiles(Array.from(e.dataTransfer.files ?? [])) }}
         className={cn(
-          'border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors text-center',
+          'border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors text-center',
           dragOver ? 'border-gold-500 bg-gold-50 dark:bg-gold-500/10' : 'border-gray-200 dark:border-[#1E1E3A] hover:border-gold-300',
         )}
       >
@@ -141,7 +141,7 @@ export default function BulkFileUpload({ requiredCategories, categoryLabels, onF
           onChange={e => addFiles(Array.from(e.target.files ?? []))}/>
         <Upload size={22} className="text-gray-400"/>
         <p className="text-sm text-muted">Click or drag multiple files here</p>
-        <p className="text-[11px] text-muted">JPG, PNG or PDF, up to 10MB each — select as many as you need at once</p>
+        <p className="text-xs text-muted">JPG, PNG or PDF, up to 10MB each — select as many as you need at once</p>
       </div>
 
       {queue.length > 0 && (
@@ -157,12 +157,12 @@ export default function BulkFileUpload({ requiredCategories, categoryLabels, onF
                   <FileText size={14} className="text-gold-500"/>
                 </div>
               )}
-              <span className="text-[12px] truncate flex-1 min-w-0">{item.file.name}</span>
+              <span className="text-sm truncate flex-1 min-w-0">{item.file.name}</span>
               <select
                 value={item.category}
                 disabled={item.status === 'uploading' || item.status === 'done'}
                 onChange={e => setItem(item.id, { category: e.target.value })}
-                className="input-base text-[11px] py-1 w-44 shrink-0"
+                className="input-base text-xs py-1 w-44 shrink-0"
               >
                 {categoryOptions.map(c => (
                   <option key={c.documentCategory} value={c.documentCategory}>
@@ -186,7 +186,7 @@ export default function BulkFileUpload({ requiredCategories, categoryLabels, onF
             type="button"
             onClick={runBatch}
             disabled={running || pendingCount === 0}
-            className="btn-primary w-full text-[13px] py-2 flex items-center justify-center gap-1.5 disabled:opacity-50"
+            className="btn-primary w-full text-base py-2 flex items-center justify-center gap-1.5 disabled:opacity-50"
           >
             {running ? <Loader2 size={14} className="animate-spin"/> : <Upload size={14}/>}
             {running ? 'Uploading...' : `Upload ${pendingCount} file${pendingCount === 1 ? '' : 's'}`}

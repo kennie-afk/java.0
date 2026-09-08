@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.farm.domain.SoilProfile;
+import com.smartseason.farm.platform.CountCache;
+import com.smartseason.farm.platform.CountCache;
 import com.smartseason.farm.platform.EventPublisher;
 import com.smartseason.farm.platform.ResourceNotFoundException;
 import com.smartseason.farm.platform.TenantContext;
@@ -29,7 +31,10 @@ class SoilProfileServiceTest {
 
     private final SoilProfileRepository repository = mock(SoilProfileRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final SoilProfileService service = new SoilProfileService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final SoilProfileService service = new SoilProfileService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

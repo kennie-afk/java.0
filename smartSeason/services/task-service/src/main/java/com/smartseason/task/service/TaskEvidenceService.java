@@ -1,6 +1,8 @@
 package com.smartseason.task.service;
 
 import com.smartseason.task.domain.TaskEvidence;
+import com.smartseason.task.platform.CountCache;
+import com.smartseason.task.platform.CountCache;
 import com.smartseason.task.platform.EventPublisher;
 import com.smartseason.task.platform.PageResponse;
 import com.smartseason.task.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class TaskEvidenceService {
 
     private static final String RESOURCE = "TaskEvidence";
+    private static final String ENTITY = "task_evidence";
 
     private final TaskEvidenceRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public TaskEvidenceService(TaskEvidenceRepository repository, EventPublisher events) {
+    public TaskEvidenceService(TaskEvidenceRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<TaskEvidenceResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(TaskEvidenceResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(TaskEvidenceResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public TaskEvidenceResponse get(UUID id) {
@@ -60,6 +67,7 @@ public class TaskEvidenceService {
         entity.setVerdict(request.verdict());
 
         TaskEvidence saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("workforce", "TaskEvidenceCreated", saved.getId(), TaskEvidenceResponse.from(saved));
         return TaskEvidenceResponse.from(saved);
     }
@@ -113,6 +121,7 @@ public class TaskEvidenceService {
     public void delete(UUID id) {
         TaskEvidence entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("workforce", "TaskEvidenceDeleted", id, null);
     }
 

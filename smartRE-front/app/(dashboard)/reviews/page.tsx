@@ -80,7 +80,7 @@ export default function ReviewsPage() {
   const avg = reviews.length ? (reviews.reduce((s,r)=>s+r.rating,0)/reviews.length).toFixed(1) : null
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-lg font-semibold text-gray-900 dark:text-white">{user?.role === 'BUYER' ? 'Your reviews' : 'Reviews'}</h1>
@@ -150,7 +150,7 @@ export default function ReviewsPage() {
             <div className="flex gap-2">
               {[1,2,3,4,5].map(n => (
                 <button key={n} type="button" onClick={()=>setForm(f=>({...f,rating:String(n)}))}
-                  className={`transition-transform hover:scale-110 ${+form.rating>=n?'text-amber-400':'text-gray-200 dark:text-gray-700'}`}>
+                  className={`transition-colors ${+form.rating>=n?'text-amber-400':'text-gray-200 dark:text-gray-700'}`}>
                   <Star size={26} className={+form.rating>=n?'fill-amber-400':''}/>
                 </button>
               ))}

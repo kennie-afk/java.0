@@ -1,0 +1,91 @@
+<!--
+  SmartSeason mark.
+
+  A TechMara child, so it keeps the parent's construction: a broken ring and circuit
+  traces entering from the left with open round nodes. What sits inside the ring is not a
+  monogram, as it is on TechMara and SmartRE — this platform is about growing things, and
+  a leaf says that in a way the letters SS never will.
+
+  The idea the mark is built on: the circuit traces do not stop at the leaf, they become
+  its veins. Technology and agriculture are the two halves of what this product is, and
+  drawing them as one continuous line is the whole argument in a single shape.
+
+  Green #15803D is the accent the application already uses, taken from its own stylesheet
+  rather than invented, so the colour ties the mark to the product while the ring and the
+  traces tie it to TechMara.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"
+     role="img" aria-label="SmartSeason">
+  <title>SmartSeason</title>
+
+  <defs>
+    <!-- A leaf is lit from above and darkens toward the stem, so the ramp runs
+         apex-to-base rather than corner-to-corner like the metallic marks. -->
+    <linearGradient id="sse-leaf" x1="0.9" y1="0" x2="0.15" y2="1">
+      <stop offset="0%"   stop-color="#7FD8A4"/>
+      <stop offset="35%"  stop-color="#2FA35C"/>
+      <stop offset="72%"  stop-color="#15803D"/>
+      <stop offset="100%" stop-color="#0B4A24"/>
+    </linearGradient>
+
+    <linearGradient id="sse-ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#8FD3A6"/>
+      <stop offset="45%"  stop-color="#2FA35C"/>
+      <stop offset="100%" stop-color="#0E5228"/>
+    </linearGradient>
+
+    <filter id="sse-shadow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="3" dy="5" stdDeviation="5.5"
+                    flood-color="#062615" flood-opacity="0.26"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#sse-shadow)">
+    <!-- Ring: the parent's, unchanged in shape. -->
+    <g fill="none" stroke-linecap="round">
+      <path d="M 96 372 A 196 196 0 1 1 404 372"
+            stroke="url(#sse-ring)" stroke-width="20"/>
+      <path d="M 96 372 A 196 196 0 1 1 404 372"
+            stroke="#DFF3E4" stroke-width="4.5" opacity="0.35"
+            transform="translate(-2.5 -2.5)"/>
+      <path d="M 62 330 A 214 214 0 0 1 62 182"
+            stroke="#8FD3A6" stroke-width="7" opacity="0.8"/>
+    </g>
+
+    <!-- Circuit traces, running in from the left and continuing into the leaf as its
+         lower veins. The middle trace meets the stem exactly, so the line reads as one
+         path rather than two things that happen to touch. -->
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="7">
+      <path d="M 46 206 H 84 L 106 228 H 158" stroke="#2FA35C"/>
+      <path d="M 46 256 H 150 L 190 278"      stroke="#15803D"/>
+      <path d="M 46 306 H 84 L 106 284 H 158" stroke="#2FA35C"/>
+      <g fill="none" stroke="#2FA35C" stroke-width="6">
+        <circle cx="32" cy="206" r="10"/>
+        <circle cx="32" cy="306" r="10"/>
+      </g>
+      <circle cx="32" cy="256" r="10" fill="none" stroke="#15803D" stroke-width="6"/>
+    </g>
+
+    <!-- Leaf. Two curves meeting at a point at each end: the wide side falls away from
+         the light, the narrow side catches it. -->
+    <g transform="translate(14 -22)">
+      <path d="M 176 300
+               C 196 224, 268 166, 372 156
+               C 366 258, 300 322, 176 300 Z"
+            fill="url(#sse-leaf)"/>
+
+    <!-- Midrib and veins, cut out of the leaf in the ground colour so they read as
+         structure rather than as lines drawn on top. -->
+      <g fill="none" stroke="#DFF3E4" stroke-linecap="round" opacity="0.55">
+        <path d="M 176 300 L 372 156" stroke-width="8"/>
+        <g stroke-width="5">
+          <path d="M 232 258 L 224 209"/>
+          <path d="M 274 227 L 272 180"/>
+          <path d="M 316 196 L 320 168"/>
+          <path d="M 246 288 L 292 293"/>
+          <path d="M 288 257 L 330 258"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

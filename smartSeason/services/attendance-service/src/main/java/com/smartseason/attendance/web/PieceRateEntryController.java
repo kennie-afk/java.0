@@ -35,19 +35,21 @@ public class PieceRateEntryController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'FINANCE')")
     @Operation(summary = "List piece-rate-entries for the caller's tenant")
     public PageResponse<PieceRateEntryResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'FINANCE')")
     @Operation(summary = "Fetch a single PieceRateEntry by id")
     public PieceRateEntryResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     @Operation(summary = "Create a PieceRateEntry")
     public ResponseEntity<PieceRateEntryResponse> create(@Valid @RequestBody PieceRateEntryCreateRequest request) {
         PieceRateEntryResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class PieceRateEntryController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     @Operation(summary = "Apply a partial update to a PieceRateEntry")
     public PieceRateEntryResponse update(@PathVariable UUID id, @Valid @RequestBody PieceRateEntryUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a PieceRateEntry")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

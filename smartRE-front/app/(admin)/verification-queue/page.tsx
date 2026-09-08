@@ -166,16 +166,16 @@ function VerifQueuePageInner() {
     <div className="space-y-5">
       <div>
         <h1 className="font-display text-lg font-semibold text-gray-900 dark:text-white">Verification Queue</h1>
-        <p className="text-muted text-[13px] mt-1">{queue.length} pending review{queue.length !== 1 ? 's' : ''}</p>
+        <p className="text-muted text-base mt-1">{queue.length} pending review{queue.length !== 1 ? 's' : ''}</p>
       </div>
 
       {loadError && <InlineError message="Failed to load one or more verification queues."/>}
 
       <div className="flex bg-gray-100 dark:bg-[#2E2518] rounded-lg p-1 w-fit">
-        <button onClick={() => setTab('identity')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors ${tab === 'identity' ? 'bg-white dark:bg-[#201911] text-gray-900 dark:text-white shadow-sm' : 'text-muted'}`}>
+        <button onClick={() => setTab('identity')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-base font-medium transition-colors ${tab === 'identity' ? 'bg-white dark:bg-[#201911] text-gray-900 dark:text-white shadow-sm' : 'text-muted'}`}>
           <ShieldCheck size={13}/>Identity ({idQueue.length})
         </button>
-        <button onClick={() => setTab('ownership')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors ${tab === 'ownership' ? 'bg-white dark:bg-[#201911] text-gray-900 dark:text-white shadow-sm' : 'text-muted'}`}>
+        <button onClick={() => setTab('ownership')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-base font-medium transition-colors ${tab === 'ownership' ? 'bg-white dark:bg-[#201911] text-gray-900 dark:text-white shadow-sm' : 'text-muted'}`}>
           <Landmark size={13}/>Ownership ({ownQueue.length})
         </button>
       </div>
@@ -187,16 +187,16 @@ function VerifQueuePageInner() {
           {tab === 'identity' ? idQueue.map(item => (
             <Card key={item.id}>
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-xl bg-gold-100 dark:bg-gold-500/10 text-gold-500 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-lg bg-gold-100 dark:bg-gold-500/10 text-gold-500 flex items-center justify-center shrink-0">
                   <FileText size={17}/>
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <p className="font-semibold text-gray-900 dark:text-white text-[13px]">User ID: {item.userId?.slice(0, 8)}...</p>
+                    <p className="font-semibold text-gray-900 dark:text-white text-base">User ID: {item.userId?.slice(0, 8)}...</p>
                     <StatusBadge status={item.status} size="sm"/>
                   </div>
-                  <p className="text-[12px] text-muted">Score: {item.identityScore}/100 · Docs: {item.documents?.length || 0} uploaded · {fmt.date(item.createdAt)}</p>
-                  {item.fraudStrikeCount > 0 && <p className="text-[12px] text-amber-600 mt-1 flex items-center gap-1"><AlertTriangle size={11}/>Fraud strikes: {item.fraudStrikeCount}</p>}
+                  <p className="text-sm text-muted">Score: {item.identityScore}/100 · Docs: {item.documents?.length || 0} uploaded · {fmt.date(item.createdAt)}</p>
+                  {item.fraudStrikeCount > 0 && <p className="text-sm text-amber-600 mt-1 flex items-center gap-1"><AlertTriangle size={11}/>Fraud strikes: {item.fraudStrikeCount}</p>}
                 </div>
                 <Button size="sm" onClick={() => openIdentity(item)}>Review</Button>
               </div>
@@ -204,15 +204,15 @@ function VerifQueuePageInner() {
           )) : ownQueue.map(item => (
             <Card key={item.id}>
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-xl bg-gold-100 dark:bg-gold-500/10 text-gold-500 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-lg bg-gold-100 dark:bg-gold-500/10 text-gold-500 flex items-center justify-center shrink-0">
                   <Landmark size={17}/>
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <p className="font-semibold text-gray-900 dark:text-white text-[13px]">Property ID: {item.propertyId?.slice(0, 8)}...</p>
+                    <p className="font-semibold text-gray-900 dark:text-white text-base">Property ID: {item.propertyId?.slice(0, 8)}...</p>
                     <StatusBadge status={item.status} size="sm"/>
                   </div>
-                  <p className="text-[12px] text-muted">{item.county} · {item.propertyType} · Docs: {item.documents?.length || 0} uploaded · {fmt.date(item.createdAt)}</p>
+                  <p className="text-sm text-muted">{item.county} · {item.propertyType} · Docs: {item.documents?.length || 0} uploaded · {fmt.date(item.createdAt)}</p>
                 </div>
                 <Button size="sm" onClick={() => openOwnership(item)}>Review</Button>
               </div>
@@ -229,7 +229,7 @@ function VerifQueuePageInner() {
           </Button></>}>
         {modal && modal._tab === 'identity' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between text-[12px] text-muted">
+            <div className="flex items-center justify-between text-sm text-muted">
               <Button size="sm" variant="ghost" leftIcon={<ChevronLeft size={14}/>} disabled={idModalIndex <= 0}
                 onClick={() => openIdentity(idQueue[idModalIndex - 1])}>Previous</Button>
               <span>{idModalIndex + 1} of {idQueue.length}</span>
@@ -238,7 +238,7 @@ function VerifQueuePageInner() {
                 Next <ChevronRight size={14}/>
               </Button>
             </div>
-            <div className="p-3 bg-gray-50 dark:bg-[#2E2518] rounded-lg text-[13px] space-y-1">
+            <div className="p-3 bg-gray-50 dark:bg-[#2E2518] rounded-lg text-base space-y-1">
               <p>User: {modal.userId}</p>
               <p>AI Score: <strong>{modal.identityScore}/100</strong></p>
               {!!modal.faceMatchSource && modal.faceMatchSource !== 'NONE' && (
@@ -250,7 +250,7 @@ function VerifQueuePageInner() {
             </div>
             <DocumentThumbnailGrid documents={(modal.documents ?? []).map(d => ({ id: d.id, url: d.documentUrl, label: d.documentCategory }))}/>
             {(modal.documents ?? []).filter(d => typeof d.aiAuthenticityScore === 'number').map(d => (
-              <div key={'screen-' + d.id} className="text-[11px] text-muted flex flex-wrap gap-x-3 gap-y-0.5">
+              <div key={'screen-' + d.id} className="text-xs text-muted flex flex-wrap gap-x-3 gap-y-0.5">
                 <span><strong>{(d.documentCategory || 'Document').replace(/_/g, ' ')}</strong> — authenticity {d.aiAuthenticityScore}%</span>
                 {d.aiTamperDetected && <span className="text-red-600 dark:text-red-400">tamper detected</span>}
                 {d.aiMetadataClean === false && <span className="text-amber-600 dark:text-amber-400">metadata inconsistent</span>}
@@ -263,7 +263,7 @@ function VerifQueuePageInner() {
               <div className="space-y-1.5">
                 {(modal.documents ?? []).map(d => (
                   (d.aiCategoryMismatch || d.extractedIdNumber) && (
-                    <div key={d.id} className={cn('text-[12px] p-2 rounded-md border',
+                    <div key={d.id} className={cn('text-sm p-2 rounded-md border',
                       d.aiCategoryMismatch ? 'border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400'
                         : 'border-base text-gray-600 dark:text-gray-400')}>
                       <strong>{(d.documentCategory || 'Document').replace(/_/g, ' ')}:</strong>{' '}
@@ -295,7 +295,7 @@ function VerifQueuePageInner() {
           </Button></>}>
         {modal && modal._tab === 'ownership' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between text-[12px] text-muted">
+            <div className="flex items-center justify-between text-sm text-muted">
               <Button size="sm" variant="ghost" leftIcon={<ChevronLeft size={14}/>} disabled={ownModalIndex <= 0}
                 onClick={() => openOwnership(ownQueue[ownModalIndex - 1])}>Previous</Button>
               <span>{ownModalIndex + 1} of {ownQueue.length}</span>
@@ -304,7 +304,7 @@ function VerifQueuePageInner() {
                 Next <ChevronRight size={14}/>
               </Button>
             </div>
-            <div className="p-3 bg-gray-50 dark:bg-[#2E2518] rounded-lg text-[13px] space-y-1">
+            <div className="p-3 bg-gray-50 dark:bg-[#2E2518] rounded-lg text-base space-y-1">
               <p>County: {modal.county} · Parcel: {modal.parcelNumber || 'N/A'}</p>
               <p>Title deed: {modal.titleDeedNumber || 'N/A'} · LR: {modal.lrNumber || 'N/A'}</p>
             </div>
@@ -312,7 +312,7 @@ function VerifQueuePageInner() {
               <DocumentThumbnailGrid documents={(modal.documents ?? []).map(d => ({ id: d.id, url: d.documentUrl, label: d.documentCategory }))}/>
             )}
             {modal.status !== 'LEGAL_REVIEW' && (modal.documents ?? []).filter(d => typeof d.aiAuthenticityScore === 'number').map(d => (
-              <div key={'screen-' + d.id} className="text-[11px] text-muted flex flex-wrap gap-x-3 gap-y-0.5">
+              <div key={'screen-' + d.id} className="text-xs text-muted flex flex-wrap gap-x-3 gap-y-0.5">
                 <span><strong>{d.documentCategory.replace(/_/g, ' ')}</strong> — authenticity {d.aiAuthenticityScore}%</span>
                 {d.aiTamperDetected && <span className="text-red-600 dark:text-red-400">tamper detected</span>}
                 {d.aiAlterationDetected && <span className="text-red-600 dark:text-red-400">alteration detected</span>}
@@ -330,7 +330,7 @@ function VerifQueuePageInner() {
                   let fields: Record<string, string> = {}
                   try { fields = d.aiExtractedFields ? JSON.parse(d.aiExtractedFields) : {} } catch {}
                   return (
-                    <div key={d.id} className={cn('text-[12px] p-2 rounded-md border',
+                    <div key={d.id} className={cn('text-sm p-2 rounded-md border',
                       d.aiCategoryMismatch ? 'border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400'
                         : 'border-base text-gray-600 dark:text-gray-400')}>
                       <strong>{d.documentCategory.replace(/_/g, ' ')}:</strong>
@@ -364,7 +364,7 @@ function VerifQueuePageInner() {
             {modal.status === 'LEGAL_REVIEW' && (
               <div className="space-y-3">
                 <div className="space-y-1.5">
-                  <p className="text-[12px] font-medium text-gray-600 dark:text-gray-400">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
                     {(modal.documents ?? []).filter(d => (d.isRequired ?? true) && d.humanReviewedAt).length} of{' '}
                     {(modal.documents ?? []).filter(d => d.isRequired ?? true).length} required documents reviewed —
                     select a document to review it individually
@@ -372,7 +372,7 @@ function VerifQueuePageInner() {
                   <div className="flex flex-wrap gap-1.5">
                     {(modal.documents ?? []).map(d => (
                       <button key={d.id} type="button" onClick={() => setLegalReviewDocId(d.id)}
-                        className={cn('flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] border transition-colors',
+                        className={cn('flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs border transition-colors',
                           d.id === legalReviewDocId
                             ? 'border-gold-500 bg-gold-50 dark:bg-gold-500/10 text-gold-700 dark:text-gold-400'
                             : 'border-base hover:bg-gray-50 dark:hover:bg-white/5')}>
@@ -405,7 +405,7 @@ function VerifQueuePageInner() {
                     ['lcParcelNumberMatches', 'Parcel number matches'],
                     ['humanLegalApproved', 'Overall legal approval'],
                   ] as const).map(([key, label]) => (
-                    <label key={key} className="flex items-center gap-2 text-[12px] p-2 rounded-md border border-base cursor-pointer">
+                    <label key={key} className="flex items-center gap-2 text-sm p-2 rounded-md border border-base cursor-pointer">
                       <input type="checkbox" checked={ownForm[key]} onChange={e => setOwnForm(f => ({ ...f, [key]: e.target.checked }))}/>
                       {label}
                     </label>

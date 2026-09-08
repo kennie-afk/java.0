@@ -1,6 +1,8 @@
 package com.smartseason.telemetryingest.service;
 
 import com.smartseason.telemetryingest.domain.TelemetryAnomalyRecord;
+import com.smartseason.telemetryingest.platform.CountCache;
+import com.smartseason.telemetryingest.platform.CountCache;
 import com.smartseason.telemetryingest.platform.EventPublisher;
 import com.smartseason.telemetryingest.platform.PageResponse;
 import com.smartseason.telemetryingest.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class TelemetryAnomalyRecordService {
 
     private static final String RESOURCE = "TelemetryAnomalyRecord";
+    private static final String ENTITY = "telemetry_anomalies";
 
     private final TelemetryAnomalyRecordRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public TelemetryAnomalyRecordService(TelemetryAnomalyRecordRepository repository, EventPublisher events) {
+    public TelemetryAnomalyRecordService(TelemetryAnomalyRecordRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<TelemetryAnomalyRecordResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(TelemetryAnomalyRecordResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(TelemetryAnomalyRecordResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public TelemetryAnomalyRecordResponse get(UUID id) {
@@ -57,6 +64,7 @@ public class TelemetryAnomalyRecordService {
         entity.setResolved(request.resolved());
 
         TelemetryAnomalyRecord saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("iot", "TelemetryAnomalyRecordCreated", saved.getId(), TelemetryAnomalyRecordResponse.from(saved));
         return TelemetryAnomalyRecordResponse.from(saved);
     }
@@ -101,6 +109,7 @@ public class TelemetryAnomalyRecordService {
     public void delete(UUID id) {
         TelemetryAnomalyRecord entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("iot", "TelemetryAnomalyRecordDeleted", id, null);
     }
 

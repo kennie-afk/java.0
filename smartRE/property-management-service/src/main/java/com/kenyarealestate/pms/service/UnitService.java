@@ -74,12 +74,25 @@ public class UnitService {
         return toResponse(unit);
     }
 
+    /**
+     * @param propertyId scope to one building, or null for every unit the landlord owns.
+     *                   A landlord with a hundred properties does not think in a flat
+     *                   list of four hundred units; they think "Riverside Court, which
+     *                   are vacant".
+     * @param q          free text over label, type and notes. Blank is treated as absent
+     *                   rather than as a search for the empty string.
+     */
     @Transactional(readOnly = true)
-    public Page<UnitResponse> listMine(UUID landlordId, String status, Pageable pageable) {
-        Page<Unit> page = StringUtils.hasText(status)
-                ? units.findByLandlordIdAndStatusOrderByCreatedAtDesc(landlordId, parseStatus(status), pageable)
-                : units.findByLandlordIdOrderByCreatedAtDesc(landlordId, pageable);
-        return page.map(this::toResponse);
+    public Page<UnitResponse> listMine(UUID landlordId, UUID propertyId, String status,
+                                       String q, Pageable pageable) {
+        return units.search(
+                landlordId,
+                propertyId,
+                StringUtils.hasText(status) ? parseStatus(status) : null,
+                // "%" rather than null: see UnitRepository.search for why a null here
+                // breaks on Postgres.
+                StringUtils.hasText(q) ? "%" + q.trim().toLowerCase() + "%" : "%",
+                pageable).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)

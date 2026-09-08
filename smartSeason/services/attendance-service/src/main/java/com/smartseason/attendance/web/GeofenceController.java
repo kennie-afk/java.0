@@ -35,19 +35,21 @@ public class GeofenceController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'FINANCE')")
     @Operation(summary = "List geofences for the caller's tenant")
     public PageResponse<GeofenceResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'FINANCE')")
     @Operation(summary = "Fetch a single Geofence by id")
     public GeofenceResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     @Operation(summary = "Create a Geofence")
     public ResponseEntity<GeofenceResponse> create(@Valid @RequestBody GeofenceCreateRequest request) {
         GeofenceResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class GeofenceController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     @Operation(summary = "Apply a partial update to a Geofence")
     public GeofenceResponse update(@PathVariable UUID id, @Valid @RequestBody GeofenceUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a Geofence")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

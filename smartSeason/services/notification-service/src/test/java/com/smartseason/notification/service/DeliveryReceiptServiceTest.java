@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.notification.domain.DeliveryReceipt;
+import com.smartseason.notification.platform.CountCache;
+import com.smartseason.notification.platform.CountCache;
 import com.smartseason.notification.platform.EventPublisher;
 import com.smartseason.notification.platform.ResourceNotFoundException;
 import com.smartseason.notification.platform.TenantContext;
@@ -29,7 +31,10 @@ class DeliveryReceiptServiceTest {
 
     private final DeliveryReceiptRepository repository = mock(DeliveryReceiptRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final DeliveryReceiptService service = new DeliveryReceiptService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final DeliveryReceiptService service = new DeliveryReceiptService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

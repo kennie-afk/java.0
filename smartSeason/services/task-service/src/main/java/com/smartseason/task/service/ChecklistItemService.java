@@ -1,6 +1,8 @@
 package com.smartseason.task.service;
 
 import com.smartseason.task.domain.ChecklistItem;
+import com.smartseason.task.platform.CountCache;
+import com.smartseason.task.platform.CountCache;
 import com.smartseason.task.platform.EventPublisher;
 import com.smartseason.task.platform.PageResponse;
 import com.smartseason.task.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class ChecklistItemService {
 
     private static final String RESOURCE = "ChecklistItem";
+    private static final String ENTITY = "checklist_items";
 
     private final ChecklistItemRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public ChecklistItemService(ChecklistItemRepository repository, EventPublisher events) {
+    public ChecklistItemService(ChecklistItemRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<ChecklistItemResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(ChecklistItemResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(ChecklistItemResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public ChecklistItemResponse get(UUID id) {
@@ -55,6 +62,7 @@ public class ChecklistItemService {
         entity.setCompletedBy(request.completedBy());
 
         ChecklistItem saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("workforce", "ChecklistItemCreated", saved.getId(), ChecklistItemResponse.from(saved));
         return ChecklistItemResponse.from(saved);
     }
@@ -93,6 +101,7 @@ public class ChecklistItemService {
     public void delete(UUID id) {
         ChecklistItem entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("workforce", "ChecklistItemDeleted", id, null);
     }
 

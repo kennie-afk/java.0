@@ -41,6 +41,16 @@ spec:
                 configMapKeyRef:
                   name: smartre-config
                   key: REDIS_HOST
+            - name: GATEWAY_SIGNING_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: smartre-secrets
+                  key: GATEWAY_SIGNING_SECRET
+            - name: FRONTEND_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: smartre-config
+                  key: FRONTEND_URL
           resources:
             requests:
               memory: "128Mi"

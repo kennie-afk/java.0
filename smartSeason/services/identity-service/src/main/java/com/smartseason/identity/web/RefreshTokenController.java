@@ -35,19 +35,21 @@ public class RefreshTokenController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "List refresh-tokens for the caller's tenant")
     public PageResponse<RefreshTokenResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Fetch a single RefreshToken by id")
     public RefreshTokenResponse get(@PathVariable UUID id) {
         return service.get(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Create a RefreshToken")
     public ResponseEntity<RefreshTokenResponse> create(@Valid @RequestBody RefreshTokenCreateRequest request) {
         RefreshTokenResponse created = service.create(request);
@@ -55,14 +57,14 @@ public class RefreshTokenController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'OPERATOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Apply a partial update to a RefreshToken")
     public RefreshTokenResponse update(@PathVariable UUID id, @Valid @RequestBody RefreshTokenUpdateRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @Operation(summary = "Delete a RefreshToken")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);

@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.workforce.domain.GangMembership;
+import com.smartseason.workforce.platform.CountCache;
+import com.smartseason.workforce.platform.CountCache;
 import com.smartseason.workforce.platform.EventPublisher;
 import com.smartseason.workforce.platform.ResourceNotFoundException;
 import com.smartseason.workforce.platform.TenantContext;
@@ -29,7 +31,10 @@ class GangMembershipServiceTest {
 
     private final GangMembershipRepository repository = mock(GangMembershipRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final GangMembershipService service = new GangMembershipService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final GangMembershipService service = new GangMembershipService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

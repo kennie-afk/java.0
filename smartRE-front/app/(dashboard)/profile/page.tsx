@@ -14,6 +14,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Badge } from '@/components/ui/Badge'
 import { fmt } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import { mediaSrc } from "@/lib/media"
 
 const payoutMethods = [
   { value: 'MPESA', label: 'M-Pesa phone' },
@@ -90,17 +91,17 @@ export default function ProfilePage() {
       <h1 className="font-display text-lg font-semibold text-gray-900 dark:text-white">Profile</h1>
 
       <Card>
-        <div className="flex items-center gap-3.5">
+        <div className="flex items-center gap-2.5">
           <div className="relative shrink-0">
-            <div className="w-16 h-16 rounded-xl bg-gold-500 text-white flex items-center justify-center font-display font-bold text-lg overflow-hidden relative">
+            <div className="w-16 h-16 rounded-lg bg-gold-500 text-white flex items-center justify-center font-display font-bold text-lg overflow-hidden relative">
               {form.profileImage ? (
-                <Image src={form.profileImage} alt={user.fullName} fill sizes="64px" className="object-cover"/>
+                <Image src={mediaSrc(form.profileImage)} alt={user.fullName} fill sizes="64px" className="object-cover"/>
               ) : fmt.initials(user.fullName)}
             </div>
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="font-display text-base font-semibold text-gray-900 dark:text-white truncate">{user.fullName}</h2>
-            <p className="text-muted text-[12px] truncate">{user.email}</p>
+            <p className="text-muted text-sm truncate">{user.email}</p>
             <div className="flex items-center gap-1.5 mt-1.5">
               <Badge variant="gold">{user.role}</Badge>
               {user.verified && <Badge variant="success"><ShieldCheck size={10}/>Verified</Badge>}
@@ -114,7 +115,7 @@ export default function ProfilePage() {
       </Card>
 
       <Card>
-        <h2 className="font-display font-semibold text-[13px] mb-3.5">Account details</h2>
+        <h2 className="font-display font-semibold text-base mb-3.5">Account details</h2>
         <div className="space-y-3">
           <Input label="Full name" leftIcon={<User size={14}/>} value={form.fullName} onChange={e => setForm(f => ({...f, fullName: e.target.value}))}/>
           <Input label="Email address" leftIcon={<Mail size={14}/>} value={user.email} disabled className="opacity-60"/>
@@ -125,13 +126,13 @@ export default function ProfilePage() {
 
       {isSellerOrAgent(user) && (
         <Card>
-          <h2 className="font-display font-semibold text-[13px] mb-1 flex items-center gap-1.5"><Landmark size={14} className="text-gold-500"/>Payout details</h2>
-          <p className="text-[11px] text-muted mb-3.5">Where escrow funds are sent when an admin releases a completed sale.</p>
+          <h2 className="font-display font-semibold text-base mb-1 flex items-center gap-1.5"><Landmark size={14} className="text-gold-500"/>Payout details</h2>
+          <p className="text-xs text-muted mb-3.5">Where escrow funds are sent when an admin releases a completed sale.</p>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-2">
               {(['INDIVIDUAL', 'COMPANY'] as const).map(t => (
                 <button key={t} type="button" onClick={() => setPayout(p => ({ ...p, accountType: t }))}
-                  className={`flex items-center gap-2 border-2 rounded-md px-3 py-2 text-[12px] font-medium transition-all ${payout.accountType === t ? 'border-gold-500 bg-gold-50 dark:bg-gold-500/10 text-gold-700 dark:text-gold-400' : 'border-gray-200 dark:border-[#3A2F1F] text-gray-600 dark:text-gray-300'}`}>
+                  className={`flex items-center gap-2 border-2 rounded-md px-3 py-2 text-sm font-medium transition-all ${payout.accountType === t ? 'border-gold-500 bg-gold-50 dark:bg-gold-500/10 text-gold-700 dark:text-gold-400' : 'border-gray-200 dark:border-[#3A2F1F] text-gray-600 dark:text-gray-300'}`}>
                   {t === 'INDIVIDUAL' ? <User size={13}/> : <Building2 size={13}/>}{t === 'INDIVIDUAL' ? 'Individual' : 'Company'}
                 </button>
               ))}
@@ -146,7 +147,7 @@ export default function ProfilePage() {
             <Input label="KRA PIN" placeholder="A123456789Z" value={payout.kraPin} onChange={e => setPayout(p => ({ ...p, kraPin: e.target.value }))}/>
 
             <div>
-              <label className="text-[11px] font-medium text-gray-600 dark:text-gray-400 block mb-1">Preferred payout method</label>
+              <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Preferred payout method</label>
               <select value={payout.preferredPayoutMethod} onChange={e => setPayout(p => ({ ...p, preferredPayoutMethod: e.target.value }))} className="input-base">
                 {payoutMethods.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
               </select>
@@ -179,13 +180,13 @@ export default function ProfilePage() {
       )}
 
       <Card>
-        <h2 className="font-display font-semibold text-[13px] mb-3.5 flex items-center gap-1.5"><Shield size={14} className="text-gold-500"/>Security</h2>
+        <h2 className="font-display font-semibold text-base mb-3.5 flex items-center gap-1.5"><Shield size={14} className="text-gold-500"/>Security</h2>
         <div className="flex items-center justify-between py-2.5 border-b border-base">
-          <div><p className="font-medium text-[12px]">Password</p><p className="text-[11px] text-muted">Change your account password</p></div>
+          <div><p className="font-medium text-sm">Password</p><p className="text-xs text-muted">Change your account password</p></div>
           <Button variant="secondary" size="sm" leftIcon={<Lock size={12}/>} onClick={() => setPwModal(true)}>Change</Button>
         </div>
         <div className="flex items-center justify-between py-2.5">
-          <div><p className="font-medium text-[12px]">Sign out</p><p className="text-[11px] text-muted">Log out of your account</p></div>
+          <div><p className="font-medium text-sm">Sign out</p><p className="text-xs text-muted">Log out of your account</p></div>
           <Button variant="secondary" size="sm" onClick={handleLogout}>Sign out</Button>
         </div>
       </Card>

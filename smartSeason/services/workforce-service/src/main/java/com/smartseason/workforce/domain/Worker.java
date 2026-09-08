@@ -13,11 +13,15 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "workers", indexes = {
+        @Index(name = "ix_workers_user_id", columnList = "user_id"),
         @Index(name = "ix_workers_national_id", columnList = "national_id"),
         @Index(name = "ix_workers_phone", columnList = "phone"),
         @Index(name = "ix_workers_farm_id", columnList = "farm_id")
 })
 public class Worker extends BaseEntity {
+
+    @Column(name = "user_id")
+    private UUID userId;
 
     @Column(name = "national_id")
     private String nationalId;
@@ -59,6 +63,9 @@ public class Worker extends BaseEntity {
 
     @Column(name = "photo_url")
     private String photoUrl;
+
+    public UUID getUserId() { return userId; }
+    public void setUserId(UUID userId) { this.userId = userId; }
 
     public String getNationalId() { return nationalId; }
     public void setNationalId(String nationalId) { this.nationalId = nationalId; }

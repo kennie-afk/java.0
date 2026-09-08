@@ -72,7 +72,7 @@ spring:
           filters: [AuthFilter]
 
 jwt:
-  secret: superSecretRealEstatePlatformKey2026MakeItAtLeast64CharactersLongForSecurity
+  secret: ${JWT_SECRET}
 
 server:
   port: 8080

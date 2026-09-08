@@ -1,6 +1,8 @@
 package com.smartseason.identity.service;
 
 import com.smartseason.identity.domain.Organisation;
+import com.smartseason.identity.platform.CountCache;
+import com.smartseason.identity.platform.CountCache;
 import com.smartseason.identity.platform.EventPublisher;
 import com.smartseason.identity.platform.PageResponse;
 import com.smartseason.identity.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class OrganisationService {
 
     private static final String RESOURCE = "Organisation";
+    private static final String ENTITY = "organisations";
 
     private final OrganisationRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public OrganisationService(OrganisationRepository repository, EventPublisher events) {
+    public OrganisationService(OrganisationRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<OrganisationResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(OrganisationResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(OrganisationResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public OrganisationResponse get(UUID id) {
@@ -56,6 +63,7 @@ public class OrganisationService {
         entity.setKycStatus(request.kycStatus());
 
         Organisation saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("identity", "OrganisationCreated", saved.getId(), OrganisationResponse.from(saved));
         return OrganisationResponse.from(saved);
     }
@@ -97,6 +105,7 @@ public class OrganisationService {
     public void delete(UUID id) {
         Organisation entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("identity", "OrganisationDeleted", id, null);
     }
 

@@ -18,6 +18,19 @@ spring:
         jdbc:
           batch_size: 50
         order_inserts: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2s
+      lettuce:
+        pool:
+          # One short call per request, so a small pool is plenty. 27 services
+          # times a large pool is a lot of sockets and client-side buffers for
+          # no gain.
+          max-active: 4
+          max-idle: 2
+          min-idle: 0
   flyway:
     enabled: true
     baseline-on-migrate: true
@@ -70,6 +83,19 @@ smartseason:
   events:
     enabled: ${EVENTS_ENABLED:false}
     topic-prefix: ss
+  cache:
+    # Row counts behind list endpoints. Stale by at most this long between a
+    # write on another replica and its eviction here.
+    enabled: ${CACHE_ENABLED:true}
+    count-ttl-seconds: ${CACHE_COUNT_TTL:30}
+  ratelimit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    read-capacity: ${RATE_LIMIT_READ_CAPACITY:300}
+    read-refill-per-second: ${RATE_LIMIT_READ_REFILL:5}
+    write-capacity: ${RATE_LIMIT_WRITE_CAPACITY:60}
+    write-refill-per-second: ${RATE_LIMIT_WRITE_REFILL:1}
+    anonymous-capacity: ${RATE_LIMIT_ANON_CAPACITY:30}
+    anonymous-refill-per-second: ${RATE_LIMIT_ANON_REFILL:0.5}
 
 logging:
   level:

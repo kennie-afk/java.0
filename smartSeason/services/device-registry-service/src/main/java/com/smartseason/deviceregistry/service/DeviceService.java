@@ -1,6 +1,8 @@
 package com.smartseason.deviceregistry.service;
 
 import com.smartseason.deviceregistry.domain.Device;
+import com.smartseason.deviceregistry.platform.CountCache;
+import com.smartseason.deviceregistry.platform.CountCache;
 import com.smartseason.deviceregistry.platform.EventPublisher;
 import com.smartseason.deviceregistry.platform.PageResponse;
 import com.smartseason.deviceregistry.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class DeviceService {
 
     private static final String RESOURCE = "Device";
+    private static final String ENTITY = "devices";
 
     private final DeviceRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public DeviceService(DeviceRepository repository, EventPublisher events) {
+    public DeviceService(DeviceRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<DeviceResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(DeviceResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(DeviceResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public DeviceResponse get(UUID id) {
@@ -58,6 +65,7 @@ public class DeviceService {
         entity.setLongitude(request.longitude());
 
         Device saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("iot", "DeviceCreated", saved.getId(), DeviceResponse.from(saved));
         return DeviceResponse.from(saved);
     }
@@ -105,6 +113,7 @@ public class DeviceService {
     public void delete(UUID id) {
         Device entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("iot", "DeviceDeleted", id, null);
     }
 

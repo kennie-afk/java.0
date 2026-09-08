@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.smartseason.analytics.domain.DashboardWidget;
+import com.smartseason.analytics.platform.CountCache;
+import com.smartseason.analytics.platform.CountCache;
 import com.smartseason.analytics.platform.EventPublisher;
 import com.smartseason.analytics.platform.ResourceNotFoundException;
 import com.smartseason.analytics.platform.TenantContext;
@@ -29,7 +31,10 @@ class DashboardWidgetServiceTest {
 
     private final DashboardWidgetRepository repository = mock(DashboardWidgetRepository.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final DashboardWidgetService service = new DashboardWidgetService(repository, events);
+
+    private final CountCache counts = new CountCache(null, 30, false);
+
+    private final DashboardWidgetService service = new DashboardWidgetService(repository, events, counts);
 
     private final UUID tenant = UUID.randomUUID();
 

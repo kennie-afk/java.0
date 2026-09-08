@@ -1,6 +1,8 @@
 package com.smartseason.notification.service;
 
 import com.smartseason.notification.domain.NotificationTemplate;
+import com.smartseason.notification.platform.CountCache;
+import com.smartseason.notification.platform.CountCache;
 import com.smartseason.notification.platform.EventPublisher;
 import com.smartseason.notification.platform.PageResponse;
 import com.smartseason.notification.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class NotificationTemplateService {
 
     private static final String RESOURCE = "NotificationTemplate";
+    private static final String ENTITY = "notification_templates";
 
     private final NotificationTemplateRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public NotificationTemplateService(NotificationTemplateRepository repository, EventPublisher events) {
+    public NotificationTemplateService(NotificationTemplateRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<NotificationTemplateResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(NotificationTemplateResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(NotificationTemplateResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public NotificationTemplateResponse get(UUID id) {
@@ -56,6 +63,7 @@ public class NotificationTemplateService {
         entity.setRevision(request.revision());
 
         NotificationTemplate saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("platform", "NotificationTemplateCreated", saved.getId(), NotificationTemplateResponse.from(saved));
         return NotificationTemplateResponse.from(saved);
     }
@@ -97,6 +105,7 @@ public class NotificationTemplateService {
     public void delete(UUID id) {
         NotificationTemplate entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("platform", "NotificationTemplateDeleted", id, null);
     }
 

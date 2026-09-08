@@ -1,6 +1,8 @@
 package com.smartseason.analytics.service;
 
 import com.smartseason.analytics.domain.ReportRun;
+import com.smartseason.analytics.platform.CountCache;
+import com.smartseason.analytics.platform.CountCache;
 import com.smartseason.analytics.platform.EventPublisher;
 import com.smartseason.analytics.platform.PageResponse;
 import com.smartseason.analytics.platform.ResourceNotFoundException;
@@ -19,19 +21,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class ReportRunService {
 
     private static final String RESOURCE = "ReportRun";
+    private static final String ENTITY = "report_runs";
 
     private final ReportRunRepository repository;
     private final EventPublisher events;
+    private final CountCache counts;
 
-    public ReportRunService(ReportRunRepository repository, EventPublisher events) {
+    public ReportRunService(ReportRunRepository repository, EventPublisher events, CountCache counts) {
         this.repository = repository;
         this.events = events;
+        this.counts = counts;
     }
 
     public PageResponse<ReportRunResponse> list(Pageable pageable) {
-        return PageResponse.from(
-                repository.findAllByTenantId(TenantContext.requireTenantId(), pageable)
-                        .map(ReportRunResponse::from));
+        UUID tenantId = TenantContext.requireTenantId();
+
+        return PageResponse.of(
+                repository.findAllByTenantId(tenantId, pageable).map(ReportRunResponse::from),
+                counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
     }
 
     public ReportRunResponse get(UUID id) {
@@ -58,6 +65,7 @@ public class ReportRunService {
         entity.setError(request.error());
 
         ReportRun saved = repository.save(entity);
+        counts.invalidate(ENTITY, saved.getTenantId());
         events.publish("platform", "ReportRunCreated", saved.getId(), ReportRunResponse.from(saved));
         return ReportRunResponse.from(saved);
     }
@@ -105,6 +113,7 @@ public class ReportRunService {
     public void delete(UUID id) {
         ReportRun entity = require(id);
         repository.delete(entity);
+        counts.invalidate(ENTITY, entity.getTenantId());
         events.publish("platform", "ReportRunDeleted", id, null);
     }
 
