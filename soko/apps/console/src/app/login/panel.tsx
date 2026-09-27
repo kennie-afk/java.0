@@ -55,7 +55,7 @@ export function AuthPanel() {
         <form action={signInAction} className="flex flex-col gap-4">
           <Field label="Email address">
             <input name="email" type="email" autoComplete="username"
-              placeholder="grace@mazingira.co.ke" className={inputClass} required />
+              placeholder="owner@yourbusiness.co.ke" className={inputClass} required />
           </Field>
           <Field label="Password">
             <input name="password" type="password" autoComplete="current-password"
@@ -72,16 +72,16 @@ export function AuthPanel() {
       ) : mode === "signup" ? (
         <form action={signUpAction} className="flex flex-col gap-4">
           <Field label="Business name">
-            <input name="organisationName" placeholder="Mazingira Fresh Distributors"
+            <input name="organisationName" placeholder="Fresh Ferment Co."
               className={inputClass} required />
           </Field>
           <Field label="Your name">
-            <input name="fullName" autoComplete="name" placeholder="Grace Wanjiku"
+            <input name="fullName" autoComplete="name" placeholder="Jane Wanjiku"
               className={inputClass} required />
           </Field>
           <Field label="Email address">
             <input name="email" type="email" autoComplete="username"
-              placeholder="grace@mazingira.co.ke" className={inputClass} required />
+              placeholder="owner@yourbusiness.co.ke" className={inputClass} required />
           </Field>
           <Field label="Password" hint="At least 10 characters.">
             <input name="password" type="password" autoComplete="new-password"
@@ -98,7 +98,7 @@ export function AuthPanel() {
         <form action={resetAction} className="flex flex-col gap-4">
           <Field label="Email address">
             <input name="email" type="email" autoComplete="username"
-              placeholder="grace@mazingira.co.ke" className={inputClass} required />
+              placeholder="owner@yourbusiness.co.ke" className={inputClass} required />
           </Field>
           <button type="submit" className={`${buttonClass} mt-1 w-full justify-center`} disabled={resetting}>
             {resetting ? "Sending…" : "Send reset link"}
