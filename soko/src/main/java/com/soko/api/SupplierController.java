@@ -2,9 +2,14 @@ package com.soko.api;
 
 import com.soko.domain.Offer;
 import com.soko.domain.OrderLine;
+import com.soko.domain.Product;
+import com.soko.domain.SalesOrder;
 import com.soko.domain.Supplier;
+import com.soko.notifications.OrderNotifications;
 import com.soko.persistence.OfferRepository;
 import com.soko.persistence.OrderLineRepository;
+import com.soko.persistence.OrderRepository;
+import com.soko.persistence.ProductRepository;
 import com.soko.persistence.SupplierRepository;
 import com.soko.platform.Errors;
 import com.soko.security.Principal;
@@ -26,17 +31,41 @@ public class SupplierController {
     private final SupplierRepository suppliers;
     private final OfferRepository offers;
     private final OrderLineRepository orderLines;
+    private final OrderRepository orders;
+    private final ProductRepository products;
+    private final OrderNotifications notifications;
     private final TenantContext context;
 
     public SupplierController(
             SupplierRepository suppliers,
             OfferRepository offers,
             OrderLineRepository orderLines,
+            OrderRepository orders,
+            ProductRepository products,
+            OrderNotifications notifications,
             TenantContext context) {
         this.suppliers = suppliers;
         this.offers = offers;
         this.orderLines = orderLines;
+        this.orders = orders;
+        this.products = products;
+        this.notifications = notifications;
         this.context = context;
+    }
+
+    private void notifyForLine(OrderLine line, boolean delivered) {
+        SalesOrder order = orders.findById(line.getOrderId()).orElse(null);
+        Product product = products.findById(line.getProductId()).orElse(null);
+        if (order == null || product == null) {
+            return;
+        }
+        if (delivered) {
+            notifications.lineDelivered(
+                    line.getTenantId(), order.getCustomerId(), order.getReference(), product.getName());
+        } else {
+            notifications.lineDispatched(
+                    line.getTenantId(), order.getCustomerId(), order.getReference(), product.getName());
+        }
     }
 
     private UUID supplierId() {
@@ -123,6 +152,7 @@ public class SupplierController {
         line.setDispatchedAt(Instant.now());
         line.setTrackingNote(request.trackingNote());
         orderLines.save(line);
+        notifyForLine(line, false);
         return Map.of("lineId", line.getId(), "status", line.getStatus());
     }
 
@@ -138,6 +168,7 @@ public class SupplierController {
         line.setStatus("DELIVERED");
         line.setDeliveredAt(Instant.now());
         orderLines.save(line);
+        notifyForLine(line, true);
         return Map.of("lineId", line.getId(), "status", line.getStatus());
     }
 }

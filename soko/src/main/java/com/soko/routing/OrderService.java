@@ -41,6 +41,7 @@ public class OrderService {
     private final OrderRepository orders;
     private final OrderLineRepository orderLines;
     private final RoutingEngine engine;
+    private final com.soko.notifications.OrderNotifications notifications;
     private OrderService self;
 
     @org.springframework.beans.factory.annotation.Autowired
@@ -55,7 +56,8 @@ public class OrderService {
             CustomerRepository customers,
             OrderRepository orders,
             OrderLineRepository orderLines,
-            RoutingEngine engine) {
+            RoutingEngine engine,
+            com.soko.notifications.OrderNotifications notifications) {
         this.products = products;
         this.offers = offers;
         this.suppliers = suppliers;
@@ -63,6 +65,7 @@ public class OrderService {
         this.orders = orders;
         this.orderLines = orderLines;
         this.engine = engine;
+        this.notifications = notifications;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -174,6 +177,8 @@ public class OrderService {
         order.setCostCents(cost);
         order.setMarginCents(revenue - cost);
         orders.save(order);
+
+        notifications.orderPlaced(tenantId, customer.getId(), order.getReference(), revenue);
 
         return new Placed(
                 order.getId(), order.getReference(), revenue, cost, revenue - cost, placedLines);
