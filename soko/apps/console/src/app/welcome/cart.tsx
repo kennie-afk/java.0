@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { placeGuestOrder, type GuestOrder } from "@/app/welcome/actions";
+import { registerAndOrder, signInAndOrder, type OrderResult } from "@/app/welcome/actions";
 import type { PublicProduct } from "@/app/welcome/storefront";
 
 const STORAGE_KEY = "freshferm-cart-v1";
@@ -140,14 +140,14 @@ export function CartButton() {
     <button
       onClick={open}
       aria-label="Open cart"
-      className={`relative flex items-center gap-2 rounded-full border border-[var(--color-line)] bg-white px-4 py-2 text-[0.875rem] shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--color-accent)] hover:shadow-md ${
+      className={`relative flex items-center gap-2 rounded-sm border border-[var(--color-line)] bg-white px-3 py-1.5 text-[0.8125rem] shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--color-accent)] hover:shadow-md ${
         lastAdded ? "ring-2 ring-[var(--color-accent)]/30" : ""
       }`}
     >
-      <CartIcon className="h-4 w-4" />
+      <CartIcon className="h-3.5 w-3.5" />
       Cart
       {count > 0 && (
-        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-ink)] px-1 text-[0.6875rem] text-white tabular-nums">
+        <span className="flex h-5 min-w-5 items-center justify-center rounded-sm bg-[var(--color-ink)] px-1 text-[0.6875rem] text-white tabular-nums">
           {count}
         </span>
       )}
@@ -156,16 +156,20 @@ export function CartButton() {
 }
 
 type Step = "cart" | "checkout" | "confirmed";
+type AuthMode = "signin" | "register";
 
 export function CartDrawer({ slug }: { slug?: string }) {
   const cart = useCart();
   const [step, setStep] = useState<Step>("cart");
-  const [name, setName] = useState("");
+  const [authMode, setAuthMode] = useState<AuthMode>("signin");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [county, setCounty] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [order, setOrder] = useState<GuestOrder | null>(null);
+  const [order, setOrder] = useState<OrderResult | null>(null);
 
   if (!cart.isOpen) {
     return null;
@@ -180,19 +184,21 @@ export function CartDrawer({ slug }: { slug?: string }) {
   };
 
   const submit = async () => {
-    if (!slug) {
-      setError("This storefront isn't connected to a live catalogue yet.");
-      return;
-    }
+    const lines = cart.lines.map((line) => ({
+      productId: line.product.id,
+      quantity: line.quantity,
+    }));
+
     setSubmitting(true);
     setError(null);
-    const result = await placeGuestOrder({
-      slug,
-      customerName: name,
-      phone,
-      county,
-      lines: cart.lines.map((line) => ({ productId: line.product.id, quantity: line.quantity })),
-    });
+
+    const result =
+      authMode === "signin"
+        ? await signInAndOrder({ email, password, lines })
+        : slug
+          ? await registerAndOrder({ slug, fullName, email, phone, county, password, lines })
+          : { order: null, error: "This storefront isn't connected to a live catalogue yet." };
+
     setSubmitting(false);
     if (result.error || !result.order) {
       setError(result.error ?? "Something went wrong placing that order.");
@@ -214,13 +220,13 @@ export function CartDrawer({ slug }: { slug?: string }) {
         <div className="flex items-center justify-between border-b border-[var(--color-line)] px-6 py-5">
           <p className="text-[1rem] font-medium">
             {step === "cart" && "Your cart"}
-            {step === "checkout" && "Checkout"}
+            {step === "checkout" && (authMode === "signin" ? "Sign in to order" : "Create an account to order")}
             {step === "confirmed" && "Order placed"}
           </p>
           <button
             onClick={closeAndReset}
             aria-label="Close"
-            className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-faint)] transition-colors hover:bg-[var(--color-canvas)] hover:text-[var(--color-ink)]"
+            className="flex h-8 w-8 items-center justify-center rounded-sm text-[var(--color-faint)] transition-colors hover:bg-[var(--color-canvas)] hover:text-[var(--color-ink)]"
           >
             <CloseIcon className="h-4 w-4" />
           </button>
@@ -229,11 +235,17 @@ export function CartDrawer({ slug }: { slug?: string }) {
         <div className="flex-1 overflow-y-auto px-6 py-5">
           {step === "cart" && <CartView />}
           {step === "checkout" && (
-            <CheckoutForm
-              name={name}
+            <AuthForm
+              mode={authMode}
+              onMode={setAuthMode}
+              fullName={fullName}
+              email={email}
+              password={password}
               phone={phone}
               county={county}
-              onName={setName}
+              onFullName={setFullName}
+              onEmail={setEmail}
+              onPassword={setPassword}
               onPhone={setPhone}
               onCounty={setCounty}
               error={error}
@@ -250,7 +262,7 @@ export function CartDrawer({ slug }: { slug?: string }) {
             </div>
             <button
               onClick={() => setStep("checkout")}
-              className="mt-4 w-full rounded-full bg-[var(--color-ink)] py-3 text-[0.875rem] text-white transition-all hover:-translate-y-0.5 hover:shadow-lg"
+              className="mt-4 w-full rounded-sm bg-[var(--color-ink)] py-2 text-[0.8125rem] text-white transition-all hover:-translate-y-0.5 hover:shadow-lg"
             >
               Checkout
             </button>
@@ -266,13 +278,17 @@ export function CartDrawer({ slug }: { slug?: string }) {
             <button
               onClick={submit}
               disabled={submitting}
-              className="mt-4 w-full rounded-full bg-[var(--color-ink)] py-3 text-[0.875rem] text-white transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
+              className="mt-4 w-full rounded-sm bg-[var(--color-ink)] py-2 text-[0.8125rem] text-white transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
             >
-              {submitting ? "Placing order…" : "Place order"}
+              {submitting
+                ? "Placing order…"
+                : authMode === "signin"
+                  ? "Sign in & place order"
+                  : "Create account & place order"}
             </button>
             <button
               onClick={() => setStep("cart")}
-              className="mt-2 w-full py-2 text-[0.875rem] text-[var(--color-muted)] transition-colors hover:text-[var(--color-ink)]"
+              className="mt-2 w-full py-1.5 text-[0.8125rem] text-[var(--color-muted)] transition-colors hover:text-[var(--color-ink)]"
             >
               Back to cart
             </button>
@@ -283,7 +299,7 @@ export function CartDrawer({ slug }: { slug?: string }) {
           <div className="border-t border-[var(--color-line)] px-6 py-5">
             <button
               onClick={closeAndReset}
-              className="w-full rounded-full border border-[var(--color-line)] py-3 text-[0.875rem] transition-all hover:-translate-y-0.5 hover:border-[var(--color-accent)]"
+              className="w-full rounded-sm border border-[var(--color-line)] py-2 text-[0.8125rem] transition-all hover:-translate-y-0.5 hover:border-[var(--color-accent)]"
             >
               Continue shopping
             </button>
@@ -319,7 +335,7 @@ function CartView() {
               <button
                 onClick={() => cart.setQuantity(line.product.id, line.quantity - 1)}
                 aria-label="Decrease quantity"
-                className="flex h-6 w-6 items-center justify-center rounded-full border border-[var(--color-line)] text-[0.875rem] transition-colors hover:border-[var(--color-accent)]"
+                className="flex h-6 w-6 items-center justify-center rounded-sm border border-[var(--color-line)] text-[0.875rem] transition-colors hover:border-[var(--color-accent)]"
               >
                 −
               </button>
@@ -328,7 +344,7 @@ function CartView() {
                 onClick={() => cart.setQuantity(line.product.id, line.quantity + 1)}
                 aria-label="Increase quantity"
                 disabled={line.quantity >= line.product.inStock}
-                className="flex h-6 w-6 items-center justify-center rounded-full border border-[var(--color-line)] text-[0.875rem] transition-colors hover:border-[var(--color-accent)] disabled:opacity-40"
+                className="flex h-6 w-6 items-center justify-center rounded-sm border border-[var(--color-line)] text-[0.875rem] transition-colors hover:border-[var(--color-accent)] disabled:opacity-40"
               >
                 +
               </button>
@@ -351,56 +367,137 @@ function CartView() {
   );
 }
 
-function CheckoutForm({
-  name,
+function AuthForm({
+  mode,
+  onMode,
+  fullName,
+  email,
+  password,
   phone,
   county,
-  onName,
+  onFullName,
+  onEmail,
+  onPassword,
   onPhone,
   onCounty,
   error,
 }: {
-  name: string;
+  mode: AuthMode;
+  onMode: (v: AuthMode) => void;
+  fullName: string;
+  email: string;
+  password: string;
   phone: string;
   county: string;
-  onName: (v: string) => void;
+  onFullName: (v: string) => void;
+  onEmail: (v: string) => void;
+  onPassword: (v: string) => void;
   onPhone: (v: string) => void;
   onCounty: (v: string) => void;
   error: string | null;
 }) {
   const inputClass =
-    "w-full rounded-lg border border-[var(--color-line)] bg-white px-3.5 py-2.5 text-[0.875rem] outline-none transition-colors focus:border-[var(--color-accent)]";
+    "w-full rounded-sm border border-[var(--color-line)] bg-white px-3 py-2 text-[0.8125rem] outline-none transition-colors focus:border-[var(--color-accent)]";
+  const label = "mb-1.5 block text-[0.75rem] text-[var(--color-faint)]";
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex rounded-sm border border-[var(--color-line)] p-0.5 text-[0.8125rem]">
+        <button
+          onClick={() => onMode("signin")}
+          className={`flex-1 rounded-sm py-1.5 transition-colors ${
+            mode === "signin" ? "bg-[var(--color-ink)] text-white" : "text-[var(--color-muted)]"
+          }`}
+        >
+          Sign in
+        </button>
+        <button
+          onClick={() => onMode("register")}
+          className={`flex-1 rounded-sm py-1.5 transition-colors ${
+            mode === "register" ? "bg-[var(--color-ink)] text-white" : "text-[var(--color-muted)]"
+          }`}
+        >
+          Create account
+        </button>
+      </div>
+
       {error && (
-        <div className="rounded-lg border border-[var(--color-danger)]/30 bg-[var(--color-danger-soft)] px-3.5 py-3 text-[0.875rem] text-[var(--color-danger)]">
+        <div className="rounded-sm border border-[var(--color-danger)]/30 bg-[var(--color-danger-soft)] px-3.5 py-3 text-[0.8125rem] text-[var(--color-danger)]">
           {error}
         </div>
       )}
-      <p className="text-[0.875rem] text-[var(--color-muted)]">
-        No account needed — just tell us where to reach you and we&apos;ll confirm your order.
+
+      <p className="text-[0.8125rem] text-[var(--color-muted)]">
+        {mode === "signin"
+          ? "Sign in to place this order and track it from your own account."
+          : "An account is needed to order — it takes a moment, and you can track every order from it after."}
       </p>
+
+      {mode === "register" && (
+        <div>
+          <label className={label}>Your name</label>
+          <input
+            value={fullName}
+            onChange={(e) => onFullName(e.target.value)}
+            className={inputClass}
+            placeholder="Jane Wanjiru"
+          />
+        </div>
+      )}
+
       <div>
-        <label className="mb-1.5 block text-[0.75rem] text-[var(--color-faint)]">Your name</label>
-        <input value={name} onChange={(e) => onName(e.target.value)} className={inputClass} placeholder="Jane Wanjiru" />
+        <label className={label}>Email address</label>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => onEmail(e.target.value)}
+          className={inputClass}
+          placeholder="you@example.co.ke"
+        />
       </div>
+
+      {mode === "register" && (
+        <div>
+          <label className={label}>Phone number</label>
+          <input
+            value={phone}
+            onChange={(e) => onPhone(e.target.value)}
+            className={inputClass}
+            placeholder="+254 7XX XXX XXX"
+          />
+        </div>
+      )}
+
+      {mode === "register" && (
+        <div>
+          <label className={label}>County</label>
+          <input
+            value={county}
+            onChange={(e) => onCounty(e.target.value)}
+            className={inputClass}
+            placeholder="Nairobi"
+          />
+        </div>
+      )}
+
       <div>
-        <label className="mb-1.5 block text-[0.75rem] text-[var(--color-faint)]">Phone number</label>
-        <input value={phone} onChange={(e) => onPhone(e.target.value)} className={inputClass} placeholder="+254 7XX XXX XXX" />
-      </div>
-      <div>
-        <label className="mb-1.5 block text-[0.75rem] text-[var(--color-faint)]">County</label>
-        <input value={county} onChange={(e) => onCounty(e.target.value)} className={inputClass} placeholder="Nairobi" />
+        <label className={label}>Password</label>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => onPassword(e.target.value)}
+          className={inputClass}
+          placeholder={mode === "register" ? "At least 10 characters" : "••••••••"}
+        />
       </div>
     </div>
   );
 }
 
-function Confirmation({ order }: { order: GuestOrder }) {
+function Confirmation({ order }: { order: OrderResult }) {
   return (
     <div className="flex flex-col items-center gap-4 py-8 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-accent-soft)] text-[var(--color-accent)]">
+      <div className="flex h-12 w-12 items-center justify-center rounded-sm bg-[var(--color-accent-soft)] text-[var(--color-accent)]">
         <CheckIcon className="h-6 w-6" />
       </div>
       <div>
@@ -409,7 +506,7 @@ function Confirmation({ order }: { order: GuestOrder }) {
           Reference <span className="font-medium text-[var(--color-ink)]">{order.reference}</span>
         </p>
       </div>
-      <div className="w-full rounded-xl border border-[var(--color-line)] p-4 text-left">
+      <div className="w-full rounded-sm border border-[var(--color-line)] p-4 text-left">
         {order.lines.map((line, index) => (
           <div key={index} className="flex justify-between py-1 text-[0.875rem]">
             <span className="text-[var(--color-muted)]">

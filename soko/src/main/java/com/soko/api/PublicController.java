@@ -1,43 +1,45 @@
 package com.soko.api;
 
+import com.soko.domain.AppUser;
 import com.soko.domain.Customer;
 import com.soko.domain.Tenant;
 import com.soko.persistence.CustomerRepository;
 import com.soko.persistence.OfferRepository;
 import com.soko.persistence.TenantRepository;
+import com.soko.persistence.UserRepository;
 import com.soko.platform.Errors;
-import com.soko.routing.OrderService;
+import com.soko.security.Principal;
+import com.soko.security.Tokens;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.GetMapping;
 
 /**
- * The two storefront views that need no account at all: a public product
- * catalogue, and guest checkout against it. Both are resolved by tenant slug
- * rather than by an authenticated principal's tenant, and both are
- * deliberately unauthenticated (see SecurityConfig).
+ * The two storefront views a first-time visitor can reach with no account at
+ * all: a public product catalogue, and self-registration against it. Both are
+ * resolved by tenant slug rather than by an authenticated principal's tenant,
+ * and both are deliberately unauthenticated (see SecurityConfig).
  *
- * <p>Guest checkout exists because requiring an owner-provisioned account
- * before a first-time buyer can order at all is exactly the friction a real
- * storefront cannot afford. It reuses {@link OrderService#place}, the same
- * routing engine and the same conditional-update stock reservation a signed-in
- * customer's order goes through - a guest order is not a lesser order, it is
- * the same order with its customer record created on the spot instead of in
- * advance.
+ * <p>Placing an order itself is NOT here on purpose: a buyer signs in or
+ * registers first (see {@link #register}), then orders through the normal
+ * authenticated {@code /v1/shop/orders}, the same endpoint and the same
+ * per-customer order history every other signed-in buyer uses. Registration
+ * exists only to remove the friction of needing the owner to provision an
+ * account before a first-time buyer can even start - not to let anyone order
+ * without one.
  */
 @RestController
 @RequestMapping("/v1/public")
@@ -46,17 +48,23 @@ public class PublicController {
     private final TenantRepository tenants;
     private final OfferRepository offers;
     private final CustomerRepository customers;
-    private final OrderService orderService;
+    private final UserRepository users;
+    private final PasswordEncoder encoder;
+    private final Tokens tokens;
 
     public PublicController(
             TenantRepository tenants,
             OfferRepository offers,
             CustomerRepository customers,
-            OrderService orderService) {
+            UserRepository users,
+            PasswordEncoder encoder,
+            Tokens tokens) {
         this.tenants = tenants;
         this.offers = offers;
         this.customers = customers;
-        this.orderService = orderService;
+        this.users = users;
+        this.encoder = encoder;
+        this.tokens = tokens;
     }
 
     @GetMapping("/{slug}/products")
@@ -83,60 +91,66 @@ public class PublicController {
                 .toList();
     }
 
-    public record CheckoutLine(@NotNull UUID productId, @Min(1) int quantity) {}
-
-    public record Checkout(
-            @NotBlank String customerName,
+    public record CustomerRegistration(
+            @NotBlank String fullName,
+            @Email @NotBlank String email,
             @NotBlank String phone,
             @NotBlank String county,
-            @NotEmpty List<CheckoutLine> lines) {}
+            @Size(min = 10) String password) {}
 
-    @PostMapping("/{slug}/orders")
+    /**
+     * Registers a brand new buyer against this storefront and signs them in,
+     * in one step - a Customer record and a CUSTOMER-role login are created
+     * together, so the account this returns a token for can place an order
+     * immediately through {@code /v1/shop/orders}. Signing in an existing
+     * buyer needs no separate endpoint here: {@code /v1/auth/login} already
+     * works for any role, customers included.
+     */
+    @PostMapping("/{slug}/register")
     @ResponseStatus(HttpStatus.CREATED)
-    public Map<String, Object> checkout(@PathVariable String slug, @Valid @RequestBody Checkout request) {
+    public ApiController.Session register(
+            @PathVariable String slug, @Valid @RequestBody CustomerRegistration request) {
         Tenant tenant = tenant(slug);
 
-        // Reuse the guest's existing customer record if this phone has ordered
-        // from this tenant before, so a repeat guest buyer accumulates one
-        // order history instead of a fresh customer row every visit.
-        List<Customer> existing = customers.findByTenantIdAndPhone(tenant.getId(), request.phone());
-        Customer customer;
-        if (!existing.isEmpty()) {
-            customer = existing.get(0);
-        } else {
-            Customer created = new Customer();
-            created.setTenantId(tenant.getId());
-            created.setName(request.customerName());
-            created.setPhone(request.phone());
-            created.setCounty(request.county());
-            customer = customers.save(created);
+        if (users.findByEmailAndStatus(request.email(), "ACTIVE").isPresent()) {
+            throw new Errors.BadRequest("that email is already registered");
         }
 
-        List<OrderService.LineRequest> lines =
-                request.lines().stream()
-                        .map(l -> new OrderService.LineRequest(l.productId(), l.quantity()))
-                        .toList();
+        Customer customer = new Customer();
+        customer.setTenantId(tenant.getId());
+        customer.setName(request.fullName());
+        customer.setPhone(request.phone());
+        customer.setCounty(request.county());
+        customer = customers.save(customer);
 
-        OrderService.Placed placed = orderService.place(tenant.getId(), customer.getId(), lines, true);
+        AppUser user = new AppUser();
+        user.setTenantId(tenant.getId());
+        user.setEmail(request.email());
+        user.setFullName(request.fullName());
+        user.setPasswordHash(encoder.encode(request.password()));
+        user.setRole("CUSTOMER");
+        user.setCustomerId(customer.getId());
+        user = users.save(user);
 
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("orderId", placed.orderId());
-        body.put("reference", placed.reference());
-        body.put("totalCents", placed.revenueCents());
-        body.put(
-                "lines",
-                placed.lines().stream()
-                        .map(
-                                l -> {
-                                    Map<String, Object> row = new LinkedHashMap<>();
-                                    row.put("product", l.productName());
-                                    row.put("quantity", l.quantity());
-                                    row.put("unitPriceCents", l.unitPriceCents());
-                                    row.put("lineTotalCents", l.unitPriceCents() * l.quantity());
-                                    return row;
-                                })
-                        .toList());
-        return body;
+        return session(user, tenant);
+    }
+
+    private ApiController.Session session(AppUser user, Tenant tenant) {
+        Principal principal =
+                new Principal(
+                        user.getId(),
+                        user.getTenantId(),
+                        user.getEmail(),
+                        user.getRole(),
+                        user.getSupplierId(),
+                        user.getCustomerId());
+        return new ApiController.Session(
+                tokens.issue(principal),
+                user.getTenantId().toString(),
+                user.getFullName(),
+                user.getRole(),
+                tenant.getName(),
+                tokens.ttlSeconds());
     }
 
     private Tenant tenant(String slug) {

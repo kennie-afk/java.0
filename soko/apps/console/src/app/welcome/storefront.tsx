@@ -93,7 +93,7 @@ function StorefrontBody({ products }: { products: PublicProduct[] }) {
             <CartButton />
             <Link
               href="/login"
-              className="rounded-full border border-[var(--color-line)] bg-white px-4 py-2 text-[0.875rem] shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--color-accent)] hover:shadow-md"
+              className="rounded-sm border border-[var(--color-line)] bg-white px-3 py-1.5 text-[0.8125rem] shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--color-accent)] hover:shadow-md"
             >
               Sign in
             </Link>
@@ -128,14 +128,14 @@ function StorefrontBody({ products }: { products: PublicProduct[] }) {
                 href={waLink()}
                 target="_blank"
                 rel="noreferrer"
-                className="group inline-flex items-center gap-2 rounded-full bg-[var(--color-ink)] px-5 py-3 text-[0.875rem] text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
+                className="group inline-flex items-center gap-2 rounded-sm bg-[var(--color-ink)] px-3.5 py-2 text-[0.8125rem] text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
               >
-                <WhatsAppIcon className="h-4 w-4 transition-transform group-hover:scale-110" />
+                <WhatsAppIcon className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
                 Order on WhatsApp
               </a>
               <a
                 href="#products"
-                className="inline-flex items-center gap-2 rounded-full border border-[var(--color-line)] bg-white px-5 py-3 text-[0.875rem] transition-all hover:-translate-y-0.5 hover:border-[var(--color-accent)] hover:shadow-md"
+                className="inline-flex items-center gap-2 rounded-sm border border-[var(--color-line)] bg-white px-3.5 py-2 text-[0.8125rem] transition-all hover:-translate-y-0.5 hover:border-[var(--color-accent)] hover:shadow-md"
               >
                 Browse products
                 <ArrowDown className="h-3.5 w-3.5" />
@@ -149,7 +149,7 @@ function StorefrontBody({ products }: { products: PublicProduct[] }) {
           </div>
 
           <div className="relative">
-            <div className="overflow-hidden rounded-2xl border border-[var(--color-line)] shadow-xl shadow-black/5">
+            <div className="overflow-hidden rounded-sm border border-[var(--color-line)] shadow-xl shadow-black/5">
               <Image
                 src="/dairy.jpeg"
                 alt="Fresh dairy at the source"
@@ -159,7 +159,7 @@ function StorefrontBody({ products }: { products: PublicProduct[] }) {
                 className="h-[340px] w-full object-cover transition-transform duration-700 hover:scale-105"
               />
             </div>
-            <div className="absolute -bottom-5 -left-5 rounded-xl border border-[var(--color-line)] bg-white px-4 py-3 shadow-lg">
+            <div className="absolute -bottom-5 -left-5 rounded-sm border border-[var(--color-line)] bg-white px-4 py-3 shadow-lg">
               <p className="text-[0.75rem] text-[var(--color-faint)]">Delivered</p>
               <p className="text-[0.875rem] font-medium">Same-day, chilled</p>
             </div>
@@ -181,7 +181,7 @@ function StorefrontBody({ products }: { products: PublicProduct[] }) {
               <button
                 key={family}
                 onClick={() => setActive(family)}
-                className={`rounded-full px-3.5 py-1.5 text-[0.875rem] transition-all ${
+                className={`rounded-sm px-2.5 py-1 text-[0.8125rem] transition-all ${
                   active === family
                     ? "bg-[var(--color-ink)] text-white shadow-sm"
                     : "border border-[var(--color-line)] bg-white text-[var(--color-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-ink)]"
@@ -226,7 +226,7 @@ function StorefrontBody({ products }: { products: PublicProduct[] }) {
 
       {/* Contact */}
       <section id="contact" className="mx-auto max-w-6xl px-6 py-14">
-        <div className="overflow-hidden rounded-2xl border border-[var(--color-line)] bg-gradient-to-br from-[var(--color-accent-soft)] to-[var(--color-amber-soft)] p-8 sm:p-10">
+        <div className="overflow-hidden rounded-sm border border-[var(--color-line)] bg-gradient-to-br from-[var(--color-accent-soft)] to-[var(--color-amber-soft)] p-8 sm:p-10">
           <h2 className="text-[1.25rem] font-medium tracking-[-0.01em]">
             Want to stock our products in your shop, gym or supermarket?
           </h2>
@@ -239,14 +239,14 @@ function StorefrontBody({ products }: { products: PublicProduct[] }) {
               href={waLink()}
               target="_blank"
               rel="noreferrer"
-              className="group inline-flex items-center gap-2 rounded-full bg-[var(--color-ink)] px-5 py-3 text-[0.875rem] text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
+              className="group inline-flex items-center gap-2 rounded-sm bg-[var(--color-ink)] px-3.5 py-2 text-[0.8125rem] text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
             >
-              <WhatsAppIcon className="h-4 w-4 transition-transform group-hover:scale-110" />
+              <WhatsAppIcon className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
               WhatsApp us
             </a>
             <a
               href={`mailto:${CONTACT_EMAIL}`}
-              className="inline-flex items-center gap-2 rounded-full border border-[var(--color-line)] bg-white px-5 py-3 text-[0.875rem] transition-all hover:-translate-y-0.5 hover:shadow-md"
+              className="inline-flex items-center gap-2 rounded-sm border border-[var(--color-line)] bg-white px-3.5 py-2 text-[0.8125rem] transition-all hover:-translate-y-0.5 hover:shadow-md"
             >
               {CONTACT_EMAIL}
             </a>
@@ -264,9 +264,9 @@ function StorefrontBody({ products }: { products: PublicProduct[] }) {
         target="_blank"
         rel="noreferrer"
         aria-label="Chat on WhatsApp"
-        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full bg-[#25D366] px-5 py-3.5 text-[0.875rem] text-white shadow-lg shadow-black/20 transition-all hover:scale-105 hover:shadow-xl"
+        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-sm bg-[#25D366] px-3.5 py-2.5 text-[0.8125rem] text-white shadow-lg shadow-black/20 transition-all hover:scale-105 hover:shadow-xl"
       >
-        <WhatsAppIcon className="h-5 w-5" />
+        <WhatsAppIcon className="h-4 w-4" />
         <span className="hidden sm:inline">Chat with us</span>
       </a>
     </main>
@@ -288,9 +288,9 @@ function ProductCard({ product }: { product: PublicProduct }) {
   const justAdded = cart.lastAdded === product.id;
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-[var(--color-line)] bg-white p-5 transition-all hover:-translate-y-1 hover:border-[var(--color-accent)]/40 hover:shadow-xl hover:shadow-black/5">
+    <div className="group relative overflow-hidden rounded-sm border border-[var(--color-line)] bg-white p-5 transition-all hover:-translate-y-1 hover:border-[var(--color-accent)]/40 hover:shadow-xl hover:shadow-black/5">
       <div className="flex items-start justify-between">
-        <span className="rounded-full bg-[var(--color-accent-soft)] px-2.5 py-0.5 text-[0.75rem] text-[var(--color-accent)]">
+        <span className="rounded-sm bg-[var(--color-accent-soft)] px-2.5 py-0.5 text-[0.75rem] text-[var(--color-accent)]">
           {familyOf(product.name)}
         </span>
         {product.chilled && (
@@ -312,7 +312,7 @@ function ProductCard({ product }: { product: PublicProduct }) {
       </div>
       <button
         onClick={() => cart.add(product)}
-        className={`mt-4 flex w-full items-center justify-center gap-2 rounded-full py-2.5 text-[0.875rem] transition-all ${
+        className={`mt-4 flex w-full items-center justify-center gap-2 rounded-sm py-1.5 text-[0.8125rem] transition-all ${
           justAdded
             ? "bg-[var(--color-accent)] text-white"
             : "bg-[var(--color-ink)] text-white group-hover:-translate-y-0.5"
@@ -334,8 +334,8 @@ function ProductCard({ product }: { product: PublicProduct }) {
 
 function WhyCard({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
   return (
-    <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-canvas)] p-5 transition-all hover:border-[var(--color-accent)]/40 hover:shadow-md">
-      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-accent-soft)] text-[var(--color-accent)]">
+    <div className="rounded-sm border border-[var(--color-line)] bg-[var(--color-canvas)] p-5 transition-all hover:border-[var(--color-accent)]/40 hover:shadow-md">
+      <div className="flex h-9 w-9 items-center justify-center rounded-sm bg-[var(--color-accent-soft)] text-[var(--color-accent)]">
         {icon}
       </div>
       <p className="mt-3 text-[1rem] font-medium">{title}</p>
