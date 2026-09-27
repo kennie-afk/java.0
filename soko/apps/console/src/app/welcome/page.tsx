@@ -27,5 +27,5 @@ async function fetchCatalogue(): Promise<PublicProduct[]> {
 
 export default async function WelcomePage() {
   const products = await fetchCatalogue();
-  return <Storefront products={products} />;
+  return <Storefront products={products} slug={process.env.STOREFRONT_TENANT_SLUG} />;
 }

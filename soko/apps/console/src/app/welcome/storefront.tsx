@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Wordmark } from "@/components/logo";
+import { CartButton, CartDrawer, CartProvider, useCart } from "@/app/welcome/cart";
 
 // PLACEHOLDER: swap the business name, product copy and contact details for
 // the real ones before presenting or going live.
@@ -50,7 +51,16 @@ function waLink(product?: PublicProduct): string {
   return `https://wa.me/${CONTACT_WHATSAPP}?text=${encodeURIComponent(message)}`;
 }
 
-export function Storefront({ products }: { products: PublicProduct[] }) {
+export function Storefront({ products, slug }: { products: PublicProduct[]; slug?: string }) {
+  return (
+    <CartProvider>
+      <StorefrontBody products={products} />
+      <CartDrawer slug={slug} />
+    </CartProvider>
+  );
+}
+
+function StorefrontBody({ products }: { products: PublicProduct[] }) {
   const live = products.length > 0 ? products : FALLBACK;
   const families = useMemo(() => {
     const seen = new Set<string>();
@@ -79,12 +89,15 @@ export function Storefront({ products }: { products: PublicProduct[] }) {
             <a href="#why" className="transition-colors hover:text-[var(--color-ink)]">Why us</a>
             <a href="#contact" className="transition-colors hover:text-[var(--color-ink)]">Contact</a>
           </nav>
-          <Link
-            href="/login"
-            className="rounded-full border border-[var(--color-line)] bg-white px-4 py-2 text-[0.875rem] shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--color-accent)] hover:shadow-md"
-          >
-            Sign in
-          </Link>
+          <div className="flex items-center gap-3">
+            <CartButton />
+            <Link
+              href="/login"
+              className="rounded-full border border-[var(--color-line)] bg-white px-4 py-2 text-[0.875rem] shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--color-accent)] hover:shadow-md"
+            >
+              Sign in
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -270,6 +283,10 @@ function Stat({ value, label }: { value: string; label: string }) {
 }
 
 function ProductCard({ product }: { product: PublicProduct }) {
+  const cart = useCart();
+  const inCart = cart.lines.find((line) => line.product.id === product.id);
+  const justAdded = cart.lastAdded === product.id;
+
   return (
     <div className="group relative overflow-hidden rounded-2xl border border-[var(--color-line)] bg-white p-5 transition-all hover:-translate-y-1 hover:border-[var(--color-accent)]/40 hover:shadow-xl hover:shadow-black/5">
       <div className="flex items-start justify-between">
@@ -293,13 +310,23 @@ function ProductCard({ product }: { product: PublicProduct }) {
         </p>
         <p className="text-[0.75rem] text-[var(--color-faint)]">In stock</p>
       </div>
+      <button
+        onClick={() => cart.add(product)}
+        className={`mt-4 flex w-full items-center justify-center gap-2 rounded-full py-2.5 text-[0.875rem] transition-all ${
+          justAdded
+            ? "bg-[var(--color-accent)] text-white"
+            : "bg-[var(--color-ink)] text-white group-hover:-translate-y-0.5"
+        }`}
+      >
+        {justAdded ? "Added" : inCart ? `In cart · ${inCart.quantity}` : "Add to cart"}
+      </button>
       <a
         href={waLink(product)}
         target="_blank"
         rel="noreferrer"
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[var(--color-canvas)] py-2.5 text-[0.875rem] text-[var(--color-ink)] transition-all group-hover:bg-[var(--color-ink)] group-hover:text-white"
+        className="mt-2 flex w-full items-center justify-center gap-1.5 py-1 text-[0.75rem] text-[var(--color-faint)] transition-colors hover:text-[var(--color-ink)]"
       >
-        Order this
+        or order on WhatsApp
       </a>
     </div>
   );

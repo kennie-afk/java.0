@@ -54,7 +54,7 @@ public class SecurityConfig {
                         auth ->
                                 auth.requestMatchers("/actuator/health", "/actuator/info").permitAll()
                                         .requestMatchers(HttpMethod.POST, "/v1/auth/**").permitAll()
-                                        .requestMatchers(HttpMethod.GET, "/v1/public/**").permitAll()
+                                        .requestMatchers("/v1/public/**").permitAll()
                                         .requestMatchers("/v1/supplier/**").hasRole("SUPPLIER")
                                         .requestMatchers("/v1/shop/**").hasRole("CUSTOMER")
                                         .requestMatchers("/v1/**")
