@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { registerAndOrder, signInAndOrder, type OrderResult } from "@/app/welcome/actions";
+import { requestOtp, verifyOtpAndOrder, type OrderResult } from "@/app/welcome/actions";
 import type { PublicProduct } from "@/app/welcome/storefront";
 
 const STORAGE_KEY = "freshferm-cart-v1";
@@ -155,18 +155,15 @@ export function CartButton() {
   );
 }
 
-type Step = "cart" | "checkout" | "confirmed";
-type AuthMode = "signin" | "register";
+type Step = "cart" | "details" | "code" | "confirmed";
 
 export function CartDrawer({ slug }: { slug?: string }) {
   const cart = useCart();
   const [step, setStep] = useState<Step>("cart");
-  const [authMode, setAuthMode] = useState<AuthMode>("signin");
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [county, setCounty] = useState("");
+  const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<OrderResult | null>(null);
@@ -180,10 +177,31 @@ export function CartDrawer({ slug }: { slug?: string }) {
     window.setTimeout(() => {
       setStep("cart");
       setError(null);
+      setCode("");
     }, 200);
   };
 
+  const sendCode = async () => {
+    if (!slug) {
+      setError("This storefront isn't connected to a live catalogue yet.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    const result = await requestOtp(slug, phone);
+    setSubmitting(false);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    setStep("code");
+  };
+
   const submit = async () => {
+    if (!slug) {
+      setError("This storefront isn't connected to a live catalogue yet.");
+      return;
+    }
     const lines = cart.lines.map((line) => ({
       productId: line.product.id,
       quantity: line.quantity,
@@ -192,12 +210,7 @@ export function CartDrawer({ slug }: { slug?: string }) {
     setSubmitting(true);
     setError(null);
 
-    const result =
-      authMode === "signin"
-        ? await signInAndOrder({ email, password, lines })
-        : slug
-          ? await registerAndOrder({ slug, fullName, email, phone, county, password, lines })
-          : { order: null, error: "This storefront isn't connected to a live catalogue yet." };
+    const result = await verifyOtpAndOrder({ slug, phone, code, fullName, county, lines });
 
     setSubmitting(false);
     if (result.error || !result.order) {
@@ -220,7 +233,8 @@ export function CartDrawer({ slug }: { slug?: string }) {
         <div className="flex items-center justify-between border-b border-[var(--color-line)] px-6 py-5">
           <p className="text-[1rem] font-medium">
             {step === "cart" && "Your cart"}
-            {step === "checkout" && (authMode === "signin" ? "Sign in to order" : "Create an account to order")}
+            {step === "details" && "Your details"}
+            {step === "code" && "Enter the code"}
             {step === "confirmed" && "Order placed"}
           </p>
           <button
@@ -234,23 +248,18 @@ export function CartDrawer({ slug }: { slug?: string }) {
 
         <div className="flex-1 overflow-y-auto px-6 py-5">
           {step === "cart" && <CartView />}
-          {step === "checkout" && (
-            <AuthForm
-              mode={authMode}
-              onMode={setAuthMode}
+          {step === "details" && (
+            <DetailsForm
               fullName={fullName}
-              email={email}
-              password={password}
               phone={phone}
               county={county}
               onFullName={setFullName}
-              onEmail={setEmail}
-              onPassword={setPassword}
               onPhone={setPhone}
               onCounty={setCounty}
               error={error}
             />
           )}
+          {step === "code" && <CodeForm code={code} onCode={setCode} phone={phone} error={error} />}
           {step === "confirmed" && order && <Confirmation order={order} />}
         </div>
 
@@ -261,7 +270,7 @@ export function CartDrawer({ slug }: { slug?: string }) {
               <span className="font-medium tabular-nums">{ksh(cart.subtotalCents)}</span>
             </div>
             <button
-              onClick={() => setStep("checkout")}
+              onClick={() => setStep("details")}
               className="mt-4 w-full rounded-sm bg-[var(--color-ink)] py-2 text-[0.8125rem] text-white transition-all hover:-translate-y-0.5 hover:shadow-lg"
             >
               Checkout
@@ -269,7 +278,25 @@ export function CartDrawer({ slug }: { slug?: string }) {
           </div>
         )}
 
-        {step === "checkout" && (
+        {step === "details" && (
+          <div className="border-t border-[var(--color-line)] px-6 py-5">
+            <button
+              onClick={sendCode}
+              disabled={submitting}
+              className="w-full rounded-sm bg-[var(--color-ink)] py-2 text-[0.8125rem] text-white transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
+            >
+              {submitting ? "Sending code…" : "Send code"}
+            </button>
+            <button
+              onClick={() => setStep("cart")}
+              className="mt-2 w-full py-1.5 text-[0.8125rem] text-[var(--color-muted)] transition-colors hover:text-[var(--color-ink)]"
+            >
+              Back to cart
+            </button>
+          </div>
+        )}
+
+        {step === "code" && (
           <div className="border-t border-[var(--color-line)] px-6 py-5">
             <div className="flex items-center justify-between text-[0.875rem]">
               <span className="text-[var(--color-muted)]">Total</span>
@@ -280,17 +307,13 @@ export function CartDrawer({ slug }: { slug?: string }) {
               disabled={submitting}
               className="mt-4 w-full rounded-sm bg-[var(--color-ink)] py-2 text-[0.8125rem] text-white transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
             >
-              {submitting
-                ? "Placing order…"
-                : authMode === "signin"
-                  ? "Sign in & place order"
-                  : "Create account & place order"}
+              {submitting ? "Confirming…" : "Confirm & place order"}
             </button>
             <button
-              onClick={() => setStep("cart")}
+              onClick={() => setStep("details")}
               className="mt-2 w-full py-1.5 text-[0.8125rem] text-[var(--color-muted)] transition-colors hover:text-[var(--color-ink)]"
             >
-              Back to cart
+              Change number
             </button>
           </div>
         )}
@@ -367,31 +390,19 @@ function CartView() {
   );
 }
 
-function AuthForm({
-  mode,
-  onMode,
+function DetailsForm({
   fullName,
-  email,
-  password,
   phone,
   county,
   onFullName,
-  onEmail,
-  onPassword,
   onPhone,
   onCounty,
   error,
 }: {
-  mode: AuthMode;
-  onMode: (v: AuthMode) => void;
   fullName: string;
-  email: string;
-  password: string;
   phone: string;
   county: string;
   onFullName: (v: string) => void;
-  onEmail: (v: string) => void;
-  onPassword: (v: string) => void;
   onPhone: (v: string) => void;
   onCounty: (v: string) => void;
   error: string | null;
@@ -402,94 +413,79 @@ function AuthForm({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex rounded-sm border border-[var(--color-line)] p-0.5 text-[0.8125rem]">
-        <button
-          onClick={() => onMode("signin")}
-          className={`flex-1 rounded-sm py-1.5 transition-colors ${
-            mode === "signin" ? "bg-[var(--color-ink)] text-white" : "text-[var(--color-muted)]"
-          }`}
-        >
-          Sign in
-        </button>
-        <button
-          onClick={() => onMode("register")}
-          className={`flex-1 rounded-sm py-1.5 transition-colors ${
-            mode === "register" ? "bg-[var(--color-ink)] text-white" : "text-[var(--color-muted)]"
-          }`}
-        >
-          Create account
-        </button>
-      </div>
-
       {error && (
         <div className="rounded-sm border border-[var(--color-danger)]/30 bg-[var(--color-danger-soft)] px-3.5 py-3 text-[0.8125rem] text-[var(--color-danger)]">
           {error}
         </div>
       )}
-
       <p className="text-[0.8125rem] text-[var(--color-muted)]">
-        {mode === "signin"
-          ? "Sign in to place this order and track it from your own account."
-          : "An account is needed to order — it takes a moment, and you can track every order from it after."}
+        We&apos;ll text a code to this number to confirm it&apos;s you — no password to
+        remember. If you&apos;ve ordered before, your name and county below are only used the
+        first time.
       </p>
-
-      {mode === "register" && (
-        <div>
-          <label className={label}>Your name</label>
-          <input
-            value={fullName}
-            onChange={(e) => onFullName(e.target.value)}
-            className={inputClass}
-            placeholder="Jane Wanjiru"
-          />
-        </div>
-      )}
-
       <div>
-        <label className={label}>Email address</label>
+        <label className={label}>Phone number</label>
         <input
-          type="email"
-          value={email}
-          onChange={(e) => onEmail(e.target.value)}
+          value={phone}
+          onChange={(e) => onPhone(e.target.value)}
           className={inputClass}
-          placeholder="you@example.co.ke"
+          placeholder="+254 7XX XXX XXX"
         />
       </div>
-
-      {mode === "register" && (
-        <div>
-          <label className={label}>Phone number</label>
-          <input
-            value={phone}
-            onChange={(e) => onPhone(e.target.value)}
-            className={inputClass}
-            placeholder="+254 7XX XXX XXX"
-          />
-        </div>
-      )}
-
-      {mode === "register" && (
-        <div>
-          <label className={label}>County</label>
-          <input
-            value={county}
-            onChange={(e) => onCounty(e.target.value)}
-            className={inputClass}
-            placeholder="Nairobi"
-          />
-        </div>
-      )}
-
       <div>
-        <label className={label}>Password</label>
+        <label className={label}>Your name</label>
         <input
-          type="password"
-          value={password}
-          onChange={(e) => onPassword(e.target.value)}
+          value={fullName}
+          onChange={(e) => onFullName(e.target.value)}
           className={inputClass}
-          placeholder={mode === "register" ? "At least 10 characters" : "••••••••"}
+          placeholder="Jane Wanjiru"
         />
       </div>
+      <div>
+        <label className={label}>County</label>
+        <input
+          value={county}
+          onChange={(e) => onCounty(e.target.value)}
+          className={inputClass}
+          placeholder="Nairobi"
+        />
+      </div>
+    </div>
+  );
+}
+
+function CodeForm({
+  code,
+  onCode,
+  phone,
+  error,
+}: {
+  code: string;
+  onCode: (v: string) => void;
+  phone: string;
+  error: string | null;
+}) {
+  const inputClass =
+    "w-full rounded-sm border border-[var(--color-line)] bg-white px-3 py-2 text-center text-[1.25rem] tracking-[0.3em] outline-none transition-colors focus:border-[var(--color-accent)]";
+
+  return (
+    <div className="flex flex-col gap-4">
+      {error && (
+        <div className="rounded-sm border border-[var(--color-danger)]/30 bg-[var(--color-danger-soft)] px-3.5 py-3 text-[0.8125rem] text-[var(--color-danger)]">
+          {error}
+        </div>
+      )}
+      <p className="text-[0.8125rem] text-[var(--color-muted)]">
+        We sent a 6-digit code to <span className="text-[var(--color-ink)]">{phone}</span>.
+      </p>
+      <input
+        value={code}
+        onChange={(e) => onCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
+        className={inputClass}
+        placeholder="······"
+        inputMode="numeric"
+        autoFocus
+      />
     </div>
   );
 }
