@@ -13,7 +13,7 @@ const ITEMS: NavItem[] = [
 export default async function ConsoleLayout({ children }: { children: React.ReactNode }) {
   const session = await readSession();
   if (!session) {
-    redirect("/login");
+    redirect("/welcome");
   }
 
   return (

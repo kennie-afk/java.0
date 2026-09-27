@@ -14,6 +14,11 @@ DISTRIBUTOR_ORG = "Fresh Ferment Co. (RENAME ME)"
 DISTRIBUTOR_NAME = "Owner Name (RENAME ME)"
 DISTRIBUTOR_EMAIL = "owner@freshferment-demo.co.ke"
 DEMO_PASSWORD = "a-strong-demo-passphrase"
+# Demo logins for the other two sides of the marketplace, so all three roles
+# (owner, one customer, one supplier) can actually be signed into and shown,
+# not just present as data records the owner's account can see.
+DEMO_CUSTOMER_EMAIL = "customer@freshferment-demo.co.ke"
+DEMO_SUPPLIER_EMAIL = "supplier@freshferment-demo.co.ke"
 # ---------------------------------------------------------------------------
 
 
@@ -150,6 +155,30 @@ def seed():
         if "id" in out:
             customer_ids.append(out["id"])
 
+    # Give the first customer and the first supplier an actual login, not just
+    # a data record -- otherwise nobody can sign in and show the storefront or
+    # the supplier portal, only the owner's own console.
+    if customer_ids:
+        call(
+            "/v1/users",
+            {
+                "fullName": "Demo Customer", "email": DEMO_CUSTOMER_EMAIL,
+                "password": DEMO_PASSWORD, "role": "CUSTOMER",
+                "customerId": customer_ids[0], "supplierId": None,
+            },
+            token,
+        )
+    if supplier_ids:
+        call(
+            "/v1/users",
+            {
+                "fullName": "Demo Supplier", "email": DEMO_SUPPLIER_EMAIL,
+                "password": DEMO_PASSWORD, "role": "SUPPLIER",
+                "supplierId": supplier_ids[0][0], "customerId": None,
+            },
+            token,
+        )
+
     # A curated set of orders, not random ones: every sellable product appears
     # in at least one order, so the console has something to show for each
     # line in her actual catalogue. The artisanal batch is deliberately left
@@ -184,7 +213,9 @@ def seed():
 
     ov = call("/v1/overview", token=token)
     print(f"Seeded {DISTRIBUTOR_ORG}")
-    print(f"  sign in at the console with {DISTRIBUTOR_EMAIL} / {DEMO_PASSWORD}")
+    print(f"  owner console: {DISTRIBUTOR_EMAIL} / {DEMO_PASSWORD}")
+    print(f"  customer storefront: {DEMO_CUSTOMER_EMAIL} / {DEMO_PASSWORD}")
+    print(f"  supplier portal: {DEMO_SUPPLIER_EMAIL} / {DEMO_PASSWORD}")
     print(
         f"  {len(supplier_ids)} suppliers, {len(product_ids)} products, {offers} offers, "
         f"{len(customer_ids)} customers, {placed} orders placed, {unroutable} unroutable"

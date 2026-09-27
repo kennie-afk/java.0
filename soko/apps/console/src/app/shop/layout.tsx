@@ -5,7 +5,7 @@ import { readSession } from "@/lib/session";
 export default async function ShopLayout({ children }: { children: React.ReactNode }) {
   const session = await readSession();
   if (!session) {
-    redirect("/login");
+    redirect("/welcome");
   }
   if (session.role !== "CUSTOMER") {
     redirect("/");
