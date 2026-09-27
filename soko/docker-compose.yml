@@ -38,6 +38,12 @@ services:
     restart: unless-stopped
     environment:
       SOKO_API_URL: http://api:8090
+      # Which tenant's catalogue the public /welcome page shows. Not required
+      # to start the console -- without it, /welcome just skips the live
+      # product grid rather than the whole app failing to boot. Set it to the
+      # slug tools/seed_kamboucha.py prints after seeding (or `select slug
+      # from tenants;`).
+      STOREFRONT_TENANT_SLUG: ${STOREFRONT_TENANT_SLUG:-}
     ports:
       - "${CONSOLE_PORT:-3500}:3500"
     depends_on:
