@@ -34,7 +34,7 @@ export function Topbar({
       <div className="mx-auto flex max-w-6xl items-center gap-6 px-5 py-3">
         <Link href="/" className="flex items-center gap-2.5">
           <Logo className="h-7 w-7" />
-          <span className="text-[0.9375rem] font-semibold tracking-[-0.01em]">Soko</span>
+          <span className="text-[0.9375rem] font-semibold tracking-[-0.01em]">FreshFerm</span>
         </Link>
 
         <nav className="hidden flex-1 items-center gap-1 md:flex">

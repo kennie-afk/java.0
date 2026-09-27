@@ -23,7 +23,7 @@ export function RoleBar({
       <div className="mx-auto flex max-w-5xl items-center gap-5 px-5 py-3">
         <span className="flex items-center gap-2.5">
           <Logo className="h-7 w-7" />
-          <span className="text-[0.9375rem] font-semibold tracking-[-0.01em]">Soko</span>
+          <span className="text-[0.9375rem] font-semibold tracking-[-0.01em]">FreshFerm</span>
         </span>
         <span className="rounded-full bg-[var(--color-amber-soft)] px-2.5 py-0.5 text-[0.6875rem] font-medium text-[var(--color-amber)]">
           {badge}

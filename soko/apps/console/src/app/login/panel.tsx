@@ -21,7 +21,7 @@ export function AuthPanel() {
     <div className="rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] p-7 shadow-[0_1px_2px_rgba(26,28,24,0.04)]">
       <div className="mb-6 flex items-center gap-2.5">
         <Logo className="h-8 w-8" />
-        <span className="text-[1.0625rem] font-semibold tracking-[-0.01em]">Soko</span>
+        <span className="text-[1.0625rem] font-semibold tracking-[-0.01em]">FreshFerm</span>
       </div>
 
       {mode !== "reset" ? (

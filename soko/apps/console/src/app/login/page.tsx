@@ -18,7 +18,7 @@ export default async function LoginPage() {
             you ever hold it.
           </h1>
           <p className="mt-5 max-w-md text-[0.9375rem] leading-relaxed text-[var(--color-muted)]">
-            Soko routes every order line to the cheapest supplier that can keep the cold chain and
+            FreshFerm routes every order line to the cheapest supplier that can keep the cold chain and
             still deliver with shelf life to spare. You carry no stock and no spoilage.
           </p>
           <div className="mt-8 max-w-md overflow-hidden rounded-xl border border-[var(--color-line)]">

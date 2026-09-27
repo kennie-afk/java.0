@@ -57,9 +57,9 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
           <div className="flex items-center gap-3">
             <Logo className="h-9 w-9" />
             <div>
-              <p className="text-[1.0625rem] font-semibold tracking-[-0.01em]">Soko</p>
+              <p className="text-[1.0625rem] font-semibold tracking-[-0.01em]">FreshFerm</p>
               <p className="text-[0.75rem] text-[var(--color-muted)]">
-                {session?.organisation ?? "Fresh produce distribution"}
+                {session?.organisation ?? "Fermented dairy distribution"}
               </p>
             </div>
           </div>

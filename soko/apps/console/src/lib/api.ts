@@ -85,7 +85,7 @@ export function describeError(error: unknown): string {
     return error.message;
   }
   if (error instanceof Error && error.message.includes("fetch failed")) {
-    return `The Soko API is not reachable at ${API}.`;
+    return `The FreshFerm API is not reachable at ${API}.`;
   }
   return error instanceof Error ? error.message : "Something went wrong.";
 }
