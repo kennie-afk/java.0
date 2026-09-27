@@ -1,0 +1,114 @@
+import Link from "next/link";
+import { api, describeError, ksh } from "@/lib/api";
+import { Notice } from "@/components/ui";
+import { Logo } from "@/components/logo";
+import { PrintButton } from "@/components/print-button";
+import { readSession } from "@/lib/session";
+
+interface Line {
+  product: string;
+  quantity: number;
+  unitPriceCents: number;
+  lineTotalCents: number;
+  status: string;
+}
+
+interface Detail {
+  reference: string;
+  status: string;
+  totalCents: number;
+  placedAt: string;
+  lines: Line[];
+}
+
+// A buyer's own printable receipt. Deliberately built against /v1/shop/orders,
+// not /v1/orders (the owner's endpoint) - the shop API never returns which
+// supplier fulfilled a line, its cost, or the margin on it, so there is no
+// way for this page to leak any of that even by a future careless edit.
+export default async function CustomerReceiptPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const session = await readSession();
+  let order: Detail | null = null;
+  let error: string | null = null;
+
+  try {
+    order = await api.get<Detail>(`/v1/shop/orders/${id}`);
+  } catch (caught) {
+    error = describeError(caught);
+  }
+
+  if (error || !order) {
+    return <Notice tone="danger">{error}</Notice>;
+  }
+
+  const placed = new Date(order.placedAt).toLocaleString("en-KE", { dateStyle: "long", timeStyle: "short" });
+
+  return (
+    <div className="mx-auto max-w-[760px]">
+      <div className="mb-5 flex items-center justify-between print:hidden">
+        <Link href={`/shop/orders/${id}`}
+          className="text-[0.8125rem] text-[var(--color-muted)] underline-offset-2 hover:text-[var(--color-ink)] hover:underline">
+          Back to the order
+        </Link>
+        <PrintButton />
+      </div>
+
+      <article className="rounded-xl border border-[var(--color-line)] bg-white p-10 print:rounded-none print:border-0 print:p-0">
+        <header className="flex items-start justify-between border-b border-[var(--color-line)] pb-6">
+          <div className="flex items-center gap-3">
+            <Logo className="h-9 w-9" />
+            <div>
+              <p className="text-[1.0625rem] font-semibold tracking-[-0.01em]">FreshFerm</p>
+              <p className="text-[0.75rem] text-[var(--color-muted)]">
+                {session?.organisation ?? "Fermented dairy distribution"}
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-[0.6875rem] uppercase tracking-wide text-[var(--color-faint)]">Receipt</p>
+            <p className="text-[1.0625rem] font-semibold tabular-nums">{order.reference}</p>
+            <p className="text-[0.75rem] text-[var(--color-muted)]">{placed}</p>
+          </div>
+        </header>
+
+        <table className="mt-7 w-full text-[0.8125rem]">
+          <thead>
+            <tr className="border-b border-[var(--color-line)] text-left">
+              <th className="pb-2 font-medium text-[var(--color-muted)]">Item</th>
+              <th className="pb-2 text-right font-medium text-[var(--color-muted)]">Qty</th>
+              <th className="pb-2 text-right font-medium text-[var(--color-muted)]">Unit</th>
+              <th className="pb-2 text-right font-medium text-[var(--color-muted)]">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {order.lines.map((line, index) => (
+              <tr key={index} className="border-b border-[var(--color-line)] last:border-0">
+                <td className="py-2.5 font-medium">{line.product}</td>
+                <td className="py-2.5 text-right tabular-nums">{line.quantity}</td>
+                <td className="py-2.5 text-right tabular-nums">{ksh(line.unitPriceCents)}</td>
+                <td className="py-2.5 text-right tabular-nums">{ksh(line.lineTotalCents)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <div className="mt-6 flex justify-end">
+          <dl className="w-64 space-y-2 text-[0.8125rem]">
+            <div className="flex justify-between border-t border-[var(--color-line)] pt-2">
+              <dt className="font-medium">Total due</dt>
+              <dd className="font-semibold tabular-nums">{ksh(order.totalCents)}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <footer className="mt-9 border-t border-[var(--color-line)] pt-5 text-[0.6875rem] leading-relaxed text-[var(--color-faint)]">
+          <p>
+            Chilled items travel under an unbroken cold chain and are dispatched to arrive within
+            their remaining shelf life.
+          </p>
+          <p className="mt-1.5">Reference {order.reference} · status {order.status.toLowerCase()}</p>
+        </footer>
+      </article>
+    </div>
+  );
+}

@@ -40,7 +40,12 @@ export default async function MyOrderPage({ params }: { params: Promise<{ id: st
       <PageHeader
         title={order.reference}
         subtitle={`Placed ${new Date(order.placedAt).toLocaleDateString("en-KE", { dateStyle: "long" })}`}
-        actions={<Link href="/shop/orders" className={secondaryButtonClass}>My orders</Link>}
+        actions={
+          <div className="flex gap-2">
+            <Link href={`/shop/orders/${id}/receipt`} className={secondaryButtonClass}>Receipt</Link>
+            <Link href="/shop/orders" className={secondaryButtonClass}>My orders</Link>
+          </div>
+        }
       />
       <Table head={["Item", "Qty", "Unit", "Total", "Progress"]}>
         {order.lines.map((line, index) => (
@@ -49,7 +54,16 @@ export default async function MyOrderPage({ params }: { params: Promise<{ id: st
             <td className="px-4 py-3 tabular-nums">{line.quantity}</td>
             <td className="px-4 py-3 tabular-nums">{ksh(line.unitPriceCents)}</td>
             <td className="px-4 py-3 tabular-nums">{ksh(line.lineTotalCents)}</td>
-            <td className="px-4 py-3"><Badge value={line.status} /></td>
+            <td className="px-4 py-3">
+              <Badge value={line.status} />
+              {(line.dispatchedAt || line.deliveredAt) && (
+                <p className="mt-1 text-[0.75rem] text-[var(--color-faint)]">
+                  {line.deliveredAt
+                    ? `Delivered ${new Date(line.deliveredAt).toLocaleDateString("en-KE", { dateStyle: "medium" })}`
+                    : `Dispatched ${new Date(line.dispatchedAt as string).toLocaleDateString("en-KE", { dateStyle: "medium" })}`}
+                </p>
+              )}
+            </td>
           </tr>
         ))}
       </Table>
