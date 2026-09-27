@@ -244,6 +244,49 @@ class EnrolmentIntegrationTest {
     }
 
     @Test
+    @DisplayName("two different codes racing the last licence slot: exactly one wins")
+    void survivesAConcurrentLicenceRace() throws Exception {
+        // Different from survivesAConcurrentRace above: this is two DIFFERENT codes for
+        // the same tenant, licensed for exactly one terminal. EnrolmentPolicy checks the
+        // licence count from a snapshot taken before either transaction has written
+        // anything, so both attempts can see room and both pass that check — the policy
+        // layer alone cannot close this. What closes it is the database trigger on the
+        // terminal insert, which locks the tenant row and re-counts under that lock.
+        seedTenant("TEN-ONE", 1);
+        String codeA = issueCode("ENR-A", "TEN-ONE", NOW, NOW.plus(Duration.ofMinutes(15)));
+        String codeB = issueCode("ENR-B", "TEN-ONE", NOW, NOW.plus(Duration.ofMinutes(15)));
+
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        try {
+            List<Future<EnrolmentOutcome>> results = pool.invokeAll(List.of(
+                    () -> enrol(codeA, freshKey(), "Lane A"),
+                    () -> enrol(codeB, freshKey(), "Lane B")));
+
+            long accepted = results.stream().filter(f -> {
+                try {
+                    return f.get().accepted();
+                } catch (Exception e) {
+                    return false;
+                }
+            }).count();
+
+            assertThat(accepted).as("exactly one code may win the last slot").isEqualTo(1L);
+            assertThat(countTerminals()).isEqualTo(1);
+
+            // The loser's own code must not have been left spent: it lost the licence
+            // slot, not the code, so the owner should be able to hand it to someone else
+            // once a slot frees up rather than issuing a fresh one for nothing.
+            long stillOpen = ownerJdbc.queryForObject(
+                    "SELECT count(*) FROM enrolment_code "
+                            + "WHERE tenant_id = 'TEN-ONE' AND redeemed_at IS NULL",
+                    Long.class);
+            assertThat(stillOpen).as("the losing code must still be usable").isEqualTo(1L);
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    @Test
     @DisplayName("the plaintext code is never stored")
     void storesOnlyTheHash() {
         String code = issueCode("ENR-1", "TEN-A", NOW, NOW.plus(Duration.ofMinutes(15)));

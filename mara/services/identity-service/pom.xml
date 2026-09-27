@@ -21,6 +21,12 @@
 
   <properties>
     <java.version>21</java.version>
+    <!-- Spring Boot 3.4.1's managed Testcontainers (1.20.4) ships a docker-java
+         client that probes the daemon with a fixed, old Docker API version;
+         Docker Engine 27+ enforces MinAPIVersion 1.40 and refuses that probe
+         outright ("client version 1.32 is too old"). 1.21.4 fixed the probe
+         to negotiate instead of assuming a fixed version. -->
+    <testcontainers.version>1.21.4</testcontainers.version>
   </properties>
 
   <dependencies>

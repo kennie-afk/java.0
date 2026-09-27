@@ -10,8 +10,10 @@ import java.util.HexFormat;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 /**
  * Admits a terminal to a tenant, or refuses it.
@@ -93,8 +95,27 @@ public class EnrolmentService {
             return EnrolmentOutcome.rejected(EnrolmentOutcome.Reason.ALREADY_REDEEMED);
         }
 
-        repository.insertPendingTerminal(
-                terminalId, resolved.tenantId(), resolved.branchId(), label, publicKeyBase64, now);
+        // The policy already checked the licence count, from a snapshot taken before
+        // this transaction wrote anything. Two enrolments for different codes on the
+        // same tenant can both pass that check and both reach here at the same time;
+        // the database trigger on this insert is the line that actually holds, by
+        // locking the tenant row and re-counting under that lock. Losing to it is rare
+        // and, unlike losing the redemption race above, not something the policy layer
+        // could have seen coming — it is a property of two transactions, not one.
+        try {
+            repository.insertPendingTerminal(
+                    terminalId, resolved.tenantId(), resolved.branchId(), label, publicKeyBase64, now);
+        } catch (DataIntegrityViolationException e) {
+            log.warn("enrolment lost the licence-limit race for tenant {}", resolved.tenantId());
+            // Roll back the whole transaction, redemption included: per this class's
+            // own rule, the redemption and the insert must both happen or neither, so
+            // a redemption that has no terminal to show for it is exactly the state
+            // that must never be left committed. Rolling back un-spends the code, so
+            // the same device (or another) can present it again once a slot frees up,
+            // rather than the owner having to issue a fresh one for nothing.
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            return EnrolmentOutcome.rejected(EnrolmentOutcome.Reason.TERMINAL_LIMIT_REACHED);
+        }
 
         log.info("terminal {} enrolled to tenant {}", terminalId, resolved.tenantId());
         return outcome;
