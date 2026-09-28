@@ -159,8 +159,9 @@ public class ApiController {
             @Min(1) int leadTimeHours, boolean coldChain, Double reliability) {}
 
     @GetMapping("/suppliers")
-    public List<Supplier> listSuppliers() {
-        return suppliers.findByTenantIdOrderByNameAsc(context.current().tenantId());
+    public List<Supplier> listSuppliers(@RequestParam(defaultValue = "50") int limit) {
+        return suppliers.findByTenantIdOrderByNameAsc(
+                context.current().tenantId(), PageRequest.of(0, Math.min(limit, 200)));
     }
 
     @PostMapping("/suppliers")
@@ -184,8 +185,9 @@ public class ApiController {
             @Min(1) int shelfLifeHours, @Min(1) long listPriceCents) {}
 
     @GetMapping("/products")
-    public List<Product> listProducts() {
-        return products.findByTenantIdOrderByNameAsc(context.current().tenantId());
+    public List<Product> listProducts(@RequestParam(defaultValue = "50") int limit) {
+        return products.findByTenantIdOrderByNameAsc(
+                context.current().tenantId(), PageRequest.of(0, Math.min(limit, 200)));
     }
 
     @PostMapping("/products")
@@ -209,14 +211,19 @@ public class ApiController {
             @Min(1) long costCents, @Min(0) int availableQty) {}
 
     @GetMapping("/offers")
-    public List<Map<String, Object>> listOffers() {
+    public List<Map<String, Object>> listOffers(@RequestParam(defaultValue = "50") int limit) {
         UUID tenantId = context.current().tenantId();
-        Map<UUID, Supplier> supplierIndex = suppliers.findByTenantIdOrderByNameAsc(tenantId)
-                .stream().collect(Collectors.toMap(Supplier::getId, s -> s));
-        Map<UUID, Product> productIndex = products.findByTenantIdOrderByNameAsc(tenantId)
-                .stream().collect(Collectors.toMap(Product::getId, p -> p));
+        List<Offer> page = offers.findByTenantIdOrderByCostCentsAsc(
+                tenantId, PageRequest.of(0, Math.min(limit, 200)));
 
-        return offers.findByTenantIdOrderByCostCentsAsc(tenantId).stream()
+        Map<UUID, Supplier> supplierIndex =
+                suppliers.findByIdIn(page.stream().map(Offer::getSupplierId).distinct().toList())
+                        .stream().collect(Collectors.toMap(Supplier::getId, s -> s));
+        Map<UUID, Product> productIndex =
+                products.findByIdIn(page.stream().map(Offer::getProductId).distinct().toList())
+                        .stream().collect(Collectors.toMap(Product::getId, p -> p));
+
+        return page.stream()
                 .map(o -> {
                     Map<String, Object> row = new LinkedHashMap<>();
                     Supplier s = supplierIndex.get(o.getSupplierId());
@@ -256,8 +263,9 @@ public class ApiController {
             @NotBlank String name, @NotBlank String phone, @NotBlank String county) {}
 
     @GetMapping("/customers")
-    public List<Customer> listCustomers() {
-        return customers.findByTenantIdOrderByNameAsc(context.current().tenantId());
+    public List<Customer> listCustomers(@RequestParam(defaultValue = "50") int limit) {
+        return customers.findByTenantIdOrderByNameAsc(
+                context.current().tenantId(), PageRequest.of(0, Math.min(limit, 200)));
     }
 
     @PostMapping("/customers")
@@ -310,10 +318,13 @@ public class ApiController {
         UUID tenantId = context.current().tenantId();
         SalesOrder order = orders.findByIdAndTenantId(id, tenantId)
                 .orElseThrow(() -> new Errors.NotFound("no such order"));
-        Map<UUID, Product> productIndex = products.findByTenantIdOrderByNameAsc(tenantId)
-                .stream().collect(Collectors.toMap(Product::getId, p -> p));
-        Map<UUID, Supplier> supplierIndex = suppliers.findByTenantIdOrderByNameAsc(tenantId)
-                .stream().collect(Collectors.toMap(Supplier::getId, s -> s));
+        List<OrderLine> lines = orderLines.findByOrderId(order.getId());
+        Map<UUID, Product> productIndex =
+                products.findByIdIn(lines.stream().map(OrderLine::getProductId).distinct().toList())
+                        .stream().collect(Collectors.toMap(Product::getId, p -> p));
+        Map<UUID, Supplier> supplierIndex =
+                suppliers.findByIdIn(lines.stream().map(OrderLine::getSupplierId).distinct().toList())
+                        .stream().collect(Collectors.toMap(Supplier::getId, s -> s));
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("id", order.getId());
@@ -322,7 +333,7 @@ public class ApiController {
         body.put("revenueCents", order.getRevenueCents());
         body.put("costCents", order.getCostCents());
         body.put("marginCents", order.getMarginCents());
-        body.put("lines", orderLines.findByOrderId(order.getId()).stream().map(l -> {
+        body.put("lines", lines.stream().map(l -> {
             Map<String, Object> row = new LinkedHashMap<>();
             Product p = productIndex.get(l.getProductId());
             Supplier s = supplierIndex.get(l.getSupplierId());

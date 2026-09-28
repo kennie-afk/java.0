@@ -52,10 +52,12 @@ public class ShopController {
         return principal;
     }
 
+    private static final int STOREFRONT_LIMIT = 500;
+
     @GetMapping("/products")
     public List<Map<String, Object>> catalogue() {
         Principal principal = shopper();
-        return offers.storefront(principal.tenantId()).stream()
+        return offers.storefront(principal.tenantId(), STOREFRONT_LIMIT).stream()
                 .map(r -> {
                     Map<String, Object> row = new LinkedHashMap<>();
                     row.put("id", r[0]);
@@ -110,10 +112,12 @@ public class ShopController {
     }
 
     @GetMapping("/orders")
-    public List<Map<String, Object>> myOrders() {
+    public List<Map<String, Object>> myOrders(@RequestParam(defaultValue = "50") int limit) {
         Principal principal = shopper();
         return orders
-                .findByCustomerIdOrderByPlacedAtDesc(principal.customerId())
+                .findByCustomerIdOrderByPlacedAtDesc(
+                        principal.customerId(),
+                        org.springframework.data.domain.PageRequest.of(0, Math.min(limit, 200)))
                 .stream()
                 .map(order -> {
                     Map<String, Object> row = new LinkedHashMap<>();
@@ -134,8 +138,12 @@ public class ShopController {
                 orders.findByIdAndCustomerId(id, principal.customerId())
                         .orElseThrow(() -> new Errors.NotFound("no such order"));
 
+        List<com.soko.domain.OrderLine> lines = orderLines.findByOrderId(order.getId());
         Map<UUID, String> names =
-                products.findByTenantIdOrderByNameAsc(principal.tenantId()).stream()
+                products
+                        .findByIdIn(lines.stream().map(com.soko.domain.OrderLine::getProductId)
+                                .distinct().toList())
+                        .stream()
                         .collect(Collectors.toMap(p -> p.getId(), p -> p.getName()));
 
         Map<String, Object> body = new LinkedHashMap<>();
@@ -145,7 +153,7 @@ public class ShopController {
         body.put("placedAt", order.getPlacedAt());
         body.put(
                 "lines",
-                orderLines.findByOrderId(order.getId()).stream()
+                lines.stream()
                         .map(line -> {
                             Map<String, Object> row = new LinkedHashMap<>();
                             row.put("product", names.get(line.getProductId()));

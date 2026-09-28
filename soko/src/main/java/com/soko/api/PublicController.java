@@ -75,11 +75,13 @@ public class PublicController {
         this.otp = otp;
     }
 
+    private static final int STOREFRONT_LIMIT = 500;
+
     @GetMapping("/{slug}/products")
     public List<Map<String, Object>> catalogue(@PathVariable String slug) {
         Tenant tenant = tenant(slug);
 
-        return offers.storefront(tenant.getId()).stream()
+        return offers.storefront(tenant.getId(), STOREFRONT_LIMIT).stream()
                 .map(
                         r -> {
                             Map<String, Object> row = new LinkedHashMap<>();

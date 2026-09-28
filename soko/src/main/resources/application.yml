@@ -35,6 +35,8 @@ soko:
   jwt:
     secret: ${SOKO_JWT_SECRET}
     ttl-minutes: ${SOKO_JWT_TTL_MINUTES:720}
+  cors:
+    allowed-origins: ${SOKO_ALLOWED_ORIGINS:http://localhost:3500}
 
 management:
   endpoints:

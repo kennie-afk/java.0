@@ -5,10 +5,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface SupplierRepository extends JpaRepository<Supplier, UUID> {
-    List<Supplier> findByTenantIdOrderByNameAsc(UUID tenantId);
+    List<Supplier> findByTenantIdOrderByNameAsc(UUID tenantId, Pageable pageable);
     Optional<Supplier> findByIdAndTenantId(UUID id, UUID tenantId);
     List<Supplier> findByIdIn(Collection<UUID> ids);
     long countByTenantId(UUID tenantId);

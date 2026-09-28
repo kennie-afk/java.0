@@ -4,6 +4,7 @@ import com.soko.domain.Offer;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -12,6 +13,8 @@ import org.springframework.data.repository.query.Param;
 public interface OfferRepository extends JpaRepository<Offer, UUID> {
 
     List<Offer> findByTenantIdOrderByCostCentsAsc(UUID tenantId);
+
+    List<Offer> findByTenantIdOrderByCostCentsAsc(UUID tenantId, Pageable pageable);
 
     Optional<Offer> findByIdAndTenantId(UUID id, UUID tenantId);
 
@@ -52,6 +55,7 @@ public interface OfferRepository extends JpaRepository<Offer, UUID> {
              where p.tenant_id = :tenantId
              group by p.id
              order by p.category, p.name
+             limit :limit
             """, nativeQuery = true)
-    List<Object[]> storefront(@Param("tenantId") UUID tenantId);
+    List<Object[]> storefront(@Param("tenantId") UUID tenantId, @Param("limit") int limit);
 }
