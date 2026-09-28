@@ -4,6 +4,8 @@ import com.smartseason.agronomy.domain.PestDisease;
 import com.smartseason.agronomy.platform.CountCache;
 import com.smartseason.agronomy.platform.CountCache;
 import com.smartseason.agronomy.platform.EventPublisher;
+import com.smartseason.agronomy.platform.Cursor;
+import com.smartseason.agronomy.platform.CursorPage;
 import com.smartseason.agronomy.platform.PageResponse;
 import com.smartseason.agronomy.platform.ResourceNotFoundException;
 import com.smartseason.agronomy.platform.TenantContext;
@@ -12,7 +14,9 @@ import com.smartseason.agronomy.web.dto.PestDiseaseCreateRequest;
 import com.smartseason.agronomy.web.dto.PestDiseaseResponse;
 import com.smartseason.agronomy.web.dto.PestDiseaseUpdateRequest;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +43,22 @@ public class PestDiseaseService {
         return PageResponse.of(
                 repository.findAllByTenantId(tenantId, pageable).map(PestDiseaseResponse::from),
                 counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
+    }
+
+    public CursorPage<PestDiseaseResponse> listByCursor(String cursor, int size) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        Pageable pageable = PageRequest.of(0, Math.max(1, Math.min(size, 200)));
+
+        Cursor from = Cursor.decode(cursor);
+        Slice<PestDisease> slice = (from == null)
+                ? repository.findAllByTenantIdOrderByCreatedAtDescIdDesc(tenantId, pageable)
+                : repository.findAfterCursor(tenantId, from.createdAt(), from.id(), pageable);
+
+        return CursorPage.of(
+                slice,
+                slice.getContent().stream().map(PestDiseaseResponse::from).toList(),
+                e -> new Cursor(e.getCreatedAt(), e.getId()));
     }
 
     public PestDiseaseResponse get(UUID id) {

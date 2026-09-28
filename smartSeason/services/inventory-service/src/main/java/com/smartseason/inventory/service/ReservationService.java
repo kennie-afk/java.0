@@ -4,6 +4,8 @@ import com.smartseason.inventory.domain.Reservation;
 import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.EventPublisher;
+import com.smartseason.inventory.platform.Cursor;
+import com.smartseason.inventory.platform.CursorPage;
 import com.smartseason.inventory.platform.PageResponse;
 import com.smartseason.inventory.platform.ResourceNotFoundException;
 import com.smartseason.inventory.platform.TenantContext;
@@ -12,7 +14,9 @@ import com.smartseason.inventory.web.dto.ReservationCreateRequest;
 import com.smartseason.inventory.web.dto.ReservationResponse;
 import com.smartseason.inventory.web.dto.ReservationUpdateRequest;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +43,22 @@ public class ReservationService {
         return PageResponse.of(
                 repository.findAllByTenantId(tenantId, pageable).map(ReservationResponse::from),
                 counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
+    }
+
+    public CursorPage<ReservationResponse> listByCursor(String cursor, int size) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        Pageable pageable = PageRequest.of(0, Math.max(1, Math.min(size, 200)));
+
+        Cursor from = Cursor.decode(cursor);
+        Slice<Reservation> slice = (from == null)
+                ? repository.findAllByTenantIdOrderByCreatedAtDescIdDesc(tenantId, pageable)
+                : repository.findAfterCursor(tenantId, from.createdAt(), from.id(), pageable);
+
+        return CursorPage.of(
+                slice,
+                slice.getContent().stream().map(ReservationResponse::from).toList(),
+                e -> new Cursor(e.getCreatedAt(), e.getId()));
     }
 
     public ReservationResponse get(UUID id) {

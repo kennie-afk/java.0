@@ -4,6 +4,8 @@ import com.smartseason.ledger.domain.AccountBalance;
 import com.smartseason.ledger.platform.CountCache;
 import com.smartseason.ledger.platform.CountCache;
 import com.smartseason.ledger.platform.EventPublisher;
+import com.smartseason.ledger.platform.Cursor;
+import com.smartseason.ledger.platform.CursorPage;
 import com.smartseason.ledger.platform.PageResponse;
 import com.smartseason.ledger.platform.ResourceNotFoundException;
 import com.smartseason.ledger.platform.TenantContext;
@@ -12,7 +14,9 @@ import com.smartseason.ledger.web.dto.AccountBalanceCreateRequest;
 import com.smartseason.ledger.web.dto.AccountBalanceResponse;
 import com.smartseason.ledger.web.dto.AccountBalanceUpdateRequest;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +43,22 @@ public class AccountBalanceService {
         return PageResponse.of(
                 repository.findAllByTenantId(tenantId, pageable).map(AccountBalanceResponse::from),
                 counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
+    }
+
+    public CursorPage<AccountBalanceResponse> listByCursor(String cursor, int size) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        Pageable pageable = PageRequest.of(0, Math.max(1, Math.min(size, 200)));
+
+        Cursor from = Cursor.decode(cursor);
+        Slice<AccountBalance> slice = (from == null)
+                ? repository.findAllByTenantIdOrderByCreatedAtDescIdDesc(tenantId, pageable)
+                : repository.findAfterCursor(tenantId, from.createdAt(), from.id(), pageable);
+
+        return CursorPage.of(
+                slice,
+                slice.getContent().stream().map(AccountBalanceResponse::from).toList(),
+                e -> new Cursor(e.getCreatedAt(), e.getId()));
     }
 
     public AccountBalanceResponse get(UUID id) {

@@ -1,12 +1,20 @@
 import { EmptyState, PageHeader } from "@/components/ui";
+import { Pager } from "@/components/pager";
 import { TeamManager } from "@/components/team-manager";
 import { loadTeam } from "@/lib/team-actions";
+import { pageParam } from "@/lib/load";
 import { canUse } from "@/lib/roles";
 import { readRoles } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
-export default async function TeamPage() {
+export default async function TeamPage({
+  searchParams
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const query = await searchParams;
+  const page = pageParam(query.page);
   const roles = await readRoles();
   const canSee = canUse(roles, "team");
   const canManage = canUse(roles, "team-manage");
@@ -23,7 +31,7 @@ export default async function TeamPage() {
     );
   }
 
-  const { members, failed } = await loadTeam();
+  const { rows: members, failed, totalElements, totalPages } = await loadTeam(page);
 
   return (
     <>
@@ -40,7 +48,10 @@ export default async function TeamPage() {
       ) : members.length === 0 ? (
         <EmptyState message="Nobody here yet." />
       ) : (
-        <TeamManager members={members} canManage={canManage} />
+        <>
+          <TeamManager members={members} canManage={canManage} />
+          <Pager basePath="/team" page={page} totalElements={totalElements} totalPages={totalPages} />
+        </>
       )}
     </>
   );

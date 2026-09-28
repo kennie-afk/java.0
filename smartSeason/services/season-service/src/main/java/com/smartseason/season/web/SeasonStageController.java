@@ -1,5 +1,6 @@
 package com.smartseason.season.web;
 
+import com.smartseason.season.platform.CursorPage;
 import com.smartseason.season.platform.PageResponse;
 import com.smartseason.season.service.SeasonStageService;
 import com.smartseason.season.web.dto.SeasonStageCreateRequest;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -39,6 +41,15 @@ public class SeasonStageController {
     @Operation(summary = "List season-stages for the caller's tenant")
     public PageResponse<SeasonStageResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
+    }
+
+    @GetMapping("/cursor")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
+    @Operation(summary = "List season-stages from a cursor, newest first, without an offset scan")
+    public CursorPage<SeasonStageResponse> listByCursor(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "25") int size) {
+        return service.listByCursor(cursor, size);
     }
 
     @GetMapping("/{id}")

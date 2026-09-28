@@ -4,6 +4,8 @@ import com.smartseason.fraud.domain.FraudEvidence;
 import com.smartseason.fraud.platform.CountCache;
 import com.smartseason.fraud.platform.CountCache;
 import com.smartseason.fraud.platform.EventPublisher;
+import com.smartseason.fraud.platform.Cursor;
+import com.smartseason.fraud.platform.CursorPage;
 import com.smartseason.fraud.platform.PageResponse;
 import com.smartseason.fraud.platform.ResourceNotFoundException;
 import com.smartseason.fraud.platform.TenantContext;
@@ -12,7 +14,9 @@ import com.smartseason.fraud.web.dto.FraudEvidenceCreateRequest;
 import com.smartseason.fraud.web.dto.FraudEvidenceResponse;
 import com.smartseason.fraud.web.dto.FraudEvidenceUpdateRequest;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +43,22 @@ public class FraudEvidenceService {
         return PageResponse.of(
                 repository.findAllByTenantId(tenantId, pageable).map(FraudEvidenceResponse::from),
                 counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
+    }
+
+    public CursorPage<FraudEvidenceResponse> listByCursor(String cursor, int size) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        Pageable pageable = PageRequest.of(0, Math.max(1, Math.min(size, 200)));
+
+        Cursor from = Cursor.decode(cursor);
+        Slice<FraudEvidence> slice = (from == null)
+                ? repository.findAllByTenantIdOrderByCreatedAtDescIdDesc(tenantId, pageable)
+                : repository.findAfterCursor(tenantId, from.createdAt(), from.id(), pageable);
+
+        return CursorPage.of(
+                slice,
+                slice.getContent().stream().map(FraudEvidenceResponse::from).toList(),
+                e -> new Cursor(e.getCreatedAt(), e.getId()));
     }
 
     public FraudEvidenceResponse get(UUID id) {

@@ -1,5 +1,6 @@
 package com.smartseason.audit.web;
 
+import com.smartseason.audit.platform.CursorPage;
 import com.smartseason.audit.platform.PageResponse;
 import com.smartseason.audit.service.AuditRecordService;
 import com.smartseason.audit.web.dto.AuditRecordCreateRequest;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -39,6 +41,15 @@ public class AuditRecordController {
     @Operation(summary = "List audit-records for the caller's tenant")
     public PageResponse<AuditRecordResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
+    }
+
+    @GetMapping("/cursor")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE')")
+    @Operation(summary = "List audit-records from a cursor, newest first, without an offset scan")
+    public CursorPage<AuditRecordResponse> listByCursor(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "25") int size) {
+        return service.listByCursor(cursor, size);
     }
 
     @GetMapping("/{id}")

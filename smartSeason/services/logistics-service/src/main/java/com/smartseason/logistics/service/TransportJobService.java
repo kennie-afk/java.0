@@ -4,6 +4,8 @@ import com.smartseason.logistics.domain.TransportJob;
 import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.EventPublisher;
+import com.smartseason.logistics.platform.Cursor;
+import com.smartseason.logistics.platform.CursorPage;
 import com.smartseason.logistics.platform.PageResponse;
 import com.smartseason.logistics.platform.ResourceNotFoundException;
 import com.smartseason.logistics.platform.TenantContext;
@@ -12,7 +14,9 @@ import com.smartseason.logistics.web.dto.TransportJobCreateRequest;
 import com.smartseason.logistics.web.dto.TransportJobResponse;
 import com.smartseason.logistics.web.dto.TransportJobUpdateRequest;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +43,22 @@ public class TransportJobService {
         return PageResponse.of(
                 repository.findAllByTenantId(tenantId, pageable).map(TransportJobResponse::from),
                 counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
+    }
+
+    public CursorPage<TransportJobResponse> listByCursor(String cursor, int size) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        Pageable pageable = PageRequest.of(0, Math.max(1, Math.min(size, 200)));
+
+        Cursor from = Cursor.decode(cursor);
+        Slice<TransportJob> slice = (from == null)
+                ? repository.findAllByTenantIdOrderByCreatedAtDescIdDesc(tenantId, pageable)
+                : repository.findAfterCursor(tenantId, from.createdAt(), from.id(), pageable);
+
+        return CursorPage.of(
+                slice,
+                slice.getContent().stream().map(TransportJobResponse::from).toList(),
+                e -> new Cursor(e.getCreatedAt(), e.getId()));
     }
 
     public TransportJobResponse get(UUID id) {

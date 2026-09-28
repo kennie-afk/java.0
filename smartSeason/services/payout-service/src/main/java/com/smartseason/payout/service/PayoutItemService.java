@@ -4,6 +4,8 @@ import com.smartseason.payout.domain.PayoutItem;
 import com.smartseason.payout.platform.CountCache;
 import com.smartseason.payout.platform.CountCache;
 import com.smartseason.payout.platform.EventPublisher;
+import com.smartseason.payout.platform.Cursor;
+import com.smartseason.payout.platform.CursorPage;
 import com.smartseason.payout.platform.PageResponse;
 import com.smartseason.payout.platform.ResourceNotFoundException;
 import com.smartseason.payout.platform.TenantContext;
@@ -12,7 +14,9 @@ import com.smartseason.payout.web.dto.PayoutItemCreateRequest;
 import com.smartseason.payout.web.dto.PayoutItemResponse;
 import com.smartseason.payout.web.dto.PayoutItemUpdateRequest;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +43,22 @@ public class PayoutItemService {
         return PageResponse.of(
                 repository.findAllByTenantId(tenantId, pageable).map(PayoutItemResponse::from),
                 counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
+    }
+
+    public CursorPage<PayoutItemResponse> listByCursor(String cursor, int size) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        Pageable pageable = PageRequest.of(0, Math.max(1, Math.min(size, 200)));
+
+        Cursor from = Cursor.decode(cursor);
+        Slice<PayoutItem> slice = (from == null)
+                ? repository.findAllByTenantIdOrderByCreatedAtDescIdDesc(tenantId, pageable)
+                : repository.findAfterCursor(tenantId, from.createdAt(), from.id(), pageable);
+
+        return CursorPage.of(
+                slice,
+                slice.getContent().stream().map(PayoutItemResponse::from).toList(),
+                e -> new Cursor(e.getCreatedAt(), e.getId()));
     }
 
     public PayoutItemResponse get(UUID id) {

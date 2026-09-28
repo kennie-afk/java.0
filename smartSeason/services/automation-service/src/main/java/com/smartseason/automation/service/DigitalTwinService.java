@@ -4,6 +4,8 @@ import com.smartseason.automation.domain.DigitalTwin;
 import com.smartseason.automation.platform.CountCache;
 import com.smartseason.automation.platform.CountCache;
 import com.smartseason.automation.platform.EventPublisher;
+import com.smartseason.automation.platform.Cursor;
+import com.smartseason.automation.platform.CursorPage;
 import com.smartseason.automation.platform.PageResponse;
 import com.smartseason.automation.platform.ResourceNotFoundException;
 import com.smartseason.automation.platform.TenantContext;
@@ -12,7 +14,9 @@ import com.smartseason.automation.web.dto.DigitalTwinCreateRequest;
 import com.smartseason.automation.web.dto.DigitalTwinResponse;
 import com.smartseason.automation.web.dto.DigitalTwinUpdateRequest;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +43,22 @@ public class DigitalTwinService {
         return PageResponse.of(
                 repository.findAllByTenantId(tenantId, pageable).map(DigitalTwinResponse::from),
                 counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
+    }
+
+    public CursorPage<DigitalTwinResponse> listByCursor(String cursor, int size) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        Pageable pageable = PageRequest.of(0, Math.max(1, Math.min(size, 200)));
+
+        Cursor from = Cursor.decode(cursor);
+        Slice<DigitalTwin> slice = (from == null)
+                ? repository.findAllByTenantIdOrderByCreatedAtDescIdDesc(tenantId, pageable)
+                : repository.findAfterCursor(tenantId, from.createdAt(), from.id(), pageable);
+
+        return CursorPage.of(
+                slice,
+                slice.getContent().stream().map(DigitalTwinResponse::from).toList(),
+                e -> new Cursor(e.getCreatedAt(), e.getId()));
     }
 
     public DigitalTwinResponse get(UUID id) {

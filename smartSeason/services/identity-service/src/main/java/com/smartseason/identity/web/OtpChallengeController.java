@@ -1,5 +1,6 @@
 package com.smartseason.identity.web;
 
+import com.smartseason.identity.platform.CursorPage;
 import com.smartseason.identity.platform.PageResponse;
 import com.smartseason.identity.service.OtpChallengeService;
 import com.smartseason.identity.web.dto.OtpChallengeCreateRequest;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -39,6 +41,15 @@ public class OtpChallengeController {
     @Operation(summary = "List otp-challenges for the caller's tenant")
     public PageResponse<OtpChallengeResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
+    }
+
+    @GetMapping("/cursor")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
+    @Operation(summary = "List otp-challenges from a cursor, newest first, without an offset scan")
+    public CursorPage<OtpChallengeResponse> listByCursor(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "25") int size) {
+        return service.listByCursor(cursor, size);
     }
 
     @GetMapping("/{id}")

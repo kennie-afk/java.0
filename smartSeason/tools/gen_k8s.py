@@ -28,6 +28,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from catalogue import SERVICES
+import tpl_data
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "k8s")
@@ -64,13 +65,41 @@ spec:
           ports:
             - containerPort: {port}
           env:
+            # Through PgBouncer, not straight at Postgres. Locally compose has always
+            # pointed here; the k8s manifests pointed at postgres:5432 directly, which
+            # silently discarded the pooling that took 27 services down to 3 real
+            # connections. prepareThreshold=0 is not optional with transaction pooling:
+            # a server-side prepare made on one pooled connection is invisible on the
+            # next, and the failure appears as an intermittent "prepared statement does
+            # not exist" under load rather than at startup.
             - name: SPRING_DATASOURCE_URL
-              value: jdbc:postgresql://$(DB_HOST):5432/{db}
+              value: jdbc:postgresql://$(DB_HOST):$(DB_PORT)/{db}?prepareThreshold=0
             - name: DB_HOST
               valueFrom:
                 configMapKeyRef:
                   name: smartseason-config
                   key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: smartseason-config
+                  key: DB_PORT
+            - name: DB_REPLICA_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: smartseason-config
+                  key: DB_REPLICA_HOST
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: smartseason-config
+                  key: REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: smartseason-config
+                  key: REDIS_PORT
+{extra_env}
             - name: SPRING_DATASOURCE_USERNAME
               valueFrom:
                 configMapKeyRef:
@@ -225,8 +254,27 @@ metadata:
   name: smartseason-config
   namespace: {ns}
 data:
-  DB_HOST: postgres.{ns}.svc.cluster.local
+  # The pooler, not the database. See the datasource URL in each Deployment.
+  DB_HOST: pgbouncer.{ns}.svc.cluster.local
+  DB_PORT: "6432"
   DB_USERNAME: postgres
+  # Absent until 2026-09-11, with no error anywhere: the rate limiter and the count
+  # cache both fail open, so a cluster deploy would have run with neither and looked
+  # healthy doing it.
+  # Set this to a read replica's host to send every read-only transaction there. Blank
+  # means there is no replica and all reads stay on the primary, which is the ceiling
+  # this platform reaches first. Nothing else needs to change: the services already mark
+  # their read paths @Transactional(readOnly = true).
+  DB_REPLICA_HOST: ""
+  # Object storage. media-service tracks MediaAsset/UploadTicket/MediaVariant rows but had
+  # nowhere to put the bytes: there was no S3 client on the classpath at all, so "pre-signed
+  # uploads" in its API description described an intention. MinIO is S3-compatible, so
+  # pointing this at a managed bucket later is a config change.
+  S3_ENDPOINT: http://objectstore.{ns}.svc.cluster.local:9000
+  S3_BUCKET: smartseason-media
+  S3_REGION: us-east-1
+  REDIS_HOST: redis.{ns}.svc.cluster.local
+  REDIS_PORT: "6379"
   JWT_ISSUER: smartseason-identity
   KAFKA_BOOTSTRAP_SERVERS: kafka:9092
   # The application code defaults this to false. Leaving it unset here means 27 services
@@ -248,6 +296,8 @@ stringData:
   # a dev profile, so this fails loudly rather than running insecurely.
   JWT_SECRET: "placeholder"
   DB_PASSWORD: "placeholder"
+  S3_ACCESS_KEY: "placeholder"
+  S3_SECRET_KEY: "placeholder"
 """
 
 EDGE = """---
@@ -589,6 +639,40 @@ spec:
 """
 
 
+# Extra environment for the few services that need something the other 26 do not. Kept
+# per-service on purpose: putting S3 credentials into all 27 Deployments would hand every
+# service a bucket key it has no use for, which is the sort of thing that is only noticed
+# after something reads one.
+EXTRA_ENV = {
+    "media-service": """            - name: S3_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: smartseason-config
+                  key: S3_ENDPOINT
+            - name: S3_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: smartseason-config
+                  key: S3_BUCKET
+            - name: S3_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: smartseason-config
+                  key: S3_REGION
+            - name: S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: smartseason-secrets
+                  key: S3_ACCESS_KEY
+            - name: S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: smartseason-secrets
+                  key: S3_SECRET_KEY
+""",
+}
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     written = []
@@ -604,10 +688,21 @@ def main():
             fh.write(body.format(ns=NAMESPACE, host=HOST))
         written.append(path)
 
+    ini = open(os.path.join(ROOT, "infra/docker/pgbouncer/pgbouncer.ini")).read()
+    entry = open(os.path.join(ROOT, "infra/docker/pgbouncer/entrypoint.sh")).read()
+    path = os.path.join(OUT, "00a-data-layer.yaml")
+    with open(path, "w") as fh:
+        fh.write(tpl_data.build(NAMESPACE, SERVICES, ini, entry))
+    written.append(path)
+
     for spec in SERVICES:
         name = spec["name"]
-        db = name.replace("-service", "") + "_db"
-        body = DEPLOYMENT.format(name=name, ns=NAMESPACE, port=spec["port"], db=db)
+        # From the catalogue, never derived. `device-registry-service` owns `device_db`
+        # and `telemetry-ingest-service` owns `telemetry_db`; string surgery on the
+        # service name invented two databases that do not exist.
+        db = spec["db"]
+        body = DEPLOYMENT.format(name=name, ns=NAMESPACE, port=spec["port"], db=db,
+                                 extra_env=EXTRA_ENV.get(name, ""))
         path = os.path.join(OUT, f"{name}.yaml")
         with open(path, "w") as fh:
             fh.write(body)

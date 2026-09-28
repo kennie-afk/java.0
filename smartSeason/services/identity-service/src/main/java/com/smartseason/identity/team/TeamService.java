@@ -3,6 +3,7 @@ package com.smartseason.identity.team;
 import com.smartseason.identity.domain.User;
 import com.smartseason.identity.platform.ConflictException;
 import com.smartseason.identity.platform.DomainRuleException;
+import com.smartseason.identity.platform.PageResponse;
 import com.smartseason.identity.platform.ResourceNotFoundException;
 import com.smartseason.identity.platform.TenantContext;
 import com.smartseason.identity.repo.UserRepository;
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,11 +44,9 @@ public class TeamService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public List<MemberResponse> list() {
-        return users.findAllByTenantId(TenantContext.requireTenantId(),
-                        org.springframework.data.domain.Pageable.ofSize(500))
-                .map(TeamService::toResponse)
-                .getContent();
+    public PageResponse<MemberResponse> list(Pageable pageable) {
+        UUID tenantId = TenantContext.requireTenantId();
+        return PageResponse.from(users.findAllByTenantId(tenantId, pageable).map(TeamService::toResponse));
     }
 
     @Transactional

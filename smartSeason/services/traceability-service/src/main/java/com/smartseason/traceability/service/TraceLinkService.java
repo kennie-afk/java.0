@@ -4,6 +4,8 @@ import com.smartseason.traceability.domain.TraceLink;
 import com.smartseason.traceability.platform.CountCache;
 import com.smartseason.traceability.platform.CountCache;
 import com.smartseason.traceability.platform.EventPublisher;
+import com.smartseason.traceability.platform.Cursor;
+import com.smartseason.traceability.platform.CursorPage;
 import com.smartseason.traceability.platform.PageResponse;
 import com.smartseason.traceability.platform.ResourceNotFoundException;
 import com.smartseason.traceability.platform.TenantContext;
@@ -12,7 +14,9 @@ import com.smartseason.traceability.web.dto.TraceLinkCreateRequest;
 import com.smartseason.traceability.web.dto.TraceLinkResponse;
 import com.smartseason.traceability.web.dto.TraceLinkUpdateRequest;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +43,22 @@ public class TraceLinkService {
         return PageResponse.of(
                 repository.findAllByTenantId(tenantId, pageable).map(TraceLinkResponse::from),
                 counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
+    }
+
+    public CursorPage<TraceLinkResponse> listByCursor(String cursor, int size) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        Pageable pageable = PageRequest.of(0, Math.max(1, Math.min(size, 200)));
+
+        Cursor from = Cursor.decode(cursor);
+        Slice<TraceLink> slice = (from == null)
+                ? repository.findAllByTenantIdOrderByCreatedAtDescIdDesc(tenantId, pageable)
+                : repository.findAfterCursor(tenantId, from.createdAt(), from.id(), pageable);
+
+        return CursorPage.of(
+                slice,
+                slice.getContent().stream().map(TraceLinkResponse::from).toList(),
+                e -> new Cursor(e.getCreatedAt(), e.getId()));
     }
 
     public TraceLinkResponse get(UUID id) {

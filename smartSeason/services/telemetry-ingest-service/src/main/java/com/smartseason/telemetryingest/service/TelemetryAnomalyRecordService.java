@@ -4,6 +4,8 @@ import com.smartseason.telemetryingest.domain.TelemetryAnomalyRecord;
 import com.smartseason.telemetryingest.platform.CountCache;
 import com.smartseason.telemetryingest.platform.CountCache;
 import com.smartseason.telemetryingest.platform.EventPublisher;
+import com.smartseason.telemetryingest.platform.Cursor;
+import com.smartseason.telemetryingest.platform.CursorPage;
 import com.smartseason.telemetryingest.platform.PageResponse;
 import com.smartseason.telemetryingest.platform.ResourceNotFoundException;
 import com.smartseason.telemetryingest.platform.TenantContext;
@@ -12,7 +14,9 @@ import com.smartseason.telemetryingest.web.dto.TelemetryAnomalyRecordCreateReque
 import com.smartseason.telemetryingest.web.dto.TelemetryAnomalyRecordResponse;
 import com.smartseason.telemetryingest.web.dto.TelemetryAnomalyRecordUpdateRequest;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +43,22 @@ public class TelemetryAnomalyRecordService {
         return PageResponse.of(
                 repository.findAllByTenantId(tenantId, pageable).map(TelemetryAnomalyRecordResponse::from),
                 counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
+    }
+
+    public CursorPage<TelemetryAnomalyRecordResponse> listByCursor(String cursor, int size) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        Pageable pageable = PageRequest.of(0, Math.max(1, Math.min(size, 200)));
+
+        Cursor from = Cursor.decode(cursor);
+        Slice<TelemetryAnomalyRecord> slice = (from == null)
+                ? repository.findAllByTenantIdOrderByCreatedAtDescIdDesc(tenantId, pageable)
+                : repository.findAfterCursor(tenantId, from.createdAt(), from.id(), pageable);
+
+        return CursorPage.of(
+                slice,
+                slice.getContent().stream().map(TelemetryAnomalyRecordResponse::from).toList(),
+                e -> new Cursor(e.getCreatedAt(), e.getId()));
     }
 
     public TelemetryAnomalyRecordResponse get(UUID id) {

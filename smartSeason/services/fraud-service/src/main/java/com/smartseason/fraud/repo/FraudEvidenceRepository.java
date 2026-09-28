@@ -1,12 +1,15 @@
 package com.smartseason.fraud.repo;
 
 import com.smartseason.fraud.domain.FraudEvidence;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -21,6 +24,17 @@ public interface FraudEvidenceRepository extends JpaRepository<FraudEvidence, UU
     long countByTenantId(UUID tenantId);
 
     void deleteByIdAndTenantId(UUID id, UUID tenantId);
+
+    Slice<FraudEvidence> findAllByTenantIdOrderByCreatedAtDescIdDesc(UUID tenantId, Pageable pageable);
+
+    @Query("SELECT e FROM FraudEvidence e WHERE e.tenantId = :tenantId "
+            + "AND (e.createdAt < :cursorAt "
+            + "     OR (e.createdAt = :cursorAt AND e.id < :cursorId)) "
+            + "ORDER BY e.createdAt DESC, e.id DESC")
+    Slice<FraudEvidence> findAfterCursor(@Param("tenantId") UUID tenantId,
+                                  @Param("cursorAt") Instant cursorAt,
+                                  @Param("cursorId") UUID cursorId,
+                                  Pageable pageable);
 
     Page<FraudEvidence> findAllByCaseIdAndTenantId(UUID caseId, UUID tenantId, Pageable pageable);
 }

@@ -4,6 +4,8 @@ import com.smartseason.weather.domain.WeatherAlertRecord;
 import com.smartseason.weather.platform.CountCache;
 import com.smartseason.weather.platform.CountCache;
 import com.smartseason.weather.platform.EventPublisher;
+import com.smartseason.weather.platform.Cursor;
+import com.smartseason.weather.platform.CursorPage;
 import com.smartseason.weather.platform.PageResponse;
 import com.smartseason.weather.platform.ResourceNotFoundException;
 import com.smartseason.weather.platform.TenantContext;
@@ -12,7 +14,9 @@ import com.smartseason.weather.web.dto.WeatherAlertRecordCreateRequest;
 import com.smartseason.weather.web.dto.WeatherAlertRecordResponse;
 import com.smartseason.weather.web.dto.WeatherAlertRecordUpdateRequest;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +43,22 @@ public class WeatherAlertRecordService {
         return PageResponse.of(
                 repository.findAllByTenantId(tenantId, pageable).map(WeatherAlertRecordResponse::from),
                 counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
+    }
+
+    public CursorPage<WeatherAlertRecordResponse> listByCursor(String cursor, int size) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        Pageable pageable = PageRequest.of(0, Math.max(1, Math.min(size, 200)));
+
+        Cursor from = Cursor.decode(cursor);
+        Slice<WeatherAlertRecord> slice = (from == null)
+                ? repository.findAllByTenantIdOrderByCreatedAtDescIdDesc(tenantId, pageable)
+                : repository.findAfterCursor(tenantId, from.createdAt(), from.id(), pageable);
+
+        return CursorPage.of(
+                slice,
+                slice.getContent().stream().map(WeatherAlertRecordResponse::from).toList(),
+                e -> new Cursor(e.getCreatedAt(), e.getId()));
     }
 
     public WeatherAlertRecordResponse get(UUID id) {

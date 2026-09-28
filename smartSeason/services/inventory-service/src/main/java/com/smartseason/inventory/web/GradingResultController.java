@@ -1,5 +1,6 @@
 package com.smartseason.inventory.web;
 
+import com.smartseason.inventory.platform.CursorPage;
 import com.smartseason.inventory.platform.PageResponse;
 import com.smartseason.inventory.service.GradingResultService;
 import com.smartseason.inventory.web.dto.GradingResultCreateRequest;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -39,6 +41,15 @@ public class GradingResultController {
     @Operation(summary = "List grading-results for the caller's tenant")
     public PageResponse<GradingResultResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
+    }
+
+    @GetMapping("/cursor")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'STOREKEEPER')")
+    @Operation(summary = "List grading-results from a cursor, newest first, without an offset scan")
+    public CursorPage<GradingResultResponse> listByCursor(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "25") int size) {
+        return service.listByCursor(cursor, size);
     }
 
     @GetMapping("/{id}")

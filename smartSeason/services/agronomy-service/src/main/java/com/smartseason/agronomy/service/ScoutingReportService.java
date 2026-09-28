@@ -4,6 +4,8 @@ import com.smartseason.agronomy.domain.ScoutingReport;
 import com.smartseason.agronomy.platform.CountCache;
 import com.smartseason.agronomy.platform.CountCache;
 import com.smartseason.agronomy.platform.EventPublisher;
+import com.smartseason.agronomy.platform.Cursor;
+import com.smartseason.agronomy.platform.CursorPage;
 import com.smartseason.agronomy.platform.PageResponse;
 import com.smartseason.agronomy.platform.ResourceNotFoundException;
 import com.smartseason.agronomy.platform.TenantContext;
@@ -12,7 +14,9 @@ import com.smartseason.agronomy.web.dto.ScoutingReportCreateRequest;
 import com.smartseason.agronomy.web.dto.ScoutingReportResponse;
 import com.smartseason.agronomy.web.dto.ScoutingReportUpdateRequest;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +43,22 @@ public class ScoutingReportService {
         return PageResponse.of(
                 repository.findAllByTenantId(tenantId, pageable).map(ScoutingReportResponse::from),
                 counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
+    }
+
+    public CursorPage<ScoutingReportResponse> listByCursor(String cursor, int size) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        Pageable pageable = PageRequest.of(0, Math.max(1, Math.min(size, 200)));
+
+        Cursor from = Cursor.decode(cursor);
+        Slice<ScoutingReport> slice = (from == null)
+                ? repository.findAllByTenantIdOrderByCreatedAtDescIdDesc(tenantId, pageable)
+                : repository.findAfterCursor(tenantId, from.createdAt(), from.id(), pageable);
+
+        return CursorPage.of(
+                slice,
+                slice.getContent().stream().map(ScoutingReportResponse::from).toList(),
+                e -> new Cursor(e.getCreatedAt(), e.getId()));
     }
 
     public ScoutingReportResponse get(UUID id) {

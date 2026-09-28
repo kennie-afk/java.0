@@ -10,8 +10,27 @@ metadata:
   name: smartseason-config
   namespace: smartseason
 data:
-  DB_HOST: postgres.smartseason.svc.cluster.local
+  # The pooler, not the database. See the datasource URL in each Deployment.
+  DB_HOST: pgbouncer.smartseason.svc.cluster.local
+  DB_PORT: "6432"
   DB_USERNAME: postgres
+  # Absent until 2026-09-11, with no error anywhere: the rate limiter and the count
+  # cache both fail open, so a cluster deploy would have run with neither and looked
+  # healthy doing it.
+  # Set this to a read replica's host to send every read-only transaction there. Blank
+  # means there is no replica and all reads stay on the primary, which is the ceiling
+  # this platform reaches first. Nothing else needs to change: the services already mark
+  # their read paths @Transactional(readOnly = true).
+  DB_REPLICA_HOST: ""
+  # Object storage. media-service tracks MediaAsset/UploadTicket/MediaVariant rows but had
+  # nowhere to put the bytes: there was no S3 client on the classpath at all, so "pre-signed
+  # uploads" in its API description described an intention. MinIO is S3-compatible, so
+  # pointing this at a managed bucket later is a config change.
+  S3_ENDPOINT: http://objectstore.smartseason.svc.cluster.local:9000
+  S3_BUCKET: smartseason-media
+  S3_REGION: us-east-1
+  REDIS_HOST: redis.smartseason.svc.cluster.local
+  REDIS_PORT: "6379"
   JWT_ISSUER: smartseason-identity
   KAFKA_BOOTSTRAP_SERVERS: kafka:9092
   # The application code defaults this to false. Leaving it unset here means 27 services
@@ -33,3 +52,5 @@ stringData:
   # a dev profile, so this fails loudly rather than running insecurely.
   JWT_SECRET: "placeholder"
   DB_PASSWORD: "placeholder"
+  S3_ACCESS_KEY: "placeholder"
+  S3_SECRET_KEY: "placeholder"

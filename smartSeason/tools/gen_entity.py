@@ -84,7 +84,7 @@ def entity_source(pkg, name, table, fields):
     return "\n".join(lines) + "\n"
 
 
-def repository_source(pkg, name, fields):
+def repository_source(pkg, name, fields, table):
     var = lower_first(name)
     finders = []
     for f in fields:
@@ -108,12 +108,15 @@ def repository_source(pkg, name, fields):
     return f"""package com.smartseason.{pkg}.repo;
 
 import com.smartseason.{pkg}.domain.{name};
-{extra_imports}import java.util.Optional;
+{extra_imports}import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -140,6 +143,31 @@ public interface {name}Repository extends JpaRepository<{name}, UUID> {{
     long countByTenantId(UUID tenantId);
 
     void deleteByIdAndTenantId(UUID id, UUID tenantId);
+
+    /**
+     * First page of a keyset walk, newest first.
+     *
+     * <p>Ordered by the same key the cursor uses, so the first page and every page after
+     * it come from one index in one direction.
+     */
+    Slice<{name}> findAllByTenantIdOrderByCreatedAtDescIdDesc(UUID tenantId, Pageable pageable);
+
+    /**
+     * The rows after a cursor position.
+     *
+     * <p>{{@code (created_at, id)}} as a pair, not {{@code created_at}} alone: timestamps
+     * collide, and two rows sharing a microsecond either side of a page boundary would
+     * see one silently skipped and the other repeated. Served by
+     * {{@code ix_{table}_keyset}}.
+     */
+    @Query("SELECT e FROM {name} e WHERE e.tenantId = :tenantId "
+            + "AND (e.createdAt < :cursorAt "
+            + "     OR (e.createdAt = :cursorAt AND e.id < :cursorId)) "
+            + "ORDER BY e.createdAt DESC, e.id DESC")
+    Slice<{name}> findAfterCursor(@Param("tenantId") UUID tenantId,
+                                  @Param("cursorAt") Instant cursorAt,
+                                  @Param("cursorId") UUID cursorId,
+                                  Pageable pageable);
 
 {''.join(finders)}}}
 """

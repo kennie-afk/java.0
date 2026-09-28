@@ -31,6 +31,14 @@ spring:
           max-active: 4
           max-idle: 2
           min-idle: 0
+    web:
+      pageable:
+        # Without this, Spring Data's own default (2000) is the only ceiling on a
+        # caller-supplied ?size=, on every numbered-pagination endpoint on the
+        # platform. 200 matches the cap keyset pagination already enforces
+        # server-side (platform/Cursor.java).
+        max-page-size: 200
+        default-page-size: 20
   flyway:
     enabled: true
     baseline-on-migrate: true
@@ -78,11 +86,17 @@ springdoc:
 
 smartseason:
   jwt:
-    secret: ${JWT_SECRET:smartseason-dev-signing-key-change-me-in-production-min-64-chars-long}
+    secret: ${JWT_SECRET}
     issuer: ${JWT_ISSUER:smartseason-identity}
   events:
     enabled: ${EVENTS_ENABLED:false}
     topic-prefix: ss
+  datasource:
+    # Host of a read replica. Blank means there is none, and every read stays on the
+    # primary - which is the local case and the default everywhere until one exists.
+    # A host rather than a URL because each service owns a different database, so one
+    # value can serve all 27; ReadReplicaConfig swaps it into this service's own URL.
+    replica-host: ${DB_REPLICA_HOST:}
   cache:
     # Row counts behind list endpoints. Stale by at most this long between a
     # write on another replica and its eviction here.

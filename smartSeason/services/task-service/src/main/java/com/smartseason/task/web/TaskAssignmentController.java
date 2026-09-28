@@ -1,5 +1,6 @@
 package com.smartseason.task.web;
 
+import com.smartseason.task.platform.CursorPage;
 import com.smartseason.task.platform.PageResponse;
 import com.smartseason.task.service.TaskAssignmentService;
 import com.smartseason.task.web.dto.TaskAssignmentCreateRequest;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -39,6 +41,15 @@ public class TaskAssignmentController {
     @Operation(summary = "List task-assignments for the caller's tenant")
     public PageResponse<TaskAssignmentResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
+    }
+
+    @GetMapping("/cursor")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'WORKER')")
+    @Operation(summary = "List task-assignments from a cursor, newest first, without an offset scan")
+    public CursorPage<TaskAssignmentResponse> listByCursor(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "25") int size) {
+        return service.listByCursor(cursor, size);
     }
 
     @GetMapping("/{id}")

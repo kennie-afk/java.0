@@ -81,6 +81,45 @@ async function page<T>(path: string, token: string | null): Promise<T[]> {
   }
 }
 
+async function getById<T>(path: string, id: string, token: string | null): Promise<T | null> {
+  try {
+    return await api.get<T>(`${path}/${id}`, token);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Exactly the work orders these assignments reference, not every work order on the
+ * platform. `page("/work-orders")` capped at size=200 and joined in memory: past 200
+ * work orders on a tenant, cards for the rest silently showed no title, no due date,
+ * no priority - the same fetch-all-and-join-in-memory pattern already fixed once for
+ * SmartRE's portfolio page. Work orders have no "get several by id" endpoint, so this
+ * is N parallel single-row lookups rather than one query - bounded by how many
+ * *distinct* work orders this page of assignments actually names, which is normally far
+ * fewer than the assignment count itself (one order usually has several assignments).
+ */
+async function loadOrdersFor(
+  assignments: Assignment[],
+  token: string | null
+): Promise<WorkOrder[]> {
+  const ids = [...new Set(assignments.map((a) => a.workOrderId).filter(Boolean))];
+  const orders = await Promise.all(ids.map((id) => getById<WorkOrder>("/api/task/v1/work-orders", id, token)));
+  return orders.filter((order): order is WorkOrder => order !== null);
+}
+
+/**
+ * Workers are NOT fixed the same way orders are above, and that is deliberate rather
+ * than an oversight: `buildCards` can key a worker by either `workerId` (Worker.id) or
+ * `workerUserId` (Worker.userId, a different field), and WorkerController exposes no
+ * "get by userId" lookup - only get-by-id. An assignment naming only `workerUserId`
+ * could not be resolved by switching to per-id fetches without that endpoint, so this
+ * still fetches up to 200 workers and joins in memory. Past 200 workers on a tenant,
+ * cards for the rest show no worker name - flagged, not silently accepted, and the
+ * correct fix is a `findByUserId`-style filter on the workers list/cursor endpoints
+ * (mirrors the fix already made for tenants in SmartRE's MaintenanceService).
+ */
+
 export function minutesBetween(from: string, to: string | null): number {
   const start = new Date(from).getTime();
   const end = to ? new Date(to).getTime() : Date.now();
@@ -164,7 +203,7 @@ export async function loadTaskDetail(assignmentId: string): Promise<{
   }
 
   const [orders, workers, checklist, evidence] = await Promise.all([
-    page<WorkOrder>("/api/task/v1/work-orders", token),
+    loadOrdersFor([assignment], token),
     page<Worker>("/api/workforce/v1/workers", token),
     page<ChecklistItem>("/api/task/v1/checklist-items", token),
     page<TaskEvidence>("/api/task/v1/task-evidence", token)
@@ -196,7 +235,7 @@ export async function loadMyWork(): Promise<TaskCard[]> {
   }
 
   const [orders, workers] = await Promise.all([
-    page<WorkOrder>("/api/task/v1/work-orders", token),
+    loadOrdersFor(assignments, token),
     page<Worker>("/api/workforce/v1/workers", token)
   ]);
   return buildCards(assignments, orders, workers);
@@ -207,9 +246,9 @@ export async function loadTaskBoard(): Promise<{
   reachable: boolean;
 }> {
   const token = await readToken();
-  const [assignments, orders, workers] = await Promise.all([
-    page<Assignment>("/api/task/v1/task-assignments", token),
-    page<WorkOrder>("/api/task/v1/work-orders", token),
+  const assignments = await page<Assignment>("/api/task/v1/task-assignments", token);
+  const [orders, workers] = await Promise.all([
+    loadOrdersFor(assignments, token),
     page<Worker>("/api/workforce/v1/workers", token)
   ]);
 
@@ -219,3 +258,4 @@ export async function loadTaskBoard(): Promise<{
     reachable: assignments.length > 0 || orders.length > 0
   };
 }
+

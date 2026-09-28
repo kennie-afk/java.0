@@ -1,5 +1,6 @@
 package com.smartseason.pricing.web;
 
+import com.smartseason.pricing.platform.CursorPage;
 import com.smartseason.pricing.platform.PageResponse;
 import com.smartseason.pricing.service.PriceQuoteService;
 import com.smartseason.pricing.web.dto.PriceQuoteCreateRequest;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -39,6 +41,15 @@ public class PriceQuoteController {
     @Operation(summary = "List price-quotes for the caller's tenant")
     public PageResponse<PriceQuoteResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
+    }
+
+    @GetMapping("/cursor")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'BUYER')")
+    @Operation(summary = "List price-quotes from a cursor, newest first, without an offset scan")
+    public CursorPage<PriceQuoteResponse> listByCursor(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "25") int size) {
+        return service.listByCursor(cursor, size);
     }
 
     @GetMapping("/{id}")

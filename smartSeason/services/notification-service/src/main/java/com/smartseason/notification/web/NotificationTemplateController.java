@@ -1,5 +1,6 @@
 package com.smartseason.notification.web;
 
+import com.smartseason.notification.platform.CursorPage;
 import com.smartseason.notification.platform.PageResponse;
 import com.smartseason.notification.service.NotificationTemplateService;
 import com.smartseason.notification.web.dto.NotificationTemplateCreateRequest;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -39,6 +41,15 @@ public class NotificationTemplateController {
     @Operation(summary = "List notification-templates for the caller's tenant")
     public PageResponse<NotificationTemplateResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
+    }
+
+    @GetMapping("/cursor")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
+    @Operation(summary = "List notification-templates from a cursor, newest first, without an offset scan")
+    public CursorPage<NotificationTemplateResponse> listByCursor(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "25") int size) {
+        return service.listByCursor(cursor, size);
     }
 
     @GetMapping("/{id}")

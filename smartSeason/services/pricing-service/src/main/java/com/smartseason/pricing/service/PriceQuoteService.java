@@ -4,6 +4,8 @@ import com.smartseason.pricing.domain.PriceQuote;
 import com.smartseason.pricing.platform.CountCache;
 import com.smartseason.pricing.platform.CountCache;
 import com.smartseason.pricing.platform.EventPublisher;
+import com.smartseason.pricing.platform.Cursor;
+import com.smartseason.pricing.platform.CursorPage;
 import com.smartseason.pricing.platform.PageResponse;
 import com.smartseason.pricing.platform.ResourceNotFoundException;
 import com.smartseason.pricing.platform.TenantContext;
@@ -12,7 +14,9 @@ import com.smartseason.pricing.web.dto.PriceQuoteCreateRequest;
 import com.smartseason.pricing.web.dto.PriceQuoteResponse;
 import com.smartseason.pricing.web.dto.PriceQuoteUpdateRequest;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +43,22 @@ public class PriceQuoteService {
         return PageResponse.of(
                 repository.findAllByTenantId(tenantId, pageable).map(PriceQuoteResponse::from),
                 counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
+    }
+
+    public CursorPage<PriceQuoteResponse> listByCursor(String cursor, int size) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        Pageable pageable = PageRequest.of(0, Math.max(1, Math.min(size, 200)));
+
+        Cursor from = Cursor.decode(cursor);
+        Slice<PriceQuote> slice = (from == null)
+                ? repository.findAllByTenantIdOrderByCreatedAtDescIdDesc(tenantId, pageable)
+                : repository.findAfterCursor(tenantId, from.createdAt(), from.id(), pageable);
+
+        return CursorPage.of(
+                slice,
+                slice.getContent().stream().map(PriceQuoteResponse::from).toList(),
+                e -> new Cursor(e.getCreatedAt(), e.getId()));
     }
 
     public PriceQuoteResponse get(UUID id) {

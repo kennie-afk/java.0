@@ -4,6 +4,8 @@ import com.smartseason.search.domain.IndexJob;
 import com.smartseason.search.platform.CountCache;
 import com.smartseason.search.platform.CountCache;
 import com.smartseason.search.platform.EventPublisher;
+import com.smartseason.search.platform.Cursor;
+import com.smartseason.search.platform.CursorPage;
 import com.smartseason.search.platform.PageResponse;
 import com.smartseason.search.platform.ResourceNotFoundException;
 import com.smartseason.search.platform.TenantContext;
@@ -12,7 +14,9 @@ import com.smartseason.search.web.dto.IndexJobCreateRequest;
 import com.smartseason.search.web.dto.IndexJobResponse;
 import com.smartseason.search.web.dto.IndexJobUpdateRequest;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +43,22 @@ public class IndexJobService {
         return PageResponse.of(
                 repository.findAllByTenantId(tenantId, pageable).map(IndexJobResponse::from),
                 counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
+    }
+
+    public CursorPage<IndexJobResponse> listByCursor(String cursor, int size) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        Pageable pageable = PageRequest.of(0, Math.max(1, Math.min(size, 200)));
+
+        Cursor from = Cursor.decode(cursor);
+        Slice<IndexJob> slice = (from == null)
+                ? repository.findAllByTenantIdOrderByCreatedAtDescIdDesc(tenantId, pageable)
+                : repository.findAfterCursor(tenantId, from.createdAt(), from.id(), pageable);
+
+        return CursorPage.of(
+                slice,
+                slice.getContent().stream().map(IndexJobResponse::from).toList(),
+                e -> new Cursor(e.getCreatedAt(), e.getId()));
     }
 
     public IndexJobResponse get(UUID id) {

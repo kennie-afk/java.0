@@ -4,6 +4,8 @@ import com.smartseason.media.domain.MediaVariant;
 import com.smartseason.media.platform.CountCache;
 import com.smartseason.media.platform.CountCache;
 import com.smartseason.media.platform.EventPublisher;
+import com.smartseason.media.platform.Cursor;
+import com.smartseason.media.platform.CursorPage;
 import com.smartseason.media.platform.PageResponse;
 import com.smartseason.media.platform.ResourceNotFoundException;
 import com.smartseason.media.platform.TenantContext;
@@ -12,7 +14,9 @@ import com.smartseason.media.web.dto.MediaVariantCreateRequest;
 import com.smartseason.media.web.dto.MediaVariantResponse;
 import com.smartseason.media.web.dto.MediaVariantUpdateRequest;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +43,22 @@ public class MediaVariantService {
         return PageResponse.of(
                 repository.findAllByTenantId(tenantId, pageable).map(MediaVariantResponse::from),
                 counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
+    }
+
+    public CursorPage<MediaVariantResponse> listByCursor(String cursor, int size) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        Pageable pageable = PageRequest.of(0, Math.max(1, Math.min(size, 200)));
+
+        Cursor from = Cursor.decode(cursor);
+        Slice<MediaVariant> slice = (from == null)
+                ? repository.findAllByTenantIdOrderByCreatedAtDescIdDesc(tenantId, pageable)
+                : repository.findAfterCursor(tenantId, from.createdAt(), from.id(), pageable);
+
+        return CursorPage.of(
+                slice,
+                slice.getContent().stream().map(MediaVariantResponse::from).toList(),
+                e -> new Cursor(e.getCreatedAt(), e.getId()));
     }
 
     public MediaVariantResponse get(UUID id) {

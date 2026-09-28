@@ -4,6 +4,8 @@ import com.smartseason.telemetryingest.domain.DownsampledReading;
 import com.smartseason.telemetryingest.platform.CountCache;
 import com.smartseason.telemetryingest.platform.CountCache;
 import com.smartseason.telemetryingest.platform.EventPublisher;
+import com.smartseason.telemetryingest.platform.Cursor;
+import com.smartseason.telemetryingest.platform.CursorPage;
 import com.smartseason.telemetryingest.platform.PageResponse;
 import com.smartseason.telemetryingest.platform.ResourceNotFoundException;
 import com.smartseason.telemetryingest.platform.TenantContext;
@@ -12,7 +14,9 @@ import com.smartseason.telemetryingest.web.dto.DownsampledReadingCreateRequest;
 import com.smartseason.telemetryingest.web.dto.DownsampledReadingResponse;
 import com.smartseason.telemetryingest.web.dto.DownsampledReadingUpdateRequest;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +43,22 @@ public class DownsampledReadingService {
         return PageResponse.of(
                 repository.findAllByTenantId(tenantId, pageable).map(DownsampledReadingResponse::from),
                 counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
+    }
+
+    public CursorPage<DownsampledReadingResponse> listByCursor(String cursor, int size) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        Pageable pageable = PageRequest.of(0, Math.max(1, Math.min(size, 200)));
+
+        Cursor from = Cursor.decode(cursor);
+        Slice<DownsampledReading> slice = (from == null)
+                ? repository.findAllByTenantIdOrderByCreatedAtDescIdDesc(tenantId, pageable)
+                : repository.findAfterCursor(tenantId, from.createdAt(), from.id(), pageable);
+
+        return CursorPage.of(
+                slice,
+                slice.getContent().stream().map(DownsampledReadingResponse::from).toList(),
+                e -> new Cursor(e.getCreatedAt(), e.getId()));
     }
 
     public DownsampledReadingResponse get(UUID id) {

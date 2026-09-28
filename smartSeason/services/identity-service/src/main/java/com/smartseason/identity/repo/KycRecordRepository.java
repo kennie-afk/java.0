@@ -1,12 +1,15 @@
 package com.smartseason.identity.repo;
 
 import com.smartseason.identity.domain.KycRecord;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -21,6 +24,17 @@ public interface KycRecordRepository extends JpaRepository<KycRecord, UUID> {
     long countByTenantId(UUID tenantId);
 
     void deleteByIdAndTenantId(UUID id, UUID tenantId);
+
+    Slice<KycRecord> findAllByTenantIdOrderByCreatedAtDescIdDesc(UUID tenantId, Pageable pageable);
+
+    @Query("SELECT e FROM KycRecord e WHERE e.tenantId = :tenantId "
+            + "AND (e.createdAt < :cursorAt "
+            + "     OR (e.createdAt = :cursorAt AND e.id < :cursorId)) "
+            + "ORDER BY e.createdAt DESC, e.id DESC")
+    Slice<KycRecord> findAfterCursor(@Param("tenantId") UUID tenantId,
+                                  @Param("cursorAt") Instant cursorAt,
+                                  @Param("cursorId") UUID cursorId,
+                                  Pageable pageable);
 
     Page<KycRecord> findAllBySubjectIdAndTenantId(UUID subjectId, UUID tenantId, Pageable pageable);
 }

@@ -1,5 +1,6 @@
 package com.smartseason.deviceregistry.web;
 
+import com.smartseason.deviceregistry.platform.CursorPage;
 import com.smartseason.deviceregistry.platform.PageResponse;
 import com.smartseason.deviceregistry.service.DeviceService;
 import com.smartseason.deviceregistry.web.dto.DeviceCreateRequest;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -39,6 +41,15 @@ public class DeviceController {
     @Operation(summary = "List devices for the caller's tenant")
     public PageResponse<DeviceResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
+    }
+
+    @GetMapping("/cursor")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER')")
+    @Operation(summary = "List devices from a cursor, newest first, without an offset scan")
+    public CursorPage<DeviceResponse> listByCursor(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "25") int size) {
+        return service.listByCursor(cursor, size);
     }
 
     @GetMapping("/{id}")

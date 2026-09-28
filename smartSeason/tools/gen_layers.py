@@ -22,6 +22,8 @@ import com.smartseason.{pkg}.domain.{name};
 import com.smartseason.{pkg}.platform.CountCache;
 import com.smartseason.{pkg}.platform.CountCache;
 import com.smartseason.{pkg}.platform.EventPublisher;
+import com.smartseason.{pkg}.platform.Cursor;
+import com.smartseason.{pkg}.platform.CursorPage;
 import com.smartseason.{pkg}.platform.PageResponse;
 import com.smartseason.{pkg}.platform.ResourceNotFoundException;
 import com.smartseason.{pkg}.platform.TenantContext;
@@ -30,7 +32,9 @@ import com.smartseason.{pkg}.web.dto.{name}CreateRequest;
 import com.smartseason.{pkg}.web.dto.{name}Response;
 import com.smartseason.{pkg}.web.dto.{name}UpdateRequest;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -65,6 +69,30 @@ public class {name}Service {{
         return PageResponse.of(
                 repository.findAllByTenantId(tenantId, pageable).map({name}Response::from),
                 counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
+    }}
+
+    /**
+     * Keyset-paged listing: the rows after a cursor, newest first.
+     *
+     * <p>The offset {{@code list}} above stays for numbered pagers. This is for anything
+     * that walks: a feed, an export, infinite scroll. Its cost does not grow with how far
+     * the caller has already read, which is the whole difference.
+     */
+    public CursorPage<{name}Response> listByCursor(String cursor, int size) {{
+        UUID tenantId = TenantContext.requireTenantId();
+        // Capped here rather than trusted from the query string: one caller asking for a
+        // million rows is the same outage as no pagination at all.
+        Pageable pageable = PageRequest.of(0, Math.max(1, Math.min(size, 200)));
+
+        Cursor from = Cursor.decode(cursor);
+        Slice<{name}> slice = (from == null)
+                ? repository.findAllByTenantIdOrderByCreatedAtDescIdDesc(tenantId, pageable)
+                : repository.findAfterCursor(tenantId, from.createdAt(), from.id(), pageable);
+
+        return CursorPage.of(
+                slice,
+                slice.getContent().stream().map({name}Response::from).toList(),
+                e -> new Cursor(e.getCreatedAt(), e.getId()));
     }}
 
     public {name}Response get(UUID id) {{
@@ -123,6 +151,7 @@ def controller_source(pkg, name, table, domain, desc):
     delete_roles = rbac.delete_expression(domain)
     return f"""package com.smartseason.{pkg}.web;
 
+import com.smartseason.{pkg}.platform.CursorPage;
 import com.smartseason.{pkg}.platform.PageResponse;
 import com.smartseason.{pkg}.service.{name}Service;
 import com.smartseason.{pkg}.web.dto.{name}CreateRequest;
@@ -143,6 +172,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -163,6 +193,21 @@ public class {name}Controller {{
     @Operation(summary = "List {path} for the caller's tenant")
     public PageResponse<{name}Response> list(@PageableDefault(size = 20) Pageable pageable) {{
         return service.list(pageable);
+    }}
+
+    /**
+     * Keyset-paged listing for callers that walk rather than jump.
+     *
+     * <p>Mapped above {{@code /{{id}}}} on purpose: Spring prefers a literal path segment
+     * to a template, so {{@code /cursor}} never arrives as an id that fails to parse.
+     */
+    @GetMapping("/cursor")
+    @PreAuthorize("{read_roles}")
+    @Operation(summary = "List {path} from a cursor, newest first, without an offset scan")
+    public CursorPage<{name}Response> listByCursor(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "25") int size) {{
+        return service.listByCursor(cursor, size);
     }}
 
     @GetMapping("/{{id}}")

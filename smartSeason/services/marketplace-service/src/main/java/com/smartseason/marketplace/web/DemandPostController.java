@@ -1,5 +1,6 @@
 package com.smartseason.marketplace.web;
 
+import com.smartseason.marketplace.platform.CursorPage;
 import com.smartseason.marketplace.platform.PageResponse;
 import com.smartseason.marketplace.service.DemandPostService;
 import com.smartseason.marketplace.web.dto.DemandPostCreateRequest;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -39,6 +41,15 @@ public class DemandPostController {
     @Operation(summary = "List demand-posts for the caller's tenant")
     public PageResponse<DemandPostResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
+    }
+
+    @GetMapping("/cursor")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'BUYER')")
+    @Operation(summary = "List demand-posts from a cursor, newest first, without an offset scan")
+    public CursorPage<DemandPostResponse> listByCursor(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "25") int size) {
+        return service.listByCursor(cursor, size);
     }
 
     @GetMapping("/{id}")

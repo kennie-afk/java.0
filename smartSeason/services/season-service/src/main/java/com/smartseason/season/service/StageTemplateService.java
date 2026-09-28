@@ -4,6 +4,8 @@ import com.smartseason.season.domain.StageTemplate;
 import com.smartseason.season.platform.CountCache;
 import com.smartseason.season.platform.CountCache;
 import com.smartseason.season.platform.EventPublisher;
+import com.smartseason.season.platform.Cursor;
+import com.smartseason.season.platform.CursorPage;
 import com.smartseason.season.platform.PageResponse;
 import com.smartseason.season.platform.ResourceNotFoundException;
 import com.smartseason.season.platform.TenantContext;
@@ -12,7 +14,9 @@ import com.smartseason.season.web.dto.StageTemplateCreateRequest;
 import com.smartseason.season.web.dto.StageTemplateResponse;
 import com.smartseason.season.web.dto.StageTemplateUpdateRequest;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +43,22 @@ public class StageTemplateService {
         return PageResponse.of(
                 repository.findAllByTenantId(tenantId, pageable).map(StageTemplateResponse::from),
                 counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
+    }
+
+    public CursorPage<StageTemplateResponse> listByCursor(String cursor, int size) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        Pageable pageable = PageRequest.of(0, Math.max(1, Math.min(size, 200)));
+
+        Cursor from = Cursor.decode(cursor);
+        Slice<StageTemplate> slice = (from == null)
+                ? repository.findAllByTenantIdOrderByCreatedAtDescIdDesc(tenantId, pageable)
+                : repository.findAfterCursor(tenantId, from.createdAt(), from.id(), pageable);
+
+        return CursorPage.of(
+                slice,
+                slice.getContent().stream().map(StageTemplateResponse::from).toList(),
+                e -> new Cursor(e.getCreatedAt(), e.getId()));
     }
 
     public StageTemplateResponse get(UUID id) {

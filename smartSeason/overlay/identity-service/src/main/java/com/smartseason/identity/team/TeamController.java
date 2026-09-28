@@ -1,13 +1,15 @@
 package com.smartseason.identity.team;
 
+import com.smartseason.identity.platform.PageResponse;
 import com.smartseason.identity.team.TeamDtos.InviteRequest;
 import com.smartseason.identity.team.TeamDtos.MemberResponse;
 import com.smartseason.identity.team.TeamDtos.RoleChangeRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -35,8 +37,8 @@ public class TeamController {
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "Everyone in the organisation")
-    public List<MemberResponse> list() {
-        return service.list();
+    public PageResponse<MemberResponse> list(@PageableDefault(size = 20) Pageable pageable) {
+        return service.list(pageable);
     }
 
     @PostMapping

@@ -4,6 +4,8 @@ import com.smartseason.notification.domain.DeliveryReceipt;
 import com.smartseason.notification.platform.CountCache;
 import com.smartseason.notification.platform.CountCache;
 import com.smartseason.notification.platform.EventPublisher;
+import com.smartseason.notification.platform.Cursor;
+import com.smartseason.notification.platform.CursorPage;
 import com.smartseason.notification.platform.PageResponse;
 import com.smartseason.notification.platform.ResourceNotFoundException;
 import com.smartseason.notification.platform.TenantContext;
@@ -12,7 +14,9 @@ import com.smartseason.notification.web.dto.DeliveryReceiptCreateRequest;
 import com.smartseason.notification.web.dto.DeliveryReceiptResponse;
 import com.smartseason.notification.web.dto.DeliveryReceiptUpdateRequest;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +43,22 @@ public class DeliveryReceiptService {
         return PageResponse.of(
                 repository.findAllByTenantId(tenantId, pageable).map(DeliveryReceiptResponse::from),
                 counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
+    }
+
+    public CursorPage<DeliveryReceiptResponse> listByCursor(String cursor, int size) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        Pageable pageable = PageRequest.of(0, Math.max(1, Math.min(size, 200)));
+
+        Cursor from = Cursor.decode(cursor);
+        Slice<DeliveryReceipt> slice = (from == null)
+                ? repository.findAllByTenantIdOrderByCreatedAtDescIdDesc(tenantId, pageable)
+                : repository.findAfterCursor(tenantId, from.createdAt(), from.id(), pageable);
+
+        return CursorPage.of(
+                slice,
+                slice.getContent().stream().map(DeliveryReceiptResponse::from).toList(),
+                e -> new Cursor(e.getCreatedAt(), e.getId()));
     }
 
     public DeliveryReceiptResponse get(UUID id) {

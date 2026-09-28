@@ -28,13 +28,41 @@ spec:
           ports:
             - containerPort: 8081
           env:
+            # Through PgBouncer, not straight at Postgres. Locally compose has always
+            # pointed here; the k8s manifests pointed at postgres:5432 directly, which
+            # silently discarded the pooling that took 27 services down to 3 real
+            # connections. prepareThreshold=0 is not optional with transaction pooling:
+            # a server-side prepare made on one pooled connection is invisible on the
+            # next, and the failure appears as an intermittent "prepared statement does
+            # not exist" under load rather than at startup.
             - name: SPRING_DATASOURCE_URL
-              value: jdbc:postgresql://$(DB_HOST):5432/identity_db
+              value: jdbc:postgresql://$(DB_HOST):$(DB_PORT)/identity_db?prepareThreshold=0
             - name: DB_HOST
               valueFrom:
                 configMapKeyRef:
                   name: smartseason-config
                   key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: smartseason-config
+                  key: DB_PORT
+            - name: DB_REPLICA_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: smartseason-config
+                  key: DB_REPLICA_HOST
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: smartseason-config
+                  key: REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: smartseason-config
+                  key: REDIS_PORT
+
             - name: SPRING_DATASOURCE_USERNAME
               valueFrom:
                 configMapKeyRef:

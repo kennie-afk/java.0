@@ -4,6 +4,8 @@ import com.smartseason.deviceregistry.domain.DeviceCredential;
 import com.smartseason.deviceregistry.platform.CountCache;
 import com.smartseason.deviceregistry.platform.CountCache;
 import com.smartseason.deviceregistry.platform.EventPublisher;
+import com.smartseason.deviceregistry.platform.Cursor;
+import com.smartseason.deviceregistry.platform.CursorPage;
 import com.smartseason.deviceregistry.platform.PageResponse;
 import com.smartseason.deviceregistry.platform.ResourceNotFoundException;
 import com.smartseason.deviceregistry.platform.TenantContext;
@@ -12,7 +14,9 @@ import com.smartseason.deviceregistry.web.dto.DeviceCredentialCreateRequest;
 import com.smartseason.deviceregistry.web.dto.DeviceCredentialResponse;
 import com.smartseason.deviceregistry.web.dto.DeviceCredentialUpdateRequest;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +43,22 @@ public class DeviceCredentialService {
         return PageResponse.of(
                 repository.findAllByTenantId(tenantId, pageable).map(DeviceCredentialResponse::from),
                 counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
+    }
+
+    public CursorPage<DeviceCredentialResponse> listByCursor(String cursor, int size) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        Pageable pageable = PageRequest.of(0, Math.max(1, Math.min(size, 200)));
+
+        Cursor from = Cursor.decode(cursor);
+        Slice<DeviceCredential> slice = (from == null)
+                ? repository.findAllByTenantIdOrderByCreatedAtDescIdDesc(tenantId, pageable)
+                : repository.findAfterCursor(tenantId, from.createdAt(), from.id(), pageable);
+
+        return CursorPage.of(
+                slice,
+                slice.getContent().stream().map(DeviceCredentialResponse::from).toList(),
+                e -> new Cursor(e.getCreatedAt(), e.getId()));
     }
 
     public DeviceCredentialResponse get(UUID id) {

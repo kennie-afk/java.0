@@ -8,6 +8,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import gen_web
+import gen_k8s
 from catalogue import SERVICES
 from gen_support import parse_entity, pkg_of, kebab_to_pascal
 import gen_entity as ge
@@ -18,6 +19,7 @@ import tpl_common as tc
 import tpl_security as ts
 import tpl_ratelimit as trl
 import tpl_cache as tca
+import tpl_keyset as tk
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -27,9 +29,23 @@ PUBLIC_MATCHERS = {
     "identity-service": '                .requestMatchers("/api/identity/v1/auth/**").permitAll()\n'
                         '                .requestMatchers("/api/identity/v1/.well-known/**").permitAll()\n',
 }
+# The AWS SDK is pinned here rather than inherited: the Spring Boot BOM does not manage
+# it, so without a version the build resolves whatever is newest and the image stops being
+# reproducible.
+_S3_VERSION = "2.28.29"
+
 EXTRA_DEPS = {
     "identity-service": "    <dependency><groupId>org.springframework.boot</groupId>"
                         "<artifactId>spring-boot-starter-mail</artifactId></dependency>\n",
+    # media-service tracked MediaAsset, UploadTicket and MediaVariant rows and advertised
+    # "pre-signed uploads" in its API description while having no S3 client on the
+    # classpath at all - metadata about bytes that were never stored anywhere.
+    "media-service": (
+        # S3Presigner lives inside the s3 artifact in SDK v2; there is no separate
+        # s3-presigner module, and asking for one fails resolution rather than being ignored.
+        f"    <dependency><groupId>software.amazon.awssdk</groupId>"
+        f"<artifactId>s3</artifactId><version>{_S3_VERSION}</version></dependency>\n"
+    ),
 }
 
 def write(path, content):
@@ -92,6 +108,10 @@ def generate_service(spec):
                          tp.APPLICATION_TEST_YAML.format(db=db, service=service)))
     written.append(write(os.path.join(res, "db/migration/V1__init.sql"),
                          gl.migration_source(service, entities)))
+    # V3, not V2: three services already carry a hand-written V2 and a version collision
+    # is a start-up failure, not a merge conflict.
+    written.append(write(os.path.join(res, "db/migration/V3__keyset_indexes.sql"),
+                         tk.migration(service, entities)))
     written.append(write(os.path.join(src, clazz + ".java"),
                          tp.MAIN_CLASS.format(pkg=pkg, clazz=clazz, desc=desc, db=db)))
     written.append(write(os.path.join(test, clazz + "Test.java"),
@@ -107,11 +127,15 @@ def generate_service(spec):
         ("ApiExceptionHandler.java", tc.EXCEPTION_HANDLER),
         ("JwtAuthenticationFilter.java", ts.JWT_FILTER),
         ("PageResponse.java", tca.PAGE_RESPONSE),
+        ("Cursor.java", tk.CURSOR),
+        ("CursorPage.java", tk.CURSOR_PAGE),
         ("DomainEvent.java", ts.DOMAIN_EVENT),
         ("EventPublisher.java", ts.EVENT_PUBLISHER),
         ("OutboxEntry.java", tc.OUTBOX_ENTRY),
         ("OutboxRepository.java", tc.OUTBOX_REPOSITORY),
         ("OutboxRelay.java", tc.OUTBOX_RELAY),
+        ("WarmUp.java", tc.WARM_UP),
+        ("ReadReplicaConfig.java", tc.READ_REPLICA),
     ]:
         written.append(write(os.path.join(plat, filename), template.format(pkg=pkg)))
 
@@ -140,7 +164,7 @@ def generate_service(spec):
         written.append(write(os.path.join(src, "domain", name + ".java"),
                              ge.entity_source(pkg, name, table, fields)))
         written.append(write(os.path.join(src, "repo", name + "Repository.java"),
-                             ge.repository_source(pkg, name, fields)))
+                             ge.repository_source(pkg, name, fields, table)))
         written.append(write(os.path.join(src, "web/dto", name + "Response.java"),
                              ge.response_dto_source(pkg, name, fields)))
         written.append(write(os.path.join(src, "web/dto", name + "CreateRequest.java"),
@@ -233,6 +257,12 @@ def main():
     # it must be refreshed in the same breath. Regenerating only the Java leaves
     # the navigation offering services the controllers now refuse.
     gen_web.main()
+
+    # The manifests come from the same catalogue too, including the database each
+    # service owns and the init script that creates it. Left out of this call, adding
+    # a service produced code with no Deployment and no database - drift that only
+    # surfaces on a cluster, which is the most expensive place to find it.
+    gen_k8s.main()
 
 if __name__ == "__main__":
     main()

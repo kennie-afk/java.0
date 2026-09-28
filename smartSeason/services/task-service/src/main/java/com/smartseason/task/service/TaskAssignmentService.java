@@ -4,6 +4,8 @@ import com.smartseason.task.domain.TaskAssignment;
 import com.smartseason.task.platform.CountCache;
 import com.smartseason.task.platform.CountCache;
 import com.smartseason.task.platform.EventPublisher;
+import com.smartseason.task.platform.Cursor;
+import com.smartseason.task.platform.CursorPage;
 import com.smartseason.task.platform.PageResponse;
 import com.smartseason.task.platform.ResourceNotFoundException;
 import com.smartseason.task.platform.TenantContext;
@@ -12,7 +14,9 @@ import com.smartseason.task.web.dto.TaskAssignmentCreateRequest;
 import com.smartseason.task.web.dto.TaskAssignmentResponse;
 import com.smartseason.task.web.dto.TaskAssignmentUpdateRequest;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +43,22 @@ public class TaskAssignmentService {
         return PageResponse.of(
                 repository.findAllByTenantId(tenantId, pageable).map(TaskAssignmentResponse::from),
                 counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
+    }
+
+    public CursorPage<TaskAssignmentResponse> listByCursor(String cursor, int size) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        Pageable pageable = PageRequest.of(0, Math.max(1, Math.min(size, 200)));
+
+        Cursor from = Cursor.decode(cursor);
+        Slice<TaskAssignment> slice = (from == null)
+                ? repository.findAllByTenantIdOrderByCreatedAtDescIdDesc(tenantId, pageable)
+                : repository.findAfterCursor(tenantId, from.createdAt(), from.id(), pageable);
+
+        return CursorPage.of(
+                slice,
+                slice.getContent().stream().map(TaskAssignmentResponse::from).toList(),
+                e -> new Cursor(e.getCreatedAt(), e.getId()));
     }
 
     public TaskAssignmentResponse get(UUID id) {

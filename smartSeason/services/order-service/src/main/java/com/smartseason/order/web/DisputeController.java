@@ -1,5 +1,6 @@
 package com.smartseason.order.web;
 
+import com.smartseason.order.platform.CursorPage;
 import com.smartseason.order.platform.PageResponse;
 import com.smartseason.order.service.DisputeService;
 import com.smartseason.order.web.dto.DisputeCreateRequest;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -39,6 +41,15 @@ public class DisputeController {
     @Operation(summary = "List disputes for the caller's tenant")
     public PageResponse<DisputeResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
+    }
+
+    @GetMapping("/cursor")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'STOREKEEPER', 'FINANCE', 'BUYER')")
+    @Operation(summary = "List disputes from a cursor, newest first, without an offset scan")
+    public CursorPage<DisputeResponse> listByCursor(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "25") int size) {
+        return service.listByCursor(cursor, size);
     }
 
     @GetMapping("/{id}")

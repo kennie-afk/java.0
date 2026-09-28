@@ -4,6 +4,8 @@ import com.smartseason.media.domain.MediaAsset;
 import com.smartseason.media.platform.CountCache;
 import com.smartseason.media.platform.CountCache;
 import com.smartseason.media.platform.EventPublisher;
+import com.smartseason.media.platform.Cursor;
+import com.smartseason.media.platform.CursorPage;
 import com.smartseason.media.platform.PageResponse;
 import com.smartseason.media.platform.ResourceNotFoundException;
 import com.smartseason.media.platform.TenantContext;
@@ -12,7 +14,9 @@ import com.smartseason.media.web.dto.MediaAssetCreateRequest;
 import com.smartseason.media.web.dto.MediaAssetResponse;
 import com.smartseason.media.web.dto.MediaAssetUpdateRequest;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +43,22 @@ public class MediaAssetService {
         return PageResponse.of(
                 repository.findAllByTenantId(tenantId, pageable).map(MediaAssetResponse::from),
                 counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
+    }
+
+    public CursorPage<MediaAssetResponse> listByCursor(String cursor, int size) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        Pageable pageable = PageRequest.of(0, Math.max(1, Math.min(size, 200)));
+
+        Cursor from = Cursor.decode(cursor);
+        Slice<MediaAsset> slice = (from == null)
+                ? repository.findAllByTenantIdOrderByCreatedAtDescIdDesc(tenantId, pageable)
+                : repository.findAfterCursor(tenantId, from.createdAt(), from.id(), pageable);
+
+        return CursorPage.of(
+                slice,
+                slice.getContent().stream().map(MediaAssetResponse::from).toList(),
+                e -> new Cursor(e.getCreatedAt(), e.getId()));
     }
 
     public MediaAssetResponse get(UUID id) {

@@ -3,24 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
+import { loadCollection, type Collection } from "@/lib/load";
 import { readToken } from "@/lib/session";
 import type { Member, TeamState } from "@/lib/team-types";
 
 const TEAM = "/api/identity/v1/account/team";
 
-export async function loadTeam(): Promise<{ members: Member[]; failed: boolean }> {
-  const token = await readToken();
-  if (!token) {
-    redirect("/login");
-  }
-  try {
-    return { members: await api.get<Member[]>(TEAM, token), failed: false };
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 401) {
-      redirect("/login");
-    }
-    return { members: [], failed: true };
-  }
+export async function loadTeam(page = 0): Promise<Collection<Member>> {
+  return loadCollection<Member>(TEAM, page);
 }
 
 function failure(error: unknown, values: Record<string, string>): TeamState {

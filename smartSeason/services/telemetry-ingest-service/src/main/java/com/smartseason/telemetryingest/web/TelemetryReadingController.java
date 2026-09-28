@@ -1,5 +1,6 @@
 package com.smartseason.telemetryingest.web;
 
+import com.smartseason.telemetryingest.platform.CursorPage;
 import com.smartseason.telemetryingest.platform.PageResponse;
 import com.smartseason.telemetryingest.service.TelemetryReadingService;
 import com.smartseason.telemetryingest.web.dto.TelemetryReadingCreateRequest;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -39,6 +41,15 @@ public class TelemetryReadingController {
     @Operation(summary = "List telemetry-readings for the caller's tenant")
     public PageResponse<TelemetryReadingResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
+    }
+
+    @GetMapping("/cursor")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
+    @Operation(summary = "List telemetry-readings from a cursor, newest first, without an offset scan")
+    public CursorPage<TelemetryReadingResponse> listByCursor(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "25") int size) {
+        return service.listByCursor(cursor, size);
     }
 
     @GetMapping("/{id}")

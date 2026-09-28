@@ -1,5 +1,6 @@
 package com.smartseason.media.web;
 
+import com.smartseason.media.platform.CursorPage;
 import com.smartseason.media.platform.PageResponse;
 import com.smartseason.media.service.UploadTicketService;
 import com.smartseason.media.web.dto.UploadTicketCreateRequest;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -39,6 +41,15 @@ public class UploadTicketController {
     @Operation(summary = "List upload-tickets for the caller's tenant")
     public PageResponse<UploadTicketResponse> list(@PageableDefault(size = 20) Pageable pageable) {
         return service.list(pageable);
+    }
+
+    @GetMapping("/cursor")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST', 'STOREKEEPER')")
+    @Operation(summary = "List upload-tickets from a cursor, newest first, without an offset scan")
+    public CursorPage<UploadTicketResponse> listByCursor(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "25") int size) {
+        return service.listByCursor(cursor, size);
     }
 
     @GetMapping("/{id}")

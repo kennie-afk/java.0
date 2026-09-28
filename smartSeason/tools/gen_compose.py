@@ -96,6 +96,30 @@ services:
       retries: 10
       start_period: 10s
 
+  # Object storage, so a local run stores bytes the same way the cluster does. Without it
+  # media-service keeps MediaAsset rows describing files that exist nowhere - which is what
+  # it did before 2026-09-11, having no S3 client on the classpath at all.
+  objectstore:
+    image: minio/minio:RELEASE.2024-10-13T13-34-11Z
+    mem_limit: 512m
+    mem_reservation: 256m
+    restart: unless-stopped
+    logging: *default-logging
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-smartseason}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:?S3_SECRET_KEY must be set}
+    volumes:
+      - objectstore-data:/data
+    ports:
+      - "${S3_PORT:-19000}:9000"
+      - "${S3_CONSOLE_PORT:-19001}:9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
   redis:
     image: redis:7-alpine
     mem_limit: 256m
@@ -223,18 +247,35 @@ SERVICE_TEMPLATE = """
     environment:
       <<: *service-env
       SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/{db}?prepareThreshold=0
-    depends_on:
+{extra_env}    depends_on:
       pgbouncer:
         condition: service_healthy
       redpanda:
         condition: service_healthy
       redis:
         condition: service_healthy
-"""
+{extra_depends}"""
+
+# Only the services that need something the other 26 do not. Object-store credentials in
+# all 27 would hand every service a bucket key it has no use for.
+EXTRA_ENV = {
+    "media-service": (
+        "      S3_ENDPOINT: http://objectstore:9000\n"
+        "      S3_BUCKET: ${S3_BUCKET:-smartseason-media}\n"
+        "      S3_REGION: ${S3_REGION:-us-east-1}\n"
+        "      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-smartseason}\n"
+        "      S3_SECRET_KEY: ${S3_SECRET_KEY:?S3_SECRET_KEY must be set}\n"
+    ),
+}
+
+EXTRA_DEPENDS = {
+    "media-service": "      objectstore:\n        condition: service_healthy\n",
+}
 
 FOOTER = """
 volumes:
   postgres-data:
+  objectstore-data:
   redis-data:
   redpanda-data:
   grafana-data:
@@ -245,7 +286,9 @@ def compose():
     for spec in SERVICES:
         parts.append(SERVICE_TEMPLATE.format(
             name=spec["name"], db=spec["db"],
-            profile=GROUP_PROFILE.get(spec["group"], "platform")))
+            profile=GROUP_PROFILE.get(spec["group"], "platform"),
+            extra_env=EXTRA_ENV.get(spec["name"], ""),
+            extra_depends=EXTRA_DEPENDS.get(spec["name"], "")))
     parts.append(FOOTER)
     return "".join(parts)
 

@@ -4,6 +4,8 @@ import com.smartseason.marketplace.domain.SupplyListing;
 import com.smartseason.marketplace.platform.CountCache;
 import com.smartseason.marketplace.platform.CountCache;
 import com.smartseason.marketplace.platform.EventPublisher;
+import com.smartseason.marketplace.platform.Cursor;
+import com.smartseason.marketplace.platform.CursorPage;
 import com.smartseason.marketplace.platform.PageResponse;
 import com.smartseason.marketplace.platform.ResourceNotFoundException;
 import com.smartseason.marketplace.platform.TenantContext;
@@ -12,7 +14,9 @@ import com.smartseason.marketplace.web.dto.SupplyListingCreateRequest;
 import com.smartseason.marketplace.web.dto.SupplyListingResponse;
 import com.smartseason.marketplace.web.dto.SupplyListingUpdateRequest;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +43,22 @@ public class SupplyListingService {
         return PageResponse.of(
                 repository.findAllByTenantId(tenantId, pageable).map(SupplyListingResponse::from),
                 counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
+    }
+
+    public CursorPage<SupplyListingResponse> listByCursor(String cursor, int size) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        Pageable pageable = PageRequest.of(0, Math.max(1, Math.min(size, 200)));
+
+        Cursor from = Cursor.decode(cursor);
+        Slice<SupplyListing> slice = (from == null)
+                ? repository.findAllByTenantIdOrderByCreatedAtDescIdDesc(tenantId, pageable)
+                : repository.findAfterCursor(tenantId, from.createdAt(), from.id(), pageable);
+
+        return CursorPage.of(
+                slice,
+                slice.getContent().stream().map(SupplyListingResponse::from).toList(),
+                e -> new Cursor(e.getCreatedAt(), e.getId()));
     }
 
     public SupplyListingResponse get(UUID id) {

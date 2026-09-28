@@ -5,7 +5,10 @@ Two gaps this catches, both of which look fine until the cluster is under load
 or being upgraded:
 
   - A Deployment with no HorizontalPodAutoscaler never grows. Fixed replicas
-    means a traffic spike is absorbed by latency, then by errors.
+    means a traffic spike is absorbed by latency, then by errors. A Deployment may
+    opt out with a `smartseason.io/no-hpa` annotation carrying the reason - PgBouncer
+    does, because scaling a pooler on CPU multiplies the server-side connections it
+    opens rather than relieving the pressure.
   - A Deployment with no PodDisruptionBudget can lose every replica at once to a
     node drain, so a routine cluster upgrade takes the service offline.
 
@@ -42,9 +45,18 @@ for path in sorted(glob.glob(os.path.join(ROOT, "*.yaml"))):
 
 problems = []
 
+OPT_OUT = "smartseason.io/no-hpa"
+
 for name in sorted(deployments):
+    # A Deployment may decline an autoscaler, but only in writing. The annotation
+    # carries the reason, so the exemption is reviewable rather than invisible - and
+    # an empty one is rejected, which stops it becoming a way to silence the check.
+    reason = deployments[name].get("metadata", {}).get("annotations", {}).get(OPT_OUT)
     if name not in hpas:
-        problems.append(f"{name}: no HorizontalPodAutoscaler; replicas are fixed")
+        if reason and reason.strip():
+            print(f"  exempt {name}: {' '.join(reason.split())}")
+        else:
+            problems.append(f"{name}: no HorizontalPodAutoscaler; replicas are fixed")
     if name not in pdbs:
         problems.append(f"{name}: no PodDisruptionBudget; a drain can take every replica")
 

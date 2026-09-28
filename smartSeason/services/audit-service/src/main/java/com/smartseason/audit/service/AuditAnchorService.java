@@ -4,6 +4,8 @@ import com.smartseason.audit.domain.AuditAnchor;
 import com.smartseason.audit.platform.CountCache;
 import com.smartseason.audit.platform.CountCache;
 import com.smartseason.audit.platform.EventPublisher;
+import com.smartseason.audit.platform.Cursor;
+import com.smartseason.audit.platform.CursorPage;
 import com.smartseason.audit.platform.PageResponse;
 import com.smartseason.audit.platform.ResourceNotFoundException;
 import com.smartseason.audit.platform.TenantContext;
@@ -12,7 +14,9 @@ import com.smartseason.audit.web.dto.AuditAnchorCreateRequest;
 import com.smartseason.audit.web.dto.AuditAnchorResponse;
 import com.smartseason.audit.web.dto.AuditAnchorUpdateRequest;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +43,22 @@ public class AuditAnchorService {
         return PageResponse.of(
                 repository.findAllByTenantId(tenantId, pageable).map(AuditAnchorResponse::from),
                 counts.total(ENTITY, tenantId, () -> repository.countByTenantId(tenantId)));
+    }
+
+    public CursorPage<AuditAnchorResponse> listByCursor(String cursor, int size) {
+        UUID tenantId = TenantContext.requireTenantId();
+
+        Pageable pageable = PageRequest.of(0, Math.max(1, Math.min(size, 200)));
+
+        Cursor from = Cursor.decode(cursor);
+        Slice<AuditAnchor> slice = (from == null)
+                ? repository.findAllByTenantIdOrderByCreatedAtDescIdDesc(tenantId, pageable)
+                : repository.findAfterCursor(tenantId, from.createdAt(), from.id(), pageable);
+
+        return CursorPage.of(
+                slice,
+                slice.getContent().stream().map(AuditAnchorResponse::from).toList(),
+                e -> new Cursor(e.getCreatedAt(), e.getId()));
     }
 
     public AuditAnchorResponse get(UUID id) {
