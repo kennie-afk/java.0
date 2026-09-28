@@ -1,5 +1,5 @@
 
-export type Role = 'BUYER' | 'SELLER' | 'LANDLORD' | 'ADMIN'
+export type Role = 'BUYER' | 'SELLER' | 'LANDLORD' | 'TENANT' | 'ADMIN'
 
 export interface AuthResponse {
   token: string
@@ -458,6 +458,8 @@ export interface TenantRecord {
   emergencyName?: string
   emergencyPhone?: string
   hasActiveLease: boolean
+  /** When an invitation was last sent. Present only while one is outstanding. */
+  inviteSentAt?: string
   createdAt: string
 }
 

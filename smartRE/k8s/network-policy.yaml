@@ -78,11 +78,6 @@ spec:
 # README), and their pods carry Bitnami's own labels rather than the `app` label used
 # here — so without this rule the deny would cut every service off from its cache and its
 # broker, and the whole namespace would fail readiness at once.
-#
-# Postgres is not deployed by these manifests at all; the services point at a managed
-# instance or at pgbouncer outside the namespace, so it needs no rule here. If you move
-# it in-namespace, label its pods `tier: data` and the second rule below starts covering
-# it. Until then that rule deliberately selects nothing.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -100,8 +95,9 @@ spec:
     - from:
         - podSelector: {}
 ---
-# Placeholder for in-namespace data stores. Selects nothing today by design; see the note
-# above.
+# Each service connects to its own PgBouncer, never to Postgres directly (see
+# k8s/00a-data-layer.yaml), so this is what the eight `SPRING_DATASOURCE_URL`s actually
+# need open. PgBouncer pods carry `tier: data` alongside their own `app` label.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -128,6 +124,27 @@ spec:
                   - payment-service
                   - review-service
                   - notification-service
+---
+# Postgres itself is one hop further back — reachable only from its own PgBouncer, never
+# from a service directly. Without this, the default deny would leave every PgBouncer
+# unable to reach the database it pools for, and the failure would look identical to a
+# missing workload rather than a network policy blocking an existing one.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-pgbouncer-to-postgres
+  namespace: smartre
+spec:
+  podSelector:
+    matchLabels:
+      tier: data-backend
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              tier: data
 ---
 # The ACME challenge.
 #

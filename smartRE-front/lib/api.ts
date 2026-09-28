@@ -205,6 +205,12 @@ export const pmsApi = {
     // could name to a tenant record they own.
     linkUser:   (id:string) => pu<TenantRecord>(`/api/tenants/${id}/link-user`),
     unlinkUser: (id:string) => pu<TenantRecord>(`/api/tenants/${id}/unlink-user`),
+    // Emails a single-use link to the address on the tenant record. Unlike linkUser, which
+    // attaches whichever account registered with that address, the invitation is redeemed
+    // by the tenant while signed in as themselves — so the connection is one they accepted.
+    invite:     (id:string) => po<TenantRecord>(`/api/tenants/${id}/invite`, {}),
+    // Called by the *tenant*, not the landlord. The user id comes from their session.
+    redeemInvite: (token:string) => po<TenantRecord>('/api/tenants/redeem-invite', { token }),
     remove:   (id:string) => de(`/api/tenants/${id}`),
   },
   leases: {

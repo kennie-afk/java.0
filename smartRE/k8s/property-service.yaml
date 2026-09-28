@@ -32,7 +32,7 @@ spec:
             - containerPort: 8083
           env:
             - name: SPRING_DATASOURCE_URL
-              value: jdbc:postgresql://pgbouncer-property_db:5432/property_db
+              value: jdbc:postgresql://pgbouncer-property-db:5432/property_db
             - name: SPRING_DATASOURCE_USERNAME
               value: postgres
             - name: SPRING_DATASOURCE_PASSWORD

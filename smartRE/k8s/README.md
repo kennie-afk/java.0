@@ -28,7 +28,20 @@ helm install kafka bitnami/kafka \
   --set provisioning.topics[0].name=verification-events \
   --set provisioning.topics[0].partitions=6 \
   --set provisioning.topics[0].replicationFactor=3
+
+# Postgres + PgBouncer — not Helm-installed like the two above, because this is eight
+# small independent instances (one per service database, mirroring docker-compose.yml's
+# database-per-service layout) rather than one shared cluster. Applied like the app
+# manifests, and must go in before them:
+kubectl apply -f k8s/00a-data-layer.yaml
 ```
+
+**Single point of failure, deliberately not solved here.** Every one of these eight
+Postgres instances (and Redis and Kafka's own replica story) is one node. This closes only
+the "no manifest exists at all" gap — `kubectl apply -f k8s/` would otherwise crash-loop
+every service on DNS resolution failure for a `pgbouncer-<name>-db` host with nothing
+behind it. Real HA per database (streaming replication, a managed Postgres, or an operator
+such as Zalando's or CloudNativePG) is a separate, larger piece of work.
 
 ## Build and Push Images
 
@@ -127,13 +140,27 @@ This fails the build if a service reads a `${VAR}` with no default that no manif
 not exist (the pod would never start), or if a ConfigMap key is set but wired to nothing
 (the setting would read as authoritative while being inert).
 
+```bash
+python3 scripts/check-k8s-data-layer.py
+```
+
+The check above proves every variable is *provided*; it does not prove the host a value
+names is backed by anything real. This one does: it confirms every `pgbouncer-<name>-db`
+host in a `SPRING_DATASOURCE_URL` resolves to a Service with a real Deployment/StatefulSet
+behind it, and that each Postgres instance's `POSTGRES_DB` matches the database name in the
+JDBC URL pointed at it. A green run of the first script alone is not a deployable manifest
+set — this is what would have caught eight services all pointing at PgBouncer hosts with
+no workload behind them.
+
 ## Storage: Decide Before the First Upload
 
 `S3_ENABLED` defaults to `false`, which makes user-service write uploaded documents to a
-directory inside its own container. On Kubernetes that is ephemeral per-pod disk, and
-user-service runs two replicas: a document uploaded through one pod is not visible to the
-other, and is gone when the pod restarts. Set `S3_ENABLED: "true"` in the ConfigMap and
-put real credentials in `S3_ACCESS_KEY` / `S3_SECRET_KEY` before anyone uploads anything
+directory inside its own container. On Kubernetes that is ephemeral per-pod disk, so
+user-service is pinned to a single replica (its own manifest and HPA both fix this at 1)
+until object storage is turned on — a second replica would either fail to schedule against
+the same ReadWriteOnce volume or see a directory the first replica cannot. Set
+`S3_ENABLED: "true"` in the ConfigMap and put real credentials in `S3_ACCESS_KEY` /
+`S3_SECRET_KEY` before anyone uploads anything
 you intend to keep.
 
 ## Deploy Services

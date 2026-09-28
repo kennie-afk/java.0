@@ -19,6 +19,22 @@ export const LANDLORD_ROLES: Role[] = ['LANDLORD']
  */
 export const PROPERTY_OWNER_ROLES: Role[] = ['SELLER', 'LANDLORD']
 
+/**
+ * A renting tenant.
+ *
+ * Added 2026-09-11. A tenant used to be a BUYER whose relationship happened to be a
+ * tenancy, so the tenancy screens were shown to everyone and the sale marketplace was
+ * shown to tenants. The backend now enforces the split (pms SecurityConfig restricts
+ * /my-tenancy to TENANT), so the navigation must agree with it or the menu will offer
+ * pages the API refuses.
+ *
+ * Accounts created before this exist as BUYER and keep working; they are promoted
+ * deliberately, because only property-management-service knows which BUYER is really a
+ * tenant. See user-service migration V12.
+ */
+export const TENANT_ROLES: Role[] = ['TENANT']
+export const isTenant = (u: MaybeUser) => !!u && TENANT_ROLES.includes(u.role)
+
 export const isBuyer = (u: MaybeUser) => u?.role === 'BUYER'
 export const isSeller = (u: MaybeUser) => !!u && SELLER_ROLES.includes(u.role)
 export const isLandlord = (u: MaybeUser) => !!u && LANDLORD_ROLES.includes(u.role)

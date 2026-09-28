@@ -51,11 +51,24 @@ export interface DocumentSpec {
  * <p>Returns null rather than throwing if it cannot be loaded: a receipt without a logo
  * is still a valid receipt, and failing the whole download because an image 404'd would
  * be the wrong trade.
+ *
+ * <p>It warns, though. On 2026-09-11 `public/logo-email.png` was simply absent, so every
+ * receipt and invoice anyone had ever downloaded came out unbranded — and because this
+ * degrades silently by design, nothing ever said so. The on-screen documents looked right
+ * the whole time, since they draw the SVG `<LogoMark>` instead. The backend's equivalent
+ * in EmailChannel already logged when its copy was missing; this now matches it.
+ *
+ * <p>The file is a byte-identical copy of notification-service's
+ * `static/logo-email.png`, so the mark on a PDF and the mark on an email are the same
+ * image rather than two that merely resemble each other.
  */
 async function loadLogo(): Promise<string | null> {
   try {
     const res = await fetch('/logo-email.png')
-    if (!res.ok) return null
+    if (!res.ok) {
+      console.warn('/logo-email.png is missing — this document will be generated without its mark.')
+      return null
+    }
     const blob = await res.blob()
     return await new Promise<string>((resolve, reject) => {
       const reader = new FileReader()
@@ -63,7 +76,8 @@ async function loadLogo(): Promise<string | null> {
       reader.onerror = reject
       reader.readAsDataURL(blob)
     })
-  } catch {
+  } catch (err) {
+    console.warn('/logo-email.png could not be loaded; generating without the mark.', err)
     return null
   }
 }

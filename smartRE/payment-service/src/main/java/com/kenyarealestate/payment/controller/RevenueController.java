@@ -97,13 +97,20 @@ public class RevenueController {
         return ResponseEntity.ok(receiptService.getByPaymentId(id));
     }
 
+    /** Raw callbacks for one payment, or the most recent across all of them. */
     @GetMapping("/callbacks/raw")
     public ResponseEntity<List<MpesaRawCallback>> rawCallbacks(
-            @RequestParam(required = false) UUID paymentId) {
+            @RequestParam(required = false) UUID paymentId,
+            @RequestParam(defaultValue = "100") int limit) {
         if (paymentId != null) {
             return ResponseEntity.ok(rawCallbackRepo.findByPaymentIdOrderByReceivedAtAsc(paymentId));
         }
-        return ResponseEntity.ok(rawCallbackRepo.findAll());
+        // Capped regardless of what the caller asks for. This table is append-only and
+        // never pruned, so an unbounded read here is a slow-motion outage: it works in
+        // testing and takes the service down once the history is large enough.
+        int capped = Math.max(1, Math.min(limit, 500));
+        return ResponseEntity.ok(
+                rawCallbackRepo.findAllByOrderByReceivedAtDesc(PageRequest.of(0, capped)));
     }
 
     @PostMapping("/mpesa/b2c/callback/{secret}")

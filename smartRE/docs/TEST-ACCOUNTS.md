@@ -19,22 +19,41 @@ Verified working on 2026-09-08 — each one was logged in through
 | `demo.seller@smartre.test` | SELLER | Lists property for sale. Owns listings, sees offers and viewings. |
 | `demo.buyer@smartre.test` | BUYER | Buys property. Books viewings, makes offers, pays deposits. |
 | `demo.landlord@smartre.test` | LANDLORD | Lets property. Owns units, tenancies, rent invoices. |
-| `demo.tenant@smartre.test` | BUYER | A renting tenant — see the note on roles below. |
+| `demo.tenant@smartre.test` | TENANT | A renting tenant. Sees their own lease, invoices and maintenance; cannot reach the landlord views or list property. |
 
-## There is no TENANT role
-
-The platform has exactly four roles:
+## TENANT is a real role (since 2026-09-11)
 
 ```java
-public enum Role { BUYER, SELLER, LANDLORD, ADMIN }
+public enum Role { BUYER, SELLER, LANDLORD, TENANT, ADMIN }
 ```
 
-A tenant is a **BUYER** account whose relationship is a tenancy rather than a
-sale. `demo.tenant@smartre.test` is a BUYER, and is listed separately only
-because "tenant" is how the person is spoken about, not how the system stores
-them. If tenants ever need permissions a buyer should not have — seeing their own
-lease but not the sale marketplace, say — that is a fifth role and a schema
-change, not a labelling exercise.
+A tenant used to be a **BUYER** whose relationship happened to be a tenancy. That worked
+as a label and failed as authorisation: `/my-tenancy` was reachable by *any* authenticated
+account, and a tenant carried permissions for a sale marketplace they have no use for.
+
+The split is now enforced in `property-management-service`'s `SecurityConfig` — verified
+live against the running stack:
+
+| caller | `/api/leases/my-tenancy` | `/api/leases/my` (landlord view) |
+|---|---|---|
+| TENANT | **200** | 403 |
+| BUYER | 403 | 403 |
+| LANDLORD | 403 | **200** |
+
+Enforced with request matchers rather than `@PreAuthorize`, because
+**property-management-service does not enable method security** — only `property-service`
+does, so an annotation there would read like enforcement and do nothing. Worth knowing
+before adding `@PreAuthorize` anywhere in this repository.
+
+**Existing tenants are not migrated automatically and cannot be.** Whether a BUYER is
+really a tenant is recorded in pms's own database (`tenants.user_id`), which user-service
+cannot read. Promote deliberately:
+
+```sql
+UPDATE users SET role = 'TENANT' WHERE email = 'demo.tenant@smartre.test';
+```
+
+They keep working as BUYER until promoted; they simply do not gain the tenant-only routes.
 
 ## Administrators cannot self-register
 

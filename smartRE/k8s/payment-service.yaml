@@ -32,7 +32,7 @@ spec:
             - containerPort: 8085
           env:
             - name: SPRING_DATASOURCE_URL
-              value: jdbc:postgresql://pgbouncer-payment_db:5432/payment_db
+              value: jdbc:postgresql://pgbouncer-payment-db:5432/payment_db
             - name: SPRING_DATASOURCE_USERNAME
               value: postgres
             - name: SPRING_DATASOURCE_PASSWORD

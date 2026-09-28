@@ -10,6 +10,8 @@ public class TenantResponse {
     private UUID id;
     private UUID landlordId;
     private UUID userId;
+    /** Set while an invitation is outstanding, so the landlord sees "Resend" not "Invite". */
+    private java.time.Instant inviteSentAt;
     private String fullName;
     private String phone;
     private String email;

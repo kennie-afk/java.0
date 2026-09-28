@@ -6,7 +6,7 @@ import { useAuthStore } from '@/lib/store'
 import { useUIStore, SIDEBAR_WIDTH, SIDEBAR_WIDTH_COLLAPSED } from '@/lib/uiStore'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { cn, fmt } from '@/lib/utils'
-import { SELLER_ROLES, LANDLORD_ROLES } from '@/lib/roles'
+import { SELLER_ROLES, LANDLORD_ROLES, TENANT_ROLES } from '@/lib/roles'
 import {
   LayoutDashboard, Building2, ShieldCheck, Calendar,
   CreditCard, Star, BarChart3, Users, X, ListChecks, Search, Gauge, Landmark, Briefcase, Flag,
@@ -19,7 +19,7 @@ type Child = { label:string; href:string; roles?:string[]; icon?:any }
 type NavItem = { label:string; href:string; icon:any; roles?:string[]; children?:Child[] }
 
 const nav: NavItem[] = [
-  { label:'Dashboard',    href:'/dashboard',           icon:LayoutDashboard, roles:['BUYER',...SELLER_ROLES,'LANDLORD','ADMIN'] },
+  { label:'Dashboard',    href:'/dashboard',           icon:LayoutDashboard, roles:['BUYER',...SELLER_ROLES,'LANDLORD','TENANT','ADMIN'] },
   { label:'Browse',       href:'/properties',          icon:Search,          roles:['BUYER',...SELLER_ROLES,'ADMIN'] },
   { label:'My Listings',  href:'/listings',            icon:Building2,       roles:SELLER_ROLES,
     children:[
@@ -56,7 +56,10 @@ const nav: NavItem[] = [
       { label:'My properties', href:'/listings',       icon:List },
       { label:'Add property',  href:'/properties/new', icon:Plus },
     ] },
-  { label:'My Tenancy',   href:'/my-tenancy',          icon:Home,            roles:['BUYER',...SELLER_ROLES,'LANDLORD'] },
+  // TENANT only. This used to be offered to every role except ADMIN, from when a tenant was
+  // just a BUYER with a tenancy. The API now restricts /my-tenancy to TENANT, so showing it
+  // to a seller would put a link in the menu that the service answers with 403.
+  { label:'My Tenancy',   href:'/my-tenancy',          icon:Home,            roles:[...TENANT_ROLES,'ADMIN'] },
   { label:'Notifications', href:'/notifications',      icon:Bell,            roles:['BUYER',...SELLER_ROLES,'LANDLORD','ADMIN'] },
 ]
 const adminNav: NavItem[] = [

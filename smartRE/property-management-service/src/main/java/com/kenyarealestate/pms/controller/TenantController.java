@@ -63,6 +63,26 @@ public class TenantController {
         return ResponseEntity.ok(tenants.linkUser(caller.userId(r), id));
     }
 
+    @Operation(summary = "Invite this tenant to connect their own account",
+               description = "Emails a single-use link to the address on the tenant record. "
+                           + "Unlike link-user, which attaches whichever account registered "
+                           + "with that address, the invitation is redeemed by the tenant "
+                           + "while signed in as themselves — so the connection is something "
+                           + "they accepted. Sending a new invitation revokes any previous one.")
+    @PostMapping("/{id}/invite")
+    public ResponseEntity<TenantResponse> invite(@PathVariable UUID id, HttpServletRequest r) {
+        return ResponseEntity.ok(tenants.invite(caller.userId(r), id, r.getHeader("X-Auth-Email")));
+    }
+
+    @Operation(summary = "Redeem a tenant invitation as the signed-in user",
+               description = "Not landlord-only: the caller is the tenant. The user id comes "
+                           + "from the session and never from the request body.")
+    @PostMapping("/redeem-invite")
+    public ResponseEntity<TenantResponse> redeemInvite(@Valid @RequestBody RedeemInviteRequest req,
+                                                       HttpServletRequest r) {
+        return ResponseEntity.ok(tenants.redeemInvite(caller.userId(r), req.getToken()));
+    }
+
     @PutMapping("/{id}/unlink-user")
     public ResponseEntity<TenantResponse> unlinkUser(@PathVariable UUID id, HttpServletRequest r) {
         return ResponseEntity.ok(tenants.unlinkUser(caller.userId(r), id));

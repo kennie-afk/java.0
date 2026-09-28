@@ -8,6 +8,14 @@ WORKDIR /app
 ARG NEXT_PUBLIC_API_URL=http://localhost:8080
 ARG NEXT_PUBLIC_S3_PUBLIC_URL=https://smartre-documents.s3.amazonaws.com
 ARG NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
+# The "Sign in as" role picker. Build args, not runtime env, because Next inlines
+# NEXT_PUBLIC_* at build time - which is the property that matters here: a production
+# build made without them ships a login page that has no picker and no demo password in
+# its bundle, rather than one that merely hides it.
+ARG NEXT_PUBLIC_SIGN_IN_AS=false
+ARG NEXT_PUBLIC_SIGN_IN_AS_PASSWORD=
+ENV NEXT_PUBLIC_SIGN_IN_AS=$NEXT_PUBLIC_SIGN_IN_AS
+ENV NEXT_PUBLIC_SIGN_IN_AS_PASSWORD=$NEXT_PUBLIC_SIGN_IN_AS_PASSWORD
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_S3_PUBLIC_URL=$NEXT_PUBLIC_S3_PUBLIC_URL
 ENV NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=$NEXT_PUBLIC_GOOGLE_MAPS_API_KEY

@@ -69,7 +69,18 @@ services:
   property-url: ${PROPERTY_SERVICE_URL:http://property-service:8083}
   payment-url: ${PAYMENT_SERVICE_URL:http://payment-service:8085}
   user-url: ${USER_SERVICE_URL:http://user-service:8081}
+  notification-url: ${NOTIFICATION_SERVICE_URL:http://notification-service:8087}
   internal-secret: ${INTERNAL_SECRET}
+
+app:
+  # Where the invitation link points. Its code default is a localhost URL, which is right
+  # locally and wrong everywhere else, so k8s sets it explicitly (check-k8s-env.py fails a
+  # service that silently falls back to a laptop).
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
+  invite:
+    # Short-lived on purpose: the token is a bearer credential for one tenancy. Long enough
+    # to survive a weekend, not long enough to sit in an inbox for a year.
+    ttl-hours: ${TENANT_INVITE_TTL_HOURS:72}
 
 resilience4j:
   circuitbreaker:

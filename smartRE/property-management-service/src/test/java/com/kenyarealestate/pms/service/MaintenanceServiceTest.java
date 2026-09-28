@@ -53,9 +53,9 @@ class MaintenanceServiceTest {
                 .rentAmount(new BigDecimal("18000")).status(LeaseStatus.ACTIVE).build();
 
         when(units.findById(UNIT_ID)).thenReturn(Optional.of(unit));
-        when(leases.findByStatus(LeaseStatus.ACTIVE)).thenReturn(List.of(lease));
         when(leases.findByUnitIdAndStatus(UNIT_ID, LeaseStatus.ACTIVE)).thenReturn(Optional.of(lease));
-        when(tenants.findAll()).thenReturn(List.of(
+        when(leases.findFirstByTenantIdAndStatus(TENANT_ID, LeaseStatus.ACTIVE)).thenReturn(Optional.of(lease));
+        when(tenants.findByUserId(TENANT_USER)).thenReturn(List.of(
                 Tenant.builder().id(TENANT_ID).landlordId(LANDLORD).userId(TENANT_USER)
                         .fullName("Achieng Otieno").phone("254712345678").build()));
         when(tenants.findById(TENANT_ID)).thenReturn(Optional.of(
@@ -112,7 +112,7 @@ class MaintenanceServiceTest {
 
     @Test
     void aLinkedTenantWithNoActiveLeaseCannotRaiseAnything() {
-        when(leases.findByStatus(LeaseStatus.ACTIVE)).thenReturn(List.of());
+        when(leases.findFirstByTenantIdAndStatus(TENANT_ID, LeaseStatus.ACTIVE)).thenReturn(Optional.empty());
         assertThrows(ConflictException.class, () -> service.raiseAsTenant(TENANT_USER, request()));
     }
 

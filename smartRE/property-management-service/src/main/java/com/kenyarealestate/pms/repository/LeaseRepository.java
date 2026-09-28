@@ -16,7 +16,26 @@ public interface LeaseRepository extends JpaRepository<Lease, UUID> {
     Page<Lease> findByTenantIdInOrderByCreatedAtDesc(List<UUID> tenantIds, Pageable pageable);
     Optional<Lease> findByUnitIdAndStatus(UUID unitId, LeaseStatus status);
     List<Lease> findByUnitIdOrderByStartDateDesc(UUID unitId);
-    List<Lease> findByStatus(LeaseStatus status);
+
+    /**
+     * Keyset page of leases in a given status, for {@link com.kenyarealestate.pms.service.RentInvoiceJob}.
+     * Loading every ACTIVE lease platform-wide in one query does not survive growth - this
+     * walks them {@code pageable.getPageSize()} at a time ordered by id, which stays correct
+     * even if a lease's status changes between batches (unlike OFFSET paging, nothing already
+     * scanned can shift back into view or get skipped).
+     */
+    List<Lease> findByStatusOrderByIdAsc(LeaseStatus status, Pageable pageable);
+    List<Lease> findByStatusAndIdGreaterThanOrderByIdAsc(LeaseStatus status, UUID id, Pageable pageable);
+
+    /**
+     * One tenant's lease in a given state.
+     *
+     * <p>Replaces loading every lease in that state and filtering in memory. That worked
+     * while a demo database held a few hundred rows and would have loaded every active
+     * lease on the platform into one heap to answer a question about one tenant.
+     * Served by {@code idx_leases_tenant}, narrowed further by {@code idx_leases_tenant_status}.
+     */
+    Optional<Lease> findFirstByTenantIdAndStatus(UUID tenantId, LeaseStatus status);
     boolean existsByTenantId(UUID tenantId);
     long countByLandlordIdAndStatus(UUID landlordId, LeaseStatus status);
 }

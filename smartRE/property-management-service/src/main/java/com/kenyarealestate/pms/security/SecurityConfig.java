@@ -28,6 +28,17 @@ public class SecurityConfig {
             .authorizeHttpRequests(a -> a
                 .requestMatchers("/api/pms/internal/**").permitAll()
                 .requestMatchers("/api/pms/admin/**").hasRole("ADMIN")
+                // The tenancy side of the house. These were reachable by any authenticated
+                // account, which is what made TENANT a label rather than a role: a seller
+                // could call /my-tenancy and a tenant could call the landlord views.
+                //
+                // Expressed as request matchers rather than @PreAuthorize deliberately -
+                // this service does not enable method security, so an annotation here would
+                // be decoration that reads like enforcement.
+                .requestMatchers("/api/*/my-tenancy", "/api/*/my-tenancy/**")
+                    .hasAnyRole("TENANT", "ADMIN")
+                .requestMatchers("/api/*/my", "/api/*/my/**")
+                    .hasAnyRole("LANDLORD", "ADMIN")
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/actuator/**").permitAll()
                 .anyRequest().authenticated())
             .addFilterBefore(internalSecretFilter, UsernamePasswordAuthenticationFilter.class)

@@ -23,6 +23,15 @@ public interface TenantRepository extends JpaRepository<Tenant, UUID> {
      */
     List<Tenant> findByUserId(UUID userId);
 
+    /**
+     * The tenancy an invitation token belongs to.
+     *
+     * <p>Looked up by hash across every landlord's records, which is why the index behind it
+     * is unique: two live invitations sharing a hash would make this ambiguous at exactly the
+     * moment it must not be.
+     */
+    Optional<Tenant> findByInviteTokenHash(byte[] inviteTokenHash);
+
     @Query("""
            SELECT t FROM Tenant t
            WHERE t.landlordId = :landlordId

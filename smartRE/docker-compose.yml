@@ -817,6 +817,8 @@ services:
       PROPERTY_SERVICE_URL: http://property-service:8083
       PAYMENT_SERVICE_URL: http://payment-service:8085
       USER_SERVICE_URL: http://user-service:8081
+      NOTIFICATION_SERVICE_URL: http://notification-service:8087
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
       PMS_MANAGEMENT_FEE_PCT: ${PMS_MANAGEMENT_FEE_PCT:-10.0}
       PMS_INVOICE_CRON: ${PMS_INVOICE_CRON:-0 0 2 * * *}
       PMS_ARREARS_CRON: ${PMS_ARREARS_CRON:-0 30 2 * * *}
@@ -847,6 +849,9 @@ services:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
         NEXT_PUBLIC_S3_PUBLIC_URL: ${S3_PUBLIC_BASE_URL:-https://smartre-documents.s3.amazonaws.com}
         NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:-}
+        # Both default to off/empty, so an unconfigured build has no picker at all.
+        NEXT_PUBLIC_SIGN_IN_AS: ${SIGN_IN_AS:-false}
+        NEXT_PUBLIC_SIGN_IN_AS_PASSWORD: ${SIGN_IN_AS_PASSWORD:-}
     restart: on-failure
     logging: *default-logging
     ports:

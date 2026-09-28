@@ -65,8 +65,13 @@ public class UserService {
                 throw new ForbiddenException("Admin registration is closed. Ask an existing admin to promote your account.");
             }
         } else if (!requestedRole.equals("BUYER") && !requestedRole.equals("SELLER")
-                && !requestedRole.equals("LANDLORD")) {
-            throw new BadRequestException("Role must be BUYER, SELLER or LANDLORD");
+                && !requestedRole.equals("LANDLORD") && !requestedRole.equals("TENANT")) {
+            // TENANT joined the allowlist on 2026-09-11. Self-registering as one grants
+            // nothing on its own: the tenancy endpoints return what the caller's own
+            // tenants.user_id link resolves to, and nothing links it except a landlord or a
+            // redeemed invitation. So the role is a statement of who you are, not a claim on
+            // anyone's data — which is why it can be self-selected at all.
+            throw new BadRequestException("Role must be BUYER, SELLER, LANDLORD or TENANT");
         }
         User u = User.builder()
                 .fullName(req.getFullName()).email(req.getEmail().toLowerCase().trim())

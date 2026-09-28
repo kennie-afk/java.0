@@ -47,6 +47,23 @@ const INVOICE_STATUS_VARIANT: Record<string,'success'|'warning'|'error'|'info'|'
 }
 const readable = (s:string) => s.replace(/_/g,' ').toLowerCase().replace(/^./, c => c.toUpperCase())
 
+/**
+ * Tenants, leases, properties, invoices and maintenance jobs are still fetched as a
+ * single `size: 100` page rather than paged/searched server-side like units - see the
+ * comment above UNITS_PER_PAGE. Until that lands, a portfolio past the cap must not
+ * look complete when it silently isn't: this makes the truncation visible instead of
+ * rendering a subset as if it were the whole list.
+ */
+function TruncationNotice({ shown, total, label }: { shown: number; total: number; label: string }) {
+  if (total <= shown) return null
+  return (
+    <div className="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 rounded-lg p-3 mb-3">
+      <AlertTriangle size={15} className="shrink-0"/>
+      <span>Showing {shown} of {total} {label} — narrow your search to see the rest.</span>
+    </div>
+  )
+}
+
 export default function PortfolioPage() {
   const { ready } = useAuthGuard(LANDLORD_ROLES)
   const params = useSearchParams()
@@ -61,6 +78,15 @@ export default function PortfolioPage() {
   const [jobs, setJobs]         = useState<MaintenanceResponse[]>([])
   const [properties, setProps]  = useState<PropertyResponse[]>([])
   const [loading, setLoading]   = useState(true)
+
+  /**
+   * Real totals for the collections still fetched as a single `size: 100` page
+   * (tenants, leases, invoices, maintenance, properties). Unlike units, these are
+   * not yet paged/searched server-side - see TruncationNotice below. This at
+   * least turns a silent truncation into a visible one: a landlord past the cap
+   * is told they are seeing a subset, rather than the page looking complete.
+   */
+  const [collectionTotals, setCollectionTotals] = useState<Record<string, number>>({})
 
   const [unitModal, setUnitModal]     = useState(false)
   const [tenantModal, setTenantModal] = useState(false)
@@ -103,6 +129,13 @@ export default function PortfolioPage() {
     if (l.status === 'fulfilled') setLeases(l.value.content || [])
     if (p.status === 'fulfilled') setProps(p.value.content || [])
     if (i.status === 'fulfilled') setInvoices(i.value.content || [])
+    setCollectionTotals({
+      tenants:     t.status === 'fulfilled' ? t.value.totalElements ?? 0 : 0,
+      leases:      l.status === 'fulfilled' ? l.value.totalElements ?? 0 : 0,
+      properties:  p.status === 'fulfilled' ? p.value.totalElements ?? 0 : 0,
+      invoices:    i.status === 'fulfilled' ? i.value.totalElements ?? 0 : 0,
+      maintenance: m.status === 'fulfilled' ? m.value.totalElements ?? 0 : 0,
+    })
     if (m.status === 'fulfilled') setJobs(m.value.content || [])
     setLoading(false)
   }, [])
@@ -389,6 +422,20 @@ export default function PortfolioPage() {
     } finally { setBusy(false) }
   }
 
+  const inviteTenant = async (tenant: TenantRecord) => {
+    setBusy(true)
+    try {
+      const updated = await pmsApi.tenants.invite(tenant.id)
+      setTenantDetail(updated)
+      setTenants(ts => ts.map(t => (t.id === updated.id ? updated : t)))
+      toast.success(`Invitation sent to ${tenant.email}`)
+    } catch (e: any) {
+      toast.error(e.response?.data?.error || 'Could not send the invitation')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const unlinkTenantAccount = async (tenant: TenantRecord) => {
     setBusy(true)
     try {
@@ -484,7 +531,9 @@ export default function PortfolioPage() {
             desc="A property is the building or plot. Add one, then split it into the units you actually rent out."
             action={<Button size="sm" leftIcon={<Plus size={14}/>} onClick={() => router.push('/properties/new')}>Add a property</Button>}/></Card>
         ) : (
-          <Card padding="none">
+          <div>
+            <TruncationNotice shown={managedProperties.length} total={collectionTotals.properties ?? 0} label="properties"/>
+            <Card padding="none">
             <ul className="divide-y divide-[color:var(--border)]">
               {managedProperties.map(m => (
                 <li key={m.property.id}>
@@ -542,7 +591,8 @@ export default function PortfolioPage() {
                 </li>
               ))}
             </ul>
-          </Card>
+            </Card>
+          </div>
         )
       )}
 
@@ -683,7 +733,9 @@ export default function PortfolioPage() {
             desc="Record a tenant from their name and phone number. They do not need a SmartRE account."
             action={<Button size="sm" leftIcon={<Plus size={14}/>} onClick={() => setTenantModal(true)}>Add your first tenant</Button>}/></Card>
         ) : (
-          <Card padding="none">
+          <div>
+            <TruncationNotice shown={tenants.length} total={collectionTotals.tenants ?? 0} label="tenants"/>
+            <Card padding="none">
             <ul className="divide-y divide-[color:var(--border)]">
               {tenants.map(t => (
                 <li key={t.id}>
@@ -704,7 +756,8 @@ export default function PortfolioPage() {
                 </li>
               ))}
             </ul>
-          </Card>
+            </Card>
+          </div>
         )
       )}
 
@@ -844,12 +897,31 @@ export default function PortfolioPage() {
                     onClick={() => unlinkTenantAccount(tenantDetail)}>Detach</Button>
                 </div>
               ) : tenantDetail.email ? (
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-2xs text-muted">
-                    Link the account registered as {tenantDetail.email} so they can see this tenancy.
-                  </p>
-                  <Button size="sm" loading={busy}
-                    onClick={() => linkTenantAccount(tenantDetail)}>Link account</Button>
+                /* Two routes, and Invite is the better one. Linking attaches whichever
+                   account registered with this address — but registration never verified
+                   the address, so it really attaches whoever typed it first. An invitation
+                   is redeemed by the tenant while signed in as themselves, which is both
+                   proof they received it and consent to the connection. Link stays for the
+                   tenant who already has an account and is standing next to you. */
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-2xs text-muted">
+                      {tenantDetail.inviteSentAt
+                        ? `Invitation sent to ${tenantDetail.email}. Sending another replaces it.`
+                        : `Invite ${tenantDetail.email} to connect their own account to this tenancy.`}
+                    </p>
+                    <Button size="sm" loading={busy}
+                      onClick={() => inviteTenant(tenantDetail)}>
+                      {tenantDetail.inviteSentAt ? 'Resend invite' : 'Invite'}
+                    </Button>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-2xs text-muted">
+                      Already registered? Link the account on {tenantDetail.email} directly.
+                    </p>
+                    <Button size="sm" variant="ghost" loading={busy}
+                      onClick={() => linkTenantAccount(tenantDetail)}>Link account</Button>
+                  </div>
                 </div>
               ) : (
                 <p className="text-2xs text-muted">
@@ -943,7 +1015,9 @@ export default function PortfolioPage() {
             desc="A lease ties a tenant to a unit. Draft it first, then activate it when they move in."
             action={<Button size="sm" leftIcon={<Plus size={14}/>} onClick={() => setLeaseModal(true)}>Draft a lease</Button>}/></Card>
         ) : (
-          <Card padding="none">
+          <div>
+            <TruncationNotice shown={leases.length} total={collectionTotals.leases ?? 0} label="leases"/>
+            <Card padding="none">
             <ul className="divide-y divide-[color:var(--border)]">
               {leases.map(l => (
                 <li key={l.id} className="px-3 py-2.5 flex items-start gap-3 flex-wrap">
@@ -973,7 +1047,8 @@ export default function PortfolioPage() {
                 </li>
               ))}
             </ul>
-          </Card>
+            </Card>
+          </div>
         )
       )}
 
@@ -982,7 +1057,9 @@ export default function PortfolioPage() {
           <Card padding="none"><EmptyState icon={<Receipt size={24}/>} title="No rent invoices yet"
             desc="Invoices are raised automatically each cycle for every active lease, a few days before rent falls due."/></Card>
         ) : (
-          <Card padding="none">
+          <div>
+            <TruncationNotice shown={invoices.length} total={collectionTotals.invoices ?? 0} label="invoices"/>
+            <Card padding="none">
             <ul className="divide-y divide-[color:var(--border)]">
               {invoices.map(inv => (
                 <li key={inv.id} className="px-3 py-2.5 flex items-start gap-3 flex-wrap">
@@ -1014,7 +1091,8 @@ export default function PortfolioPage() {
                 </li>
               ))}
             </ul>
-          </Card>
+            </Card>
+          </div>
         )
       )}
 
@@ -1065,6 +1143,7 @@ export default function PortfolioPage() {
             desc="Repairs your tenants report land here, newest first. You can also log a job yourself against any unit."/></Card>
         ) : (
           <div className="space-y-3">
+            <TruncationNotice shown={jobs.length} total={collectionTotals.maintenance ?? 0} label="repair requests"/>
             {visibleJobs.map(job => (
               <Card key={job.id}>
                 <div className="flex items-start justify-between gap-3 flex-wrap">

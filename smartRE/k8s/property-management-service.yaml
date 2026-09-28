@@ -32,7 +32,7 @@ spec:
             - containerPort: 8088
           env:
             - name: SPRING_DATASOURCE_URL
-              value: jdbc:postgresql://pgbouncer-pms_db:5432/pms_db
+              value: jdbc:postgresql://pgbouncer-pms-db:5432/pms_db
             - name: SPRING_DATASOURCE_USERNAME
               value: postgres
             - name: SPRING_DATASOURCE_PASSWORD
@@ -71,6 +71,16 @@ spec:
               value: http://payment-service:8085
             - name: USER_SERVICE_URL
               value: http://user-service:8081
+            - name: NOTIFICATION_SERVICE_URL
+              value: http://notification-service:8087
+            # The tenant invitation link points here. Its code default is a localhost URL,
+            # which check-k8s-env.py rejects precisely because nothing errors when it is wrong
+            # — the email simply arrives with a link nobody outside this pod can open.
+            - name: FRONTEND_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: smartre-config
+                  key: FRONTEND_URL
 
           resources:
             requests:

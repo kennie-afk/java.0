@@ -548,6 +548,16 @@ spring:
 
 server:
   port: 8080
+  compression:
+    # Every client response leaves through here, so this is the one place worth
+    # compressing. JSON lists are highly repetitive and typically shed 70-80% of their
+    # bytes, which on a Kenyan mobile connection is the difference between a page that
+    # feels instant and one that does not.
+    enabled: true
+    mime-types: application/json,application/problem+json,text/plain,text/css,text/javascript,application/javascript
+    # Below roughly a packet there is nothing to win and the CPU cost is real, so small
+    # responses are left alone. Spring's default is 2KB; this is deliberate, not inherited.
+    min-response-size: 2KB
 
 jwt:
   secret: ${JWT_SECRET}

@@ -176,8 +176,7 @@ public class LeaseService {
 
     @Transactional(readOnly = true)
     public Page<LeaseResponse> listForTenantUser(UUID userId, Pageable pageable) {
-        List<UUID> tenantIds = tenants.findAll().stream()
-                .filter(t -> userId.equals(t.getUserId()))
+        List<UUID> tenantIds = tenants.findByUserId(userId).stream()
                 .map(Tenant::getId)
                 .toList();
         if (tenantIds.isEmpty()) return Page.empty(pageable);

@@ -47,15 +47,13 @@ public class MaintenanceService {
     }
 
     public MaintenanceResponse raiseAsTenant(UUID userId, RaiseMaintenanceRequest req) {
-        Tenant tenant = tenants.findAll().stream()
-                .filter(t -> userId.equals(t.getUserId()))
+        // Indexed lookup (idx_tenants_user), not a scan of every tenant on the platform.
+        Tenant tenant = tenants.findByUserId(userId).stream()
                 .findFirst()
                 .orElseThrow(() -> new ForbiddenException(
                         "No tenancy is linked to this account. Ask your landlord to link your tenant record."));
 
-        Lease lease = leases.findByStatus(LeaseStatus.ACTIVE).stream()
-                .filter(l -> l.getTenantId().equals(tenant.getId()))
-                .findFirst()
+        Lease lease = leases.findFirstByTenantIdAndStatus(tenant.getId(), LeaseStatus.ACTIVE)
                 .orElseThrow(() -> new ConflictException("You do not have an active lease to raise a request against."));
 
         Unit unit = units.findById(lease.getUnitId())
@@ -214,8 +212,7 @@ public class MaintenanceService {
 
     @Transactional(readOnly = true)
     public Page<MaintenanceResponse> listForTenantUser(UUID userId, Pageable pageable) {
-        List<UUID> tenantIds = tenants.findAll().stream()
-                .filter(t -> userId.equals(t.getUserId()))
+        List<UUID> tenantIds = tenants.findByUserId(userId).stream()
                 .map(Tenant::getId)
                 .toList();
         if (tenantIds.isEmpty()) return Page.empty(pageable);

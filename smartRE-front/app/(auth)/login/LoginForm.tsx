@@ -16,12 +16,53 @@ import toast from 'react-hot-toast'
 const schema = z.object({ email: z.string().email('Invalid email'), password: z.string().min(1,'Required') })
 type Form = z.infer<typeof schema>
 
+/**
+ * "Sign in as" — a role picker for demonstrating the platform.
+ *
+ * <p>It is **autofill, not an authentication bypass**: choosing an account fills the real
+ * email and the shared demo password and submits the ordinary login form, so the request
+ * that reaches the server is indistinguishable from a person typing. There is no
+ * password-less path and no allowlist on the backend to get wrong.
+ *
+ * <p>Off unless NEXT_PUBLIC_SIGN_IN_AS is "true", and the password comes from
+ * NEXT_PUBLIC_SIGN_IN_AS_PASSWORD rather than being written here — a shared credential
+ * committed into a component is one grep away from being in a public repository. Both are
+ * build-time values in Next, so a production build without them ships a login page that
+ * has never heard of this.
+ *
+ * <p>Named for what it does. It is not a "demo login", because what it demonstrates is the
+ * role model: the same screens answer differently for a seller, a landlord and a tenant,
+ * and clicking between them is the fastest way to see that.
+ */
+const SIGN_IN_AS_ENABLED = process.env.NEXT_PUBLIC_SIGN_IN_AS === 'true'
+const SIGN_IN_AS_PASSWORD = process.env.NEXT_PUBLIC_SIGN_IN_AS_PASSWORD ?? ''
+
+const SIGN_IN_AS_ACCOUNTS: Array<{ email: string; role: string; description: string }> = [
+  { email: 'demo.admin@smartre.test',       role: 'ADMIN',    description: 'Every listing, user and payment' },
+  { email: 'demo.seller@smartre.test',      role: 'SELLER',   description: 'Lists property, sees offers and viewings' },
+  { email: 'demo.buyer@smartre.test',       role: 'BUYER',    description: 'Books viewings, makes offers, pays deposits' },
+  { email: 'demo.landlord@smartre.test',    role: 'LANDLORD', description: 'Units, tenancies and rent invoices' },
+  { email: 'david.kimani@example.co.ke',    role: 'TENANT',   description: 'A live tenancy with invoices and receipts' },
+]
+
 export default function LoginForm() {
   const [showPwd, setShow] = useState(false)
   const { setUser } = useAuthStore()
   const router = useRouter()
   const sp = useSearchParams()
-  const { register, handleSubmit, formState:{ errors, isSubmitting } } = useForm<Form>({ resolver: zodResolver(schema) })
+  const { register, handleSubmit, setValue, formState:{ errors, isSubmitting } } = useForm<Form>({ resolver: zodResolver(schema) })
+  const [signingInAs, setSigningInAs] = useState('')
+
+  const signInAs = async (email: string) => {
+    if (!email) return
+    setSigningInAs(email)
+    // Fill the visible fields too, so what is submitted is what the form shows. A picker
+    // that logs someone in while the inputs sit empty looks like a trick.
+    setValue('email', email)
+    setValue('password', SIGN_IN_AS_PASSWORD)
+    await onSubmit({ email, password: SIGN_IN_AS_PASSWORD })
+    setSigningInAs('')
+  }
 
   const onSubmit = async (d: Form) => {
     try {
@@ -53,6 +94,30 @@ export default function LoginForm() {
             <Link href="/forgot-password" className="text-sm font-medium text-gold-600 dark:text-gold-400 hover:underline">Forgot password?</Link>
           </div>
           <Button type="submit" fullWidth loading={isSubmitting}>Sign in</Button>
+
+          {SIGN_IN_AS_ENABLED && SIGN_IN_AS_PASSWORD && (
+            <div className="pt-3 mt-1 border-t border-gray-200 dark:border-[#3A2F1F]">
+              <label htmlFor="sign-in-as" className="block text-2xs uppercase tracking-wide text-muted mb-1.5">
+                Sign in as
+              </label>
+              <select
+                id="sign-in-as"
+                value={signingInAs}
+                disabled={isSubmitting}
+                onChange={e => signInAs(e.target.value)}
+                className="w-full rounded-lg border border-gray-200 dark:border-[#3A2F1F] bg-white dark:bg-[#221F1A]
+                           px-3 py-2 text-base text-gray-700 dark:text-gray-200 disabled:opacity-60"
+              >
+                <option value="">Choose a role…</option>
+                {SIGN_IN_AS_ACCOUNTS.map(a => (
+                  <option key={a.email} value={a.email}>{a.role} — {a.description}</option>
+                ))}
+              </select>
+              <p className="text-2xs text-muted mt-1.5">
+                Fills the form above and signs in normally. Available on this build only.
+              </p>
+            </div>
+          )}
         </form>
       </Card>
 
