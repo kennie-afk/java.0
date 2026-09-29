@@ -1,6 +1,8 @@
 package com.soko.api;
 
+import com.soko.domain.MpesaPayment;
 import com.soko.domain.SalesOrder;
+import com.soko.payment.PaymentService;
 import com.soko.persistence.*;
 import com.soko.platform.Errors;
 import com.soko.routing.OrderService;
@@ -25,6 +27,7 @@ public class ShopController {
     private final ProductRepository products;
     private final CustomerRepository customers;
     private final OrderService orderService;
+    private final PaymentService paymentService;
     private final TenantContext context;
 
     public ShopController(
@@ -34,6 +37,7 @@ public class ShopController {
             ProductRepository products,
             CustomerRepository customers,
             OrderService orderService,
+            PaymentService paymentService,
             TenantContext context) {
         this.offers = offers;
         this.orders = orders;
@@ -41,6 +45,7 @@ public class ShopController {
         this.products = products;
         this.customers = customers;
         this.orderService = orderService;
+        this.paymentService = paymentService;
         this.context = context;
     }
 
@@ -70,6 +75,7 @@ public class ShopController {
                     row.put("shelfLifeHours", r[7]);
                     row.put("priceCents", r[8]);
                     row.put("inStock", ((Number) r[9]).longValue());
+                    row.put("photoUrl", r[10]);
                     return row;
                 })
                 .filter(row -> ((Number) row.get("inStock")).longValue() > 0)
@@ -129,6 +135,30 @@ public class ShopController {
                     return row;
                 })
                 .toList();
+    }
+
+    public record PayRequest(@NotNull String msisdn) {}
+
+    @PostMapping("/orders/{id}/pay")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public Map<String, Object> pay(@PathVariable UUID id, @Valid @RequestBody PayRequest request) {
+        Principal principal = shopper();
+        SalesOrder order = orders.findByIdAndCustomerId(id, principal.customerId())
+                .orElseThrow(() -> new Errors.NotFound("no such order"));
+        if (!"ROUTED".equals(order.getStatus())) {
+            throw new Errors.BadRequest("this order is " + order.getStatus() + ", not payable");
+        }
+
+        MpesaPayment payment = paymentService.initiate(
+                principal.tenantId(), MpesaPayment.Purpose.ORDER, order.getId(),
+                order.getRevenueCents(), request.msisdn(), order.getReference(),
+                "Payment for order " + order.getReference());
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("status", payment.getStatus());
+        body.put("checkoutRequestId", payment.getCheckoutRequestId());
+        body.put("detail", payment.getResultDesc());
+        return body;
     }
 
     @GetMapping("/orders/{id}")
