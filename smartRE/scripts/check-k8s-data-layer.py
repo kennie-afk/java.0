@@ -65,6 +65,40 @@ for host, db in sorted(jdbc_hosts):
     if declared is not None and declared != db:
         note(f"{host}: JDBC URL uses database {db!r} but {db_statefulset} StatefulSet creates {declared!r}")
 
+print("4. every JDBC URL through PgBouncer disables server-side prepared statements")
+# PgBouncer runs in transaction-pool mode, where consecutive statements of one client can
+# land on different server connections. The driver's cached prepared statements then
+# collide ("prepared statement S_1 already exists") and Flyway fails on first boot.
+for m in re.finditer(r"jdbc:postgresql://(pgbouncer-[a-z0-9-]+):5432/[a-z0-9_]+(\?\S*)?", text):
+    if "prepareThreshold=0" not in (m.group(2) or ""):
+        note(f"{m.group(1)}: JDBC URL lacks ?prepareThreshold=0 (breaks under PgBouncer transaction pooling)")
+
+print("5. the Redis and Kafka names in the ConfigMap resolve to real Services")
+cm = (K8S / "configmap.yaml").read_text()
+redis_host = re.search(r"REDIS_HOST:\s*([a-z0-9-]+)", cm).group(1)
+kafka_host = re.search(r"KAFKA_BOOTSTRAP_SERVERS:\s*([a-z0-9-]+):\d+", cm).group(1)
+for h in (redis_host, kafka_host):
+    if h not in service_names:
+        note(f"{h}: named in configmap.yaml but no Service of that name exists in k8s/")
+
+print("6. container structure: env entries are in env, mounts are in volumeMounts")
+try:
+    import yaml
+except ImportError:
+    yaml = None
+    print("  skip  PyYAML not installed")
+if yaml:
+    for path in sorted(K8S.glob("*.yaml")):
+        for doc in yaml.safe_load_all(path.read_text()):
+            items = doc.get("items", [doc]) if isinstance(doc, dict) else []
+            for d in items:
+                pod = (d.get("spec", {}).get("template", {}).get("spec", {}) if d else {})
+                for c in pod.get("containers", []):
+                    for vm in c.get("volumeMounts", []):
+                        if "valueFrom" in vm or "value" in vm or "mountPath" not in vm:
+                            note(f"{path.name}: {c['name']} volumeMounts entry {vm.get('name')!r} "
+                                 f"is not a mount (an env entry pasted under the wrong key?)")
+
 if failures:
     print(f"\n{len(failures)} check(s) failed.")
     sys.exit(1)

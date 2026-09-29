@@ -32,7 +32,7 @@ spec:
             - containerPort: 8082
           env:
             - name: SPRING_DATASOURCE_URL
-              value: jdbc:postgresql://pgbouncer-verification-db:5432/verification_db
+              value: jdbc:postgresql://pgbouncer-verification-db:5432/verification_db?prepareThreshold=0
             - name: SPRING_DATASOURCE_USERNAME
               value: postgres
             - name: SPRING_DATASOURCE_PASSWORD
@@ -109,6 +109,16 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "1000m"
+          # Holds liveness/readiness off until the JVM has actually started. A fixed
+          # initialDelaySeconds is a guess about startup time; under CPU pressure (first
+          # deploy, a busy node) Spring takes longer than the guess and the liveness probe
+          # kills the pod mid-boot, forever. Up to 10s x 40 = 400s to come up.
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8082
+            periodSeconds: 10
+            failureThreshold: 40
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness

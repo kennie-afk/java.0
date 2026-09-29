@@ -1,0 +1,117 @@
+# Redis and Kafka, in-cluster. configmap.yaml points REDIS_HOST at `redis-service` and
+# KAFKA_BOOTSTRAP_SERVERS at `kafka-service:9092`, and nothing in k8s/ created either
+# name: the README delegated both to Bitnami Helm releases, whose Services are called
+# `redis-master` / `kafka` and would not have matched. These manifests make the two names
+# real and carry the `app.kubernetes.io/name` label that allow-services-to-redis-and-kafka
+# in network-policy.yaml selects on, so the policy works with or without Helm.
+#
+# One replica each, no HA. Kafka is Redpanda (Kafka protocol, single binary, no ZooKeeper),
+# the same choice as SmartSeason; topics auto-create as they do in docker-compose.yml.
+# For a replicated Redis/Kafka, install the Bitnami charts instead and change the two
+# ConfigMap values - do not run both.
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+  namespace: smartre
+  labels: { app: redis, app.kubernetes.io/name: redis }
+spec:
+  clusterIP: None
+  selector: { app: redis }
+  ports:
+    - { name: redis, port: 6379, targetPort: 6379 }
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  namespace: smartre
+spec:
+  serviceName: redis-service
+  replicas: 1
+  selector:
+    matchLabels: { app: redis }
+  template:
+    metadata:
+      labels: { app: redis, app.kubernetes.io/name: redis }
+    spec:
+      securityContext:
+        fsGroup: 999
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          args: ["redis-server", "--appendonly", "yes", "--maxmemory", "512mb", "--maxmemory-policy", "allkeys-lru"]
+          ports:
+            - { name: redis, containerPort: 6379 }
+          volumeMounts:
+            - { name: data, mountPath: /data }
+          readinessProbe:
+            exec: { command: ["redis-cli", "ping"] }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { memory: 640Mi }
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources: { requests: { storage: 5Gi } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-service
+  namespace: smartre
+  labels: { app: kafka, app.kubernetes.io/name: kafka }
+spec:
+  clusterIP: None
+  selector: { app: kafka }
+  ports:
+    - { name: kafka, port: 9092, targetPort: 9092 }
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafka
+  namespace: smartre
+spec:
+  serviceName: kafka-service
+  replicas: 1
+  selector:
+    matchLabels: { app: kafka }
+  template:
+    metadata:
+      labels: { app: kafka, app.kubernetes.io/name: kafka }
+    spec:
+      securityContext:
+        fsGroup: 101
+      containers:
+        - name: redpanda
+          image: redpandadata/redpanda:v24.2.8
+          args:
+            - redpanda
+            - start
+            - --smp=1
+            - --overprovisioned
+            - --node-id=0
+            - --kafka-addr=PLAINTEXT://0.0.0.0:9092
+            # Brokers hand this address back to clients after bootstrap; it must be the
+            # Service name or the first produce times out after a successful connect.
+            - --advertise-kafka-addr=PLAINTEXT://kafka-service.smartre.svc.cluster.local:9092
+          ports:
+            - { name: kafka, containerPort: 9092 }
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/redpanda/data }
+          readinessProbe:
+            exec: { command: ["sh", "-c", "rpk cluster health | grep -q 'Healthy:.*true'"] }
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          resources:
+            requests: { cpu: 250m, memory: 512Mi }
+            limits: { memory: 1Gi }
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources: { requests: { storage: 10Gi } }

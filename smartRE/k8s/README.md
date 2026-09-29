@@ -3,7 +3,6 @@
 ## Prerequisites
 - kubectl configured for your cluster
 - Docker images built and pushed to your registry
-- Helm installed (for Redis and Kafka)
 - An **NGINX ingress controller** and **cert-manager** (see Ingress and TLS below)
 - DNS for `smartre.co.ke` and `www.smartre.co.ke` pointing at the ingress controller's
   external IP, **before** you apply the Ingress — the ACME challenge fails otherwise
@@ -11,23 +10,14 @@
 ## Deploy Infrastructure
 
 ```bash
-# Redis (HA with Sentinel)
-helm repo add bitnami https://charts.bitnami.com/bitnami
-helm install redis bitnami/redis \
-  --namespace smartre \
-  --set auth.enabled=false \
-  --set sentinel.enabled=true \
-  --set sentinel.quorum=2 \
-  --set replica.replicaCount=3
-
-# Kafka (KRaft mode, no Zookeeper)
-helm install kafka bitnami/kafka \
-  --namespace smartre \
-  --set replicaCount=3 \
-  --set kraft.enabled=true \
-  --set provisioning.topics[0].name=verification-events \
-  --set provisioning.topics[0].partitions=6 \
-  --set provisioning.topics[0].replicationFactor=3
+# Redis and Kafka: in-cluster, single replica each, applied like the app manifests.
+# They create the two Service names configmap.yaml already points at (`redis-service`,
+# `kafka-service:9092`). Kafka is Redpanda (Kafka protocol, no ZooKeeper).
+kubectl apply -f k8s/00b-messaging.yaml
+#
+# For replicated Redis/Kafka instead, install the Bitnami charts (redis with sentinel,
+# kafka in KRaft mode, replicationFactor 3), point REDIS_HOST / KAFKA_BOOTSTRAP_SERVERS
+# in configmap.yaml at the charts' Services, and do NOT apply 00b-messaging.yaml.
 
 # Postgres + PgBouncer — not Helm-installed like the two above, because this is eight
 # small independent instances (one per service database, mirroring docker-compose.yml's

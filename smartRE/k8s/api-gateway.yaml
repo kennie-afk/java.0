@@ -53,11 +53,24 @@ spec:
                   key: FRONTEND_URL
           resources:
             requests:
-              memory: "128Mi"
-              cpu: "200m"
-            limits:
               memory: "256Mi"
+              cpu: "200m"
+            # 256Mi was OOMKilled (exit 137) on first boot: the JVM is told to use 75% of
+            # the limit as heap, and heap + metaspace + Netty direct buffers + the warm-up
+            # burst exceed what is left.
+            limits:
+              memory: "512Mi"
               cpu: "500m"
+          # Holds liveness/readiness off until the JVM has actually started. A fixed
+          # initialDelaySeconds is a guess about startup time; under CPU pressure (first
+          # deploy, a busy node) Spring takes longer than the guess and the liveness probe
+          # kills the pod mid-boot, forever. Up to 10s x 40 = 400s to come up.
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            periodSeconds: 10
+            failureThreshold: 40
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness

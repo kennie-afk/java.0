@@ -74,9 +74,8 @@ spec:
 # Data stores.
 #
 # Read this before applying the file: the default deny above selects *every* pod in the
-# namespace, Helm-installed ones included. Redis and Kafka come from Bitnami charts (see
-# README), and their pods carry Bitnami's own labels rather than the `app` label used
-# here — so without this rule the deny would cut every service off from its cache and its
+# namespace, Helm-installed ones included. Redis and Kafka (k8s/00b-messaging.yaml, or Bitnami charts) carry
+# the `app.kubernetes.io/name` label rather than the `app` label the services use — so without this rule the deny would cut every service off from its cache and its
 # broker, and the whole namespace would fail readiness at once.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
