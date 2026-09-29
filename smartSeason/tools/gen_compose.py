@@ -300,7 +300,7 @@ def init_script():
     return "\n".join(lines) + "\n"
 
 def prometheus_config():
-    targets = ",\n".join(
+    targets = "\n".join(
         f"          - '{s['name']}:{s['port']}'" for s in SERVICES)
     return f"""global:
   scrape_interval: 15s
