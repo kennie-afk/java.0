@@ -41,7 +41,7 @@ public class MyWorkController {
     @Operation(summary = "Record the start of work; the time comes from the server")
     public TaskAssignmentResponse start(@PathVariable UUID id, Authentication authentication) {
         return TaskAssignmentResponse.from(
-                service.start(id, callerId(authentication), supervising(authentication)));
+                service.start(id, callerId(authentication), actorRole(authentication), supervising(authentication)));
     }
 
     @PostMapping("/{id}/stop")
@@ -49,7 +49,7 @@ public class MyWorkController {
     @Operation(summary = "Record the end of work; the time comes from the server")
     public TaskAssignmentResponse stop(@PathVariable UUID id, Authentication authentication) {
         return TaskAssignmentResponse.from(
-                service.stop(id, callerId(authentication), supervising(authentication)));
+                service.stop(id, callerId(authentication), actorRole(authentication), supervising(authentication)));
     }
 
     private static UUID callerId(Authentication authentication) {
@@ -60,5 +60,15 @@ public class MyWorkController {
         return authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .anyMatch(SUPERVISING::contains);
+    }
+
+    /** A role off the token, stripped of the ROLE_ prefix Spring adds, for the audit trail. */
+    private static String actorRole(Authentication authentication) {
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .filter(authority -> authority.startsWith("ROLE_"))
+                .findFirst()
+                .map(authority -> authority.substring("ROLE_".length()))
+                .orElse(null);
     }
 }

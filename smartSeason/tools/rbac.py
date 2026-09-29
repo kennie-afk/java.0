@@ -129,14 +129,22 @@ _ORDER = {NONE: 0, OWN: 1, READ: 2, WRITE: 3, FULL: 4}
 # generated list endpoint would return every row in the tenant.
 OWN_SCOPED = {
     ("task", "WORKER"): "task assignments belonging to the caller, via /api/task/v1/my-work",
+    ("attendance", "WORKER"): "clock events and shifts belonging to the caller, via "
+                              "/api/attendance/v1/my-attendance",
+    ("agronomy", "WORKER"): "scouting reports the caller filed, via "
+                            "/api/agronomy/v1/my-scouting-reports",
+    ("media", "WORKER"): "media the caller uploaded, via /api/media/v1/my-media",
 }
 
-# Wanted, but not granted until the same narrowing exists for them:
-#   attendance/WORKER  - clock events and shifts for the caller only
-#   agronomy/WORKER    - scouting reports the caller filed
-#   media/WORKER       - media the caller uploaded
-# Each needs the owning entity to carry the caller's user id, as
-# TaskAssignment.workerUserId does, plus a scoped endpoint.
+# None of these four services carry "WORKER": OWN in MATRIX above, on purpose.
+# MATRIX is per-service, not per-entity, so granting OWN there would also pass
+# the @PreAuthorize check on that service's *generic* catalogue endpoints -
+# every entity in it, including ones a worker has no business seeing (a farm's
+# Geofence definitions, PestDisease reference data, UploadTicket) - and the
+# generated list/get methods do not filter rows by caller, so it would return
+# every tenant's row, not just the caller's. The my-* endpoints above are
+# separate, hand-written, and scoped to exactly the one entity each worker
+# should see their own rows of.
 
 
 def level(service_slug, role):

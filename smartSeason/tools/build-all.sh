@@ -19,5 +19,8 @@ done
 echo
 echo "=============================="
 echo "passed: $pass   failed: $fail"
-[ ${
+if [ "${#failed[@]}" -gt 0 ]; then
+  printf 'failed: %s\n' "${failed[@]}"
+fi
 echo "=============================="
+[ "${#failed[@]}" -eq 0 ]

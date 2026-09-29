@@ -2,6 +2,7 @@ package com.smartseason.task.mywork;
 
 import com.smartseason.task.domain.TaskAssignment;
 import com.smartseason.task.platform.DomainRuleException;
+import com.smartseason.task.platform.EventPublisher;
 import com.smartseason.task.platform.ResourceNotFoundException;
 import com.smartseason.task.platform.TenantContext;
 import com.smartseason.task.repo.MyWorkRepository;
@@ -27,15 +28,22 @@ import org.springframework.transaction.annotation.Transactional;
  * The generic PATCH endpoint can still set these columns, which is why writes on
  * task-service are restricted to FARMER and MANAGER: a worker holds OWN, so
  * these endpoints are their only way to record time.
+ *
+ * Every start/stop also publishes a domain event through the same outbox every
+ * other entity uses, so the audit trail no longer depends on the web layer
+ * remembering to write it - a direct call to this API now audits itself. See
+ * audit-service's TaskWorkEventListener for the consumer.
  */
 @Service
 @Transactional(readOnly = true)
 public class MyWorkService {
 
     private final MyWorkRepository repository;
+    private final EventPublisher events;
 
-    public MyWorkService(MyWorkRepository repository) {
+    public MyWorkService(MyWorkRepository repository, EventPublisher events) {
         this.repository = repository;
+        this.events = events;
     }
 
     public List<TaskAssignment> mine(UUID callerUserId) {
@@ -44,7 +52,7 @@ public class MyWorkService {
     }
 
     @Transactional
-    public TaskAssignment start(UUID assignmentId, UUID callerUserId, boolean supervising) {
+    public TaskAssignment start(UUID assignmentId, UUID callerUserId, String actorRole, boolean supervising) {
         TaskAssignment assignment = require(assignmentId, callerUserId, supervising);
 
         if (assignment.getCompletedAt() != null) {
@@ -60,11 +68,13 @@ public class MyWorkService {
         }
         assignment.setStartedAt(now);
         assignment.setStatus(TaskAssignment.Status.IN_PROGRESS);
-        return repository.save(assignment);
+        TaskAssignment saved = repository.save(assignment);
+        publishWorkEvent("TaskStarted", saved, callerUserId, actorRole, now);
+        return saved;
     }
 
     @Transactional
-    public TaskAssignment stop(UUID assignmentId, UUID callerUserId, boolean supervising) {
+    public TaskAssignment stop(UUID assignmentId, UUID callerUserId, String actorRole, boolean supervising) {
         TaskAssignment assignment = require(assignmentId, callerUserId, supervising);
 
         if (assignment.getStartedAt() == null) {
@@ -74,9 +84,19 @@ public class MyWorkService {
             throw new DomainRuleException("That task has already been finished");
         }
 
-        assignment.setCompletedAt(Instant.now().truncatedTo(ChronoUnit.MICROS));
+        Instant now = Instant.now().truncatedTo(ChronoUnit.MICROS);
+        assignment.setCompletedAt(now);
         assignment.setStatus(TaskAssignment.Status.COMPLETED);
-        return repository.save(assignment);
+        TaskAssignment saved = repository.save(assignment);
+        publishWorkEvent("TaskStopped", saved, callerUserId, actorRole, now);
+        return saved;
+    }
+
+    private void publishWorkEvent(
+            String eventType, TaskAssignment assignment, UUID callerUserId, String actorRole, Instant occurredAt) {
+        events.publish("task", eventType, assignment.getId(),
+                new TaskWorkEvent(
+                        assignment.getId(), assignment.getWorkerUserId(), callerUserId, actorRole, occurredAt));
     }
 
     private TaskAssignment require(UUID assignmentId, UUID callerUserId, boolean supervising) {

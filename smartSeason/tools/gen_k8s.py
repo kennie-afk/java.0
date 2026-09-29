@@ -65,15 +65,13 @@ spec:
           ports:
             - containerPort: {port}
           env:
-            # Through PgBouncer, not straight at Postgres. Locally compose has always
-            # pointed here; the k8s manifests pointed at postgres:5432 directly, which
-            # silently discarded the pooling that took 27 services down to 3 real
-            # connections. prepareThreshold=0 is not optional with transaction pooling:
-            # a server-side prepare made on one pooled connection is invisible on the
-            # next, and the failure appears as an intermittent "prepared statement does
-            # not exist" under load rather than at startup.
-            - name: SPRING_DATASOURCE_URL
-              value: jdbc:postgresql://$(DB_HOST):$(DB_PORT)/{db}?prepareThreshold=0
+            # DB_HOST and DB_PORT must be listed before SPRING_DATASOURCE_URL: Kubernetes
+            # only expands a $(VAR) reference in a container env value against vars that
+            # appear earlier in this same list. Get the order backwards and the pod does
+            # not fail to start with a clear error - it starts with the literal string
+            # "$(DB_HOST)" as its hostname, which every driver rejects, so at least that
+            # part fails loud. Found the hard way: this exact bug shipped for months
+            # because it was never applied to a real cluster.
             - name: DB_HOST
               valueFrom:
                 configMapKeyRef:
@@ -84,6 +82,15 @@ spec:
                 configMapKeyRef:
                   name: smartseason-config
                   key: DB_PORT
+            # Through PgBouncer, not straight at Postgres. Locally compose has always
+            # pointed here; the k8s manifests pointed at postgres:5432 directly, which
+            # silently discarded the pooling that took 27 services down to 3 real
+            # connections. prepareThreshold=0 is not optional with transaction pooling:
+            # a server-side prepare made on one pooled connection is invisible on the
+            # next, and the failure appears as an intermittent "prepared statement does
+            # not exist" under load rather than at startup.
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://$(DB_HOST):$(DB_PORT)/{db}?prepareThreshold=0
             - name: DB_REPLICA_HOST
               valueFrom:
                 configMapKeyRef:
@@ -321,6 +328,7 @@ spec:
       containers:
         - name: api-gateway
           image: smartseason/api-gateway:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
           env:
@@ -388,6 +396,7 @@ spec:
       containers:
         - name: web
           image: smartseason/web:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
           resources:

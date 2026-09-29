@@ -19,6 +19,7 @@ spec:
       containers:
         - name: api-gateway
           image: smartseason/api-gateway:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
           env:
@@ -86,6 +87,7 @@ spec:
       containers:
         - name: web
           image: smartseason/web:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
           resources:
