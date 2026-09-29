@@ -20,6 +20,15 @@
   --color-danger: #dc2626;
   --color-danger-soft: #fdeded;
 
+  /* Radius: 6px ceiling, matching SmartRE and Aegis. Overriding the theme tokens rather than
+     editing ~60 class uses means rounded-lg/xl/2xl can never drift back to 8px+. */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.375rem;
+  --radius-xl: 0.375rem;
+  --radius-2xl: 0.375rem;
+  --radius-3xl: 0.375rem;
+
   /* The house type scale. Nine steps, each with an explicit line height, because
      Tailwind's defaults are a size and a half larger than a dense operations UI wants and
      its leading is generous on top of that. Matches SmartRE so the two products read as
