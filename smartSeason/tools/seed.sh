@@ -113,14 +113,6 @@ find_or_create /api/workforce/v1/workers fullName "Joseph Kiptoo" \
   "{\"fullName\":\"Joseph Kiptoo\",\"phone\":\"+254700333444\",\"farmId\":\"${FARM1:-}\",\"status\":\"ACTIVE\",\"riskScore\":0}" \
   "Joseph Kiptoo" > /dev/null
 
-say "Marketplace listings"
-find_or_create /api/marketplace/v1/supply-listings commodityCode "MAIZE" \
-  '{"sellerOrgId":"00000000-0000-0000-0000-000000000001","commodityCode":"MAIZE","grade":"GRADE_1","quantity":8000,"unit":"kg","askPrice":48.5,"currency":"KES","county":"Nakuru","status":"ACTIVE"}' \
-  "8000 kg maize" > /dev/null
-find_or_create /api/marketplace/v1/supply-listings commodityCode "POTATO" \
-  '{"sellerOrgId":"00000000-0000-0000-0000-000000000001","commodityCode":"POTATO","grade":"GRADE_2","quantity":3200,"unit":"kg","askPrice":31.0,"currency":"KES","county":"Nyandarua","status":"ACTIVE"}' \
-  "3200 kg potato" > /dev/null
-
 say ""
 say "Done. Sign in at the web application with:"
 say "  email    $EMAIL"

@@ -32,7 +32,6 @@ data:
     psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" -c "CREATE DATABASE task_db;"
     psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" -c "CREATE DATABASE fraud_db;"
     psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" -c "CREATE DATABASE catalog_db;"
-    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" -c "CREATE DATABASE marketplace_db;"
     psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" -c "CREATE DATABASE pricing_db;"
     psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" -c "CREATE DATABASE order_db;"
     psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" -c "CREATE DATABASE inventory_db;"

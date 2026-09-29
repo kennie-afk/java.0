@@ -20,7 +20,6 @@ scrape_configs:
           - 'task-service:8091',
           - 'fraud-service:8092',
           - 'catalog-service:8093',
-          - 'marketplace-service:8094',
           - 'pricing-service:8095',
           - 'order-service:8096',
           - 'inventory-service:8097',

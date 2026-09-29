@@ -202,20 +202,6 @@ spring:
                 key-resolver: "#{@authenticatedUserKeyResolver}"
                 redis-rate-limiter.replenishRate: 50
                 redis-rate-limiter.burstCapacity: 100
-        - id: marketplace-service
-          uri: ${MARKETPLACE_SERVICE_URI:http://marketplace-service:8094}
-          predicates:
-            - Path=/api/marketplace/**
-          filters:
-            - name: CircuitBreaker
-              args:
-                name: marketplaceService
-                fallbackUri: forward:/fallback/marketplace
-            - name: RequestRateLimiter
-              args:
-                key-resolver: "#{@authenticatedUserKeyResolver}"
-                redis-rate-limiter.replenishRate: 50
-                redis-rate-limiter.burstCapacity: 100
         - id: pricing-service
           uri: ${PRICING_SERVICE_URI:http://pricing-service:8095}
           predicates:

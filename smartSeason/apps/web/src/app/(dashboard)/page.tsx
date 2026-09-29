@@ -32,7 +32,6 @@ const HEADLINES: Record<Role, Headline[]> = {
   ADMIN: [
     { label: "Farms", path: "/api/farm/v1/farms", href: "/farm/farms" },
     { label: "Workers", path: "/api/workforce/v1/workers", href: "/workforce/workers" },
-    { label: "Listings", path: "/api/marketplace/v1/supply-listings", href: "/marketplace/supply-listings" },
     { label: "Orders", path: "/api/order/v1/orders", href: "/order/orders" },
     { label: "Fraud cases", path: "/api/fraud/v1/fraud-cases", href: "/fraud/fraud-cases" },
     { label: "Users", path: "/api/identity/v1/users", href: "/identity/users" }
@@ -41,7 +40,6 @@ const HEADLINES: Record<Role, Headline[]> = {
     { label: "Farms", path: "/api/farm/v1/farms", href: "/farm/farms" },
     { label: "Seasons", path: "/api/season/v1/seasons", href: "/season/seasons" },
     { label: "Workers", path: "/api/workforce/v1/workers", href: "/workforce/workers" },
-    { label: "Listings", path: "/api/marketplace/v1/supply-listings", href: "/marketplace/supply-listings" },
     { label: "Orders", path: "/api/order/v1/orders", href: "/order/orders" },
     { label: "Fraud cases", path: "/api/fraud/v1/fraud-cases", href: "/fraud/fraud-cases", hint: "Open against your workers" }
   ],
@@ -78,9 +76,7 @@ const HEADLINES: Record<Role, Headline[]> = {
     { label: "Holds", path: "/api/payout/v1/payout-holds", href: "/payout/payout-holds", hint: "Withheld pending review" }
   ],
   BUYER: [
-    { label: "Listings", path: "/api/marketplace/v1/supply-listings", href: "/marketplace/supply-listings" },
     { label: "My orders", path: "/api/order/v1/orders", href: "/order/orders" },
-    { label: "Offers", path: "/api/marketplace/v1/offers", href: "/marketplace/offers" },
     { label: "Prices", path: "/api/pricing/v1/price-series", href: "/pricing/price-series" },
     { label: "Deliveries", path: "/api/logistics/v1/transport-jobs", href: "/logistics/transport-jobs" },
     { label: "Payments", path: "/api/payment/v1/payment-intents", href: "/payment/payment-intents" }
@@ -97,7 +93,7 @@ const SUBTITLE: Record<Role, string> = {
   AGRONOMIST: "Crop health, advisories and the weather behind them.",
   STOREKEEPER: "What is in store and what is moving.",
   FINANCE: "Money in, money out, and anything on hold.",
-  BUYER: "Produce on offer and the orders you have placed.",
+  BUYER: "The orders you have placed and what is on its way to you.",
   WORKER: "Your assigned work."
 };
 

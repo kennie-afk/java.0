@@ -1,10 +1,10 @@
 # SmartSeason
 
 An agricultural operations platform for Kenya: farms and seasons, IoT-driven automation,
-workforce management with fraud detection, a produce marketplace, logistics, and
+workforce management with fraud detection, produce orders and pricing, logistics, and
 M-Pesa-backed payments with a double-entry ledger.
 
-Built as 27 Spring Boot microservices behind a Spring Cloud Gateway, with a Next.js
+Built as 26 Spring Boot microservices behind a Spring Cloud Gateway, with a Next.js
 frontend. Every service owns its database and communicates asynchronously over Kafka.
 
 ## Stack
@@ -42,7 +42,7 @@ with a default secret.
 | Grafana | http://localhost:3001 (`--profile observability`) |
 
 Profiles: `core`, `workforce`, `iot`, `market`, `money`, `platform`, `observability`, `all`.
-Running all 27 services locally needs roughly 12 GB of RAM; the profiles exist so a subset
+Running all 26 services locally needs roughly 12 GB of RAM; the profiles exist so a subset
 can be run instead.
 
 ## Services
@@ -79,12 +79,11 @@ can be run instead.
 | `task-service` | 8091 | `task_db` | Work orders, assignments, checklists, photo/GPS evidence, verification |
 | `fraud-service` | 8092 | `fraud_db` | Fraud rules engine, anomaly scoring, cases, evidence bundles, review queue |
 
-### Marketplace & commerce
+### Commerce
 
 | Service | Port | Database | Responsibility |
 |---|---|---|---|
 | `catalog-service` | 8093 | `catalog_db` | Produce taxonomy, products, variants, grading standards, certifications |
-| `marketplace-service` | 8094 | `marketplace_db` | Supply listings, demand posts, offers, buyer-seller matching |
 | `pricing-service` | 8095 | `pricing_db` | Reference prices, market index per commodity/region, price series, suggestions |
 | `order-service` | 8096 | `order_db` | Carts, orders, fulfillment saga, returns, disputes |
 | `inventory-service` | 8097 | `inventory_db` | Aggregation-centre stock, batches, grading, reservations, farm-input reconciliation |
@@ -109,11 +108,11 @@ can be run instead.
 | `analytics-service` | 8106 | `analytics_db` | Event sink, data marts, dashboards API, scheduled reports, exports |
 | `audit-service` | 8107 | `audit_db` | Tamper-evident hash-chained audit log of privileged actions across all services |
 
-27 services, 113 persisted aggregates, one gateway, one web application.
+26 services, 109 persisted aggregates, one gateway, one web application.
 
 ## Implementation depth
 
-The 27 services share one platform layer — tenant isolation, RFC 7807 errors, optimistic
+The 26 services share one platform layer — tenant isolation, RFC 7807 errors, optimistic
 locking, forward-only migrations, JWT at both edge and service, and a transactional outbox.
 Domain logic beyond CRUD is implemented in eleven of them:
 
@@ -139,7 +138,7 @@ exercised end to end against the mock gateway.
 ## Design decisions
 
 **Database per service.** No service reads another's tables. State crosses a boundary as a
-domain event or not at all. Locally the 27 databases live in one PostgreSQL container for
+domain event or not at all. Locally the 26 databases live in one PostgreSQL container for
 practicality; the schemas are already separate, so splitting them across instances is a
 deployment change rather than a data-model change.
 
@@ -193,7 +192,7 @@ build rather than crash-looping in a container.
 apps/
   api-gateway/      Spring Cloud Gateway, JWT pre-check, rate limiting, circuit breakers
   web/              Next.js frontend
-services/           27 Spring Boot services, one directory each
+services/           26 Spring Boot services, one directory each
 infra/
   docker/           PostgreSQL bootstrap
   observability/    Prometheus scrape configuration

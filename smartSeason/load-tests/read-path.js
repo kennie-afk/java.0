@@ -31,7 +31,7 @@ const ENDPOINTS = [
   '/api/season/v1/seasons',
   '/api/inventory/v1/inventory-items',
   '/api/task/v1/tasks',
-  '/api/marketplace/v1/listings',
+  '/api/order/v1/orders',
   '/api/workforce/v1/workers',
 ];
 

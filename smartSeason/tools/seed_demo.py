@@ -382,17 +382,6 @@ def main_body():
         "moisturePctMax": 13.5, "maxDefectPct": 1.0, "revision": 1},
         "grade 1 maize standard")
 
-    print("Marketplace")
-    seed("/api/marketplace/v1/supply-listings", "commodityCode", {
-        "sellerOrgId": ORG, "commodityCode": "MAIZE", "grade": "GRADE_1", "quantity": 8000,
-        "unit": "kg", "askPrice": 48.5, "currency": "KES", "county": "Nakuru",
-        "status": "ACTIVE"}, "8000 kg maize")
-    seed("/api/marketplace/v1/demand-posts", "commodityCode", {
-        "buyerOrgId": ORG, "commodityCode": "POTATO", "quantity": 5000, "unit": "kg",
-        "bidPrice": 33.0, "currency": "KES", "deliveryCounty": "Nairobi City",
-        "neededBy": day(-14), "recurring": False, "status": "OPEN"},
-        "5000 kg potato wanted")
-
     print("Pricing")
     seed("/api/pricing/v1/price-series", "commodityCode", {
         "commodityCode": "MAIZE", "county": "Nakuru", "marketName": "Nakuru Wholesale",

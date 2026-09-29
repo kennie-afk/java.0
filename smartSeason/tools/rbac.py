@@ -20,7 +20,7 @@ Roles:
   AGRONOMIST   advisory specialist; crops, disease, weather, scouting
   STOREKEEPER  warehouse, stock, dispatch and transport
   FINANCE      payments, ledger, payouts; the only role that moves money
-  BUYER        marketplace counterparty; buys produce
+  BUYER        buys produce; places and tracks orders
   WORKER       field labour; sees their own tasks and nothing else
 """
 
@@ -49,7 +49,7 @@ ROLE_LABELS = {
 #   - MANAGER directs the work but cannot change what anyone is paid.
 #   - FINANCE is the only role that can move money; FARMER sees it and cannot.
 #   - WORKER sees their own tasks and attendance, nothing else.
-#   - BUYER sees the market side and their own orders, never the farm's
+#   - BUYER sees prices, deliveries and their own orders, never the farm's
 #     workforce, costs or fraud cases.
 MATRIX = {
     # --- growing ---------------------------------------------------------
@@ -73,7 +73,6 @@ MATRIX = {
     # --- trade -----------------------------------------------------------
     "catalog":          {"FARMER": READ,  "MANAGER": READ,  "AGRONOMIST": READ,
                          "STOREKEEPER": READ, "BUYER": READ},
-    "marketplace":      {"FARMER": FULL,  "MANAGER": READ,  "BUYER": FULL},
     "pricing":          {"FARMER": READ,  "MANAGER": READ,  "BUYER": READ},
     "order":            {"FARMER": WRITE, "STOREKEEPER": READ, "FINANCE": READ,
                          "BUYER": FULL},

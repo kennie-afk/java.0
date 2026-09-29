@@ -288,30 +288,6 @@ SERVICES += [
           "code:string:uq,nn","name:string:nn","issuingBody:string","description:text","validityMonths:int"]),
       ]),
 
- dict(name="marketplace-service", port=8094, db="marketplace_db", group="market",
-      desc="Supply listings, demand posts, offers, buyer-seller matching",
-      publishes=["ListingPublished","OfferMade","OfferAccepted","MatchCreated"],
-      entities=[
-        ("SupplyListing","supply_listings",[
-          "sellerOrgId:uuid:ix,nn","farmId:uuid:ix","commodityCode:string:ix,nn","variety:string",
-          "grade:string","quantity:decimal:nn","unit:string:nn","askPrice:decimal:nn","currency:string:nn",
-          "availableFrom:date","availableTo:date","county:string:ix","latitude:decimal","longitude:decimal",
-          "batchId:uuid","photoUrls:text","description:text",
-          "status:enum(DRAFT|ACTIVE|RESERVED|SOLD|EXPIRED|WITHDRAWN):nn"]),
-        ("DemandPost","demand_posts",[
-          "buyerOrgId:uuid:ix,nn","commodityCode:string:ix,nn","grade:string","quantity:decimal:nn",
-          "unit:string:nn","bidPrice:decimal","currency:string:nn","neededBy:date","deliveryCounty:string:ix",
-          "recurring:bool:nn","status:enum(OPEN|PARTIALLY_FILLED|FILLED|EXPIRED|CANCELLED):nn","notes:text"]),
-        ("Offer","offers",[
-          "listingId:uuid:ix","demandPostId:uuid:ix","fromOrgId:uuid:ix,nn","toOrgId:uuid:ix,nn",
-          "quantity:decimal:nn","unitPrice:decimal:nn","currency:string:nn","expiresAt:ts",
-          "status:enum(PENDING|ACCEPTED|REJECTED|COUNTERED|EXPIRED|WITHDRAWN):nn",
-          "counterOfferId:uuid","message:text","respondedAt:ts"]),
-        ("MarketMatch","market_matches",[
-          "listingId:uuid:ix,nn","demandPostId:uuid:ix,nn","score:decimal:nn","matchedAt:ts:nn",
-          "quantity:decimal","orderId:uuid","status:enum(SUGGESTED|ACCEPTED|DECLINED|ORDERED):nn"]),
-      ]),
-
  dict(name="pricing-service", port=8095, db="pricing_db", group="market",
       desc="Reference prices, market index per commodity/region, price series, suggestions",
       publishes=["PriceIndexUpdated"],

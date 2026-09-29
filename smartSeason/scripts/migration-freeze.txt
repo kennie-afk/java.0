@@ -14,7 +14,6 @@ cdc399991c52034ca33a797dc54156f696c8309e6222707ba432759a0232f6af  services/ident
 edc4e6fa3254ead9ea43f69fe69af41494605eb05ca9f9f58e46fd36a4344bdd  services/inventory-service/src/main/resources/db/migration/V1__init.sql
 9470686158b9e411b02dc229b2f74e6e1f31390c86ea11e6db7813e61511cf84  services/ledger-service/src/main/resources/db/migration/V1__init.sql
 3ae9b7e612a73f4ae5b92cd919d374a3c11b61ace6a708b9b50095dde0edd196  services/logistics-service/src/main/resources/db/migration/V1__init.sql
-4293a41d750f8172f0ad0947fe872061e298f8188986e7145a486511b2e96d8f  services/marketplace-service/src/main/resources/db/migration/V1__init.sql
 7b4985a0443aef42badb485f085cebf4115de19b8755aee14a63620f6ecb7fdb  services/media-service/src/main/resources/db/migration/V1__init.sql
 e55a5266ce001edaa4828b2f4c05403a99c72fc1e2e40fc19fc2b8ef3ac33ca4  services/notification-service/src/main/resources/db/migration/V1__init.sql
 b5b9789904c6d4724c5c9710e3115094064ad77133acf37c2b4dbdd294bf1247  services/order-service/src/main/resources/db/migration/V1__init.sql
