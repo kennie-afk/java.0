@@ -29,8 +29,10 @@ fermented-milk distributor could run her whole business on.
   order), `GET /v1/wastage` for the running total, folded into `/v1/overview`.
 - **Platform monetization** (a distinct ask from any of the above — what Soko-the-
   platform earns, not what a distributor earns from their own customers): a `Plan`
-  catalogue (FREE/GROWTH/SCALE — placeholder pricing, needs a real number from the
-  business owner before this means anything commercially), a `Subscription` per tenant,
+  catalogue (FREE/GROWTH/SCALE — real pricing set 2026-09-29: 5%/3.50%/2.00% commission
+  with KES 0/2,999/9,999 monthly fees, see the rationale in `Plan.java`'s javadoc;
+  unvalidated against real tenant willingness to pay, but no longer a placeholder), a
+  `Subscription` per tenant,
   a `PlatformCommission` accrued and snapshotted on every routed order, monthly
   `Invoice` generation (both on demand and via a scheduled job), and an append-only
   `platform_ledger` whose entries for an invoice sum to exactly that invoice's total —
