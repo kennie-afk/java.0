@@ -20,6 +20,8 @@ public class SalesOrder {
     @Column(name = "margin_cents", nullable = false) private long marginCents;
     @Column(name = "placed_at", nullable = false) private Instant placedAt = Instant.now();
     @Column(name = "placed_by_customer", nullable = false) private boolean placedByCustomer;
+    @Column(name = "cancelled_at") private Instant cancelledAt;
+    @Column(name = "cancel_reason") private String cancelReason;
 
     @OneToMany(mappedBy = "orderId", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<OrderLine> lines = new ArrayList<>();
@@ -46,4 +48,8 @@ public class SalesOrder {
     public void setPlacedAt(Instant v) { this.placedAt = v; }
     public List<OrderLine> getLines() { return lines; }
     public void setLines(List<OrderLine> v) { this.lines = v; }
+    public Instant getCancelledAt() { return cancelledAt; }
+    public void setCancelledAt(Instant v) { this.cancelledAt = v; }
+    public String getCancelReason() { return cancelReason; }
+    public void setCancelReason(String v) { this.cancelReason = v; }
 }

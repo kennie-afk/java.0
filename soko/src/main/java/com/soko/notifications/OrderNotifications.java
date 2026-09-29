@@ -1,6 +1,8 @@
 package com.soko.notifications;
 
 import com.soko.domain.AppUser;
+import com.soko.domain.Customer;
+import com.soko.persistence.CustomerRepository;
 import com.soko.persistence.UserRepository;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -24,10 +26,15 @@ public class OrderNotifications {
 
     private final UserRepository users;
     private final EmailNotifier email;
+    private final CustomerRepository customers;
+    private final SmsSender sms;
 
-    public OrderNotifications(UserRepository users, EmailNotifier email) {
+    public OrderNotifications(UserRepository users, EmailNotifier email,
+            CustomerRepository customers, SmsSender sms) {
         this.users = users;
         this.email = email;
+        this.customers = customers;
+        this.sms = sms;
     }
 
     public void orderPlaced(UUID tenantId, UUID customerId, String reference, long totalCents) {
@@ -66,6 +73,14 @@ public class OrderNotifications {
             }
         } catch (RuntimeException e) {
             log.warn("could not notify customer {} of tenant {}: {}", customerId, tenantId, e.getMessage());
+        }
+
+        try {
+            customers.findByIdAndTenantId(customerId, tenantId)
+                    .map(Customer::getPhone)
+                    .ifPresent(phone -> sms.send(phone, subject + ": " + body));
+        } catch (RuntimeException e) {
+            log.warn("could not SMS customer {} of tenant {}: {}", customerId, tenantId, e.getMessage());
         }
     }
 

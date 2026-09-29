@@ -22,6 +22,8 @@ public interface OfferRepository extends JpaRepository<Offer, UUID> {
 
     Optional<Offer> findByIdAndSupplierId(UUID id, UUID supplierId);
 
+    Optional<Offer> findBySupplierIdAndProductId(UUID supplierId, UUID productId);
+
     @Query("select o from Offer o where o.tenantId = :tenantId and o.productId = :productId "
             + "and o.status = 'ACTIVE' and o.availableQty >= :quantity order by o.costCents asc")
     List<Offer> candidates(
@@ -33,6 +35,11 @@ public interface OfferRepository extends JpaRepository<Offer, UUID> {
     @Query(value = "update offers set available_qty = available_qty - :quantity "
             + "where id = :id and available_qty >= :quantity", nativeQuery = true)
     int reserve(@Param("id") UUID id, @Param("quantity") int quantity);
+
+    @Modifying
+    @Query(value = "update offers set available_qty = available_qty + :quantity where id = :id",
+            nativeQuery = true)
+    int restock(@Param("id") UUID id, @Param("quantity") int quantity);
 
     @Query(value = """
             select o.id, p.name, p.sku, p.unit, p.category, o.cost_cents,
@@ -48,7 +55,7 @@ public interface OfferRepository extends JpaRepository<Offer, UUID> {
     @Query(value = """
             select p.id, p.sku, p.name, p.category, p.unit, p.perishable,
                    p.requires_cold_chain, p.shelf_life_hours, p.list_price_cents,
-                   coalesce(sum(o.available_qty), 0) as in_stock
+                   coalesce(sum(o.available_qty), 0) as in_stock, p.photo_url
               from products p
               left join offers o
                      on o.product_id = p.id and o.status = 'ACTIVE'

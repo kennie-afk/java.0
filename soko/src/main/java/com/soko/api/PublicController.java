@@ -95,6 +95,7 @@ public class PublicController {
                             row.put("shelfLifeHours", r[7]);
                             row.put("priceCents", r[8]);
                             row.put("inStock", ((Number) r[9]).longValue());
+                            row.put("photoUrl", r[10]);
                             return row;
                         })
                 .filter(row -> ((Number) row.get("inStock")).longValue() > 0)

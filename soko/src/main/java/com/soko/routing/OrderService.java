@@ -1,8 +1,10 @@
 package com.soko.routing;
 
+import com.soko.billing.CommissionService;
 import com.soko.domain.*;
 import com.soko.persistence.*;
 import com.soko.platform.Errors;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
@@ -42,6 +44,7 @@ public class OrderService {
     private final OrderLineRepository orderLines;
     private final RoutingEngine engine;
     private final com.soko.notifications.OrderNotifications notifications;
+    private final CommissionService commissions;
     private OrderService self;
 
     @org.springframework.beans.factory.annotation.Autowired
@@ -57,7 +60,8 @@ public class OrderService {
             OrderRepository orders,
             OrderLineRepository orderLines,
             RoutingEngine engine,
-            com.soko.notifications.OrderNotifications notifications) {
+            com.soko.notifications.OrderNotifications notifications,
+            CommissionService commissions) {
         this.products = products;
         this.offers = offers;
         this.suppliers = suppliers;
@@ -66,6 +70,7 @@ public class OrderService {
         this.orderLines = orderLines;
         this.engine = engine;
         this.notifications = notifications;
+        this.commissions = commissions;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -178,10 +183,46 @@ public class OrderService {
         order.setMarginCents(revenue - cost);
         orders.save(order);
 
+        commissions.accrue(tenantId, order.getId(), revenue);
         notifications.orderPlaced(tenantId, customer.getId(), order.getReference(), revenue);
 
         return new Placed(
                 order.getId(), order.getReference(), revenue, cost, revenue - cost, placedLines);
+    }
+
+    /**
+     * A ROUTED order that hasn't been paid or dispatched can still be
+     * cancelled cleanly: every reserved offer is restocked and the platform
+     * commission accrued on it is voided. Once payment or dispatch has
+     * started, this is refused -- unwinding a paid order or one already on
+     * its way needs a real refund/return flow, not a silent status flip.
+     */
+    @Transactional
+    public void cancel(UUID tenantId, UUID orderId, String reason) {
+        SalesOrder order = orders.findByIdAndTenantId(orderId, tenantId)
+                .orElseThrow(() -> new Errors.NotFound("no such order"));
+
+        if (!"ROUTED".equals(order.getStatus())) {
+            throw new Errors.BadRequest(
+                    "only a routed, unpaid order can be cancelled (this one is "
+                            + order.getStatus() + ")");
+        }
+
+        for (OrderLine line : orderLines.findByOrderId(orderId)) {
+            if (line.getSupplierId() != null) {
+                offers.findBySupplierIdAndProductId(line.getSupplierId(), line.getProductId())
+                        .ifPresent(offer -> offers.restock(offer.getId(), line.getQuantity()));
+            }
+            line.setStatus("CANCELLED");
+            orderLines.save(line);
+        }
+
+        order.setStatus("CANCELLED");
+        order.setCancelledAt(Instant.now());
+        order.setCancelReason(reason);
+        orders.save(order);
+
+        commissions.voidForOrder(orderId);
     }
 
     private String describe(List<RoutingEngine.Rejection> rejected) {

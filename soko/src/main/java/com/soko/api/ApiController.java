@@ -1,6 +1,7 @@
 package com.soko.api;
 
 import com.soko.domain.*;
+import com.soko.inventory.WastageService;
 import com.soko.persistence.*;
 import com.soko.platform.Errors;
 import com.soko.routing.OrderService;
@@ -32,6 +33,7 @@ public class ApiController {
     private final OrderRepository orders;
     private final OrderLineRepository orderLines;
     private final OrderService orderService;
+    private final WastageService wastageService;
     private final PasswordEncoder encoder;
     private final Tokens tokens;
     private final TenantContext context;
@@ -40,10 +42,12 @@ public class ApiController {
             TenantRepository tenants, UserRepository users, SupplierRepository suppliers,
             ProductRepository products, OfferRepository offers, CustomerRepository customers,
             OrderRepository orders, OrderLineRepository orderLines, OrderService orderService,
+            WastageService wastageService,
             PasswordEncoder encoder, Tokens tokens, TenantContext context) {
         this.tenants = tenants; this.users = users; this.suppliers = suppliers;
         this.products = products; this.offers = offers; this.customers = customers;
         this.orders = orders; this.orderLines = orderLines; this.orderService = orderService;
+        this.wastageService = wastageService;
         this.encoder = encoder; this.tokens = tokens; this.context = context;
     }
 
@@ -158,6 +162,31 @@ public class ApiController {
             @NotBlank String name, @NotBlank String county,
             @Min(1) int leadTimeHours, boolean coldChain, Double reliability) {}
 
+    public record SupplierUpdate(
+            String name, String county, Integer leadTimeHours, Boolean coldChain,
+            Double reliability, String status) {}
+
+    @PatchMapping("/suppliers/{id}")
+    public Supplier updateSupplier(@PathVariable UUID id, @RequestBody SupplierUpdate request) {
+        Supplier supplier = suppliers.findByIdAndTenantId(id, context.current().tenantId())
+                .orElseThrow(() -> new Errors.NotFound("no such supplier"));
+        if (request.name() != null) supplier.setName(request.name());
+        if (request.county() != null) supplier.setCounty(request.county());
+        if (request.leadTimeHours() != null) supplier.setLeadTimeHours(request.leadTimeHours());
+        if (request.coldChain() != null) supplier.setColdChain(request.coldChain());
+        if (request.reliability() != null) {
+            supplier.setReliability(java.math.BigDecimal.valueOf(request.reliability()));
+        }
+        if (request.status() != null) {
+            String status = request.status().toUpperCase();
+            if (!List.of("ACTIVE", "INACTIVE").contains(status)) {
+                throw new Errors.BadRequest("status must be ACTIVE or INACTIVE");
+            }
+            supplier.setStatus(status);
+        }
+        return suppliers.save(supplier);
+    }
+
     @GetMapping("/suppliers")
     public List<Supplier> listSuppliers(@RequestParam(defaultValue = "50") int limit) {
         return suppliers.findByTenantIdOrderByNameAsc(
@@ -182,7 +211,28 @@ public class ApiController {
     public record ProductRequest(
             @NotBlank String sku, @NotBlank String name, @NotBlank String category,
             @NotBlank String unit, boolean perishable, boolean requiresColdChain,
-            @Min(1) int shelfLifeHours, @Min(1) long listPriceCents) {}
+            @Min(1) int shelfLifeHours, @Min(1) long listPriceCents, String photoUrl) {}
+
+    public record ProductUpdate(
+            String name, String category, Long listPriceCents, Integer shelfLifeHours,
+            String photoUrl) {}
+
+    @PatchMapping("/products/{id}")
+    public Product updateProduct(@PathVariable UUID id, @RequestBody ProductUpdate request) {
+        Product product = products.findByIdAndTenantId(id, context.current().tenantId())
+                .orElseThrow(() -> new Errors.NotFound("no such product"));
+        if (request.name() != null) product.setName(request.name());
+        if (request.category() != null) product.setCategory(request.category());
+        if (request.listPriceCents() != null) {
+            if (request.listPriceCents() < 1) {
+                throw new Errors.BadRequest("list price must be positive");
+            }
+            product.setListPriceCents(request.listPriceCents());
+        }
+        if (request.shelfLifeHours() != null) product.setShelfLifeHours(request.shelfLifeHours());
+        if (request.photoUrl() != null) product.setPhotoUrl(request.photoUrl());
+        return products.save(product);
+    }
 
     @GetMapping("/products")
     public List<Product> listProducts(@RequestParam(defaultValue = "50") int limit) {
@@ -203,6 +253,7 @@ public class ApiController {
         product.setRequiresColdChain(request.requiresColdChain());
         product.setShelfLifeHours(request.shelfLifeHours());
         product.setListPriceCents(request.listPriceCents());
+        product.setPhotoUrl(request.photoUrl());
         return products.save(product);
     }
 
@@ -349,6 +400,36 @@ public class ApiController {
         return body;
     }
 
+    public record CancelRequest(String reason) {}
+
+    @PostMapping("/orders/{id}/cancel")
+    public Map<String, Object> cancelOrder(@PathVariable UUID id, @RequestBody(required = false) CancelRequest request) {
+        String reason = request == null ? null : request.reason();
+        orderService.cancel(context.current().tenantId(), id, reason);
+        return Map.of("id", id, "status", "CANCELLED");
+    }
+
+    public record WastageRequest(@NotNull UUID offerId, @Min(1) int quantity, String reason) {}
+
+    @PostMapping("/wastage")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Map<String, Object> recordWastage(@Valid @RequestBody WastageRequest request) {
+        WastageRecord record = wastageService.record(
+                context.current().tenantId(), request.offerId(), request.quantity(), request.reason());
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("id", record.getId());
+        body.put("quantity", record.getQuantity());
+        body.put("reason", record.getReason());
+        body.put("valueCents", record.getValueCents());
+        body.put("recordedAt", record.getRecordedAt());
+        return body;
+    }
+
+    @GetMapping("/wastage")
+    public Map<String, Object> wastageSummary() {
+        return Map.of("totalValueCents", wastageService.totalValueCents(context.current().tenantId()));
+    }
+
     @GetMapping("/overview")
     public Map<String, Object> overview() {
         Object[] raw = orders.summarise(context.current().tenantId());
@@ -366,6 +447,7 @@ public class ApiController {
         body.put("products", ((Number) r[4]).longValue());
         body.put("customers", ((Number) r[5]).longValue());
         body.put("marginPercent", revenue == 0 ? 0.0 : Math.round((margin * 1000.0) / revenue) / 10.0);
+        body.put("wastageValueCents", wastageService.totalValueCents(context.current().tenantId()));
         return body;
     }
 

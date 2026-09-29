@@ -24,6 +24,7 @@ public class Product {
     @Column(name = "requires_cold_chain", nullable = false) private boolean requiresColdChain;
     @Column(name = "shelf_life_hours", nullable = false) private int shelfLifeHours;
     @Column(name = "list_price_cents", nullable = false) private long listPriceCents;
+    @Column(name = "photo_url") private String photoUrl;
     @Column(name = "created_at", nullable = false) private Instant createdAt = Instant.now();
 
     public UUID getTenantId() { return tenantId; }
@@ -44,6 +45,8 @@ public class Product {
     public void setShelfLifeHours(int v) { this.shelfLifeHours = v; }
     public long getListPriceCents() { return listPriceCents; }
     public void setListPriceCents(long v) { this.listPriceCents = v; }
+    public String getPhotoUrl() { return photoUrl; }
+    public void setPhotoUrl(String v) { this.photoUrl = v; }
 
     public UUID getId() { return id; }
     public void setId(UUID v) { this.id = v; }
