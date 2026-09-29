@@ -88,10 +88,13 @@ It expects two distinct database roles against the same schema, not one:
 That split is not incidental. A table's owner bypasses row-level security by default in
 PostgreSQL, so if the application connected as the schema owner, every policy in
 `V2__row_level_security.sql` would be decorative. `mara_app` is created by the migrations
-themselves (`CREATE ROLE mara_app NOLOGIN`); give it a login and a password matching
-`MARA_DB_APP_USER`/`MARA_DB_APP_PASSWORD` before first run.
+themselves (`CREATE ROLE mara_app NOLOGIN`) — deliberately with no login, since a
+versioned migration should never carry a runtime credential. Nothing further to do by
+hand: `AppRoleLoginConfig` grants it a login and the password from
+`MARA_DB_APP_PASSWORD` on every startup, ordered to run after Flyway and before the
+application's own connection pool is built.
 
-With a PostgreSQL instance reachable at `MARA_DB_URL` and both roles provisioned:
+With a PostgreSQL instance reachable at `MARA_DB_URL`:
 
 ```
 mvn -pl services/identity-service -am spring-boot:run
@@ -101,6 +104,22 @@ The service listens on `:8081`. Its one endpoint that runs without a tenant cont
 `POST /v1/enrolment` — see `EnrolmentController` — and every other route is scoped to the
 tenant carried in the request, enforced twice: once by `TenantFilter` in application code,
 and again by the database itself.
+
+## Running with Docker
+
+```
+cp services/identity-service/.env.example .env   # at the repo root, not inside services/
+docker compose up --build
+```
+
+`docker-compose.yml` at the repo root brings up Postgres and `identity-service` from a
+genuinely empty volume — no manual role, password, or migration step. `identity-service`'s
+`Dockerfile` builds `platform` and `identity-service` together in one multi-stage image
+(its build `context` is the repo root, since it depends on `platform` by Maven coordinate,
+not a reactor-relative path — see the Dockerfile's own first comment), then runs on a
+minimal `eclipse-temurin:21-jre-alpine` image as a non-root user. Postgres exposes `5433`
+on the host (not `5432`), so it will not collide with another local Postgres; the service
+itself is on its usual `8081`.
 
 ## Testing philosophy
 

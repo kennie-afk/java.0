@@ -38,9 +38,20 @@ public class TenantFilter extends OncePerRequestFilter {
      * SECURITY DEFINER function rather than an ordinary query — it is the single
      * operation allowed to cross the boundary, and it takes a hash rather than a
      * plaintext code so it cannot be used to enumerate.
+     *
+     * <p>Matched by exact equality, not prefix: {@code EnrolmentController} is mapped at
+     * exactly {@code /v1/enrolment} (Spring Framework 6 no longer matches a trailing
+     * slash as the same path by default), so a trailing-slash entry here never matched
+     * the real endpoint at all — every enrolment attempt was refused with 401 "no tenant
+     * context" before it ever reached the controller, on every deployment. A prefix
+     * check has the opposite problem: {@code "/v1/enrolment".startsWith}-style matching
+     * would silently exempt any future path that merely begins with this one (an
+     * {@code /v1/enrolment-report}, say) from tenant scoping. Neither direction is safe
+     * with {@code startsWith}; this endpoint and both actuator endpoints have no
+     * sub-paths of their own, so exact equality is both correct and sufficient.
      */
     private static final List<String> UNSCOPED_PATHS = List.of(
-            "/v1/enrolment/",
+            "/v1/enrolment",
             "/actuator/health",
             "/actuator/info");
 
@@ -82,6 +93,6 @@ public class TenantFilter extends OncePerRequestFilter {
     }
 
     private static boolean isUnscoped(String path) {
-        return UNSCOPED_PATHS.stream().anyMatch(path::startsWith);
+        return UNSCOPED_PATHS.contains(path);
     }
 }
