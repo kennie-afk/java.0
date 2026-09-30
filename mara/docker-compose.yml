@@ -3,9 +3,9 @@
 # for the two-role model this depends on, and AppRoleLoginBootstrap for how
 # mara_app gets a login without a credential ever living in a migration.
 #
-#   cp services/identity-service/.env.example services/identity-service/.env
-#   # fill in MARA_DB_OWNER_PASSWORD and MARA_DB_APP_PASSWORD
+#   cp .env.example .env     # then fill in the three secrets (none has a default)
 #   docker compose up --build
+#   python3 scripts/demo_seed.py   # creates a demo shop and prints a terminal enrolment code
 
 services:
   postgres:
@@ -13,7 +13,7 @@ services:
     environment:
       POSTGRES_DB: mara_identity
       POSTGRES_USER: mara_owner
-      POSTGRES_PASSWORD: ${MARA_DB_OWNER_PASSWORD:?set in services/identity-service/.env}
+      POSTGRES_PASSWORD: ${MARA_DB_OWNER_PASSWORD:?set in .env}
     volumes:
       - mara-postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -22,7 +22,7 @@ services:
       timeout: 3s
       retries: 20
     ports:
-      - "5433:5432" # non-default host port: avoids colliding with another local Postgres
+      - "${MARA_POSTGRES_PORT:-5433}:5432" # non-default host port: avoids colliding with another local Postgres
 
   identity-service:
     build:
@@ -34,13 +34,33 @@ services:
     environment:
       MARA_DB_URL: jdbc:postgresql://postgres:5432/mara_identity
       MARA_DB_OWNER_USER: mara_owner
-      MARA_DB_OWNER_PASSWORD: ${MARA_DB_OWNER_PASSWORD:?set in services/identity-service/.env}
+      MARA_DB_OWNER_PASSWORD: ${MARA_DB_OWNER_PASSWORD:?set in .env}
       MARA_DB_APP_USER: mara_app
-      MARA_DB_APP_PASSWORD: ${MARA_DB_APP_PASSWORD:?set in services/identity-service/.env}
+      MARA_DB_APP_PASSWORD: ${MARA_DB_APP_PASSWORD:?set in .env}
+      # Guards /v1/admin/* (tenant, staff and enrolment-code provisioning). No default.
+      MARA_ADMIN_TOKEN: ${MARA_ADMIN_TOKEN:?set in .env (24+ characters)}
     ports:
-      - "8081:8081"
+      - "${MARA_IDENTITY_PORT:-8081}:8081"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8081/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # The till. Serves the browser app and a same-origin proxy to identity-service's
+  # enrolment endpoint. Deliberately no depends_on: a terminal must start, and sell,
+  # with identity-service down. It only needs it once, to enrol.
+  terminal:
+    build:
+      context: ./apps/terminal
+    environment:
+      IDENTITY_BASE_URL: http://identity-service:8081
+      # Only the simulated M-Pesa flow exists; anything else is refused by the route.
+      MPESA_MODE: ${MARA_MPESA_MODE:-mock}
+    ports:
+      - "${MARA_TERMINAL_PORT:-3100}:3100"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3100/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 5s
       timeout: 3s
       retries: 10

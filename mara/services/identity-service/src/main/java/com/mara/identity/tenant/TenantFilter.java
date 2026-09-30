@@ -24,7 +24,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * database would do so with no tenant bound.
  */
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE)
+@Order(Ordered.HIGHEST_PRECEDENCE + 10)
 public class TenantFilter extends OncePerRequestFilter {
 
     /** Set by the gateway from a verified token claim. Never trusted from a client. */
@@ -53,7 +53,17 @@ public class TenantFilter extends OncePerRequestFilter {
     private static final List<String> UNSCOPED_PATHS = List.of(
             "/v1/enrolment",
             "/actuator/health",
-            "/actuator/info");
+            "/actuator/info",
+            // The one provisioning call that precedes the tenant it creates.
+            "/v1/admin/tenants");
+
+    /**
+     * A terminal signs in staff before the server knows whose terminal it is; the tenant is
+     * derived from the terminal's registered key, never asserted by the caller. Matched as a
+     * whole-path pattern, so nothing that merely resembles it is exempt.
+     */
+    private static final java.util.regex.Pattern STAFF_SIGNIN =
+            java.util.regex.Pattern.compile("^/v1/terminals/TERM-[0-9A-F]{20}/staff-signin$");
 
     @Override
     protected void doFilterInternal(
@@ -93,6 +103,6 @@ public class TenantFilter extends OncePerRequestFilter {
     }
 
     private static boolean isUnscoped(String path) {
-        return UNSCOPED_PATHS.contains(path);
+        return UNSCOPED_PATHS.contains(path) || STAFF_SIGNIN.matcher(path).matches();
     }
 }

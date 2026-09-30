@@ -305,3 +305,57 @@ Design targets, with the reasoning rather than round numbers:
   hospitality bug cannot take down a supermarket.
 - **Blockchain anything.** The hash chain in §2.3 provides tamper evidence. Distributed
   consensus over it would add latency to solve a problem no participant has.
+
+---
+
+## 8. Build status (2026-09-29)
+
+What exists, stated plainly, because this document describes a target and the target is
+larger than the code.
+
+| Piece | State |
+| --- | --- |
+| `platform` (money, journal, fiscal lease, identity, staff policy) | Built, 86 tests. |
+| `identity-service` (tenants, terminals, enrolment, RLS) | Built, runs from an empty volume. |
+| `apps/terminal` (the till, a browser PWA) | **Built as a standalone, offline-first till.** See below. |
+| `api-gateway`, `core-service`, `sync-service`, fiscal leasing | **Not built.** |
+| Staff PIN sign-in | **Built 2026-09-30.** `POST /v1/terminals/{id}/staff-signin`: the terminal signs the attempt with its enrolment key, identity-service verifies the signature, freshness (2 min) and terminal status, then applies `PinPolicy` (Argon2id, doubling lockout, branch binding) and writes every outcome to an append-only `audit_log`. The till also keeps a salted PBKDF2 verifier after a successful online sign-in so the same PIN works offline. |
+| Provisioning | **Built 2026-09-30.** `/v1/admin/*` behind one operator token (`MARA_ADMIN_TOKEN`, no default): create tenant + first branch + owner, branches, staff, single-use enrolment codes, suspend staff/terminals, read the audit trail. |
+
+### The terminal, and what it does and does not prove
+
+`apps/terminal` implements §2.1 to §2.4 from the terminal's side of the line, against
+nothing but `identity-service`:
+
+- **Identity (§2.1).** Enrolment posts to the real `POST /v1/enrolment` through a
+  same-origin route handler. The Ed25519 key pair is generated in the browser with
+  WebCrypto, the private key non-extractable and persisted as a `CryptoKey` in
+  IndexedDB. Every journal entry's chain digest is signed with it.
+- **Ordering and tamper evidence (§2.2, §2.3).** A local journal in IndexedDB: strictly
+  monotonic sequence from 1, each entry chained onto the last with the platform's
+  `ChainDigest` encoding, appended in a single transaction together with the head record,
+  the fiscal lease and the closing of the tab. The **Verify** screen reproduces
+  `JournalVerifier` / `ChainVerdict` semantics over the whole chain in pages and reports
+  findings (intact, broken-at, gap-at), never one boolean.
+- **Money (§4).** `Money.allocate` and basis-point `percentage` ported with BigInt.
+- **Fiscal (§2.4).** The lease type and draw logic are ported, but **no lease can exist**:
+  the service that issues them is unbuilt, so every sale is recorded `FISCAL_PENDING` and
+  the UI and receipt say so. Nothing invents a number.
+
+Compatibility with the Java code is not asserted, it is tested: the TypeScript digests,
+allocations, roundings, verifier verdicts and lease draws are compared with vectors
+produced by running the platform's own classes (`apps/terminal/vectors/Vectors.java`,
+regenerated with `vectors/generate.sh`), and a WebCrypto signature was verified by the
+platform's `TerminalSignature`. One thing the platform deliberately does *not* define is
+the sale body: `ChainDigest.body()` takes caller-canonicalised fields. The terminal's
+field list (`mara.sale.v1`: version, currency, lines, payments, total, fiscal) is
+therefore the terminal's own contract, and a future `sync-service` must implement the same
+encoding to recompute body digests.
+
+**Honest limits.** Nothing leaves the device: there is no server holding a second copy of
+the journal, so tamper *evidence* here is local. A person with full control of the
+browser profile who deletes the tail of the journal and rewrites the head record together
+is not detectable until a server copy exists. Clearing the site's data destroys the sales.
+The clock is the device's; a backwards clock is clamped, not refused, so the till can
+always sell. Staff sign-in does not exist, so sales are attributed to a terminal, not a
+person.

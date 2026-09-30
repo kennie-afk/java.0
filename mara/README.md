@@ -33,6 +33,8 @@ mara-platform-parent (aggregator)
 │   └── staff/                  roles, PIN lockout policy, elevated-action authorisation
 └── services/
     └── identity-service/       the trust root: tenants, terminals, enrolment, PostgreSQL RLS
+apps/
+└── terminal/                  the till: offline-first Next.js PWA (sale, catalogue, local journal)
 ```
 
 `platform` is deliberately dependency-free domain logic — every rule above can be (and
@@ -40,6 +42,34 @@ is) tested exhaustively without a database, a clock, or a container. `identity-s
 supplies the state that logic needs and makes its decisions durable, and keeps its own
 Spring Boot parent so it stays buildable as a standalone Docker context independent of
 the aggregator.
+
+## Demo in five minutes
+
+```
+cp .env.example .env          # fill the three secrets (openssl rand -hex 24); ports are optional
+docker compose up --build -d
+python3 scripts/demo_seed.py  # creates "Mama Njeri Mart", prints staff numbers, PINs and an enrolment code
+```
+
+Open the till at `http://localhost:3100` (or `MARA_TERMINAL_PORT`), then:
+
+1. **Enrolment**: enter the printed code and a label. The till generates its Ed25519 key in the browser.
+2. **Catalogue > Load demo items**: 30 everyday Kenyan goods (illustrative prices; 0% and 16% VAT rates are
+   examples, not tax advice).
+3. **Staff**: sign in (`2001` / `4826`, a cashier; `3001` / `5937`, a supervisor). The PINs are development values.
+4. **Sale**: new tab, add items, *Take payment*. Cash works as usual; mobile money is a **simulated** M-Pesa
+   prompt (no Safaricom call, no money moves; receipt prefixed `MOCK`, a phone ending `00` declines).
+5. **Receipt**, **Journal > Verify chain**, **Summary** (daily sales, tender split, top items, per cashier).
+6. **Offline**: stop the network (DevTools > Offline) or `docker compose stop identity-service`; selling and PIN
+   sign-in (for anyone who has signed in online once) keep working. Re-enrolment is refused by design.
+
+What the demo does **not** show, honestly: there is no sync-service, so sales never leave the browser (the
+Journal page's *Export* downloads the signed bundle a sync service would receive); no fiscal-number leasing, so
+every sale is `FISCAL_PENDING`; no shared back office or multi-terminal stock (`apps/platform` is an empty shell;
+Summary is per terminal); stock is not tracked. Clearing the browser's site data destroys that till's journal.
+
+`python3 scripts/demo_seed.py code` mints another enrolment code (15 minutes, single use).
+Operator API for tenants, staff and codes: `/v1/admin/*` with `Authorization: Bearer $MARA_ADMIN_TOKEN`.
 
 ## Requirements
 
@@ -137,10 +167,50 @@ itself is on its usual `8081`.
   already applied the old one, and Flyway's checksum validation would refuse a changed
   file anyway.
 
+## The terminal (`apps/terminal`)
+
+A Next.js 16 / React 19 / Tailwind 4 app that is a working offline till on its own, in
+one browser, with no server other than `identity-service`, and that one only for
+enrolment.
+
+- **Enrolment** — posts to the real `POST /v1/enrolment` via `/api/enrol` (a same-origin
+  proxy, base URL from `IDENTITY_BASE_URL`). The Ed25519 key is generated in the browser
+  (non-extractable) and kept in IndexedDB; a refused attempt keeps nothing.
+- **Sale** — a user-managed catalogue (empty until you add items, each add/edit its own
+  route), tabs, split-the-bill, cash and mobile-money tender (the mobile-money reference is
+  typed by the cashier and not verified), receipt. Money is BigInt minor units.
+- **Journal** — hash-chained, signed, strictly monotonic, paged; **Verify** reports
+  intact / broken-at / gap-at. There is deliberately no way to edit or delete an entry.
+- **Fiscal** — no lease can be obtained (no service issues them), so every sale is
+  `FISCAL_PENDING`, and the UI says so.
+- **Status** — enrolled or not, online or offline, "sync service not built, nothing has
+  left this device", and "no staff sign-in exists yet".
+
+```
+cd apps/terminal
+npm ci
+npm test                 # vitest: money, digests, verifier, journal, tamper cases
+npm run build && npm start   # http://localhost:3100  (IDENTITY_BASE_URL=http://localhost:8081)
+```
+
+It must be served from `localhost` or HTTPS (WebCrypto and service workers require a
+secure context) and needs a browser with Ed25519 in WebCrypto (Chrome 137+, Firefox 129+,
+Safari 17+). `docker compose up --build` also starts it on `:3100`
+(`MARA_TERMINAL_PORT` to change), wired to `identity-service`.
+
+**Compatibility with the Java platform is tested, not claimed.** `apps/terminal/vectors/
+Vectors.java` runs the platform's own `Money`, `ChainDigest`, `JournalVerifier` and
+`FiscalLease` and writes `test/fixtures/java-vectors.json`; the vitest suite asserts the
+TypeScript port produces the same allocations, roundings, digests, verdicts and lease
+draws. Regenerate with `apps/terminal/vectors/generate.sh` (needs Docker only).
+
 ## Project status
 
-`identity-service` — tenants, terminals, staff and enrolment — is implemented, migrated,
-tested and RLS-hardened. The other three deployables in the target architecture
-(`api-gateway`, `core-service` — catalog, sales, payments, ledger, fiscal leases — and
-`sync-service`, described in [`docs/ARCHITECTURE.md §3`](docs/ARCHITECTURE.md)) are
-designed but not yet built.
+`identity-service` — tenants, staff and enrolment — is implemented, migrated, tested and
+RLS-hardened. `apps/terminal` is built as an offline-first till and proven against the
+platform's algorithms, but nothing it records is uploaded anywhere. The other three
+deployables (`api-gateway`, `core-service` — catalog, sales, payments, ledger, fiscal
+leases — and `sync-service`, described in [`docs/ARCHITECTURE.md §3`](docs/ARCHITECTURE.md))
+are designed but not yet built, as is staff PIN sign-in. See
+[`docs/ARCHITECTURE.md §8`](docs/ARCHITECTURE.md) for exactly what the terminal does and
+does not prove.

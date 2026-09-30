@@ -1,0 +1,11 @@
+{
+  "name": "Mara Terminal",
+  "short_name": "Mara",
+  "description": "Offline-first point-of-sale terminal",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fbfbfc",
+  "theme_color": "#b4441f",
+  "icons": [{ "src": "/logo-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

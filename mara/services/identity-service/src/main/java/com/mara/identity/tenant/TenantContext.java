@@ -23,6 +23,15 @@ public final class TenantContext {
         return CURRENT.get();
     }
 
+    /** The tenant for this request; an unscoped request reaching tenant-only code is a bug. */
+    public static String require() {
+        String tenant = CURRENT.get();
+        if (tenant == null) {
+            throw new IllegalStateException("no tenant bound to this request");
+        }
+        return tenant;
+    }
+
     public static boolean isSet() {
         return CURRENT.get() != null;
     }

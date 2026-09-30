@@ -1,0 +1,22 @@
+<!--
+  Mara terminal mark. Same construction as the TechMara family (SmartRE, SmartSeason):
+  a broken ring, three circuit traces entering from the left with open round nodes,
+  and a monogram inside. Colour is Mara's own terracotta. Flat drawing so it holds at
+  favicon and 32px sizes.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"
+     role="img" aria-label="Mara">
+  <title>Mara</title>
+  <path d="M 96 372 A 196 196 0 1 1 404 372" fill="none" stroke="#B4441F" stroke-width="34"
+        stroke-linecap="round"/>
+  <g fill="none" stroke="#B4441F" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 62 206 H 92 L 116 230 H 156"/>
+    <path d="M 62 256 H 150 L 178 268"/>
+    <path d="M 62 306 H 92 L 116 282 H 156"/>
+    <circle cx="44" cy="206" r="13" stroke-width="10" fill="#FFFFFF"/>
+    <circle cx="44" cy="256" r="13" stroke-width="10" fill="#FFFFFF"/>
+    <circle cx="44" cy="306" r="13" stroke-width="10" fill="#FFFFFF"/>
+  </g>
+  <path d="M 196 342 V 186 L 268 268 L 340 186 V 342" fill="none" stroke="#B4441F"
+        stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

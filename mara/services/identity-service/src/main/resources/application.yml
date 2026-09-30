@@ -12,6 +12,9 @@ server:
     include-stacktrace: never
 
 mara:
+  admin:
+    # No default: the service refuses to start without it (see AdminTokenFilter).
+    token: ${MARA_ADMIN_TOKEN}
   datasource:
     # Owns the schema. Runs migrations. Never serves a request.
     owner:
