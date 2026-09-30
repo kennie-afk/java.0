@@ -24,9 +24,21 @@ public interface OrderLineRepository extends JpaRepository<OrderLine, UUID> {
               join orders    o on o.id = l.order_id
               join customers c on c.id = o.customer_id
              where l.supplier_id = :supplierId
+               and (cast(:status as varchar) is null or l.status = cast(:status as varchar))
              order by l.created_at desc
              limit :max
             """, nativeQuery = true)
     List<Object[]> fulfilmentsForSupplier(
-            @Param("supplierId") UUID supplierId, @Param("max") int max);
+            @Param("supplierId") UUID supplierId, @Param("status") String status, @Param("max") int max);
+
+    /** Counts per status and what is still owed, computed in SQL rather than from a capped page. */
+    @Query(value = """
+            select count(*) filter (where l.status = 'ROUTED'),
+                   count(*) filter (where l.status = 'DISPATCHED'),
+                   count(*) filter (where l.status = 'DELIVERED'),
+                   coalesce(sum(l.unit_cost_cents * l.quantity) filter (where l.status in ('ROUTED', 'DISPATCHED')), 0)
+              from order_lines l
+             where l.supplier_id = :supplierId
+            """, nativeQuery = true)
+    Object[] fulfilmentSummary(@Param("supplierId") UUID supplierId);
 }

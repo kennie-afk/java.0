@@ -24,7 +24,7 @@ export default async function SupplierOffersPage() {
       />
       <div className="space-y-3">
         {offers.length === 0 ? (
-          <p className="text-[0.8125rem] text-[var(--color-muted)]">
+          <p className="text-[0.958rem] text-[var(--color-muted)]">
             The distributor has not listed anything against you yet.
           </p>
         ) : (

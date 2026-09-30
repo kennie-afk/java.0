@@ -28,7 +28,7 @@ export default async function CataloguePage() {
       <Table head={["SKU", "Product", "Category", "Unit", "Shelf life", "Handling", "List price"]}>
         {products.map((product) => (
           <tr key={product.id} className={rowClass}>
-            <td className="px-4 py-3 font-mono text-[0.75rem] text-[var(--color-muted)]">{product.sku}</td>
+            <td className="px-4 py-3 font-mono text-[0.875rem] text-[var(--color-muted)]">{product.sku}</td>
             <td className="px-4 py-3 font-medium">{product.name}</td>
             <td className="px-4 py-3 text-[var(--color-muted)]">{product.category}</td>
             <td className="px-4 py-3 text-[var(--color-muted)]">{product.unit}</td>

@@ -27,6 +27,8 @@ services:
       SOKO_JWT_SECRET: ${SOKO_JWT_SECRET:?set a signing secret of at least 32 characters}
       SOKO_ALLOWED_ORIGINS: ${SOKO_ALLOWED_ORIGINS:-http://localhost:3500}
       DB_POOL_MAX: ${DB_POOL_MAX:-24}
+      # Demo only: the mock M-Pesa customer approves the prompt by itself after this many seconds.
+      SOKO_MPESA_MOCK_AUTOCOMPLETE_SECONDS: ${SOKO_MPESA_MOCK_AUTOCOMPLETE_SECONDS:-0}
     ports:
       - "${API_PORT:-8090}:8090"
     depends_on:

@@ -140,14 +140,14 @@ export function CartButton() {
     <button
       onClick={open}
       aria-label="Open cart"
-      className={`relative flex items-center gap-2 rounded-sm border border-[var(--color-line)] bg-white px-3 py-1.5 text-[0.8125rem] shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--color-accent)] hover:shadow-md ${
+      className={`relative flex items-center gap-2 rounded-sm border border-[var(--color-line)] bg-white px-3 py-1.5 text-[0.958rem] transition-colors hover:border-[var(--color-accent)] ${
         lastAdded ? "ring-2 ring-[var(--color-accent)]/30" : ""
       }`}
     >
       <CartIcon className="h-3.5 w-3.5" />
       Cart
       {count > 0 && (
-        <span className="flex h-5 min-w-5 items-center justify-center rounded-sm bg-[var(--color-ink)] px-1 text-[0.6875rem] text-white tabular-nums">
+        <span className="flex h-5 min-w-5 items-center justify-center rounded-sm bg-[var(--color-ink)] px-1 text-[0.833rem] text-white tabular-nums">
           {count}
         </span>
       )}
@@ -229,9 +229,9 @@ export function CartDrawer({ slug }: { slug?: string }) {
         onClick={closeAndReset}
         className="absolute inset-0 bg-black/30 backdrop-blur-[1px]"
       />
-      <div className="relative flex h-full w-full max-w-md flex-col bg-white shadow-2xl">
+      <div className="relative flex h-full w-full max-w-md flex-col bg-white">
         <div className="flex items-center justify-between border-b border-[var(--color-line)] px-6 py-5">
-          <p className="text-[1rem] font-medium">
+          <p className="text-[1.208rem] font-medium">
             {step === "cart" && "Your cart"}
             {step === "details" && "Your details"}
             {step === "code" && "Enter the code"}
@@ -265,13 +265,13 @@ export function CartDrawer({ slug }: { slug?: string }) {
 
         {step === "cart" && cart.lines.length > 0 && (
           <div className="border-t border-[var(--color-line)] px-6 py-5">
-            <div className="flex items-center justify-between text-[0.875rem]">
+            <div className="flex items-center justify-between text-[1rem]">
               <span className="text-[var(--color-muted)]">Subtotal</span>
               <span className="font-medium tabular-nums">{ksh(cart.subtotalCents)}</span>
             </div>
             <button
               onClick={() => setStep("details")}
-              className="mt-4 w-full rounded-sm bg-[var(--color-ink)] py-2 text-[0.8125rem] text-white transition-all hover:-translate-y-0.5 hover:shadow-lg"
+              className="mt-4 w-full rounded-sm bg-[var(--color-ink)] py-2 text-[0.958rem] text-white transition-colors"
             >
               Checkout
             </button>
@@ -283,13 +283,13 @@ export function CartDrawer({ slug }: { slug?: string }) {
             <button
               onClick={sendCode}
               disabled={submitting}
-              className="w-full rounded-sm bg-[var(--color-ink)] py-2 text-[0.8125rem] text-white transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
+              className="w-full rounded-sm bg-[var(--color-ink)] py-2 text-[0.958rem] text-white transition-colors disabled:opacity-60"
             >
               {submitting ? "Sending code…" : "Send code"}
             </button>
             <button
               onClick={() => setStep("cart")}
-              className="mt-2 w-full py-1.5 text-[0.8125rem] text-[var(--color-muted)] transition-colors hover:text-[var(--color-ink)]"
+              className="mt-2 w-full py-1.5 text-[0.958rem] text-[var(--color-muted)] transition-colors hover:text-[var(--color-ink)]"
             >
               Back to cart
             </button>
@@ -298,20 +298,20 @@ export function CartDrawer({ slug }: { slug?: string }) {
 
         {step === "code" && (
           <div className="border-t border-[var(--color-line)] px-6 py-5">
-            <div className="flex items-center justify-between text-[0.875rem]">
+            <div className="flex items-center justify-between text-[1rem]">
               <span className="text-[var(--color-muted)]">Total</span>
               <span className="font-medium tabular-nums">{ksh(cart.subtotalCents)}</span>
             </div>
             <button
               onClick={submit}
               disabled={submitting}
-              className="mt-4 w-full rounded-sm bg-[var(--color-ink)] py-2 text-[0.8125rem] text-white transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:opacity-60"
+              className="mt-4 w-full rounded-sm bg-[var(--color-ink)] py-2 text-[0.958rem] text-white transition-colors disabled:opacity-60"
             >
               {submitting ? "Confirming…" : "Confirm & place order"}
             </button>
             <button
               onClick={() => setStep("details")}
-              className="mt-2 w-full py-1.5 text-[0.8125rem] text-[var(--color-muted)] transition-colors hover:text-[var(--color-ink)]"
+              className="mt-2 w-full py-1.5 text-[0.958rem] text-[var(--color-muted)] transition-colors hover:text-[var(--color-ink)]"
             >
               Change number
             </button>
@@ -322,7 +322,7 @@ export function CartDrawer({ slug }: { slug?: string }) {
           <div className="border-t border-[var(--color-line)] px-6 py-5">
             <button
               onClick={closeAndReset}
-              className="w-full rounded-sm border border-[var(--color-line)] py-2 text-[0.8125rem] transition-all hover:-translate-y-0.5 hover:border-[var(--color-accent)]"
+              className="w-full rounded-sm border border-[var(--color-line)] py-2 text-[0.958rem] transition-colors hover:border-[var(--color-accent)]"
             >
               Continue shopping
             </button>
@@ -340,7 +340,7 @@ function CartView() {
     return (
       <div className="flex flex-col items-center gap-2 py-16 text-center">
         <CartIcon className="h-8 w-8 text-[var(--color-faint)]" />
-        <p className="text-[0.875rem] text-[var(--color-muted)]">Your cart is empty.</p>
+        <p className="text-[1rem] text-[var(--color-muted)]">Your cart is empty.</p>
       </div>
     );
   }
@@ -350,36 +350,36 @@ function CartView() {
       {cart.lines.map((line) => (
         <div key={line.product.id} className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[0.875rem] font-medium">{line.product.name}</p>
-            <p className="text-[0.75rem] text-[var(--color-faint)]">
+            <p className="truncate text-[1rem] font-medium">{line.product.name}</p>
+            <p className="text-[0.875rem] text-[var(--color-faint)]">
               {ksh(line.product.priceCents)} · {line.product.unit}
             </p>
             <div className="mt-2 flex items-center gap-2">
               <button
                 onClick={() => cart.setQuantity(line.product.id, line.quantity - 1)}
                 aria-label="Decrease quantity"
-                className="flex h-6 w-6 items-center justify-center rounded-sm border border-[var(--color-line)] text-[0.875rem] transition-colors hover:border-[var(--color-accent)]"
+                className="flex h-6 w-6 items-center justify-center rounded-sm border border-[var(--color-line)] text-[1rem] transition-colors hover:border-[var(--color-accent)]"
               >
                 −
               </button>
-              <span className="w-5 text-center text-[0.875rem] tabular-nums">{line.quantity}</span>
+              <span className="w-5 text-center text-[1rem] tabular-nums">{line.quantity}</span>
               <button
                 onClick={() => cart.setQuantity(line.product.id, line.quantity + 1)}
                 aria-label="Increase quantity"
                 disabled={line.quantity >= line.product.inStock}
-                className="flex h-6 w-6 items-center justify-center rounded-sm border border-[var(--color-line)] text-[0.875rem] transition-colors hover:border-[var(--color-accent)] disabled:opacity-40"
+                className="flex h-6 w-6 items-center justify-center rounded-sm border border-[var(--color-line)] text-[1rem] transition-colors hover:border-[var(--color-accent)] disabled:opacity-40"
               >
                 +
               </button>
             </div>
           </div>
           <div className="flex flex-col items-end gap-2">
-            <p className="text-[0.875rem] font-medium tabular-nums">
+            <p className="text-[1rem] font-medium tabular-nums">
               {ksh(line.product.priceCents * line.quantity)}
             </p>
             <button
               onClick={() => cart.remove(line.product.id)}
-              className="text-[0.75rem] text-[var(--color-faint)] underline-offset-2 transition-colors hover:text-[var(--color-danger)] hover:underline"
+              className="text-[0.875rem] text-[var(--color-faint)] underline-offset-2 transition-colors hover:text-[var(--color-danger)] hover:underline"
             >
               Remove
             </button>
@@ -408,17 +408,17 @@ function DetailsForm({
   error: string | null;
 }) {
   const inputClass =
-    "w-full rounded-sm border border-[var(--color-line)] bg-white px-3 py-2 text-[0.8125rem] outline-none transition-colors focus:border-[var(--color-accent)]";
-  const label = "mb-1.5 block text-[0.75rem] text-[var(--color-faint)]";
+    "w-full rounded-sm border border-[var(--color-line)] bg-white px-3 py-2 text-[0.958rem] outline-none transition-colors focus:border-[var(--color-accent)]";
+  const label = "mb-1.5 block text-[0.875rem] text-[var(--color-faint)]";
 
   return (
     <div className="flex flex-col gap-4">
       {error && (
-        <div className="rounded-sm border border-[var(--color-danger)]/30 bg-[var(--color-danger-soft)] px-3.5 py-3 text-[0.8125rem] text-[var(--color-danger)]">
+        <div className="rounded-sm border border-[var(--color-danger)]/30 bg-[var(--color-danger-soft)] px-3.5 py-3 text-[0.958rem] text-[var(--color-danger)]">
           {error}
         </div>
       )}
-      <p className="text-[0.8125rem] text-[var(--color-muted)]">
+      <p className="text-[0.958rem] text-[var(--color-muted)]">
         We&apos;ll text a code to this number to confirm it&apos;s you — no password to
         remember. If you&apos;ve ordered before, your name and county below are only used the
         first time.
@@ -466,16 +466,16 @@ function CodeForm({
   error: string | null;
 }) {
   const inputClass =
-    "w-full rounded-sm border border-[var(--color-line)] bg-white px-3 py-2 text-center text-[1.25rem] tracking-[0.3em] outline-none transition-colors focus:border-[var(--color-accent)]";
+    "w-full rounded-sm border border-[var(--color-line)] bg-white px-3 py-2 text-center text-[1.375rem] tracking-[0.3em] outline-none transition-colors focus:border-[var(--color-accent)]";
 
   return (
     <div className="flex flex-col gap-4">
       {error && (
-        <div className="rounded-sm border border-[var(--color-danger)]/30 bg-[var(--color-danger-soft)] px-3.5 py-3 text-[0.8125rem] text-[var(--color-danger)]">
+        <div className="rounded-sm border border-[var(--color-danger)]/30 bg-[var(--color-danger-soft)] px-3.5 py-3 text-[0.958rem] text-[var(--color-danger)]">
           {error}
         </div>
       )}
-      <p className="text-[0.8125rem] text-[var(--color-muted)]">
+      <p className="text-[0.958rem] text-[var(--color-muted)]">
         We sent a 6-digit code to <span className="text-[var(--color-ink)]">{phone}</span>.
       </p>
       <input
@@ -497,26 +497,26 @@ function Confirmation({ order }: { order: OrderResult }) {
         <CheckIcon className="h-6 w-6" />
       </div>
       <div>
-        <p className="text-[1rem] font-medium">Thank you — order placed.</p>
-        <p className="mt-1 text-[0.875rem] text-[var(--color-muted)]">
+        <p className="text-[1.208rem] font-medium">Thank you — order placed.</p>
+        <p className="mt-1 text-[1rem] text-[var(--color-muted)]">
           Reference <span className="font-medium text-[var(--color-ink)]">{order.reference}</span>
         </p>
       </div>
       <div className="w-full rounded-sm border border-[var(--color-line)] p-4 text-left">
         {order.lines.map((line, index) => (
-          <div key={index} className="flex justify-between py-1 text-[0.875rem]">
+          <div key={index} className="flex justify-between py-1 text-[1rem]">
             <span className="text-[var(--color-muted)]">
               {line.quantity}× {line.product}
             </span>
             <span className="tabular-nums">{ksh(line.lineTotalCents)}</span>
           </div>
         ))}
-        <div className="mt-2 flex justify-between border-t border-[var(--color-line)] pt-2 text-[0.875rem] font-medium">
+        <div className="mt-2 flex justify-between border-t border-[var(--color-line)] pt-2 text-[1rem] font-medium">
           <span>Total</span>
           <span className="tabular-nums">{ksh(order.totalCents)}</span>
         </div>
       </div>
-      <p className="text-[0.75rem] text-[var(--color-faint)]">
+      <p className="text-[0.875rem] text-[var(--color-faint)]">
         We&apos;ll reach out on WhatsApp or by phone to confirm payment and delivery.
       </p>
     </div>

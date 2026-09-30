@@ -42,7 +42,7 @@ export function Storefront({ products }: { products: ShopProduct[] }) {
       <div className="space-y-7">
         {categories.map((category) => (
           <section key={category}>
-            <h2 className="mb-3 text-[0.75rem] font-medium uppercase tracking-wide text-[var(--color-faint)]">
+            <h2 className="mb-3 text-[0.875rem] font-medium uppercase tracking-wide text-[var(--color-faint)]">
               {category}
             </h2>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -55,8 +55,8 @@ export function Storefront({ products }: { products: ShopProduct[] }) {
                       className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <p className="text-[0.9375rem] font-medium">{product.name}</p>
-                          <p className="mt-0.5 text-[0.75rem] text-[var(--color-muted)]">
+                          <p className="text-[1.083rem] font-medium">{product.name}</p>
+                          <p className="mt-0.5 text-[0.875rem] text-[var(--color-muted)]">
                             per {product.unit} · {product.inStock} available
                           </p>
                         </div>
@@ -64,7 +64,7 @@ export function Storefront({ products }: { products: ShopProduct[] }) {
                       </div>
 
                       <div className="mt-3 flex items-center justify-between">
-                        <span className="text-[1.0625rem] font-semibold tabular-nums">
+                        <span className="text-[1.25rem] font-semibold tabular-nums">
                           {ksh(product.priceCents)}
                         </span>
                         {qty === 0 ? (
@@ -75,12 +75,12 @@ export function Storefront({ products }: { products: ShopProduct[] }) {
                         ) : (
                           <span className="flex items-center gap-2">
                             <button type="button" onClick={() => change(product.id, -1, product.inStock)}
-                              className="h-7 w-7 rounded-full border border-[var(--color-line)] text-[0.875rem] leading-none hover:bg-[var(--color-raised)]">
+                              className="h-7 w-7 rounded-full border border-[var(--color-line)] text-[1rem] leading-none hover:bg-[var(--color-raised)]">
                               −
                             </button>
-                            <span className="w-6 text-center text-[0.875rem] font-medium tabular-nums">{qty}</span>
+                            <span className="w-6 text-center text-[1rem] font-medium tabular-nums">{qty}</span>
                             <button type="button" onClick={() => change(product.id, 1, product.inStock)}
-                              className="h-7 w-7 rounded-full border border-[var(--color-line)] text-[0.875rem] leading-none hover:bg-[var(--color-raised)]">
+                              className="h-7 w-7 rounded-full border border-[var(--color-line)] text-[1rem] leading-none hover:bg-[var(--color-raised)]">
                               +
                             </button>
                           </span>
@@ -96,7 +96,7 @@ export function Storefront({ products }: { products: ShopProduct[] }) {
 
       <aside className="lg:sticky lg:top-24 lg:self-start">
         <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] p-5">
-          <h2 className="text-[0.9375rem] font-semibold">Your basket</h2>
+          <h2 className="text-[1.083rem] font-semibold">Your basket</h2>
 
           {state.reference ? (
             <div className="mt-3">
@@ -108,10 +108,10 @@ export function Storefront({ products }: { products: ShopProduct[] }) {
           ) : null}
 
           {lines.length === 0 ? (
-            <p className="mt-3 text-[0.8125rem] text-[var(--color-muted)]">Nothing in it yet.</p>
+            <p className="mt-3 text-[0.958rem] text-[var(--color-muted)]">Nothing in it yet.</p>
           ) : (
             <>
-              <ul className="mt-3 space-y-2 text-[0.8125rem]">
+              <ul className="mt-3 space-y-2 text-[0.958rem]">
                 {lines.map((line) => {
                   const product = products.find((p) => p.id === line.productId)!;
                   return (
@@ -125,8 +125,8 @@ export function Storefront({ products }: { products: ShopProduct[] }) {
                 })}
               </ul>
               <div className="mt-4 flex justify-between border-t border-[var(--color-line)] pt-3">
-                <span className="text-[0.875rem] font-medium">Total</span>
-                <span className="text-[0.875rem] font-semibold tabular-nums">{ksh(total)}</span>
+                <span className="text-[1rem] font-medium">Total</span>
+                <span className="text-[1rem] font-semibold tabular-nums">{ksh(total)}</span>
               </div>
               <form action={action} className="mt-4">
                 <input type="hidden" name="basket" value={JSON.stringify(lines)} />

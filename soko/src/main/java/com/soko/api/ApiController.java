@@ -34,6 +34,7 @@ public class ApiController {
     private final OrderLineRepository orderLines;
     private final OrderService orderService;
     private final WastageService wastageService;
+    private final WastageRecordRepository wastageRecords;
     private final PasswordEncoder encoder;
     private final Tokens tokens;
     private final TenantContext context;
@@ -42,12 +43,13 @@ public class ApiController {
             TenantRepository tenants, UserRepository users, SupplierRepository suppliers,
             ProductRepository products, OfferRepository offers, CustomerRepository customers,
             OrderRepository orders, OrderLineRepository orderLines, OrderService orderService,
-            WastageService wastageService,
+            WastageService wastageService, WastageRecordRepository wastageRecords,
             PasswordEncoder encoder, Tokens tokens, TenantContext context) {
         this.tenants = tenants; this.users = users; this.suppliers = suppliers;
         this.products = products; this.offers = offers; this.customers = customers;
         this.orders = orders; this.orderLines = orderLines; this.orderService = orderService;
         this.wastageService = wastageService;
+        this.wastageRecords = wastageRecords;
         this.encoder = encoder; this.tokens = tokens; this.context = context;
     }
 
@@ -381,6 +383,8 @@ public class ApiController {
         body.put("id", order.getId());
         body.put("reference", order.getReference());
         body.put("status", order.getStatus());
+        body.put("cancelReason", order.getCancelReason());
+        body.put("placedAt", order.getPlacedAt());
         body.put("revenueCents", order.getRevenueCents());
         body.put("costCents", order.getCostCents());
         body.put("marginCents", order.getMarginCents());
@@ -428,6 +432,48 @@ public class ApiController {
     @GetMapping("/wastage")
     public Map<String, Object> wastageSummary() {
         return Map.of("totalValueCents", wastageService.totalValueCents(context.current().tenantId()));
+    }
+
+    @GetMapping("/wastage/records")
+    public List<Map<String, Object>> wastageRecords(@RequestParam(defaultValue = "50") int limit) {
+        return wastageRecords.listDetailed(context.current().tenantId(), Math.min(Math.max(limit, 1), 200)).stream()
+                .map(r -> {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("id", r[0]);
+                    row.put("product", r[1]);
+                    row.put("supplier", r[2]);
+                    row.put("quantity", ((Number) r[3]).intValue());
+                    row.put("reason", r[4]);
+                    row.put("valueCents", ((Number) r[5]).longValue());
+                    row.put("recordedAt", r[6]);
+                    return row;
+                })
+                .toList();
+    }
+
+    /** Weekly revenue, margin and cancellations for the last N weeks (default 12, max 52). */
+    @GetMapping("/overview/trend")
+    public List<Map<String, Object>> trend(@RequestParam(defaultValue = "12") int weeks) {
+        int span = Math.min(Math.max(weeks, 1), 52);
+        java.time.Instant since = java.time.Instant.now().minus(java.time.Duration.ofDays(7L * span));
+        return orders.weekly(context.current().tenantId(), since).stream()
+                .map(r -> {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("weekStart", ((java.time.Instant) toInstant(r[0])).toString());
+                    row.put("orders", ((Number) r[1]).longValue());
+                    row.put("revenueCents", ((Number) r[2]).longValue());
+                    row.put("marginCents", ((Number) r[3]).longValue());
+                    row.put("cancelled", ((Number) r[4]).longValue());
+                    return row;
+                })
+                .toList();
+    }
+
+    private static java.time.Instant toInstant(Object value) {
+        if (value instanceof java.time.Instant i) return i;
+        if (value instanceof java.sql.Timestamp t) return t.toInstant();
+        if (value instanceof java.time.OffsetDateTime o) return o.toInstant();
+        throw new IllegalStateException("unexpected timestamp type " + value.getClass());
     }
 
     @GetMapping("/overview")

@@ -18,31 +18,31 @@ export function AuthPanel() {
   const state = mode === "signin" ? signInState : mode === "signup" ? signUpState : resetState;
 
   return (
-    <div className="rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] p-7 shadow-[0_1px_2px_rgba(26,28,24,0.04)]">
+    <div className="rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] p-7">
       <div className="mb-6 flex items-center gap-2.5">
         <Logo className="h-8 w-8" />
-        <span className="text-[1.0625rem] font-semibold tracking-[-0.01em]">FreshFerm</span>
+        <span className="text-[1.25rem] font-semibold tracking-[-0.01em]">FreshFerm</span>
       </div>
 
       {mode !== "reset" ? (
         <div className="mb-6 flex rounded-lg bg-[var(--color-raised)] p-1">
           <button type="button" onClick={() => setMode("signin")}
-            className={`flex-1 rounded-md px-3 py-1.5 text-[0.8125rem] font-medium transition-colors ${
-              mode === "signin" ? "bg-[var(--color-surface)] text-[var(--color-ink)] shadow-sm" : "text-[var(--color-muted)]"
+            className={`flex-1 rounded-md px-3 py-1.5 text-[0.958rem] font-medium transition-colors ${
+              mode === "signin" ? "bg-[var(--color-surface)] text-[var(--color-ink)]" : "text-[var(--color-muted)]"
             }`}>
             Sign in
           </button>
           <button type="button" onClick={() => setMode("signup")}
-            className={`flex-1 rounded-md px-3 py-1.5 text-[0.8125rem] font-medium transition-colors ${
-              mode === "signup" ? "bg-[var(--color-surface)] text-[var(--color-ink)] shadow-sm" : "text-[var(--color-muted)]"
+            className={`flex-1 rounded-md px-3 py-1.5 text-[0.958rem] font-medium transition-colors ${
+              mode === "signup" ? "bg-[var(--color-surface)] text-[var(--color-ink)]" : "text-[var(--color-muted)]"
             }`}>
             Create account
           </button>
         </div>
       ) : (
         <div className="mb-6">
-          <h2 className="text-[1.0625rem] font-semibold tracking-[-0.01em]">Reset your password</h2>
-          <p className="mt-1 text-[0.8125rem] text-[var(--color-muted)]">
+          <h2 className="text-[1.25rem] font-semibold tracking-[-0.01em]">Reset your password</h2>
+          <p className="mt-1 text-[0.958rem] text-[var(--color-muted)]">
             We will send a link to the address on the account.
           </p>
         </div>
@@ -65,7 +65,7 @@ export function AuthPanel() {
             {signingIn ? "Signing in…" : "Sign in"}
           </button>
           <button type="button" onClick={() => setMode("reset")}
-            className="text-[0.8125rem] text-[var(--color-muted)] underline-offset-2 hover:text-[var(--color-ink)] hover:underline">
+            className="text-[0.958rem] text-[var(--color-muted)] underline-offset-2 hover:text-[var(--color-ink)] hover:underline">
             Forgot your password?
           </button>
         </form>
@@ -90,7 +90,7 @@ export function AuthPanel() {
           <button type="submit" className={`${buttonClass} mt-1 w-full justify-center`} disabled={signingUp}>
             {signingUp ? "Creating…" : "Create account"}
           </button>
-          <p className="text-[0.75rem] leading-relaxed text-[var(--color-faint)]">
+          <p className="text-[0.875rem] leading-relaxed text-[var(--color-faint)]">
             Your business gets its own tenant. Suppliers, catalogue and orders stay private to it.
           </p>
         </form>
@@ -104,7 +104,7 @@ export function AuthPanel() {
             {resetting ? "Sending…" : "Send reset link"}
           </button>
           <button type="button" onClick={() => setMode("signin")}
-            className="text-[0.8125rem] text-[var(--color-muted)] underline-offset-2 hover:text-[var(--color-ink)] hover:underline">
+            className="text-[0.958rem] text-[var(--color-muted)] underline-offset-2 hover:text-[var(--color-ink)] hover:underline">
             Back to sign in
           </button>
         </form>

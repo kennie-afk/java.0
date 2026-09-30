@@ -82,9 +82,9 @@ function StorefrontBody({ products }: { products: PublicProduct[] }) {
     <main className="min-h-screen bg-[var(--color-canvas)]">
       {/* Sticky header */}
       <header className="sticky top-0 z-30 border-b border-[var(--color-line)] bg-[var(--color-canvas)]/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-[96rem] items-center justify-between px-6 py-4">
           <Wordmark />
-          <nav className="hidden items-center gap-7 text-[0.875rem] text-[var(--color-muted)] sm:flex">
+          <nav className="hidden items-center gap-7 text-[1rem] text-[var(--color-muted)] sm:flex">
             <a href="#products" className="transition-colors hover:text-[var(--color-ink)]">Products</a>
             <a href="#why" className="transition-colors hover:text-[var(--color-ink)]">Why us</a>
             <a href="#contact" className="transition-colors hover:text-[var(--color-ink)]">Contact</a>
@@ -93,7 +93,7 @@ function StorefrontBody({ products }: { products: PublicProduct[] }) {
             <CartButton />
             <Link
               href="/login"
-              className="rounded-sm border border-[var(--color-line)] bg-white px-3 py-1.5 text-[0.8125rem] shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--color-accent)] hover:shadow-md"
+              className="rounded-sm border border-[var(--color-line)] bg-white px-3 py-1.5 text-[0.958rem] transition-colors hover:border-[var(--color-accent)]"
             >
               Sign in
             </Link>
@@ -111,14 +111,14 @@ function StorefrontBody({ products }: { products: PublicProduct[] }) {
             backgroundSize: "28px 28px",
           }}
         />
-        <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 py-14 lg:grid-cols-2 lg:py-20">
+        <div className="mx-auto grid max-w-[96rem] items-center gap-12 px-6 py-14 lg:grid-cols-2 lg:py-20">
           <div>
-            <h1 className="text-[2.25rem] font-medium leading-[1.15] tracking-[-0.02em]">
+            <h1 className="text-[1.75rem] font-medium leading-[1.15] tracking-[-0.02em]">
               Fermented milk,
               <br />
               <span className="text-[var(--color-accent)]">always cold,</span> always fresh.
             </h1>
-            <p className="mt-5 max-w-md text-[0.875rem] leading-relaxed text-[var(--color-muted)]">
+            <p className="mt-5 max-w-md text-[1rem] leading-relaxed text-[var(--color-muted)]">
               A cultured-milk drink line for retail, gyms and health shops — plain, flavoured and
               probiotic, from a single serve to a family pack. Every order is routed to a supplier
               who can actually keep it cold, not just whoever is cheapest.
@@ -128,14 +128,14 @@ function StorefrontBody({ products }: { products: PublicProduct[] }) {
                 href={waLink()}
                 target="_blank"
                 rel="noreferrer"
-                className="group inline-flex items-center gap-2 rounded-sm bg-[var(--color-ink)] px-3.5 py-2 text-[0.8125rem] text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
+                className="group inline-flex items-center gap-2 rounded-sm bg-[var(--color-ink)] px-3.5 py-2 text-[0.958rem] text-white transition-colors"
               >
-                <WhatsAppIcon className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
+                <WhatsAppIcon className="h-3.5 w-3.5 transition-transform" />
                 Order on WhatsApp
               </a>
               <a
                 href="#products"
-                className="inline-flex items-center gap-2 rounded-sm border border-[var(--color-line)] bg-white px-3.5 py-2 text-[0.8125rem] transition-all hover:-translate-y-0.5 hover:border-[var(--color-accent)] hover:shadow-md"
+                className="inline-flex items-center gap-2 rounded-sm border border-[var(--color-line)] bg-white px-3.5 py-2 text-[0.958rem] transition-colors hover:border-[var(--color-accent)]"
               >
                 Browse products
                 <ArrowDown className="h-3.5 w-3.5" />
@@ -149,30 +149,30 @@ function StorefrontBody({ products }: { products: PublicProduct[] }) {
           </div>
 
           <div className="relative">
-            <div className="overflow-hidden rounded-sm border border-[var(--color-line)] shadow-xl shadow-black/5">
+            <div className="overflow-hidden rounded-sm border border-[var(--color-line)]">
               <Image
                 src="/dairy.jpeg"
                 alt="Fresh dairy at the source"
                 width={736}
                 height={552}
                 priority
-                className="h-[340px] w-full object-cover transition-transform duration-700 hover:scale-105"
+                className="h-[340px] w-full object-cover transition-transform duration-700"
               />
             </div>
-            <div className="absolute -bottom-5 -left-5 rounded-sm border border-[var(--color-line)] bg-white px-4 py-3 shadow-lg">
-              <p className="text-[0.75rem] text-[var(--color-faint)]">Delivered</p>
-              <p className="text-[0.875rem] font-medium">Same-day, chilled</p>
+            <div className="absolute -bottom-5 -left-5 rounded-sm border border-[var(--color-line)] bg-white px-4 py-3">
+              <p className="text-[0.875rem] text-[var(--color-faint)]">Delivered</p>
+              <p className="text-[1rem] font-medium">Same-day, chilled</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Product grid */}
-      <section id="products" className="mx-auto max-w-6xl px-6 py-14">
+      <section id="products" className="mx-auto max-w-[96rem] px-6 py-14">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h2 className="text-[1.25rem] font-medium tracking-[-0.01em]">Our products</h2>
-            <p className="mt-1 text-[0.875rem] text-[var(--color-muted)]">
+            <h2 className="text-[1.375rem] font-medium tracking-[-0.01em]">Our products</h2>
+            <p className="mt-1 text-[1rem] text-[var(--color-muted)]">
               {filtered.length} of {live.length} shown, in stock right now.
             </p>
           </div>
@@ -181,9 +181,9 @@ function StorefrontBody({ products }: { products: PublicProduct[] }) {
               <button
                 key={family}
                 onClick={() => setActive(family)}
-                className={`rounded-sm px-2.5 py-1 text-[0.8125rem] transition-all ${
+                className={`rounded-sm px-2.5 py-1 text-[0.958rem] transition-colors ${
                   active === family
-                    ? "bg-[var(--color-ink)] text-white shadow-sm"
+                    ? "bg-[var(--color-ink)] text-white"
                     : "border border-[var(--color-line)] bg-white text-[var(--color-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-ink)]"
                 }`}
               >
@@ -202,8 +202,8 @@ function StorefrontBody({ products }: { products: PublicProduct[] }) {
 
       {/* Why us */}
       <section id="why" className="border-y border-[var(--color-line)] bg-[var(--color-surface)]">
-        <div className="mx-auto max-w-6xl px-6 py-14">
-          <h2 className="text-[1.25rem] font-medium tracking-[-0.01em]">Why buy from us</h2>
+        <div className="mx-auto max-w-[96rem] px-6 py-14">
+          <h2 className="text-[1.375rem] font-medium tracking-[-0.01em]">Why buy from us</h2>
           <div className="mt-7 grid gap-5 sm:grid-cols-3">
             <WhyCard
               icon={<ColdChainIcon className="h-5 w-5" />}
@@ -225,12 +225,12 @@ function StorefrontBody({ products }: { products: PublicProduct[] }) {
       </section>
 
       {/* Contact */}
-      <section id="contact" className="mx-auto max-w-6xl px-6 py-14">
+      <section id="contact" className="mx-auto max-w-[96rem] px-6 py-14">
         <div className="overflow-hidden rounded-sm border border-[var(--color-line)] bg-gradient-to-br from-[var(--color-accent-soft)] to-[var(--color-amber-soft)] p-8 sm:p-10">
-          <h2 className="text-[1.25rem] font-medium tracking-[-0.01em]">
+          <h2 className="text-[1.375rem] font-medium tracking-[-0.01em]">
             Want to stock our products in your shop, gym or supermarket?
           </h2>
-          <p className="mt-2 max-w-2xl text-[0.875rem] leading-relaxed text-[var(--color-muted)]">
+          <p className="mt-2 max-w-2xl text-[1rem] leading-relaxed text-[var(--color-muted)]">
             Get in touch and we&apos;ll set you up with an account so you can order directly, see
             your order history, and track every delivery until it arrives.
           </p>
@@ -239,14 +239,14 @@ function StorefrontBody({ products }: { products: PublicProduct[] }) {
               href={waLink()}
               target="_blank"
               rel="noreferrer"
-              className="group inline-flex items-center gap-2 rounded-sm bg-[var(--color-ink)] px-3.5 py-2 text-[0.8125rem] text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
+              className="group inline-flex items-center gap-2 rounded-sm bg-[var(--color-ink)] px-3.5 py-2 text-[0.958rem] text-white transition-colors"
             >
-              <WhatsAppIcon className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
+              <WhatsAppIcon className="h-3.5 w-3.5 transition-transform" />
               WhatsApp us
             </a>
             <a
               href={`mailto:${CONTACT_EMAIL}`}
-              className="inline-flex items-center gap-2 rounded-sm border border-[var(--color-line)] bg-white px-3.5 py-2 text-[0.8125rem] transition-all hover:-translate-y-0.5 hover:shadow-md"
+              className="inline-flex items-center gap-2 rounded-sm border border-[var(--color-line)] bg-white px-3.5 py-2 text-[0.958rem] transition-colors"
             >
               {CONTACT_EMAIL}
             </a>
@@ -254,7 +254,7 @@ function StorefrontBody({ products }: { products: PublicProduct[] }) {
         </div>
       </section>
 
-      <footer className="mx-auto max-w-6xl px-6 py-8 text-[0.75rem] text-[var(--color-faint)]">
+      <footer className="mx-auto max-w-[96rem] px-6 py-8 text-[0.875rem] text-[var(--color-faint)]">
         © {new Date().getFullYear()} FreshFerm. Built for real fridges, not just a warehouse.
       </footer>
 
@@ -264,7 +264,7 @@ function StorefrontBody({ products }: { products: PublicProduct[] }) {
         target="_blank"
         rel="noreferrer"
         aria-label="Chat on WhatsApp"
-        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-sm bg-[#25D366] px-3.5 py-2.5 text-[0.8125rem] text-white shadow-lg shadow-black/20 transition-all hover:scale-105 hover:shadow-xl"
+        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-sm bg-[#25D366] px-3.5 py-2.5 text-[0.958rem] text-white transition-colors"
       >
         <WhatsAppIcon className="h-4 w-4" />
         <span className="hidden sm:inline">Chat with us</span>
@@ -276,8 +276,8 @@ function StorefrontBody({ products }: { products: PublicProduct[] }) {
 function Stat({ value, label }: { value: string; label: string }) {
   return (
     <div>
-      <p className="text-[1rem] font-medium tabular-nums">{value}</p>
-      <p className="text-[0.75rem] text-[var(--color-faint)]">{label}</p>
+      <p className="text-[1.208rem] font-medium tabular-nums">{value}</p>
+      <p className="text-[0.875rem] text-[var(--color-faint)]">{label}</p>
     </div>
   );
 }
@@ -288,34 +288,34 @@ function ProductCard({ product }: { product: PublicProduct }) {
   const justAdded = cart.lastAdded === product.id;
 
   return (
-    <div className="group relative overflow-hidden rounded-sm border border-[var(--color-line)] bg-white p-5 transition-all hover:-translate-y-1 hover:border-[var(--color-accent)]/40 hover:shadow-xl hover:shadow-black/5">
+    <div className="group relative overflow-hidden rounded-sm border border-[var(--color-line)] bg-white p-5 transition-colors hover:border-[var(--color-accent)]/40">
       <div className="flex items-start justify-between">
-        <span className="rounded-sm bg-[var(--color-accent-soft)] px-2.5 py-0.5 text-[0.75rem] text-[var(--color-accent)]">
+        <span className="rounded-sm bg-[var(--color-accent-soft)] px-2.5 py-0.5 text-[0.875rem] text-[var(--color-accent)]">
           {familyOf(product.name)}
         </span>
         {product.chilled && (
-          <span className="flex items-center gap-1 text-[0.75rem] text-[var(--color-faint)]" title="Requires cold chain">
+          <span className="flex items-center gap-1 text-[0.875rem] text-[var(--color-faint)]" title="Requires cold chain">
             <ColdChainIcon className="h-3.5 w-3.5" />
             Chilled
           </span>
         )}
       </div>
-      <p className="mt-4 text-[1rem] font-medium leading-snug tracking-[-0.01em]">
+      <p className="mt-4 text-[1.208rem] font-medium leading-snug tracking-[-0.01em]">
         {product.name}
       </p>
-      <p className="mt-1 text-[0.875rem] text-[var(--color-muted)]">{product.unit}</p>
+      <p className="mt-1 text-[1rem] text-[var(--color-muted)]">{product.unit}</p>
       <div className="mt-4 flex items-baseline justify-between">
-        <p className="text-[1rem] font-medium tabular-nums text-[var(--color-ink)]">
+        <p className="text-[1.208rem] font-medium tabular-nums text-[var(--color-ink)]">
           {ksh(product.priceCents)}
         </p>
-        <p className="text-[0.75rem] text-[var(--color-faint)]">In stock</p>
+        <p className="text-[0.875rem] text-[var(--color-faint)]">In stock</p>
       </div>
       <button
         onClick={() => cart.add(product)}
-        className={`mt-4 flex w-full items-center justify-center gap-2 rounded-sm py-1.5 text-[0.8125rem] transition-all ${
+        className={`mt-4 flex w-full items-center justify-center gap-2 rounded-sm py-1.5 text-[0.958rem] transition-colors ${
           justAdded
             ? "bg-[var(--color-accent)] text-white"
-            : "bg-[var(--color-ink)] text-white group-hover:-translate-y-0.5"
+            : "bg-[var(--color-ink)] text-white"
         }`}
       >
         {justAdded ? "Added" : inCart ? `In cart · ${inCart.quantity}` : "Add to cart"}
@@ -324,7 +324,7 @@ function ProductCard({ product }: { product: PublicProduct }) {
         href={waLink(product)}
         target="_blank"
         rel="noreferrer"
-        className="mt-2 flex w-full items-center justify-center gap-1.5 py-1 text-[0.75rem] text-[var(--color-faint)] transition-colors hover:text-[var(--color-ink)]"
+        className="mt-2 flex w-full items-center justify-center gap-1.5 py-1 text-[0.875rem] text-[var(--color-faint)] transition-colors hover:text-[var(--color-ink)]"
       >
         or order on WhatsApp
       </a>
@@ -334,12 +334,12 @@ function ProductCard({ product }: { product: PublicProduct }) {
 
 function WhyCard({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
   return (
-    <div className="rounded-sm border border-[var(--color-line)] bg-[var(--color-canvas)] p-5 transition-all hover:border-[var(--color-accent)]/40 hover:shadow-md">
+    <div className="rounded-sm border border-[var(--color-line)] bg-[var(--color-canvas)] p-5 transition-colors hover:border-[var(--color-accent)]/40">
       <div className="flex h-9 w-9 items-center justify-center rounded-sm bg-[var(--color-accent-soft)] text-[var(--color-accent)]">
         {icon}
       </div>
-      <p className="mt-3 text-[1rem] font-medium">{title}</p>
-      <p className="mt-1.5 text-[0.875rem] leading-relaxed text-[var(--color-muted)]">{body}</p>
+      <p className="mt-3 text-[1.208rem] font-medium">{title}</p>
+      <p className="mt-1.5 text-[1rem] leading-relaxed text-[var(--color-muted)]">{body}</p>
     </div>
   );
 }

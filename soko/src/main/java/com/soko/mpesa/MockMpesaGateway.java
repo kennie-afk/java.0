@@ -3,7 +3,14 @@ package com.soko.mpesa;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -23,6 +30,47 @@ public class MockMpesaGateway implements MpesaGateway {
 
     private final List<StkPushRequest> requests = new CopyOnWriteArrayList<>();
 
+    /**
+     * Demo convenience, off unless SOKO_MPESA_MOCK_AUTOCOMPLETE_SECONDS is a positive number:
+     * a real phone answers the PIN prompt by itself, so in a demo the mock "customer" does the
+     * same after a short delay by POSTing a genuine success callback to our own public callback
+     * endpoint. It goes through exactly the code path Safaricom's callback would.
+     */
+    private final int autocompleteSeconds = parseSeconds(System.getenv("SOKO_MPESA_MOCK_AUTOCOMPLETE_SECONDS"));
+    private final ScheduledExecutorService scheduler = autocompleteSeconds > 0
+            ? Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "mock-mpesa-customer");
+                t.setDaemon(true);
+                return t;
+            })
+            : null;
+    private final HttpClient http = autocompleteSeconds > 0 ? HttpClient.newHttpClient() : null;
+
+    private static int parseSeconds(String raw) {
+        try {
+            return raw == null ? 0 : Math.max(0, Integer.parseInt(raw.trim()));
+        } catch (NumberFormatException ex) {
+            return 0;
+        }
+    }
+
+    private void answerPrompt(StkPushRequest request, String merchant, String checkout) {
+        String receipt = "MOCK" + UUID.randomUUID().toString().replace("-", "").substring(0, 6).toUpperCase();
+        String body = "{\"Body\":{\"stkCallback\":{\"MerchantRequestID\":\"" + merchant
+                + "\",\"CheckoutRequestID\":\"" + checkout
+                + "\",\"ResultCode\":0,\"ResultDesc\":\"The service request is processed successfully.\","
+                + "\"CallbackMetadata\":{\"Item\":[{\"Name\":\"Amount\",\"Value\":" + request.amount()
+                + "},{\"Name\":\"MpesaReceiptNumber\",\"Value\":\"" + receipt
+                + "\"},{\"Name\":\"PhoneNumber\",\"Value\":\"" + request.phoneNumber() + "\"}]}}}}";
+        try {
+            http.send(HttpRequest.newBuilder(URI.create(request.callbackUrl()))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(body)).build(), HttpResponse.BodyHandlers.discarding());
+        } catch (Exception ex) {
+            log.warn("[mock M-Pesa] customer could not reach the callback endpoint: {}", ex.getMessage());
+        }
+    }
+
     @Override
     public StkPushResponse stkPush(StkPushRequest request) {
         requests.add(request);
@@ -35,6 +83,9 @@ public class MockMpesaGateway implements MpesaGateway {
 
         String merchant = "ws_CO_" + UUID.randomUUID().toString().substring(0, 12);
         String checkout = "ws_CO_" + UUID.randomUUID().toString().substring(0, 12);
+        if (scheduler != null) {
+            scheduler.schedule(() -> answerPrompt(request, merchant, checkout), autocompleteSeconds, TimeUnit.SECONDS);
+        }
         return new StkPushResponse(true, merchant, checkout, "0",
                 "Success. Request accepted for processing",
                 "Enter your M-PESA PIN to complete the payment");

@@ -14,4 +14,15 @@ public interface WastageRecordRepository extends JpaRepository<WastageRecord, UU
 
     @Query("select coalesce(sum(w.valueCents), 0) from WastageRecord w where w.tenantId = :tenantId")
     long totalValueCents(@Param("tenantId") UUID tenantId);
+
+    @Query(value = """
+            select w.id, p.name, s.name, w.quantity, w.reason, w.value_cents, w.recorded_at
+              from wastage_records w
+              join products p on p.id = w.product_id
+              join suppliers s on s.id = w.supplier_id
+             where w.tenant_id = :tenantId
+             order by w.recorded_at desc
+             limit :max
+            """, nativeQuery = true)
+    List<Object[]> listDetailed(@Param("tenantId") UUID tenantId, @Param("max") int max);
 }

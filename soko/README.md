@@ -89,6 +89,54 @@ The seed creates three distributors with suppliers, a catalogue, offers, custome
 orders, then prints the credentials. Sign in at the console with
 `grace@mazingira.co.ke`.
 
+Every host port is an environment variable (`API_PORT`, `CONSOLE_PORT`, `POSTGRES_PORT`), so the
+stack can run beside others that want 8090 or 5432.
+
+## Demo in five minutes
+
+```bash
+cp .env.example .env     # set POSTGRES_PASSWORD, SOKO_JWT_SECRET; set SOKO_MPESA_MOCK_AUTOCOMPLETE_SECONDS=4
+docker compose up -d --build
+python3 tools/seed.py http://localhost:8090                      # 3 distributors, 140 orders each
+SOKO_PSQL="docker compose exec -T postgres psql -U soko -d soko" \
+  python3 tools/seed_history.py http://localhost:8090            # spreads them over 8 weeks, adds billing
+python3 tools/demo_day.py http://localhost:8090 http://localhost:3500   # plays one live order end to end
+```
+
+`seed_history.py` goes through the API wherever it can (cancellations, wastage, plan change, invoices,
+the M-Pesa payment) and only back-dates timestamps with SQL, because no API lets a caller pick when an
+order was placed. It is demo tooling; do not run it against real data.
+
+All passwords are `a-strong-demo-passphrase` (development only):
+
+| Side | Sign in as | Lands on |
+| --- | --- | --- |
+| Distributor (owner) | `grace@mazingira.co.ke` | overview, orders, billing |
+| Supplier | `supplier@mazingira.co.ke` (Limuru Dairy) | `/supplier`: its own lines only |
+| Customer | `customer@mazingira.co.ke` (Zucchini Greengrocers) | `/shop`: storefront and own orders |
+
+What to show, in order:
+
+1. **Overview**: eight weeks of revenue and margin, wastage written off. Point at how the margin is
+   computed from the supplier cost, not guessed.
+2. **Orders → New order**: pick the milk and a tomato crate. Open the order: every line says why it went
+   to the supplier it did. Try a product nobody can fill and read the refusal.
+3. **Cancel** an unpaid order: stock returns and the commission is voided (see Billing's ledger).
+4. **Billing**: the plan ladder (Free 5%, Growth 2,999 a month plus 3.5%, Scale 9,999 plus 2%), one paid
+   invoice and one open. Pay the open one with M-Pesa; the mock customer approves after a few seconds.
+   The ledger is append-only and the entries for an invoice sum exactly to its total.
+5. **Suppliers/Offers**, then **Wastage**: record spoiled stock against an offer.
+6. **Log in as the supplier** in a private window: only its own lines, dispatch with a tracking note.
+7. **Log in as the customer**: storefront of what is actually in stock, no cost or margin anywhere.
+
+`tools/demo_day.py` does steps 2, 4 and 6-7 as one scripted pass (press Enter between screens, or `--auto`).
+`node tools/ui_flow_check.mjs http://localhost:3500` drives the console's write forms in headless Chrome and
+asserts the result; `node tools/shot.mjs` takes screenshots.
+
+The mock M-Pesa gateway never contacts Safaricom. With `SOKO_MPESA_MOCK_AUTOCOMPLETE_SECONDS` above zero it
+answers each prompt itself by posting a real success callback to the public callback endpoint, so the order
+flips to Paid through the same code a live callback would use.
+
 ```bash
 python3 tools/load.py http://localhost:8090 300 16   # the table above
 python3 tools/oversell_check.py                      # the concurrency proof
@@ -128,7 +176,8 @@ that no field named cost or margin appears in any customer-facing payload.
 
 ## What is not built
 
-- **No payment capture.** Orders record what is owed; no money moves.
+- **No live payments.** M-Pesa STK push is implemented (mock gateway by default, Daraja behind
+  `SOKO_MPESA_MODE=live`) but only the mock has been exercised; no money moves in a demo.
 - **No email.** `POST /v1/auth/forgot` accepts a request and answers identically whether or
   not the account exists, so it does not leak which addresses are registered, but nothing is
   actually sent.

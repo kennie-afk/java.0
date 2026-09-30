@@ -23,9 +23,9 @@ export function RoleBar({
       <div className="mx-auto flex max-w-5xl items-center gap-5 px-5 py-3">
         <span className="flex items-center gap-2.5">
           <Logo className="h-7 w-7" />
-          <span className="text-[0.9375rem] font-semibold tracking-[-0.01em]">FreshFerm</span>
+          <span className="text-[1.083rem] font-semibold tracking-[-0.01em]">FreshFerm</span>
         </span>
-        <span className="rounded-full bg-[var(--color-amber-soft)] px-2.5 py-0.5 text-[0.6875rem] font-medium text-[var(--color-amber)]">
+        <span className="rounded-md bg-[var(--color-amber-soft)] px-2.5 py-0.5 text-[0.833rem] font-medium text-[var(--color-amber)]">
           {badge}
         </span>
 
@@ -38,7 +38,7 @@ export function RoleBar({
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`rounded-full px-3.5 py-1.5 text-[0.8125rem] font-medium transition-colors ${
+                className={`rounded-md px-3.5 py-1.5 text-[0.958rem] font-medium transition-colors ${
                   active
                     ? "bg-[var(--color-ink)] text-white"
                     : "text-[var(--color-muted)] hover:bg-[var(--color-raised)] hover:text-[var(--color-ink)]"
@@ -51,13 +51,13 @@ export function RoleBar({
         </nav>
 
         <div className="hidden text-right sm:block">
-          <p className="text-[0.8125rem] font-medium leading-tight">{organisation || fullName}</p>
-          <p className="text-[0.6875rem] leading-tight text-[var(--color-faint)]">{fullName}</p>
+          <p className="text-[0.958rem] font-medium leading-tight">{organisation || fullName}</p>
+          <p className="text-[0.833rem] leading-tight text-[var(--color-faint)]">{fullName}</p>
         </div>
         <form action={signOut}>
           <button
             type="submit"
-            className="rounded-full border border-[var(--color-line)] px-3 py-1.5 text-[0.75rem] font-medium text-[var(--color-muted)] transition-colors hover:bg-[var(--color-raised)] hover:text-[var(--color-ink)]"
+            className="rounded-md border border-[var(--color-line)] px-3 py-1.5 text-[0.875rem] font-medium text-[var(--color-muted)] transition-colors hover:bg-[var(--color-raised)] hover:text-[var(--color-ink)]"
           >
             Sign out
           </button>

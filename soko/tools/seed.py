@@ -1,7 +1,8 @@
-import json, random, sys, urllib.request, urllib.error
+import json, os, random, sys, urllib.request, urllib.error
 
 API = sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8090"
 random.seed(11)
+ORDERS = int(os.environ.get("SOKO_SEED_ORDERS", "140"))   # per distributor; tools/seed_history.py spreads them over eight weeks
 
 def call(path, body=None, token=None, method=None):
     data = json.dumps(body).encode() if body is not None else None
@@ -49,6 +50,9 @@ CUSTOMERS = [
     ("Naivas Kiambu Road", "+254700111003", "Kiambu"),
     ("Quickmart Nakuru", "+254700111004", "Nakuru"),
     ("Tuskys Nyandarua", "+254700111005", "Nyandarua"),
+    ("Carrefour Two Rivers", "+254700111006", "Nairobi"),
+    ("Fresh n Juici Thika", "+254700111007", "Kiambu"),
+    ("Kiambu Road Deli", "+254700111008", "Kiambu"),
 ]
 
 def seed_tenant(org, name, email, label):
@@ -74,7 +78,7 @@ def seed_tenant(org, name, email, label):
                 margin = random.uniform(0.60, 0.85)
                 out = call("/v1/offers", {"supplierId": sid, "productId": pid,
                                           "costCents": int(p[7] * margin),
-                                          "availableQty": random.randint(40, 600)}, token)
+                                          "availableQty": random.randint(400, 2500)}, token)
                 if "id" in out: offers += 1
 
     customer_ids = []
@@ -83,9 +87,9 @@ def seed_tenant(org, name, email, label):
         if "id" in out: customer_ids.append(out["id"])
 
     placed = unroutable = 0
-    for _ in range(40):
+    for _ in range(ORDERS):
         cid = random.choice(customer_ids)
-        lines = [{"productId": pid, "quantity": random.randint(2, 30)}
+        lines = [{"productId": pid, "quantity": random.randint(2, 24)}
                  for pid, _ in random.sample(product_ids, random.randint(1, 4))]
         out = call("/v1/orders", {"customerId": cid, "lines": lines}, token)
         if "_error" in out: unroutable += 1

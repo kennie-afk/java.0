@@ -31,10 +31,10 @@ export function Topbar({
 
   return (
     <header className="sticky top-0 z-20 border-b border-[var(--color-line)] bg-[var(--color-surface)]">
-      <div className="mx-auto flex max-w-6xl items-center gap-6 px-5 py-3">
+      <div className="mx-auto flex max-w-[96rem] items-center gap-6 px-5 py-3">
         <Link href="/" className="flex items-center gap-2.5">
           <Logo className="h-7 w-7" />
-          <span className="text-[0.9375rem] font-semibold tracking-[-0.01em]">FreshFerm</span>
+          <span className="text-[1.083rem] font-semibold tracking-[-0.01em]">FreshFerm</span>
         </Link>
 
         <nav className="hidden flex-1 items-center gap-1 md:flex">
@@ -45,7 +45,7 @@ export function Topbar({
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`rounded-full px-3.5 py-1.5 text-[0.8125rem] font-medium transition-colors ${
+                className={`rounded-md px-3.5 py-1.5 text-[0.958rem] font-medium transition-colors ${
                   active
                     ? "bg-[var(--color-ink)] text-white"
                     : "text-[var(--color-muted)] hover:bg-[var(--color-raised)] hover:text-[var(--color-ink)]"
@@ -59,21 +59,21 @@ export function Topbar({
 
         <div className="ml-auto flex items-center gap-3">
           <div className="hidden text-right sm:block">
-            <p className="text-[0.8125rem] font-medium leading-tight">{organisation}</p>
-            <p className="text-[0.6875rem] capitalize leading-tight text-[var(--color-faint)]">
+            <p className="text-[0.958rem] font-medium leading-tight">{organisation}</p>
+            <p className="text-[0.833rem] capitalize leading-tight text-[var(--color-faint)]">
               {fullName} · {role.toLowerCase()}
             </p>
           </div>
           <span
             title={fullName}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-accent-soft)] text-[0.75rem] font-semibold text-[var(--color-accent)]"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-accent-soft)] text-[0.875rem] font-semibold text-[var(--color-accent)]"
           >
             {initials}
           </span>
           <form action={signOut}>
             <button
               type="submit"
-              className="rounded-full border border-[var(--color-line)] px-3 py-1.5 text-[0.75rem] font-medium text-[var(--color-muted)] transition-colors hover:bg-[var(--color-raised)] hover:text-[var(--color-ink)]"
+              className="rounded-md border border-[var(--color-line)] px-3 py-1.5 text-[0.875rem] font-medium text-[var(--color-muted)] transition-colors hover:bg-[var(--color-raised)] hover:text-[var(--color-ink)]"
             >
               Sign out
             </button>
@@ -88,7 +88,7 @@ export function Topbar({
             <Link
               key={item.href}
               href={item.href}
-              className={`whitespace-nowrap rounded-full px-3 py-1.5 text-[0.75rem] font-medium ${
+              className={`whitespace-nowrap rounded-md px-3 py-1.5 text-[0.875rem] font-medium ${
                 active ? "bg-[var(--color-ink)] text-white" : "text-[var(--color-muted)]"
               }`}
             >

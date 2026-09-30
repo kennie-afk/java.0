@@ -112,7 +112,11 @@ check("a PAID order cannot be cancelled through this endpoint", code == 400)
 print()
 print("--- subscription, commission accrual, invoicing, ledger reconciliation ---")
 sub, _ = call("/v1/billing/subscription", token=T)
-check("tenant starts on FREE", sub["plan"] == "FREE")
+if sub["plan"] != "FREE":
+    # tools/seed_history.py leaves the demo tenant on GROWTH; put it back so the arithmetic below holds.
+    call("/v1/billing/subscription/plan", {"plan": "FREE"}, T, method="PUT")
+    sub, _ = call("/v1/billing/subscription", token=T)
+check("tenant is on FREE before the test changes plan", sub["plan"] == "FREE")
 
 changed, code = call("/v1/billing/subscription/plan", {"plan": "GROWTH"}, T, method="PUT")
 check("owner can change plan", code == 200 and changed["plan"] == "GROWTH")

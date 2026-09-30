@@ -67,6 +67,8 @@ export const api = {
   post: <T>(path: string, body: unknown) => request<T>(path, json(body)),
   put: <T>(path: string, body: unknown) =>
     request<T>(path, { ...json(body), method: "PUT" }),
+  request: <T>(method: string, path: string, body?: unknown) =>
+    request<T>(path, { ...json(body ?? {}), method }),
   login: (email: string, password: string) =>
     request<LoginResult>("/v1/auth/login", json({ email, password }), ""),
   register: (input: RegisterInput) =>

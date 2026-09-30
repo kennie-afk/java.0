@@ -1,6 +1,7 @@
 package com.soko.persistence;
 
 import com.soko.domain.SalesOrder;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,9 +23,9 @@ public interface OrderRepository extends JpaRepository<SalesOrder, UUID> {
     Optional<SalesOrder> findByIdAndCustomerId(UUID id, UUID customerId);
 
     @Query(value = """
-            select count(*)              as orders,
-                   coalesce(sum(o.revenue_cents), 0) as revenue,
-                   coalesce(sum(o.margin_cents), 0)  as margin,
+            select count(*) filter (where o.status <> 'CANCELLED') as orders,
+                   coalesce(sum(o.revenue_cents) filter (where o.status <> 'CANCELLED'), 0) as revenue,
+                   coalesce(sum(o.margin_cents) filter (where o.status <> 'CANCELLED'), 0)  as margin,
                    (select count(*) from suppliers s where s.tenant_id = :tenantId) as suppliers,
                    (select count(*) from products p where p.tenant_id = :tenantId)  as products,
                    (select count(*) from customers c where c.tenant_id = :tenantId) as customers
@@ -43,4 +44,18 @@ public interface OrderRepository extends JpaRepository<SalesOrder, UUID> {
              limit :max
             """, nativeQuery = true)
     List<Object[]> listWithCustomer(@Param("tenantId") UUID tenantId, @Param("max") int max);
+
+    /** One row per week: live orders, revenue, margin, and how many were cancelled. */
+    @Query(value = """
+            select date_trunc('week', o.placed_at) as week,
+                   count(*) filter (where o.status <> 'CANCELLED') as orders,
+                   coalesce(sum(o.revenue_cents) filter (where o.status <> 'CANCELLED'), 0) as revenue,
+                   coalesce(sum(o.margin_cents) filter (where o.status <> 'CANCELLED'), 0) as margin,
+                   count(*) filter (where o.status = 'CANCELLED') as cancelled
+              from orders o
+             where o.tenant_id = :tenantId and o.placed_at >= :since
+             group by 1
+             order by 1
+            """, nativeQuery = true)
+    List<Object[]> weekly(@Param("tenantId") UUID tenantId, @Param("since") Instant since);
 }

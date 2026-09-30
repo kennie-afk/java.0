@@ -46,7 +46,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
     <div className="mx-auto max-w-[760px]">
       <div className="mb-5 flex items-center justify-between print:hidden">
         <Link href={`/orders/${order.id}`}
-          className="text-[0.8125rem] text-[var(--color-muted)] underline-offset-2 hover:text-[var(--color-ink)] hover:underline">
+          className="text-[0.958rem] text-[var(--color-muted)] underline-offset-2 hover:text-[var(--color-ink)] hover:underline">
           Back to the order
         </Link>
         <PrintButton />
@@ -57,20 +57,20 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
           <div className="flex items-center gap-3">
             <Logo className="h-9 w-9" />
             <div>
-              <p className="text-[1.0625rem] font-semibold tracking-[-0.01em]">FreshFerm</p>
-              <p className="text-[0.75rem] text-[var(--color-muted)]">
+              <p className="text-[1.25rem] font-semibold tracking-[-0.01em]">FreshFerm</p>
+              <p className="text-[0.875rem] text-[var(--color-muted)]">
                 {session?.organisation ?? "Fermented dairy distribution"}
               </p>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-[0.6875rem] uppercase tracking-wide text-[var(--color-faint)]">Receipt</p>
-            <p className="text-[1.0625rem] font-semibold tabular-nums">{order.reference}</p>
-            <p className="text-[0.75rem] text-[var(--color-muted)]">{issued}</p>
+            <p className="text-[0.833rem] uppercase tracking-wide text-[var(--color-faint)]">Receipt</p>
+            <p className="text-[1.25rem] font-semibold tabular-nums">{order.reference}</p>
+            <p className="text-[0.875rem] text-[var(--color-muted)]">{issued}</p>
           </div>
         </header>
 
-        <table className="mt-7 w-full text-[0.8125rem]">
+        <table className="mt-7 w-full text-[0.958rem]">
           <thead>
             <tr className="border-b border-[var(--color-line)] text-left">
               <th className="pb-2 font-medium text-[var(--color-muted)]">Item</th>
@@ -96,7 +96,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
         </table>
 
         <div className="mt-6 flex justify-end">
-          <dl className="w-64 space-y-2 text-[0.8125rem]">
+          <dl className="w-64 space-y-2 text-[0.958rem]">
             <div className="flex justify-between">
               <dt className="text-[var(--color-muted)]">Subtotal</dt>
               <dd className="tabular-nums">{ksh(order.revenueCents)}</dd>
@@ -108,7 +108,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
           </dl>
         </div>
 
-        <footer className="mt-9 border-t border-[var(--color-line)] pt-5 text-[0.6875rem] leading-relaxed text-[var(--color-faint)]">
+        <footer className="mt-9 border-t border-[var(--color-line)] pt-5 text-[0.833rem] leading-relaxed text-[var(--color-faint)]">
           <p>
             Goods are shipped directly by the fulfilling supplier named against each line. Chilled
             items travel under an unbroken cold chain and are dispatched to arrive within their

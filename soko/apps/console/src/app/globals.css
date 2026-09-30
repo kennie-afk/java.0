@@ -20,6 +20,17 @@
   --color-danger-soft: #fbe9e7;
 }
 
+@theme {
+  /* House standard: very small radii. Cards and controls share one value. */
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 6px;
+  --radius-xl: 6px;
+  --radius-2xl: 6px;
+  --radius-3xl: 6px;
+}
+
 @theme inline {
   --color-canvas: var(--color-canvas);
   --color-surface: var(--color-surface);
@@ -39,7 +50,7 @@
 }
 
 html {
-  font-size: 15px;
+  font-size: 12px;
 }
 
 body {

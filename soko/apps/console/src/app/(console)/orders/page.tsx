@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { api, describeError, ksh } from "@/lib/api";
-import { Badge, Notice, PageHeader, Table, rowClass } from "@/components/ui";
+import { Badge, Notice, PageHeader, Table, buttonClass, rowClass } from "@/components/ui";
 import type { OrderRow } from "@/lib/types";
 
 export default async function OrdersPage() {
@@ -19,7 +19,8 @@ export default async function OrdersPage() {
 
   return (
     <>
-      <PageHeader title="Orders" subtitle="Every order, the buyer it came from and the spread it earned." />
+      <PageHeader title="Orders" subtitle="Every order, the buyer it came from and the spread it earned."
+        actions={<Link href="/orders/new" className={buttonClass}>New order</Link>} />
       <Table head={["Reference", "Customer", "County", "Revenue", "Cost", "Margin", "Status"]}>
         {orders.map((order) => (
           <tr key={order.id} className={rowClass}>

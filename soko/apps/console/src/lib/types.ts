@@ -6,6 +6,7 @@ export interface Overview {
   revenueCents: number;
   marginCents: number;
   marginPercent: number;
+  wastageValueCents?: number;
 }
 
 export interface OrderRow {

@@ -57,7 +57,7 @@ export default async function MyOrderPage({ params }: { params: Promise<{ id: st
             <td className="px-4 py-3">
               <Badge value={line.status} />
               {(line.dispatchedAt || line.deliveredAt) && (
-                <p className="mt-1 text-[0.75rem] text-[var(--color-faint)]">
+                <p className="mt-1 text-[0.875rem] text-[var(--color-faint)]">
                   {line.deliveredAt
                     ? `Delivered ${new Date(line.deliveredAt).toLocaleDateString("en-KE", { dateStyle: "medium" })}`
                     : `Dispatched ${new Date(line.dispatchedAt as string).toLocaleDateString("en-KE", { dateStyle: "medium" })}`}
@@ -67,7 +67,7 @@ export default async function MyOrderPage({ params }: { params: Promise<{ id: st
           </tr>
         ))}
       </Table>
-      <div className="mt-4 flex justify-end text-[0.9375rem] font-semibold tabular-nums">
+      <div className="mt-4 flex justify-end text-[1.083rem] font-semibold tabular-nums">
         Total {ksh(order.totalCents)}
       </div>
     </>

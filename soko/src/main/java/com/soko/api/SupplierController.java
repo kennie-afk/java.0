@@ -116,9 +116,23 @@ public class SupplierController {
         return offers.save(offer);
     }
 
+    @GetMapping("/fulfilments/summary")
+    public Map<String, Object> fulfilmentSummary() {
+        Object[] raw = orderLines.fulfilmentSummary(supplierId());
+        Object[] r = (raw.length == 1 && raw[0] instanceof Object[] inner) ? inner : raw;
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("waiting", ((Number) r[0]).longValue());
+        body.put("onTheRoad", ((Number) r[1]).longValue());
+        body.put("delivered", ((Number) r[2]).longValue());
+        body.put("owedCents", ((Number) r[3]).longValue());
+        return body;
+    }
+
     @GetMapping("/fulfilments")
-    public List<Map<String, Object>> fulfilments(@RequestParam(defaultValue = "100") int limit) {
-        return orderLines.fulfilmentsForSupplier(supplierId(), Math.min(limit, 200)).stream()
+    public List<Map<String, Object>> fulfilments(
+            @RequestParam(defaultValue = "100") int limit, @RequestParam(required = false) String status) {
+        String wanted = status == null || status.isBlank() ? null : status.toUpperCase();
+        return orderLines.fulfilmentsForSupplier(supplierId(), wanted, Math.min(limit, 200)).stream()
                 .map(r -> {
                     Map<String, Object> row = new LinkedHashMap<>();
                     row.put("lineId", r[0]);
