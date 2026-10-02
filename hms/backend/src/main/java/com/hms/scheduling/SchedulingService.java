@@ -167,7 +167,7 @@ public class SchedulingService {
         if (!c.active()) {
             throw ApiException.conflict("clinic_inactive", "That clinic is not taking bookings.");
         }
-        patients.requireLive(in.patientId());
+        patients.requireAlive(in.patientId());
         ZoneId zone = zone(c.facilityId());
         ZonedDateTime start = in.startsAt().atZone(zone);
         if (!in.startsAt().isAfter(Instant.now())) {
@@ -192,7 +192,7 @@ public class SchedulingService {
         TenantContext.Tenant t = TenantContext.require();
         Clinic c = clinic(in.clinicId());
         t.requireFacility(c.facilityId());
-        patients.requireLive(in.patientId());
+        patients.requireAlive(in.patientId());
         Instant now = Instant.now();
         UUID id = insert(t, c, in.patientId(), in.practitionerId(), now, now.plus(Duration.ofMinutes(c.slotMinutes())), "CHECKED_IN",
                 in.priority() == null ? "ROUTINE" : in.priority(), true, in.reason(), nextQueueNumber(t, c.facilityId(), zone(c.facilityId())));

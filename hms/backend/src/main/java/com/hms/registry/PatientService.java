@@ -290,6 +290,19 @@ public class PatientService {
         return load(in.survivorId());
     }
 
+    /** Records a death, once. Called when an admission ends in death; the patient is never deleted or deactivated by it. */
+    @Transactional
+    public void markDeceased(UUID id, java.time.Instant at, String reason) {
+        TenantContext.Tenant tenant = TenantContext.require();
+        Patient p = load(id);
+        if (p.deceasedAt() != null) {
+            return;
+        }
+        jdbc.sql("UPDATE patients SET deceased_at = ?, version = version + 1, updated_at = now() WHERE org_id = ? AND id = ?")
+                .params(java.sql.Timestamp.from(at), tenant.orgId(), id).update();
+        audit.record("patient.deceased", "patient", id, p.registeredFacilityId(), reason, Map.of());
+    }
+
     // ---- helpers -----------------------------------------------------------------------------
 
     private void requireFacility(TenantContext.Tenant tenant, UUID facilityId) {

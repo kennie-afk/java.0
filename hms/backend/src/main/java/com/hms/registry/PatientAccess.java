@@ -43,4 +43,13 @@ public class PatientAccess {
         }
         return ref;
     }
+
+    /** As {@link #requireLive} and also refuses a patient who has died: nobody is booked or admitted after death. */
+    public Ref requireAlive(UUID patientId) {
+        Ref ref = requireLive(patientId);
+        if (ref.deceased()) {
+            throw ApiException.conflict("patient_deceased", "That patient is recorded as deceased.");
+        }
+        return ref;
+    }
 }
