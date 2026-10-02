@@ -146,8 +146,12 @@ public abstract class IntegrationTest {
 
     /** Creates a staff member holding one standard role at the org's facility and returns their token. */
     protected String userWithRole(Org org, String roleKey) throws Exception {
+        return userWithRole(org, roleKey, "DOCTOR");
+    }
+
+    protected String userWithRole(Org org, String roleKey, String cadre) throws Exception {
         String email = roleKey.toLowerCase() + "-" + UUID.randomUUID().toString().substring(0, 8) + "@example.org";
-        create("/v1/staff", org.token(), Map.of("email", email, "fullName", "Test " + roleKey, "cadre", "DOCTOR",
+        create("/v1/staff", org.token(), Map.of("email", email, "fullName", "Test " + roleKey, "cadre", cadre,
                 "licenceBody", "KMPDC", "licenceNo", "A" + (int) (Math.random() * 90000 + 10000),
                 "temporaryPassword", "temporary-password-1", "roles", java.util.List.of(roleKey), "facilityIds", java.util.List.of(org.facilityId())));
         return login(email, "temporary-password-1");
