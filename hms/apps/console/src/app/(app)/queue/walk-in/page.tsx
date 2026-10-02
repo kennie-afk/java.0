@@ -29,7 +29,7 @@ export default function WalkIn() {
             <Field label="Priority"><Select value={priority} onChange={(e) => setPriority(e.target.value)}><option>ROUTINE</option><option>PRIORITY</option><option>EMERGENCY</option></Select></Field>
             <Field label="Reason"><Input value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
           </Grid>
-          {!clinics.loading && active.length === 0 && <p className="pt-2 text-xs text-warn">This facility has no clinic yet. An administrator can create one: Appointments, then New clinic.</p>}
+          {!clinics.loading && active.length === 0 && <p className="pt-2 text-sm text-warn">This facility has no clinic yet. An administrator can create one: Appointments, then New clinic.</p>}
         </Card>
         <ErrorNote error={error} />
         <Button type="submit" busy={busy} disabled={!patient || active.length === 0}>Add to queue</Button>

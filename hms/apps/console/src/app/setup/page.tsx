@@ -24,13 +24,13 @@ export default function Setup() {
   if (done) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
-        <Card title="Organisation created"><p className="pb-3 text-xs">You can now sign in as {f.email}.</p><Button href="/login">Go to sign in</Button></Card>
+        <Card title="Organisation created"><p className="pb-3 text-sm">You can now sign in as {f.email}.</p><Button href="/login">Go to sign in</Button></Card>
       </div>
     );
   }
   return (
     <div className="mx-auto max-w-2xl space-y-4 p-4">
-      <div><div className="text-2xl font-semibold text-accent">HMS</div><div className="text-xs text-muted">Set up an organisation, its first facility and its administrator.</div></div>
+      <div><div className="text-3xl font-semibold text-accent">HMS</div><div className="text-base text-muted">Set up an organisation, its first facility and its administrator.</div></div>
       <form onSubmit={submit} className="space-y-4">
         <Card title="Organisation"><Grid cols={2}>
           <Field label="Name"><Input required value={f.organisationName} onChange={set("organisationName")} /></Field>
@@ -47,7 +47,7 @@ export default function Setup() {
           <Field label="Password" hint="At least 12 characters"><Input type="password" required minLength={12} value={f.password} onChange={set("password")} /></Field>
         </Grid></Card>
         <ErrorNote error={error} />
-        <div className="flex items-center gap-3"><Button type="submit" busy={busy}>Create</Button><Link href="/login" className="text-xs text-accent hover:underline">Back to sign in</Link></div>
+        <div className="flex items-center gap-3"><Button type="submit" busy={busy}>Create</Button><Link href="/login" className="text-sm text-accent hover:underline">Back to sign in</Link></div>
       </form>
     </div>
   );

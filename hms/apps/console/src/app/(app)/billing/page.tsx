@@ -18,7 +18,7 @@ export default function Billing() {
       {can("billing:post") && <Button href="/billing/new">New invoice</Button>}
     </>}>
       <Card pad={false}>
-        <div className="border-b border-line p-2"><Select value={status} onChange={(e) => setStatus(e.target.value)} className="max-w-48"><option value="">All statuses</option>{["DRAFT", "ISSUED", "PARTIALLY_PAID", "PAID", "VOID"].map((s) => <option key={s}>{s}</option>)}</Select></div>
+        <div className="border-b border-line p-3"><Select value={status} onChange={(e) => setStatus(e.target.value)} className="max-w-48"><option value="">All statuses</option>{["DRAFT", "ISSUED", "PARTIALLY_PAID", "PAID", "VOID"].map((s) => <option key={s}>{s}</option>)}</Select></div>
         {list.loading && list.items.length === 0 ? <Loading /> : (
           <Table head={["Invoice", "Patient", "Payer", "Status", "Total", "Paid", "Date"]} empty="No invoices.">
             {list.items.map((i) => <Tr key={i.id}><Td href={`/billing/${i.id}`}>{i.invoiceNumber}</Td><Td>{i.patientName}</Td><Td>{i.payerType}</Td><Td><Status value={i.status} /></Td><Td>{kes(i.total)}</Td><Td>{kes(i.amountPaid)}</Td><Td>{date(i.createdAt)}</Td></Tr>)}

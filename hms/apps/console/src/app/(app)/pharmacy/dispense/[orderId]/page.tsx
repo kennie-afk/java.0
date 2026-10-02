@@ -34,8 +34,8 @@ export default function Dispense({ params }: { params: Promise<{ orderId: string
           {needWitness && <Field label="Witness (staff id)" hint={`A controlled drug needs a second person. Your id: ${me.practitionerId}`}><Input required value={witness} onChange={(e) => setWitness(e.target.value)} /></Field>}
         </Grid>
         {override !== null && (
-          <div className="mt-3 space-y-2 rounded-md border border-danger bg-danger-soft p-2">
-            <p className="text-xs text-danger">The product matches a recorded allergy. To dispense anyway, state why.</p>
+          <div className="mt-3 space-y-2 rounded-lg border border-[#f5cdcb] bg-danger-soft p-3">
+            <p className="text-sm text-danger">The product matches a recorded allergy. To dispense anyway, state why.</p>
             <Input required minLength={10} placeholder="Reason (at least 10 characters)" value={override} onChange={(e) => setOverride(e.target.value)} />
           </div>
         )}</Card>

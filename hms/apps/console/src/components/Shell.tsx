@@ -2,69 +2,133 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Icon, type IconName } from "@/components/icons";
 import { useSession } from "@/lib/session";
 
-type Item = { href: string; label: string; perm: string };
+type Item = { href: string; label: string; perm: string; icon: IconName };
 const NAV: { group: string; items: Item[] }[] = [
   { group: "Front desk", items: [
-    { href: "/", label: "Overview", perm: "" },
-    { href: "/patients", label: "Patients", perm: "patients:read" },
-    { href: "/queue", label: "Queue", perm: "scheduling:read" },
-    { href: "/appointments", label: "Appointments", perm: "scheduling:read" }] },
+    { href: "/", label: "Overview", perm: "", icon: "home" },
+    { href: "/patients", label: "Patients", perm: "patients:read", icon: "patients" },
+    { href: "/queue", label: "Queue", perm: "scheduling:read", icon: "queue" },
+    { href: "/appointments", label: "Appointments", perm: "scheduling:read", icon: "calendar" }] },
   { group: "Care", items: [
-    { href: "/wards", label: "Wards and beds", perm: "inpatient:read" },
-    { href: "/lab", label: "Laboratory", perm: "lab:read" },
-    { href: "/pharmacy", label: "Pharmacy", perm: "pharmacy:read" }] },
+    { href: "/wards", label: "Wards and beds", perm: "inpatient:read", icon: "bed" },
+    { href: "/lab", label: "Laboratory", perm: "lab:read", icon: "flask" },
+    { href: "/pharmacy", label: "Pharmacy", perm: "pharmacy:read", icon: "pill" }] },
   { group: "Money", items: [
-    { href: "/billing", label: "Billing", perm: "billing:read" },
-    { href: "/claims", label: "Claims (Madai)", perm: "claims:read" },
-    { href: "/reports", label: "Reports", perm: "reports:read" }] },
+    { href: "/billing", label: "Billing", perm: "billing:read", icon: "receipt" },
+    { href: "/claims", label: "Claims (Madai)", perm: "claims:read", icon: "shield" },
+    { href: "/reports", label: "Reports", perm: "reports:read", icon: "chart" }] },
   { group: "Admin", items: [
-    { href: "/admin/staff", label: "Staff", perm: "staff:read" },
-    { href: "/admin/roles", label: "Roles", perm: "staff:read" },
-    { href: "/admin/facilities", label: "Facilities", perm: "facilities:manage" },
-    { href: "/admin/audit", label: "Audit", perm: "audit:read" }] }
+    { href: "/admin/staff", label: "Staff", perm: "staff:read", icon: "staff" },
+    { href: "/admin/roles", label: "Roles", perm: "staff:read", icon: "key" },
+    { href: "/admin/facilities", label: "Facilities", perm: "facilities:manage", icon: "building" },
+    { href: "/admin/audit", label: "Audit", perm: "audit:read", icon: "audit" }] }
 ];
 
-export function Shell({ children }: { children: React.ReactNode }) {
+function Brand() {
+  return (
+    <Link href="/" aria-label="HMS overview" className="flex items-center gap-2.5">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/logo-icon.flat.svg" alt="" className="h-9 w-9" />
+      <span className="leading-tight">
+        <span className="block font-[family-name:var(--font-display)] text-lg font-semibold tracking-[-0.01em]">HMS</span>
+        <span className="block text-sm text-muted">Health management</span>
+      </span>
+    </Link>
+  );
+}
+
+function SidebarBody({ path }: { path: string }) {
   const { me, can, facilityId, setFacility } = useSession();
-  const path = usePathname();
   const signOut = async () => {
     await fetch("/api/session", { method: "DELETE" });
     window.location.href = "/login";
   };
   return (
-    <div className="flex min-h-screen">
-      <aside className="sticky top-0 hidden h-screen w-48 shrink-0 flex-col border-r border-line bg-surface sm:flex">
-        <div className="border-b border-line px-3 py-2.5 text-lg font-semibold text-accent">HMS</div>
-        <nav className="flex-1 space-y-3 overflow-y-auto px-2 py-3">
-          {NAV.map((g) => {
-            const items = g.items.filter((i) => !i.perm || can(i.perm));
-            if (!items.length) return null;
-            return (
-              <div key={g.group}>
-                <div className="px-2 pb-1 text-2xs font-semibold uppercase tracking-wide text-faint">{g.group}</div>
+    <>
+      <div className="hidden border-b border-line px-5 py-3 lg:block"><Brand /></div>
+      <nav className="flex-1 space-y-3 overflow-y-auto px-3 py-3" aria-label="Main">
+        {NAV.map((g) => {
+          const items = g.items.filter((i) => !i.perm || can(i.perm));
+          if (!items.length) return null;
+          return (
+            <div key={g.group}>
+              <div className="px-3 pb-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-faint">{g.group}</div>
+              <div className="space-y-0.5">
                 {items.map((i) => {
                   const active = i.href === "/" ? path === "/" : path.startsWith(i.href);
                   return (
-                    <Link key={i.href} href={i.href} className={`block rounded-md px-2 py-1 text-xs ${active ? "bg-accent-soft font-semibold text-accent" : "text-ink hover:bg-raised"}`}>
+                    <Link key={i.href} href={i.href} aria-current={active ? "page" : undefined}
+                      className={`relative flex items-center gap-3 rounded-lg px-3 py-1 text-sm font-semibold ${active ? "bg-accent-soft text-accent-deep" : "text-muted hover:bg-raised hover:text-ink"}`}>
+                      {active && <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-r bg-accent" aria-hidden="true" />}
+                      <Icon name={i.icon} className={`h-[18px] w-[18px] shrink-0 ${active ? "text-accent" : ""}`} />
                       {i.label}
                     </Link>
                   );
                 })}
               </div>
-            );
-          })}
-        </nav>
-        <div className="space-y-1 border-t border-line p-2 text-xs">
-          <select value={facilityId} onChange={(e) => setFacility(e.target.value)} aria-label="Facility" className="w-full rounded-md border border-line bg-surface px-1.5 py-1 text-xs">
+            </div>
+          );
+        })}
+      </nav>
+      <div className="space-y-2.5 border-t border-line p-3">
+        <label className="block">
+          
+          <select value={facilityId} onChange={(e) => setFacility(e.target.value)} aria-label="Facility"
+            className="w-full cursor-pointer rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm font-semibold">
             {me.facilities.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
-          <div className="truncate px-0.5 text-muted">{me.fullName}</div>
-          <button onClick={signOut} className="px-0.5 text-accent hover:underline">Sign out</button>
+        </label>
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <div className="truncate text-sm font-semibold">{me.fullName}</div>
+            <div className="text-sm text-muted">Signed in</div>
+          </div>
+          <button onClick={signOut} aria-label="Sign out" title="Sign out" className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted hover:bg-raised hover:text-ink">
+            <Icon name="logout" className="h-5 w-5" />
+          </button>
         </div>
+      </div>
+    </>
+  );
+}
+
+export function Shell({ children }: { children: React.ReactNode }) {
+  const path = usePathname();
+  const [drawer, setDrawer] = useState(false);
+  // A drawer left open across a navigation would cover the page it just opened.
+  useEffect(() => setDrawer(false), [path]);
+  return (
+    <div className="flex min-h-screen">
+      <aside className="sticky top-0 hidden h-screen w-[272px] shrink-0 flex-col border-r border-line bg-surface lg:flex">
+        <SidebarBody path={path} />
       </aside>
-      <main className="min-w-0 flex-1">{children}</main>
+      <div className="min-w-0 flex-1">
+        <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-line bg-surface px-4 lg:hidden">
+          <Brand />
+          <button type="button" aria-label="Open menu" onClick={() => setDrawer(true)} className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg hover:bg-raised">
+            <Icon name="menu" className="h-6 w-6" />
+          </button>
+        </header>
+        {drawer && (
+          <div className="fixed inset-0 z-[70] lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
+            <button type="button" aria-label="Close menu" className="absolute inset-0 cursor-default bg-[rgba(15,32,39,0.45)]" onClick={() => setDrawer(false)} />
+            <aside className="absolute inset-y-0 left-0 flex w-[300px] max-w-[86vw] flex-col bg-surface shadow-[var(--shadow-lift)]">
+              <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
+                <Brand />
+                <button type="button" aria-label="Close menu" onClick={() => setDrawer(false)} className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-muted hover:bg-raised">
+                  <Icon name="close" className="h-5 w-5" />
+                </button>
+              </div>
+              <SidebarBody path={path} />
+            </aside>
+          </div>
+        )}
+        <main>{children}</main>
+      </div>
     </div>
   );
 }

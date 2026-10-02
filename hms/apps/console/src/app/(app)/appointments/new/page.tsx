@@ -36,9 +36,9 @@ export default function BookAppointment() {
       <Card title="Free slots">
         <div className="flex flex-wrap gap-1">
           {(slots.data ?? []).map((s) => (
-            <button key={s.start} type="button" onClick={() => setSlot(s)} className={`rounded-md border px-2 py-1 text-xs ${slot?.start === s.start ? "border-accent bg-accent-soft font-semibold text-accent" : "border-line hover:bg-raised"}`}>{time(s.start)}</button>
+            <button key={s.start} type="button" onClick={() => setSlot(s)} className={`cursor-pointer rounded-lg border px-3 py-2 text-sm font-semibold ${slot?.start === s.start ? "border-accent bg-accent-soft font-semibold text-accent" : "border-line hover:bg-raised"}`}>{time(s.start)}</button>
           ))}
-          {slots.data?.length === 0 && <span className="text-xs text-muted">No free slots that day.</span>}
+          {slots.data?.length === 0 && <span className="text-sm text-muted">No free slots that day.</span>}
         </div>
       </Card>
       <Field label="Reason"><Input value={reason} onChange={(e) => setReason(e.target.value)} /></Field>

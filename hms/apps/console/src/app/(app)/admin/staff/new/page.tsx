@@ -31,8 +31,8 @@ export default function NewStaff() {
           <Field label="Licence number"><Input value={f.licenceNo} onChange={set("licenceNo")} /></Field>
           <Field label="Temporary password" hint="At least 12 characters. Tell them to change it."><Input type="password" required minLength={12} value={f.password} onChange={set("password")} /></Field>
         </Grid></Card>
-        <Card title="Roles"><div className="grid grid-cols-1 gap-1 sm:grid-cols-3">{(roles.data ?? []).map((r) => <label key={r.key} className="flex items-center gap-2 text-xs"><input type="checkbox" checked={picked.includes(r.key)} onChange={(e) => setPicked(toggle(picked, r.key, e.target.checked))} /> {r.label}</label>)}</div></Card>
-        <Card title="Works at"><div className="grid grid-cols-1 gap-1 sm:grid-cols-3">{me.facilities.map((x) => <label key={x.id} className="flex items-center gap-2 text-xs"><input type="checkbox" checked={sites.includes(x.id)} onChange={(e) => setSites(toggle(sites, x.id, e.target.checked))} /> {x.name}</label>)}</div></Card>
+        <Card title="Roles"><div className="grid grid-cols-1 gap-1 sm:grid-cols-3">{(roles.data ?? []).map((r) => <label key={r.key} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={picked.includes(r.key)} onChange={(e) => setPicked(toggle(picked, r.key, e.target.checked))} /> {r.label}</label>)}</div></Card>
+        <Card title="Works at"><div className="grid grid-cols-1 gap-1 sm:grid-cols-3">{me.facilities.map((x) => <label key={x.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={sites.includes(x.id)} onChange={(e) => setSites(toggle(sites, x.id, e.target.checked))} /> {x.name}</label>)}</div></Card>
         <ErrorNote error={error} />
         <Button type="submit" busy={busy} disabled={picked.length === 0 || sites.length === 0}>Create</Button>
       </form>

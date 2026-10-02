@@ -35,7 +35,7 @@ export default function Admit() {
           <Field label="Ward"><Select value={ward} onChange={(e) => { setWardId(e.target.value); setBedId(""); }}>{(wards.data ?? []).map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}</Select></Field>
           <Field label="Bed"><Select value={bedId || free[0]?.id || ""} onChange={(e) => setBedId(e.target.value)}>{free.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}</Select></Field>
         </Grid>
-        {free.length === 0 && <p className="pt-2 text-xs text-warn">No free beds in this ward.</p>}</Card>
+        {free.length === 0 && <p className="pt-2 text-sm text-warn">No free beds in this ward.</p>}</Card>
         <ErrorNote error={error} /><Button type="submit" busy={busy} disabled={!patient || free.length === 0}>Admit</Button>
       </form>
     </Page>

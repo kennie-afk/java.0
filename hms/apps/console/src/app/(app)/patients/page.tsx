@@ -14,7 +14,7 @@ export default function Patients() {
   return (
     <Page title="Patients" actions={can("patients:write") && <Button href="/patients/new">Register patient</Button>}>
       <Card pad={false}>
-        <div className="border-b border-line p-2"><Input placeholder="Search name, MRN, ID number or phone" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+        <div className="border-b border-line p-3"><Input placeholder="Search name, MRN, ID number or phone" value={q} onChange={(e) => setQ(e.target.value)} /></div>
         {list.loading && list.items.length === 0 ? <Loading /> : (
           <Table head={["Name", "MRN", "Sex", "Born", "Phone"]} empty="No patients match.">
             {list.items.map((p) => (

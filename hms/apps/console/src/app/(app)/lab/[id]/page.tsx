@@ -48,7 +48,7 @@ export default function LabOrder({ params }: { params: Promise<{ id: string }> }
           ))}
         </Table>
       </Card>
-      <p className="text-xs text-muted">Whoever validates a result must be a different person from whoever entered it. Clinicians see only validated results.</p>
+      <p className="text-sm text-muted">Whoever validates a result must be a different person from whoever entered it. Clinicians see only validated results.</p>
     </Page>
   );
 }

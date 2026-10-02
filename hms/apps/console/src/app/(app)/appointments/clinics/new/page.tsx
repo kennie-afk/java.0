@@ -31,7 +31,7 @@ export default function NewClinic() {
           <Field label="From"><Input type="time" value={f.start} onChange={(e) => setF({ ...f, start: e.target.value })} /></Field>
           <Field label="To"><Input type="time" value={f.end} onChange={(e) => setF({ ...f, end: e.target.value })} /></Field>
         </Grid>
-        <div className="flex gap-3 pt-3">{DAYS.map((d, i) => <label key={d} className="flex items-center gap-1 text-xs"><input type="checkbox" checked={days.includes(i + 1)} onChange={(e) => setDays(e.target.checked ? [...days, i + 1] : days.filter((x) => x !== i + 1))} /> {d}</label>)}</div></Card>
+        <div className="flex gap-3 pt-3">{DAYS.map((d, i) => <label key={d} className="flex items-center gap-1 text-sm"><input type="checkbox" checked={days.includes(i + 1)} onChange={(e) => setDays(e.target.checked ? [...days, i + 1] : days.filter((x) => x !== i + 1))} /> {d}</label>)}</div></Card>
         <ErrorNote error={error} /><Button type="submit" busy={busy} disabled={!who || days.length === 0}>Create clinic</Button>
       </form>
     </Page>

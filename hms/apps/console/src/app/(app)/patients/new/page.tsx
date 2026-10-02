@@ -43,7 +43,7 @@ export default function NewPatient() {
     <Page title="Register patient">
       {matches && (
         <Card title="This person may already be registered">
-          <ul className="space-y-1 text-xs">
+          <ul className="space-y-1 text-sm">
             {matches.map((m) => (
               <li key={m.id} className="flex justify-between">
                 <a className="text-accent hover:underline" href={`/patients/${m.id}`}>{m.givenName} {m.familyName} · {m.mrn} · born {m.birthDate}</a>
@@ -52,7 +52,7 @@ export default function NewPatient() {
             ))}
           </ul>
           {matches.some((m) => m.reason === "IDENTIFIER") ? (
-            <p className="pt-2 text-xs text-danger">The same ID number is already registered. Open that record instead.</p>
+            <p className="pt-2 text-sm text-danger">The same ID number is already registered. Open that record instead.</p>
           ) : (
             <div className="flex gap-2 pt-2">
               <Button variant="secondary" onClick={() => setMatches(null)}>Edit details</Button>

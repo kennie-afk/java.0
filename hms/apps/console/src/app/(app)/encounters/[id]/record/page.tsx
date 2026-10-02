@@ -83,7 +83,7 @@ export default function Record({ params }: { params: Promise<{ id: string }> }) 
           )}
           {kind === "amend" && (
             <div className="space-y-3">
-              <p className="text-xs text-muted">The earlier text stays on record. State why it is being changed.</p>
+              <p className="text-sm text-muted">The earlier text stays on record. State why it is being changed.</p>
               <Field label="New text"><Textarea rows={8} required value={v("body")} onChange={set("body")} /></Field>
               <Field label="Reason for amendment"><Input required minLength={5} value={v("reason")} onChange={set("reason")} /></Field>
             </div>
@@ -115,8 +115,8 @@ export default function Record({ params }: { params: Promise<{ id: string }> }) 
                 <Field label="Description"><Input required value={v("description")} onChange={set("description")} /></Field>
               )}
               {override !== null && (
-                <div className="space-y-2 rounded-md border border-danger bg-danger-soft p-2">
-                  <p className="text-xs text-danger">This drug matches a recorded allergy. To prescribe anyway, state why.</p>
+                <div className="space-y-2 rounded-lg border border-[#f5cdcb] bg-danger-soft p-3">
+                  <p className="text-sm text-danger">This drug matches a recorded allergy. To prescribe anyway, state why.</p>
                   <Input required minLength={10} placeholder="Reason (at least 10 characters)" value={override} onChange={(e) => setOverride(e.target.value)} />
                 </div>
               )}

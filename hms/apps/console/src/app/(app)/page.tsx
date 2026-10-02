@@ -25,25 +25,25 @@ export default function Overview() {
   return (
     <Page title={facility.name} sub="Today at a glance. Reports cover the last 7 days.">
       <Grid cols={4}>
-        {queue.data && <Stat label="Waiting now" value={queue.data.length} />}
-        {pharmacy.data && <Stat label="Prescriptions waiting" value={pharmacy.data.data.length + (pharmacy.data.nextCursor ? "+" : "")} />}
-        {critical.data && <Stat label="Unacknowledged critical results" value={critical.data.length} tone={critical.data.length ? "danger" : undefined} />}
-        {claims.data && <Stat label="Claims needing attention" value={claims.data.byStatus.NEEDS_ATTENTION ?? 0} tone={(claims.data.byStatus.NEEDS_ATTENTION ?? 0) > 0 ? "warn" : undefined} />}
+        {queue.data && <Stat icon="queue" label="Waiting now" value={queue.data.length} hint="Checked in, not yet seen" />}
+        {pharmacy.data && <Stat icon="pill" label="Prescriptions waiting" value={pharmacy.data.data.length + (pharmacy.data.nextCursor ? "+" : "")} hint="Awaiting dispensing" />}
+        {critical.data && <Stat icon="alert" label="Critical results" value={critical.data.length} tone={critical.data.length ? "danger" : undefined} hint="Unacknowledged lab results" />}
+        {claims.data && <Stat icon="shield" label="Claims need attention" value={claims.data.byStatus.NEEDS_ATTENTION ?? 0} tone={(claims.data.byStatus.NEEDS_ATTENTION ?? 0) > 0 ? "warn" : undefined} hint="Fix before submission" />}
       </Grid>
       {r && (
         <Grid cols={4}>
-          <Stat label="Outpatient visits" value={`${r.outpatient.visits} (${r.outpatient.under5} under 5)`} />
-          <Stat label="Collected" value={kes(r.finance.collected)} />
-          <Stat label="Outstanding" value={kes(r.finance.outstanding)} />
-          <Stat label="Bed occupancy" value={`${r.inpatient.bedsOccupied}/${r.inpatient.bedsTotal} (${r.inpatient.occupancyPercent}%)`} />
+          <Stat icon="patients" label="Outpatient visits" value={r.outpatient.visits} hint={`${r.outpatient.under5} under 5 years`} />
+          <Stat icon="money" label="Collected" value={kes(r.finance.collected)} hint="Payments in the last 7 days" />
+          <Stat icon="receipt" label="Outstanding" value={kes(r.finance.outstanding)} tone="warn" hint="Invoiced and not yet paid" />
+          <Stat icon="bed" label="Bed occupancy" value={`${r.inpatient.occupancyPercent}%`} hint={`${r.inpatient.bedsOccupied} of ${r.inpatient.bedsTotal} beds in use`} />
         </Grid>
       )}
       {r && r.outpatient.topDiagnoses.length > 0 && (
         <Card title="Top diagnoses (7 days)">
-          <ul className="space-y-1 text-xs">
-            {r.outpatient.topDiagnoses.map((t) => <li key={t.key} className="flex justify-between"><span>{t.key}</span><b className="tabular-nums">{t.count}</b></li>)}
+          <ul className="divide-y divide-line text-base">
+            {r.outpatient.topDiagnoses.map((t) => <li key={t.key} className="flex justify-between py-2.5"><span>{t.key}</span><b className="tabular-nums">{t.count}</b></li>)}
           </ul>
-          <div className="pt-2 text-xs"><Link href="/reports" className="text-accent hover:underline">All reports</Link></div>
+          <div className="pt-3 text-sm"><Link href="/reports" className="font-semibold text-accent hover:underline">All reports</Link></div>
         </Card>
       )}
     </Page>

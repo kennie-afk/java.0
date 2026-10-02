@@ -4,7 +4,7 @@ import { use } from "react";
 import { post, useFetch } from "@/lib/api";
 import { kes, stamp } from "@/lib/format";
 import { useSession } from "@/lib/session";
-import { Badge, Button, Card, Confirm, ErrorNote, KV, Grid, Loading, Page, Status, Table, Td, Tr, useAction } from "@/components/ui";
+import { Badge, Button, Card, Confirm, ErrorNote, KV, Grid, Loading, Page, Status, Table, Td, Tr, useAction, Notice } from "@/components/ui";
 
 type Issue = { ruleCode: string; severity: string; field?: string; message: string };
 type Sub = { id: string; adapter: string; verified: boolean; sent: boolean; outcome: string; detail?: string; submittedAt: string };
@@ -26,7 +26,7 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
       {can("claims:submit") && d.status === "READY" && <Button busy={act.busy} onClick={() => void go(() => post(`/v1/claims/${id}/submit`))}>Submit (stub: sends nothing)</Button>}
       {can("claims:submit") && open && <Confirm label="Withdraw" prompt="Withdraw this claim?" needsReason onConfirm={(reason) => go(() => post(`/v1/claims/${id}/withdraw`, { reason }))} />}
     </>}>
-      <div role="note" className="rounded-md border border-warn bg-warn-soft px-3 py-2 text-xs text-warn">{d.disclaimer}</div>
+      <Notice tone="warn" title="Unverified">{d.disclaimer}</Notice>
       <ErrorNote error={act.error} />
       <Card title="Readiness" pad={false}>
         <Table head={["Severity", "Rule", "Field", "Detail"]} empty="No issues. This claim passes every readiness check.">

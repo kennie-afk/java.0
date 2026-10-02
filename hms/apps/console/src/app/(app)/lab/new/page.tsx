@@ -35,10 +35,10 @@ export default function NewLabOrder() {
         <Card title="Tests">
           <div className="grid grid-cols-1 gap-1 sm:grid-cols-3">
             {(tests.data ?? []).map((t) => (
-              <label key={t.id} className="flex items-center gap-2 text-xs"><input type="checkbox" checked={picked.includes(t.id)} onChange={(e) => setPicked(e.target.checked ? [...picked, t.id] : picked.filter((x) => x !== t.id))} /> {t.name} <span className="text-faint">{t.code}</span></label>
+              <label key={t.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={picked.includes(t.id)} onChange={(e) => setPicked(e.target.checked ? [...picked, t.id] : picked.filter((x) => x !== t.id))} /> {t.name} <span className="text-faint">{t.code}</span></label>
             ))}
           </div>
-          {tests.data?.length === 0 && <p className="text-xs text-muted">The catalogue is empty. Add tests under Test catalogue.</p>}
+          {tests.data?.length === 0 && <p className="text-sm text-muted">The catalogue is empty. Add tests under Test catalogue.</p>}
         </Card>
         <ErrorNote error={error} />
         <Button type="submit" busy={busy} disabled={!patient || picked.length === 0}>Place order</Button>

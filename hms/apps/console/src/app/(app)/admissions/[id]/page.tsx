@@ -33,7 +33,7 @@ export default function Admission({ params }: { params: Promise<{ id: string }> 
     </>}>
       <ErrorNote error={act.error} />
       <Grid cols={3}><KV k="Bed" v={d.currentBed ? `${d.currentWard} ${d.currentBed}` : ""} /><KV k="Admitting diagnosis" v={d.admittingDiagnosis} /><KV k="Outcome" v={d.dischargeType} /></Grid>
-      {d.dischargeSummary && <Card title="Discharge summary"><p className="whitespace-pre-wrap text-xs">{d.dischargeSummary}</p></Card>}
+      {d.dischargeSummary && <Card title="Discharge summary"><p className="whitespace-pre-wrap text-sm">{d.dischargeSummary}</p></Card>}
       <Card title="Bed history" pad={false}>
         <Table head={["Ward", "Bed", "From", "To", "Reason"]} empty="">{d.history.map((h, n) => <Tr key={n}><Td>{h.wardName}</Td><Td>{h.bedLabel}</Td><Td>{stamp(h.assignedAt)}</Td><Td>{stamp(h.releasedAt)}</Td><Td>{h.reason}</Td></Tr>)}</Table>
       </Card>

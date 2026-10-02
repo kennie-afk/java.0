@@ -18,7 +18,7 @@ export default function Appointments() {
   return (
     <Page title="Appointments" actions={<>{can("facilities:manage") && <Button variant="secondary" href="/appointments/clinics/new">New clinic</Button>}{can("scheduling:write") && <Button href="/appointments/new">Book appointment</Button>}</>}>
       <Card pad={false}>
-        <div className="flex gap-2 border-b border-line p-2">
+        <div className="flex gap-2 border-b border-line p-3">
           <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="max-w-36" />
           <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="max-w-36" />
         </div>

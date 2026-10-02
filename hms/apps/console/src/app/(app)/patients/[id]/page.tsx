@@ -62,12 +62,12 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
             <KV k="Phone" v={d.phone} /><KV k="County" v={d.county} />
             {d.identifiers.map((i) => <KV key={i.system + i.value} k={i.system.replaceAll("_", " ")} v={i.value} />)}
           </Grid>
-          {d.contacts.length > 0 && <div className="mt-3 border-t border-line pt-2 text-xs">Next of kin: {d.contacts.map((c) => `${c.fullName} (${c.relationship}${c.phone ? ", " + c.phone : ""})`).join("; ")}</div>}
+          {d.contacts.length > 0 && <div className="mt-3 border-t border-line pt-2 text-sm">Next of kin: {d.contacts.map((c) => `${c.fullName} (${c.relationship}${c.phone ? ", " + c.phone : ""})`).join("; ")}</div>}
         </Card>
         {allergies.data && (
           <Card title="Allergies" actions={can("clinical:write") && <Button variant="secondary" href={`/patients/${id}/allergy`}>Add</Button>}>
-            {allergies.data.length === 0 ? <div className="text-xs text-muted">None recorded.</div> : (
-              <ul className="space-y-1 text-xs">
+            {allergies.data.length === 0 ? <div className="text-sm text-muted">None recorded.</div> : (
+              <ul className="space-y-1 text-sm">
                 {allergies.data.map((a) => <li key={a.id}><b>{a.substance}</b> <Badge tone={a.severity === "MILD" ? "neutral" : "danger"}>{a.severity}</Badge> {a.status !== "ACTIVE" && <Badge>{a.status}</Badge>} <span className="text-muted">{a.reaction}</span></li>)}
               </ul>
             )}

@@ -14,7 +14,7 @@ export default function Movements() {
   const list = usePaged<Move>(`/v1/pharmacy/stock/movements?facilityId=${facilityId}&controlledOnly=${controlled}`);
   return (
     <Page title="Stock ledger" sub="Every change in stock. It cannot be edited.">
-      <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={controlled} onChange={(e) => setControlled(e.target.checked)} /> Controlled drugs only (the register)</label>
+      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={controlled} onChange={(e) => setControlled(e.target.checked)} /> Controlled drugs only (the register)</label>
       <Card pad={false}>
         {list.loading && list.items.length === 0 ? <Loading /> : (
           <Table head={["When", "Product", "Change", "Reason", "Witness", "Note"]} empty="No movements.">

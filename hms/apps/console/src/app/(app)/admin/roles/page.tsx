@@ -33,8 +33,8 @@ export default function Roles() {
         <Card title="Permissions (you can only grant what you hold)">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {[...grouped.entries()].map(([g, list]) => (
-              <div key={g}><div className="pb-1 text-2xs font-semibold uppercase tracking-wide text-muted">{g}</div>
-                {list.map((p) => <label key={p} className="flex items-center gap-2 text-xs"><input type="checkbox" disabled={!me.permissions.includes(p)} checked={edit.permissions.includes(p)} onChange={(e) => setEdit({ ...edit, permissions: e.target.checked ? [...edit.permissions, p] : edit.permissions.filter((x) => x !== p) })} /> {p}</label>)}</div>
+              <div key={g}><div className="pb-1 text-xs font-semibold uppercase tracking-[0.06em] text-muted">{g}</div>
+                {list.map((p) => <label key={p} className="flex items-center gap-2 text-sm"><input type="checkbox" disabled={!me.permissions.includes(p)} checked={edit.permissions.includes(p)} onChange={(e) => setEdit({ ...edit, permissions: e.target.checked ? [...edit.permissions, p] : edit.permissions.filter((x) => x !== p) })} /> {p}</label>)}</div>
             ))}
           </div>
         </Card>

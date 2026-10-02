@@ -24,7 +24,7 @@ export function PatientPicker({ value, onPick }: { value: PatientRow | null; onP
 
   if (value) {
     return (
-      <div className="flex items-center justify-between rounded-md border border-line bg-raised px-2 py-1 text-xs">
+      <div className="flex items-center justify-between rounded-md border border-line bg-raised px-2 py-1 text-sm">
         <span><b>{value.givenName} {value.familyName}</b> <span className="text-muted">{value.mrn} · {age(value.birthDate)} · {value.sex}</span></span>
         <button type="button" className="text-accent hover:underline" onClick={() => onPick(null)}>Change</button>
       </div>
@@ -37,7 +37,7 @@ export function PatientPicker({ value, onPick }: { value: PatientRow | null; onP
         <ul className="rounded-md border border-line bg-surface">
           {rows.map((p) => (
             <li key={p.id}>
-              <button type="button" onClick={() => onPick(p)} className="flex w-full justify-between px-2 py-1 text-left text-xs hover:bg-raised">
+              <button type="button" onClick={() => onPick(p)} className="flex w-full justify-between px-2 py-1 text-left text-sm hover:bg-raised">
                 <span className="font-medium">{p.givenName} {p.familyName}</span>
                 <span className="text-muted">{p.mrn} · {date(p.birthDate)}</span>
               </button>

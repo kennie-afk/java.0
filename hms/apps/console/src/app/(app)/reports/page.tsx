@@ -48,7 +48,7 @@ export default function Reports() {
             <Card title="Discharge outcomes" pad={false}><List rows={r.data.inpatient.dischargesByOutcome} /></Card>
             <Card title="Lab result flags" pad={false}><List rows={r.data.laboratory.byFlag} /></Card>
           </Grid>
-          <p className="text-xs text-muted">{r.data.outpatient.note}</p>
+          <p className="text-sm text-muted">{r.data.outpatient.note}</p>
         </>
       )}
     </Page>

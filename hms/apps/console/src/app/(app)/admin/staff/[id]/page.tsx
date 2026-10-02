@@ -34,8 +34,8 @@ export default function StaffPage({ params }: { params: Promise<{ id: string }> 
       {manage && (
         <>
           <Card title="Roles and facilities" actions={<Button busy={act.busy} onClick={() => void go(() => put(`/v1/staff/${id}/assignment`, { roles: picked, facilityIds: sites }))}>Save</Button>}>
-            <div className="grid grid-cols-1 gap-1 sm:grid-cols-3">{(roles.data ?? []).map((r) => <label key={r.key} className="flex items-center gap-2 text-xs"><input type="checkbox" checked={picked.includes(r.key)} onChange={(e) => setPicked(toggle(picked, r.key, e.target.checked))} /> {r.label}</label>)}</div>
-            <div className="mt-3 grid grid-cols-1 gap-1 border-t border-line pt-3 sm:grid-cols-3">{me.facilities.map((x) => <label key={x.id} className="flex items-center gap-2 text-xs"><input type="checkbox" checked={sites.includes(x.id)} onChange={(e) => setSites(toggle(sites, x.id, e.target.checked))} /> {x.name}</label>)}</div>
+            <div className="grid grid-cols-1 gap-1 sm:grid-cols-3">{(roles.data ?? []).map((r) => <label key={r.key} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={picked.includes(r.key)} onChange={(e) => setPicked(toggle(picked, r.key, e.target.checked))} /> {r.label}</label>)}</div>
+            <div className="mt-3 grid grid-cols-1 gap-1 border-t border-line pt-3 sm:grid-cols-3">{me.facilities.map((x) => <label key={x.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={sites.includes(x.id)} onChange={(e) => setSites(toggle(sites, x.id, e.target.checked))} /> {x.name}</label>)}</div>
           </Card>
           <Card title="Reset password">
             <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); void go(async () => { await post(`/v1/staff/${id}/reset-password`, { temporaryPassword: pw }); setPw(""); }); }}>

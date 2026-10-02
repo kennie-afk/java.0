@@ -38,7 +38,7 @@ export default function Pharmacy() {
       )}
       {tab === "stock" && (
         <Card pad={false}>
-          <div className="border-b border-line p-2"><Input placeholder="Search products" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+          <div className="border-b border-line p-3"><Input placeholder="Search products" value={q} onChange={(e) => setQ(e.target.value)} /></div>
           <Table head={["Product", "Form", "Usable", "Expired", "Reorder at", ""]} empty="No products.">
             {stock.items.map((s) => (
               <Tr key={s.drugId}>

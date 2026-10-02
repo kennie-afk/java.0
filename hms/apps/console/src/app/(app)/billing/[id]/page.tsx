@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { api, post, useFetch } from "@/lib/api";
 import { kes, stamp, uuid } from "@/lib/format";
 import { useSession } from "@/lib/session";
-import { Badge, Button, Card, Confirm, ErrorNote, Field, Grid, Input, KV, Loading, Page, Select, Status, Table, Td, Tr, useAction } from "@/components/ui";
+import { Badge, Button, Card, Confirm, ErrorNote, Field, Grid, Input, KV, Loading, Page, Select, Stat, Status, Table, Td, Tr, useAction } from "@/components/ui";
 
 type Line = { id: string; description: string; sourceType: string; quantity: number; unitPrice: number; lineTotal: number };
 type Pay = { id: string; method: string; amount: number; status: string; receiptNumber?: string; mpesaCheckoutId?: string; mpesaReceipt?: string; completedAt?: string; reference?: string };
@@ -35,7 +35,7 @@ export default function Invoice({ params }: { params: Promise<{ id: string }> })
       {d.status !== "VOID" && can("billing:refund") && <Confirm label="Void" prompt="Void this invoice? Possible only when no payment stands." needsReason onConfirm={(reason) => go(() => post(`/v1/billing/invoices/${id}/void`, { reason }))} />}
     </>}>
       <ErrorNote error={act.error} />
-      <Grid cols={3}><KV k="Total" v={kes(d.total)} /><KV k="Paid" v={kes(d.amountPaid)} /><KV k="Balance" v={<b>{kes(d.balance)}</b>} /></Grid>
+      <Grid cols={3}><Stat icon="receipt" label="Total" value={kes(d.total)} /><Stat icon="money" label="Paid" value={kes(d.amountPaid)} /><Stat icon="clock" label="Balance" value={kes(d.balance)} tone={d.balance > 0 ? "warn" : undefined} /></Grid>
       <Card title="Lines" pad={false}>
         <Table head={["Description", "Source", "Qty", "Unit price", "Total", ""]} empty="No lines yet.">
           {d.lines.map((l) => (
@@ -44,7 +44,7 @@ export default function Invoice({ params }: { params: Promise<{ id: string }> })
           ))}
         </Table>
         {draft && can("billing:post") && (
-          <form className="grid grid-cols-1 gap-2 border-t border-line p-3 sm:grid-cols-5" onSubmit={(e) => { e.preventDefault(); void go(async () => { await post(`/v1/billing/invoices/${id}/lines`, line.chargeId ? { chargeId: line.chargeId, quantity: Number(line.quantity) } : { description: line.description, unitPrice: Number(line.unitPrice), quantity: Number(line.quantity) }); setLine({ chargeId: "", description: "", unitPrice: "", quantity: "1" }); }); }}>
+          <form className="grid grid-cols-1 gap-2 border-t border-line p-4 sm:grid-cols-5" onSubmit={(e) => { e.preventDefault(); void go(async () => { await post(`/v1/billing/invoices/${id}/lines`, line.chargeId ? { chargeId: line.chargeId, quantity: Number(line.quantity) } : { description: line.description, unitPrice: Number(line.unitPrice), quantity: Number(line.quantity) }); setLine({ chargeId: "", description: "", unitPrice: "", quantity: "1" }); }); }}>
             <Select value={line.chargeId} onChange={(e) => setLine({ ...line, chargeId: e.target.value })}><option value="">Custom line</option>{(charges.data ?? []).map((c) => <option key={c.id} value={c.id}>{c.name} ({kes(c.price)})</option>)}</Select>
             <Input placeholder="Description" disabled={!!line.chargeId} value={line.description} onChange={(e) => setLine({ ...line, description: e.target.value })} />
             <Input type="number" step="0.01" placeholder="Unit price" disabled={!!line.chargeId} value={line.unitPrice} onChange={(e) => setLine({ ...line, unitPrice: e.target.value })} />
@@ -68,7 +68,7 @@ export default function Invoice({ params }: { params: Promise<{ id: string }> })
           ))}
         </Table>
         {payable && can("billing:post") && (
-          <form className="grid grid-cols-1 gap-2 border-t border-line p-3 sm:grid-cols-5" onSubmit={(e) => { e.preventDefault(); void go(async () => {
+          <form className="grid grid-cols-1 gap-2 border-t border-line p-4 sm:grid-cols-5" onSubmit={(e) => { e.preventDefault(); void go(async () => {
             const key = uuid();
             if (pay.method === "MPESA") await post(`/v1/billing/invoices/${id}/mpesa`, { phone: pay.phone, amount: Number(pay.amount), idempotencyKey: key });
             else await post(`/v1/billing/invoices/${id}/payments`, { method: pay.method, amount: Number(pay.amount), reference: pay.reference || undefined, idempotencyKey: key });
@@ -81,7 +81,7 @@ export default function Invoice({ params }: { params: Promise<{ id: string }> })
           </form>
         )}
       </Card>
-      {payable && <p className="text-xs text-muted">M-Pesa here is a simulation: no prompt is sent to any phone. A live integration has not been built or verified.</p>}
+      {payable && <p className="text-sm text-muted">M-Pesa here is a simulation: no prompt is sent to any phone. A live integration has not been built or verified.</p>}
     </Page>
   );
 }

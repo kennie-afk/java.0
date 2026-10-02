@@ -4,7 +4,7 @@ import { use } from "react";
 import { post, useFetch } from "@/lib/api";
 import { age, date, stamp } from "@/lib/format";
 import { useSession } from "@/lib/session";
-import { Badge, Button, Card, Confirm, ErrorNote, Grid, KV, Loading, Page, Status, Table, Td, Tr } from "@/components/ui";
+import { Badge, Button, Card, Confirm, ErrorNote, Grid, KV, Loading, Page, Status, Table, Td, Tr, Notice } from "@/components/ui";
 
 type Vitals = { id: string; recordedAt: string; tempC?: number; pulse?: number; respRate?: number; systolic?: number; diastolic?: number; spo2?: number; weightKg?: number; bmi?: number; retracted: boolean; alerts: string[] };
 type Note = { id: string; threadId: string; version: number; kind: string; body: string; createdAt: string; amendReason?: string };
@@ -40,11 +40,9 @@ export default function Chart({ params }: { params: Promise<{ id: string }> }) {
           onConfirm={async (reason) => { await post(`/v1/clinical/encounters/${id}/close`, reason ? { noDiagnosisReason: reason } : {}); await d.reload(); }} />}
       </>}>
       {activeAllergies.length > 0 && (
-        <div role="alert" className="rounded-md border border-danger bg-danger-soft px-3 py-2 text-xs text-danger">
-          <b>Allergies:</b> {activeAllergies.map((a) => `${a.substance} (${a.severity})`).join(", ")}
-        </div>
+        <Notice tone="danger" title="Allergies">{activeAllergies.map((a) => `${a.substance} (${a.severity})`).join(", ")}</Notice>
       )}
-      {e.chiefComplaint && <div className="text-xs"><b>Complaint:</b> {e.chiefComplaint}</div>}
+      {e.chiefComplaint && <div className="text-sm"><b>Complaint:</b> {e.chiefComplaint}</div>}
       <Grid cols={2}>
         <Card title="Vitals" actions={write && <Button variant="secondary" href={rec("vitals")}>Record</Button>} pad={false}>
           <Table head={["When", "Temp", "Pulse", "BP", "SpO2", "RR", "Wt", "Alerts"]} empty="No readings.">
@@ -64,10 +62,10 @@ export default function Chart({ params }: { params: Promise<{ id: string }> }) {
         </Card>
       </Grid>
       <Card title="Notes" actions={write && <Button variant="secondary" href={rec("note")}>Write note</Button>}>
-        {d.data.notes.length === 0 ? <div className="text-xs text-muted">No notes.</div> : (
+        {d.data.notes.length === 0 ? <div className="text-sm text-muted">No notes.</div> : (
           <ul className="space-y-3">
             {d.data.notes.map((n) => (
-              <li key={n.id} className="text-xs">
+              <li key={n.id} className="text-sm">
                 <div className="flex items-center gap-2 text-muted"><Badge>{n.kind}</Badge> {stamp(n.createdAt)} {n.version > 1 && <Badge tone="warn">Amended v{n.version}</Badge>}
                   {can("clinical:write") && <a className="text-accent hover:underline" href={`/encounters/${id}/record?kind=amend&thread=${n.threadId}`}>Amend</a>}</div>
                 <p className="whitespace-pre-wrap pt-1">{n.body}</p>
