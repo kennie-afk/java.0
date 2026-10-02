@@ -1,0 +1,43 @@
+spring:
+  application:
+    name: sync-service
+  flyway:
+    enabled: false
+
+server:
+  port: 8082
+  error:
+    include-message: never
+    include-stacktrace: never
+
+mara:
+  identity:
+    base-url: ${MARA_IDENTITY_URL}
+  internal:
+    token: ${MARA_INTERNAL_TOKEN}
+  admin:
+    token: ${MARA_ADMIN_TOKEN}
+  datasource:
+    owner:
+      url: ${MARA_DB_URL}
+      username: ${MARA_DB_OWNER_USER}
+      password: ${MARA_DB_OWNER_PASSWORD}
+      hikari:
+        maximum-pool-size: 2
+        pool-name: mara-sync-owner
+    app:
+      url: ${MARA_DB_URL}
+      username: ${MARA_DB_APP_USER}
+      password: ${MARA_DB_APP_PASSWORD}
+      hikari:
+        maximum-pool-size: 20
+        pool-name: mara-sync-app
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
