@@ -24,6 +24,7 @@ public final class Permissions {
     public static final String LAB_READ = "lab:read";
     public static final String LAB_ENTER = "lab:enter";
     public static final String LAB_VALIDATE = "lab:validate";
+    public static final String LAB_MANAGE = "lab:manage";
     public static final String BILLING_READ = "billing:read";
     public static final String BILLING_POST = "billing:post";
     public static final String BILLING_REFUND = "billing:refund";
@@ -42,7 +43,7 @@ public final class Permissions {
 
     public static final List<String> ALL = List.of(
             PATIENTS_READ, PATIENTS_WRITE, PATIENTS_MERGE, PATIENTS_RESTRICTED, CLINICAL_READ, CLINICAL_WRITE,
-            ORDERS_WRITE, PHARMACY_READ, PHARMACY_DISPENSE, PHARMACY_STOCK, LAB_READ, LAB_ENTER, LAB_VALIDATE,
+            ORDERS_WRITE, PHARMACY_READ, PHARMACY_DISPENSE, PHARMACY_STOCK, LAB_READ, LAB_ENTER, LAB_VALIDATE, LAB_MANAGE,
             BILLING_READ, BILLING_POST, BILLING_REFUND, CLAIMS_READ, CLAIMS_SUBMIT, REPORTS_READ, STAFF_READ,
             STAFF_MANAGE, ROLES_MANAGE, FACILITIES_MANAGE, AUDIT_READ, SCHEDULING_READ, SCHEDULING_WRITE, INPATIENT_READ,
             INPATIENT_WRITE);

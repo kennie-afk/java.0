@@ -26,7 +26,7 @@ public final class DefaultRoles {
             new Template("PHARMACIST", "Pharmacist", "Dispenses and controls stock",
                     List.of(PATIENTS_READ, CLINICAL_READ, PHARMACY_READ, PHARMACY_DISPENSE, PHARMACY_STOCK)),
             new Template("LAB_TECHNOLOGIST", "Laboratory technologist", "Enters and validates results",
-                    List.of(PATIENTS_READ, LAB_READ, LAB_ENTER, LAB_VALIDATE)),
+                    List.of(PATIENTS_READ, LAB_READ, LAB_ENTER, LAB_VALIDATE, LAB_MANAGE)),
             new Template("RECORDS_OFFICER", "Records officer", "Registers patients and keeps the index clean",
                     List.of(PATIENTS_READ, PATIENTS_WRITE, PATIENTS_MERGE, SCHEDULING_READ, SCHEDULING_WRITE)),
             new Template("CASHIER", "Cashier", "Takes payment and issues receipts",
