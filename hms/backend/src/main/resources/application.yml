@@ -1,0 +1,61 @@
+spring:
+  application:
+    name: hms
+  datasource:
+    # The API connects as the least-privilege application role (no ownership, no RLS bypass).
+    url: ${HMS_DB_URL:jdbc:postgresql://localhost:5432/hms}
+    username: ${HMS_DB_APP_USER:hms_app}
+    password: ${HMS_DB_APP_PASSWORD}
+    hikari:
+      maximum-pool-size: ${HMS_DB_POOL_MAX:20}
+      minimum-idle: 2
+      connection-timeout: 3000
+  flyway:
+    enabled: true
+    # Migrations run as the schema OWNER, which creates the application role and the RLS policies.
+    url: ${HMS_DB_URL:jdbc:postgresql://localhost:5432/hms}
+    user: ${HMS_DB_OWNER_USER:hms}
+    password: ${HMS_DB_OWNER_PASSWORD}
+    placeholders:
+      appUser: ${HMS_DB_APP_USER:hms_app}
+      appPassword: ${HMS_DB_APP_PASSWORD}
+  jackson:
+    default-property-inclusion: non_null
+    deserialization:
+      fail-on-unknown-properties: true
+
+server:
+  port: ${PORT:8100}
+  compression:
+    enabled: true
+  shutdown: graceful
+
+hms:
+  jwt:
+    # No default: the service refuses to start without a signing secret of at least 32 characters.
+    secret: ${HMS_JWT_SECRET}
+    ttl-minutes: ${HMS_JWT_TTL_MINUTES:60}
+  cors:
+    allowed-origins: ${HMS_ALLOWED_ORIGINS:http://localhost:3600}
+  roles:
+    cache-ttl-ms: ${HMS_ROLE_CACHE_TTL_MS:15000}
+  security:
+    # Only for local experiments. A superuser or BYPASSRLS role defeats tenant isolation.
+    allow-privileged-db-role: ${HMS_ALLOW_PRIVILEGED_DB_ROLE:false}
+    trust-forwarded-for: ${HMS_TRUST_FORWARDED_FOR:false}
+    login-per-minute: ${HMS_RATELIMIT_LOGIN_PER_MINUTE:10}
+    onboarding-per-hour: ${HMS_RATELIMIT_ONBOARDING_PER_HOUR:5}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+logging:
+  level:
+    root: INFO
