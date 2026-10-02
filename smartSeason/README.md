@@ -24,13 +24,13 @@ frontend. Every service owns its database and communicates asynchronously over K
 ## Quick start
 
 ```bash
-cp .env.example .env          # then set POSTGRES_PASSWORD and JWT_SECRET
+cp .env.example .env          # then set POSTGRES_PASSWORD, JWT_SECRET and S3_SECRET_KEY
 docker compose up -d          # infrastructure, gateway and web only
 docker compose --profile all up -d      # everything
 docker compose --profile core up -d     # identity, farm, season, agronomy, weather
 ```
 
-Compose fails fast if `JWT_SECRET` or `POSTGRES_PASSWORD` is unset, rather than starting
+Compose fails fast if `JWT_SECRET`, `POSTGRES_PASSWORD` or `S3_SECRET_KEY` is unset, rather than starting
 with a default secret.
 
 | Endpoint | URL |
@@ -44,6 +44,37 @@ with a default secret.
 Profiles: `core`, `workforce`, `iot`, `market`, `money`, `platform`, `observability`, `all`.
 Running all 26 services locally needs roughly 12 GB of RAM; the profiles exist so a subset
 can be run instead.
+
+## One-command demo
+
+```bash
+scripts/demo.sh            # build what is missing, start, seed, print the logins
+scripts/demo.sh reset      # throw the demo volumes away and start from empty
+scripts/demo.sh status     # what is up and how much memory it takes
+scripts/demo.sh down       # stop (data is kept)
+```
+
+The demo runs the 20 services the web screens call (identity, farm, season, agronomy, weather,
+workforce, attendance, task, fraud, catalog, pricing, order, inventory, logistics, payment,
+ledger, payout, traceability, media, audit) plus Postgres, PgBouncer, Redis, Redpanda, MinIO, the
+gateway and the web app, from `docker-compose.demo.yml`, in its own `smartseason-demo` project so
+its volumes never mix with a normal stack. Device registry, telemetry ingest, automation,
+notification, search and analytics are left out and their menus hidden (`DEMO_SERVICES`).
+First run writes `.env.demo` with freshly generated throwaway secrets (gitignored), builds each
+image one at a time, waits for health, then `scripts/demo_seed.py` creates one account per role,
+and a coherent dataset through the API. Web is on http://localhost:13000, gateway on
+http://localhost:18080, both bound to 127.0.0.1; the sign-in page has a "Sign in as" picker.
+The web shows a "Demo mode, sample data, M-Pesa is simulated" banner (`DEMO_MODE=true`, read at
+request time), and payment-service runs its mock M-Pesa gateway. Measured: about 7.4 GiB across the
+27 containers, 6 minutes from empty to seeded. `scripts/demo.sh check` opens every screen as every
+role and lists the ones with no data. Run one platform at a time;
+the test accounts are in `docs/TEST-ACCOUNTS.md`.
+
+Object storage uses `bitnamilegacy/minio:2024.10.13`, the same server build as the old
+`minio/minio:RELEASE.2024-10-13T13-34-11Z` pin, which no longer pulls: MinIO withdrew its images
+from Docker Hub and Quay in late 2025. The bitnamilegacy image is frozen, so use managed S3 or a
+maintained build for anything real. Pre-signed URLs name the in-network endpoint
+`objectstore:9000`, so they are for service-to-service use until a public endpoint is configured.
 
 ## Services
 

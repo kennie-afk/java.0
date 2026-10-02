@@ -90,6 +90,11 @@ pickers rather than UUID boxes.
 
 ## Running it
 
+The shortest route is `scripts/demo.sh` (see the README's "One-command demo"): it starts the
+20 services the screens use, creates all nine accounts through the team endpoint, seeds the data
+and prints a **generated** shared password from `.env.demo`, instead of the fixed passphrase
+above. The manual route follows.
+
 ```bash
 cd ~/Software_dev/java.0/smartSeason
 
