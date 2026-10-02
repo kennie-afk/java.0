@@ -39,7 +39,7 @@ public final class LabModels {
     public record CancelInput(@NotBlank @Size(min = 3, max = 300) String reason) {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public record Item(UUID id, UUID testId, String testCode, String testName, String unit, BigDecimal refLow, BigDecimal refHigh, String status,
+    public record Item(UUID id, UUID testId, String testCode, String testName, String resultType, String unit, BigDecimal refLow, BigDecimal refHigh, String status,
                        String specimenBarcode, Instant collectedAt, BigDecimal resultNumeric, String resultText, String flag, boolean critical,
                        UUID enteredBy, Instant enteredAt, UUID validatedBy, Instant validatedAt, Instant criticalAckAt, String criticalAckNote, int version,
                        boolean resultHidden) {}

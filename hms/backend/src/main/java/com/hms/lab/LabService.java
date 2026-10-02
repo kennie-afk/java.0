@@ -428,7 +428,7 @@ public class LabService {
     }
 
     private static final String ITEM_SQL = """
-            SELECT i.id, i.test_id, lt.code, lt.name, lt.unit, lt.ref_low, lt.ref_high, i.status, i.specimen_barcode, i.collected_at, i.result_numeric, i.result_text, i.flag,
+            SELECT i.id, i.test_id, lt.code, lt.name, lt.result_type, lt.unit, lt.ref_low, lt.ref_high, i.status, i.specimen_barcode, i.collected_at, i.result_numeric, i.result_text, i.flag,
                    i.critical, i.entered_by, i.entered_at, i.validated_by, i.validated_at, i.critical_ack_at, i.critical_ack_note, i.version
               FROM lab_order_items i JOIN lab_tests lt ON lt.org_id = i.org_id AND lt.id = i.test_id""";
 
@@ -436,7 +436,7 @@ public class LabService {
     private static Item itemMap(ResultSet rs, boolean seesUnvalidated) throws SQLException {
         String status = rs.getString("status");
         boolean hide = !seesUnvalidated && "RESULTED".equals(status);
-        return new Item(rs.getObject("id", UUID.class), rs.getObject("test_id", UUID.class), rs.getString("code"), rs.getString("name"), rs.getString("unit"),
+        return new Item(rs.getObject("id", UUID.class), rs.getObject("test_id", UUID.class), rs.getString("code"), rs.getString("name"), rs.getString("result_type"), rs.getString("unit"),
                 rs.getBigDecimal("ref_low"), rs.getBigDecimal("ref_high"), status, rs.getString("specimen_barcode"), instant(rs, "collected_at"),
                 hide ? null : rs.getBigDecimal("result_numeric"), hide ? null : rs.getString("result_text"), hide ? null : rs.getString("flag"), !hide && rs.getBoolean("critical"),
                 rs.getObject("entered_by", UUID.class), instant(rs, "entered_at"), rs.getObject("validated_by", UUID.class), instant(rs, "validated_at"), instant(rs, "critical_ack_at"),
