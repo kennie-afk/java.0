@@ -14,6 +14,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /** One error shape for the whole API (RFC 9457 problem details), with a stable `code`. */
@@ -50,7 +51,7 @@ class ProblemHandler {
         return problem(HttpStatus.BAD_REQUEST, "validation_failed", "The request has invalid fields.", fields);
     }
 
-    @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class})
+    @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class, MissingServletRequestParameterException.class})
     ResponseEntity<ProblemDetail> unreadable(Exception e) {
         return problem(HttpStatus.BAD_REQUEST, "malformed_request", "The request could not be read.", null);
     }

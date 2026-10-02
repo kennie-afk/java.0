@@ -42,6 +42,14 @@ class PharmacyTest extends IntegrationTest {
     }
 
     @Test
+    void queueWithoutFacilityIdIsABadRequestNotAServerError() throws Exception {
+        Org org = newOrg("queue400");
+        String pharmacist = userWithRole(org, "PHARMACIST", "PHARMACIST");
+        JsonNode problem = send(get("/v1/pharmacy/queue", pharmacist), 400);
+        assertThat(problem.get("code").asText()).isEqualTo("malformed_request");
+    }
+
+    @Test
     void dispensingDrawsFromTheEarliestExpiryFirstAndSpansBatches() throws Exception {
         Org org = newOrg("fefo");
         String pharmacist = userWithRole(org, "PHARMACIST", "PHARMACIST");
