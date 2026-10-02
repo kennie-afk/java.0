@@ -141,7 +141,10 @@ APPLICATION_YAML = '''spring:
     bootstrap-servers: ${{KAFKA_BOOTSTRAP_SERVERS:localhost:29092}}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      # The outbox stores each event as finished JSON text, so it goes out as text. JsonSerializer
+      # would encode that String a second time, as a quoted string, and every consumer that reads
+      # the JSON (fraud-service, audit-service) failed to parse it.
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
       acks: all
       retries: 5
     consumer:
