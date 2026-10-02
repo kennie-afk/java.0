@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: core-service
+  flyway:
+    enabled: false
+
+server:
+  port: 8083
+  error:
+    include-message: never
+    include-stacktrace: never
+
+mara:
+  identity:
+    base-url: ${MARA_IDENTITY_URL}
+  internal:
+    token: ${MARA_INTERNAL_TOKEN}
+  admin:
+    token: ${MARA_ADMIN_TOKEN}
+  sync:
+    base-url: ${MARA_SYNC_URL}
+    poll-interval-ms: ${MARA_SYNC_POLL_MS:5000}
+  fiscal:
+    # A lease is a contiguous block of fiscal numbers a terminal may issue offline.
+    lease-size: ${MARA_FISCAL_LEASE_SIZE:5000}
+    lease-days: ${MARA_FISCAL_LEASE_DAYS:30}
+    max-open-leases: 2
+  datasource:
+    owner:
+      url: ${MARA_DB_URL}
+      username: ${MARA_DB_OWNER_USER}
+      password: ${MARA_DB_OWNER_PASSWORD}
+      hikari:
+        maximum-pool-size: 2
+        pool-name: mara-core-owner
+    app:
+      url: ${MARA_DB_URL}
+      username: ${MARA_DB_APP_USER}
+      password: ${MARA_DB_APP_PASSWORD}
+      hikari:
+        maximum-pool-size: 20
+        pool-name: mara-core-app
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
