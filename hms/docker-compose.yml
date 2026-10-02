@@ -1,0 +1,55 @@
+# HMS: Postgres, the API and the console. No insecure defaults: every secret must be provided
+# (copy .env.example to .env and fill it in).
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      # The owner role. It runs migrations and creates the least-privilege application role.
+      POSTGRES_USER: ${HMS_DB_OWNER_USER:-hms}
+      POSTGRES_PASSWORD: ${HMS_DB_OWNER_PASSWORD:?set HMS_DB_OWNER_PASSWORD}
+      POSTGRES_DB: ${HMS_DB_NAME:-hms}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${HMS_DB_OWNER_USER:-hms} -d ${HMS_DB_NAME:-hms}"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      HMS_DB_URL: jdbc:postgresql://postgres:5432/${HMS_DB_NAME:-hms}
+      HMS_DB_OWNER_USER: ${HMS_DB_OWNER_USER:-hms}
+      HMS_DB_OWNER_PASSWORD: ${HMS_DB_OWNER_PASSWORD:?set HMS_DB_OWNER_PASSWORD}
+      HMS_DB_APP_USER: ${HMS_DB_APP_USER:-hms_app}
+      HMS_DB_APP_PASSWORD: ${HMS_DB_APP_PASSWORD:?set HMS_DB_APP_PASSWORD}
+      HMS_JWT_SECRET: ${HMS_JWT_SECRET:?set HMS_JWT_SECRET to 32+ random characters}
+      HMS_ALLOWED_ORIGINS: ${HMS_ALLOWED_ORIGINS:-http://localhost:3600}
+      # Simulated M-Pesa. "live" is not implemented and refuses.
+      HMS_MPESA_MODE: ${HMS_MPESA_MODE:-mock}
+      # Only trust X-Forwarded-For when a proxy you control sets it.
+      HMS_TRUST_FORWARDED_FOR: ${HMS_TRUST_FORWARDED_FOR:-false}
+    ports:
+      - "${HMS_API_PORT:-8100}:8100"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  console:
+    build: ./apps/console
+    restart: unless-stopped
+    environment:
+      HMS_API_URL: http://api:8100
+      # Set true when the console is served over HTTPS so the session cookie is Secure.
+      HMS_COOKIE_SECURE: ${HMS_COOKIE_SECURE:-false}
+    ports:
+      - "${HMS_CONSOLE_PORT:-3600}:3600"
+    depends_on:
+      - api
+
+volumes:
+  db_data:
