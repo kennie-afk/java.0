@@ -70,7 +70,7 @@ export default async function RecordPage({
         }
       />
 
-      <dl className="grid gap-x-8 gap-y-3 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-6 sm:grid-cols-2">
+      <dl className="grid gap-x-8 gap-y-3 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-4 sm:grid-cols-2">
         {entity.formFields.map((field) => {
           const value = record[field.name];
           return (

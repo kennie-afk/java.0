@@ -15,7 +15,7 @@ export function AdvisorForm() {
 
   return (
     <div className="grid gap-2.5 lg:grid-cols-2">
-      <form action={action} className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-6">
+      <form action={action} className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-4">
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block">
             <span className={label}>Crop</span>
@@ -89,7 +89,7 @@ export function AdvisorForm() {
         </button>
       </form>
 
-      <section className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-6">
+      <section className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-4">
         {!state.result ? (
           <p className="text-xs text-[var(--color-muted)]">
             Describe the problem or attach a photograph, and the diagnosis appears here.

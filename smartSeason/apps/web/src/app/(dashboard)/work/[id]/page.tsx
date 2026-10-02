@@ -70,7 +70,7 @@ export default async function TaskDetailPage({
       />
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <section className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-5 lg:col-span-2">
+        <section className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-4 lg:col-span-2">
           <h2 className="mb-2 text-xs font-medium uppercase tracking-[0.07em] text-[var(--color-faint)]">
             The task
           </h2>
@@ -211,7 +211,7 @@ export default async function TaskDetailPage({
                   <td className="px-4 py-3 font-medium">{row.action}</td>
                   <td className="px-4 py-3 text-[var(--color-muted)]">{row.actorRole ?? "—"}</td>
                   <td className="px-4 py-3 tabular-nums">{stamp(row.occurredAt)}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-2.5">
                     <Badge value={row.outcome} />
                   </td>
                   <td

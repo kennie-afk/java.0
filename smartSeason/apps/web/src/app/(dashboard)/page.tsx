@@ -131,19 +131,19 @@ export default async function OverviewPage() {
     <>
       <PageHeader eyebrow={today} title={`${ROLE_LABELS[role]} overview`} subtitle={SUBTITLE[role]} />
 
-      <section className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-[repeat(auto-fit,minmax(210px,1fr))]">
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-[repeat(auto-fit,minmax(190px,1fr))]">
         {myTaskCount !== null ? (
           <Link href="/my-work" className="block">
-            <Stat label="My open tasks" value={String(myTaskCount)} hint="Assigned to you" icon={<Icon name="tasks" className="h-[18px] w-[18px]" />} />
+            <Stat label="My open tasks" value={String(myTaskCount)} hint="Assigned to you" icon={<Icon name="tasks" className="h-4 w-4" />} />
           </Link>
         ) : null}
         {headlines.map((item, index) => (
-          <Link key={item.label} href={item.href} className="block transition-shadow hover:shadow-[var(--shadow-lift)]">
+          <Link key={item.label} href={item.href} className="block">
             <Stat
               label={item.label}
               value={counts[index]?.toLocaleString() ?? "—"}
               hint={item.hint}
-              icon={<Icon name={item.icon} className="h-[18px] w-[18px]" />}
+              icon={<Icon name={item.icon} className="h-4 w-4" />}
             />
           </Link>
         ))}
@@ -166,13 +166,13 @@ export default async function OverviewPage() {
                 <li key={card.assignment.id}>
                   <Link
                     href={`/work/${card.assignment.id}`}
-                    className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3.5 transition-colors hover:bg-[var(--color-canvas)]"
+                    className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 hover:bg-[var(--color-raised)]"
                   >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent-soft)] text-sm font-bold text-[var(--color-accent-deep)]">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent-soft)] text-sm font-bold text-[var(--color-accent-deep)]">
                       {(card.worker?.fullName ?? "?").charAt(0)}
                     </span>
                     <span className="min-w-[200px] flex-1">
-                      <span className="block text-base font-semibold leading-snug">{card.order?.title ?? "Task"}</span>
+                      <span className="block text-sm font-semibold leading-snug">{card.order?.title ?? "Task"}</span>
                       <span className="block text-sm text-[var(--color-muted)]">
                         {card.worker?.fullName ?? "Unassigned"}
                         {card.order?.taskCode ? ` · ${card.order.taskCode}` : ""}
@@ -181,7 +181,7 @@ export default async function OverviewPage() {
                     <span className="w-24 text-sm tabular-nums text-[var(--color-muted)]">
                       {card.assignment.startedAt ? `Since ${clockTime(card.assignment.startedAt)}` : "Not started"}
                     </span>
-                    <span className="w-20 text-right text-base font-semibold tabular-nums">
+                    <span className="w-20 text-right text-sm font-semibold tabular-nums">
                       {formatDuration(card.elapsedMinutes)}
                     </span>
                     <span className="w-32 text-right">
@@ -196,31 +196,31 @@ export default async function OverviewPage() {
       ) : null}
 
       {visibleGroups.length > 1 ? (
-        <section className="mt-8">
-          <h2 className="mb-3 text-xl font-semibold">Workspaces</h2>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <section className="mt-6">
+          <h2 className="mb-3 text-[15px] font-semibold">Workspaces</h2>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {visibleGroups.map((group) => (
               <div
                 key={group.slug}
                 className="overflow-hidden rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)]"
               >
-                <div className="flex items-center gap-3 border-b border-[var(--color-line)] px-5 py-4">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--color-accent-soft)] text-[var(--color-accent)]">
-                    <Icon name={group.icon as IconName} className="h-5 w-5" />
+                <div className="flex items-center gap-3 border-b border-[var(--color-line)] px-4 py-2.5">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-accent-soft)] text-[var(--color-accent)]">
+                    <Icon name={group.icon as IconName} className="h-4 w-4" />
                   </span>
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold leading-tight">{group.label}</h3>
-                    <p className="text-sm text-[var(--color-muted)]">
+                    <h3 className="text-[15px] font-semibold leading-tight">{group.label}</h3>
+                    <p className="text-xs text-[var(--color-muted)]">
                       {group.services.length} service{group.services.length === 1 ? "" : "s"}
                     </p>
                   </div>
                 </div>
-                <ul className="py-1.5">
+                <ul className="py-1">
                   {group.services.map((service) => (
                     <li key={service.slug}>
                       <Link
                         href={`/${service.slug}`}
-                        className="flex items-center justify-between gap-3 px-5 py-2 text-sm transition-colors hover:bg-[var(--color-canvas)]"
+                        className="flex items-center justify-between gap-3 px-4 py-1.5 text-sm hover:bg-[var(--color-raised)]"
                       >
                         <span className="truncate font-medium">{service.label}</span>
                         <span className="shrink-0 rounded-full bg-[var(--color-raised)] px-2 py-0.5 text-xs font-semibold uppercase tracking-[0.04em] text-[var(--color-muted)]">

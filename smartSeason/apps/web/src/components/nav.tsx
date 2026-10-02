@@ -35,7 +35,7 @@ export function Nav({ roles, enabled }: { roles: string[]; enabled: string[] | n
 
   return (
     <>
-      <aside className="sticky top-0 hidden h-screen w-[272px] shrink-0 flex-col border-r border-[var(--color-line)] bg-[var(--color-rail)] lg:flex">
+      <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col border-r border-[var(--color-line)] bg-[var(--color-rail)] lg:flex">
         <SidebarBody roles={roles} enabled={enabled} pathname={pathname} />
       </aside>
 
@@ -47,7 +47,7 @@ export function Nav({ roles, enabled }: { roles: string[]; enabled: string[] | n
           onClick={() => setDrawer(true)}
           className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg text-[var(--color-ink)] hover:bg-[var(--color-raised)]"
         >
-          <Icon name="menu" className="h-6 w-6" />
+          <Icon name="menu" className="h-5 w-5" />
         </button>
       </header>
 
@@ -80,9 +80,9 @@ function Brand() {
   return (
     <Link href="/" aria-label="SmartSeason overview" className="flex items-center gap-2.5">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/logo-icon.flat.svg" alt="" className="h-9 w-9" />
+      <img src="/logo-icon.flat.svg" alt="" className="h-8 w-8" />
       <span className="leading-tight">
-        <span className="block font-[family-name:var(--font-display)] text-lg font-semibold tracking-[-0.01em]">
+        <span className="block font-[family-name:var(--font-display)] text-[15.5px] font-semibold tracking-[-0.01em]">
           SmartSeason
         </span>
         <span className="block text-xs text-[var(--color-muted)]">Farm operations</span>
@@ -138,13 +138,13 @@ function SidebarBody({
 
   return (
     <>
-      <div className="border-b border-[var(--color-line)] px-5 py-4">
+      <div className="border-b border-[var(--color-line)] px-4 py-3.5">
         <Brand />
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Main">
+      <nav className="flex-1 overflow-y-auto px-3 py-3" aria-label="Main">
         <SectionLabel>Workspace</SectionLabel>
-        <div className="mb-5 flex flex-col gap-0.5">
+        <div className="mb-4 flex flex-col gap-0.5">
           <NavLink href="/" icon="home" label="Overview" active={pathname === "/"} />
           {canSeeMyWork(roles) ? (
             <NavLink
@@ -174,11 +174,11 @@ function SidebarBody({
                 type="button"
                 onClick={() => toggle(group.slug)}
                 aria-expanded={expanded}
-                className={`flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-semibold transition-colors hover:bg-[var(--color-raised)] ${
+                className={`flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-1.5 text-left text-sm font-semibold hover:bg-[var(--color-raised)] ${
                   containsActive ? "text-[var(--color-accent-deep)]" : "text-[var(--color-ink)]"
                 }`}
               >
-                <Icon name={group.icon as IconName} className="h-[18px] w-[18px] shrink-0" />
+                <Icon name={group.icon as IconName} className="h-4 w-4 shrink-0" />
                 <span className="flex-1">{group.label}</span>
                 <span className="text-xs font-medium tabular-nums text-[var(--color-faint)]">
                   {group.services.length}
@@ -200,7 +200,7 @@ function SidebarBody({
                         <Link
                           href={`/${service.slug}`}
                           aria-current={current ? "page" : undefined}
-                          className={`block rounded-lg px-3 py-1.5 text-sm transition-colors ${
+                          className={`block rounded-lg px-3 py-1 text-sm ${
                             current
                               ? "bg-[var(--color-accent-soft)] font-semibold text-[var(--color-accent-deep)]"
                               : "text-[var(--color-muted)] hover:bg-[var(--color-raised)] hover:text-[var(--color-ink)]"
@@ -217,7 +217,7 @@ function SidebarBody({
                                   key={entity.slug}
                                   href={`/${service.slug}/${entity.slug}`}
                                   aria-current={on ? "page" : undefined}
-                                  className={`rounded-md px-2.5 py-1 text-sm transition-colors ${
+                                  className={`rounded-md px-2.5 py-0.5 text-sm ${
                                     on
                                       ? "font-semibold text-[var(--color-accent)]"
                                       : "text-[var(--color-muted)] hover:text-[var(--color-ink)]"
@@ -242,13 +242,13 @@ function SidebarBody({
       <div className="border-t border-[var(--color-line)] p-3">
         <Link
           href="/account"
-          className={`mb-0.5 flex items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
+          className={`mb-0.5 flex items-center gap-3 rounded-lg px-3 py-1.5 ${
             pathname === "/account"
               ? "bg-[var(--color-accent-soft)]"
               : "hover:bg-[var(--color-raised)]"
           }`}
         >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] text-sm font-bold text-white">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] text-sm font-bold text-white">
             {ROLE_LABELS[role].charAt(0)}
           </span>
           <span className="leading-tight">
@@ -285,7 +285,7 @@ function NavLink({
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className={`relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+      className={`relative flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm font-semibold ${
         active
           ? "bg-[var(--color-accent-soft)] text-[var(--color-accent-deep)]"
           : "text-[var(--color-ink)] hover:bg-[var(--color-raised)]"
@@ -294,7 +294,7 @@ function NavLink({
       {active ? (
         <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-r bg-[var(--color-accent)]" aria-hidden="true" />
       ) : null}
-      <Icon name={icon} className="h-[18px] w-[18px] shrink-0" />
+      <Icon name={icon} className="h-4 w-4 shrink-0" />
       {label}
     </Link>
   );

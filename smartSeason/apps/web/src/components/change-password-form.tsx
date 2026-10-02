@@ -54,7 +54,7 @@ export function ChangePasswordForm() {
   return (
     <form
       onSubmit={onSubmit}
-      className="max-w-md space-y-3 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-6"
+      className="max-w-md space-y-3 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-4"
     >
       <label className="block">
         <span className={label}>Current password</span>

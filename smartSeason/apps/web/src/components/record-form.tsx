@@ -63,7 +63,7 @@ export function RecordForm({
 
   return (
     <form action={formAction} className="max-w-3xl">
-      <div className="grid gap-5 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-6 sm:grid-cols-2">
+      <div className="grid gap-5 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-4 sm:grid-cols-2">
         {fields.map((field) => {
           const error = state.fieldErrors[field.name];
           const label = (

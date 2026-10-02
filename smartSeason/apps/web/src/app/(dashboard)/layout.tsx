@@ -13,7 +13,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="flex min-h-screen flex-col bg-[var(--color-canvas)] lg:flex-row">
       <Nav roles={roles} enabled={enabledServices()} />
-      <main className="min-w-0 flex-1 px-4 pb-20 pt-6 sm:px-6 lg:px-10 lg:pt-9">
+      <main className="min-w-0 flex-1 px-4 pb-20 pt-5 sm:px-6 lg:px-8 lg:pt-7">
         <div className="mx-auto w-full max-w-[1680px]">{children}</div>
       </main>
     </div>

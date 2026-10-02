@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 const FIELD =
-  "w-full rounded-lg border border-[var(--color-line-strong)] bg-[var(--color-surface)] px-3.5 py-2.5 text-base outline-none focus:border-[var(--color-accent)]";
+  "w-full rounded-lg border border-[var(--color-line-strong)] bg-[var(--color-surface)] min-h-9 px-3 py-1.5 text-base outline-none focus:border-[var(--color-accent)]";
 
 export function ForgotPasswordForm() {
   const router = useRouter();
@@ -45,7 +45,7 @@ export function ForgotPasswordForm() {
 
   if (sent) {
     return (
-      <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-6">
+      <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-4">
         <p className="text-sm leading-relaxed">
           If that address has an account, a reset code has been sent to it. The code is good
           for 15 minutes.
@@ -70,7 +70,7 @@ export function ForgotPasswordForm() {
   return (
     <form
       onSubmit={onSubmit}
-      className="space-y-3 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-6"
+      className="space-y-3 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-4"
     >
       <label className="block">
         <span className="mb-1 block text-sm font-medium text-[var(--color-muted)]">Email</span>

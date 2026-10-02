@@ -40,7 +40,7 @@ export default async function LiveBoardPage() {
         subtitle="Every task in progress, with the time the platform recorded when it started."
       />
 
-      <section className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <Stat label="In progress" value={String(running.length)} />
         <Stat label="Not started" value={String(waiting.length)} />
         <Stat label="Finished" value={String(completed.length)} hint={formatDuration(minutesToday)} />
@@ -76,7 +76,7 @@ export default async function LiveBoardPage() {
               const flag = concern(card);
               return (
                 <tr key={card.assignment.id} className={rowClass}>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-2.5">
                     <Link
                       href={`/work/${card.assignment.id}`}
                       className="font-medium underline-offset-2 hover:underline"
@@ -105,7 +105,7 @@ export default async function LiveBoardPage() {
                   <td className="px-4 py-3 text-right tabular-nums text-[var(--color-muted)]">
                     {card.order?.estimatedHours ? `${card.order.estimatedHours}h` : "—"}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-2.5">
                     <Badge value={card.assignment.status} />
                   </td>
                 </tr>

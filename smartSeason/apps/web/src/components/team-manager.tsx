@@ -44,7 +44,7 @@ function AddMemberForm() {
   return (
     <form
       action={action}
-      className="mb-4 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-6"
+      className="mb-4 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-4"
     >
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold">Add someone</h2>
@@ -217,7 +217,7 @@ export function TeamManager({
               <td className="px-4 py-3 font-medium">{member.fullName}</td>
               <td className="px-4 py-3 text-[var(--color-muted)]">{member.email}</td>
               <td className="px-4 py-3 text-[var(--color-muted)]">{member.phone ?? "—"}</td>
-              <td className="px-4 py-3">
+              <td className="px-4 py-2.5">
                 {canManage ? (
                   <RoleEditor member={member} />
                 ) : (
@@ -228,7 +228,7 @@ export function TeamManager({
                   </span>
                 )}
               </td>
-              <td className="px-4 py-3">
+              <td className="px-4 py-2.5">
                 <Badge value={member.status} />
               </td>
             </tr>

@@ -2,76 +2,60 @@
 
 This replaces the earlier "dense, 6px radius, 12px root" rules for this app. SmartSeason
 keeps its own colour (farm green); everything else follows SmartRE's front end
-(`java.0/smartRE-front`), scaled up so it reads comfortably.
+(`java.0/smartRE-front`), kept as compact as its Command Center.
 
 ## What was taken from SmartRE
 
-SmartRE (`app/globals.css`, `tailwind.config.ts`, `components/ui`, `components/layout`):
+SmartRE's Command Center is the reference (see the portfolio image `smartre.jpg`), kept as small as it is:
 
-- Fraunces for headings, Manrope for body and controls (Google Fonts), weights 400-800.
-- White surfaces, hairline 1px borders, no heavy shadows, one saturated accent used for
-  active state, primary buttons, links and focus rings only.
-- Stat cards: small uppercase label, large tabular value, quiet sub-line, coloured left
-  edge, icon chip at top right. Cards have a boundary, not a drop shadow.
-- Sidebar: labelled rows with an icon, a left accent bar and a tinted background for the
-  active item, collapsible groups with chevrons, nested children behind a hairline rule.
-- Status badges: tinted background with matching text, never a solid fill.
-- Empty states are short sentences in the card, not a blank page.
-- No hover motion: hover only changes border or background colour.
-- Content sits in a padded column beside the sidebar and uses the width that is there.
-
-SmartRE is itself dense (13px root). The deliberate difference here is the type scale: the
-user found 12px text unreadable, so SmartSeason's floor is higher.
+- Fraunces for page and card titles only, Manrope for everything else, including every figure.
+- Every light surface is pure white (#ffffff): canvas, sidebar, top bar, cards, table headers, inputs, modals.
+  Areas are separated by 1px hairlines only. Tint appears only on the active nav item, badges, icon chips and hovers.
+- Stat cards: 11.5px uppercase label, 19px Manrope 600 tabular value, 12px sub-line, a 16px icon in a 28px tinted
+  chip top right, 16px padding. A coloured left edge appears only when the tone is warn or danger.
+- Sidebar: ~248px, labelled rows, left accent bar and tinted background on the active item, collapsible groups.
+- Status badges tinted, never solid. Empty states are short sentences. No motion at all (`transition: none`).
 
 ## Tokens (`src/app/globals.css`)
 
 | Token | Value | Use |
 |---|---|---|
-| canvas | #f6f8f5 | page background, faint green tint so white cards read as raised |
-| surface | #ffffff | cards, sidebar, inputs |
-| raised | #f1f4f0 | table header, chips, hover |
-| ink / muted / faint | #12201a / #4f5b53 / #6a766e | text; muted and faint both pass 4.5:1 on white |
+| canvas / surface / rail | #ffffff | page, cards, sidebar, inputs, table headers |
+| raised | #eef3ef | hover rows, neutral badge, secondary-button hover only |
+| ink / muted / faint | #12201a / #4f5b53 / #6a766e | text; muted and faint pass 4.5:1 on white |
 | line / line-strong | #e1e6e0 / #cdd5cc | card and input borders |
 | accent / accent-deep / accent-soft | #15803d / #14532d / #e6f3ea | primary, active nav, login panel |
 | good, warn, danger, info (+ soft) | green, amber, red, blue | badges, notices |
 
-Radius: 8px cards and controls (`rounded-lg`/`xl` are both 8px), 12px ceiling.
+Radius: 8px controls, 8-12px cards.
 
 ## Type scale
 
-| Class | Size / line | Use |
-|---|---|---|
-| text-2xs | 12 / 16 | never body: rare micro-captions |
-| text-xs | 13 / 18 | uppercase labels, captions, hints |
-| text-sm | 14 / 20 | table cells, nav, secondary body, buttons |
-| text-base | 15 / 22 | body, form fields, subtitles |
-| text-lg | 16.5 / 24 | card titles |
-| text-xl | 19 / 26 | section headings |
-| text-2xl | 24 / 30 | non-numeric stat values |
-| text-3xl | 30 / 36 | page titles, numeric stat values |
-| text-4xl | 36 / 42 | login headline |
+Root 14px. Nothing below 11px.
 
-Root is 15px. Headings and stat values use Fraunces; everything else Manrope. Numbers use
-tabular figures.
+| Class | Size | Use |
+|---|---|---|
+| text-2xs / text-xs | 11 / 11.5 | uppercase captions, table headers, stat labels |
+| text-sm | 13 | table cells, nav, buttons, badges |
+| text-base | 14 | body, form fields |
+| text-lg | 15.5 | card titles (15px used in Card) |
+| text-xl / 2xl | 17 / 20 | page titles (17 on phones, 20 from 640px) |
+| stat value | 19 (16 for text values) | Manrope 600, tabular, leading-none |
+| text-4xl | 30 | login headline |
 
 ## Layout
 
-- Desktop (>=1024px): 272px labelled sidebar, content fills the rest up to 1680px, 40px
-  side padding. Below 1024px: top bar with a menu button and the same sidebar as a drawer.
-- Sidebar: "Workspace" block (Overview, My work, Live work, Team, Crop advisor), then one
-  collapsible group per service group the role may read, then account and sign out.
-  The group, service and entity lists come from `catalogue.generated.ts`, visibility from
-  `lib/roles.ts`. The RBAC matrix (`tools/rbac.py`) remains the single source for both
-  `@PreAuthorize` and the nav; the nav was only re-skinned.
-- Cards: 1px border, 12px radius, 20px padding, optional title bar with hairline divider.
-  Tables run flush inside a card, 12px/16px cell padding, shaded uppercase header.
-- Stat grid: auto-fit columns of at least 210px (2 columns on phones).
+- Desktop (>=1024px): 248px labelled sidebar, content to 1680px, 32px side padding. Below 1024px: top bar and the
+  same sidebar as a drawer.
+- Sidebar: Workspace block (Overview, My work, Live work, Team, Crop advisor), then one collapsible group per service
+  group the role may read. Groups come from `catalogue.generated.ts`, visibility from `lib/roles.ts`; the RBAC matrix
+  (`tools/rbac.py`) remains the single source for both `@PreAuthorize` and the nav.
+- Cards: 1px border, 16px padding, title bar with hairline divider. Tables flush, 13px text, rows ~40px, white header.
+- Stat grid: auto-fit columns of at least 190px (2 columns on phones). Controls and buttons are at least 36px tall.
 
 ## Components (`src/components/ui.tsx`)
 
-PageHeader (eyebrow, title, subtitle, actions), Card, Stat, Badge (dot plus tone from a
-status table), EmptyState, Notice, Table, Meter, KeyValue, form controls and three button
-styles (green primary, outlined secondary, red-outlined danger).
+PageHeader, Card, Stat, Badge, EmptyState, Notice, Table, Meter, KeyValue, form controls and three button styles.
 
 ## Demo conveniences kept
 

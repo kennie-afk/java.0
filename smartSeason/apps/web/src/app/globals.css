@@ -9,9 +9,9 @@
   --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Fraunces", Georgia, "Times New Roman", serif;
 
-  --color-canvas: #f6f8f5;
+  --color-canvas: #ffffff;
   --color-surface: #ffffff;
-  --color-raised: #f1f4f0;
+  --color-raised: #eef3ef;
   --color-rail: #ffffff;
   --color-ink: #12201a;
   --color-muted: #4f5b53;
@@ -41,17 +41,17 @@
   --radius-2xl: 0.75rem;
   --radius-3xl: 0.75rem;
 
-  /* The type scale. Nothing the reader is meant to read is below 14px; 12-13px is for
-     captions and uppercase micro-labels only. Each step carries its own line height. */
-  --text-2xs: 12px;   --text-2xs--line-height: 16px;
-  --text-xs: 13px;    --text-xs--line-height: 18px;
-  --text-sm: 14px;    --text-sm--line-height: 20px;
-  --text-base: 15px;  --text-base--line-height: 22px;
-  --text-lg: 16.5px;  --text-lg--line-height: 24px;
-  --text-xl: 19px;    --text-xl--line-height: 26px;
-  --text-2xl: 24px;   --text-2xl--line-height: 30px;
-  --text-3xl: 30px;   --text-3xl--line-height: 36px;
-  --text-4xl: 36px;   --text-4xl--line-height: 42px;
+  /* The type scale, deliberately small (SmartRE Command Center): 13px working text, 14px body,
+     11.5px captions. Nothing is below 11px. Each step carries its own line height. */
+  --text-2xs: 11px;   --text-2xs--line-height: 15px;
+  --text-xs: 11.5px;  --text-xs--line-height: 16px;
+  --text-sm: 13px;    --text-sm--line-height: 18px;
+  --text-base: 14px;  --text-base--line-height: 20px;
+  --text-lg: 15.5px;  --text-lg--line-height: 22px;
+  --text-xl: 17px;    --text-xl--line-height: 24px;
+  --text-2xl: 20px;   --text-2xl--line-height: 26px;
+  --text-3xl: 22px;   --text-3xl--line-height: 28px;
+  --text-4xl: 30px;   --text-4xl--line-height: 36px;
 
   --shadow-card: 0 1px 2px rgba(18, 32, 26, 0.04);
   --shadow-lift: 0 8px 28px -12px rgba(18, 32, 26, 0.22);
@@ -62,7 +62,7 @@ body {
   background: var(--color-canvas);
   color: var(--color-ink);
   font-family: var(--font-sans);
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -91,4 +91,9 @@ h3 {
 ::-webkit-scrollbar-thumb {
   background: var(--color-line-strong);
   border-radius: 999px;
+}
+
+/* No motion on hover anywhere: colour only. */
+* {
+  transition: none !important;
 }
