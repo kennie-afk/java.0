@@ -66,7 +66,50 @@ public class MpesaB2cClient {
     @Value("${mpesa.security-credential-cert-path}")
     private Resource securityCredentialCert;
 
+    @Value("${mpesa.mode:daraja}")
+    private String mode;
+
+    @Value("${server.port:8085}")
+    private int serverPort;
+
+    private boolean mock() { return "mock".equalsIgnoreCase(mode); }
+
     private volatile String cachedEncryptedCredential;
+
+    private static final java.util.concurrent.ScheduledExecutorService MOCK_SAFARICOM =
+            java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "mock-mpesa-b2c");
+                t.setDaemon(true);
+                return t;
+            });
+
+    /**
+     * Mock mode plays Safaricom's part end to end: the payout is accepted, and a moment later the
+     * same Result callback Safaricom would send is posted to this service's own callback route, so
+     * the real callback handling (secret check, raw-callback log, status change, audit) still runs.
+     */
+    private B2cResult mockB2c(String amount, UUID revenueId) {
+        String originator = "MOCK-ORIG-" + UUID.randomUUID().toString().substring(0, 12);
+        String conversation = "MOCK-CONV-" + UUID.randomUUID().toString().substring(0, 12);
+        String receipt = "MOCK" + UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+        String payload = "{\"Result\":{\"ResultType\":0,\"ResultCode\":0,\"ResultDesc\":\"The service request is processed successfully.\","
+                + "\"OriginatorConversationID\":\"" + originator + "\",\"ConversationID\":\"" + conversation + "\","
+                + "\"TransactionID\":\"" + receipt + "\",\"ResultParameters\":{\"ResultParameter\":["
+                + "{\"Key\":\"TransactionReceipt\",\"Value\":\"" + receipt + "\"},"
+                + "{\"Key\":\"TransactionAmount\",\"Value\":" + amount + "}]}}}";
+        MOCK_SAFARICOM.schedule(() -> {
+            try {
+                HttpHeaders h = new HttpHeaders();
+                h.setContentType(MediaType.APPLICATION_JSON);
+                rt.exchange("http://127.0.0.1:" + serverPort + "/api/revenue/mpesa/b2c/callback/" + callbackSecret,
+                        HttpMethod.POST, new HttpEntity<>(payload, h), Void.class);
+                log.info("MOCK M-Pesa B2C result delivered for revenueId={} receipt={}", revenueId, receipt);
+            } catch (Exception e) {
+                log.warn("MOCK M-Pesa B2C callback delivery failed for revenueId={}: {}", revenueId, e.getMessage());
+            }
+        }, 2, java.util.concurrent.TimeUnit.SECONDS);
+        return new B2cResult(true, conversation, originator, "Accept the service request successfully (mock)");
+    }
 
     public record B2cResult(boolean success, String conversationId,
                              String originatorConversationId, String description) {}
@@ -119,6 +162,10 @@ public class MpesaB2cClient {
 
     private B2cResult sendB2c(String commandId, String partyB, String amount,
                                 String remarks, UUID revenueId) {
+        if (mock()) {
+            log.info("MOCK M-Pesa B2C {} to {} amount={} (no request sent to Safaricom)", commandId, partyB, amount);
+            return mockB2c(amount, revenueId);
+        }
         try {
             String token = getAccessToken();
             Map<String, Object> body = new HashMap<>();
@@ -157,6 +204,9 @@ public class MpesaB2cClient {
                                      String queryOriginatorConversationId, String description) {}
 
     public StatusQueryResult queryTransactionStatus(String originalOriginatorConversationId, UUID revenueId) {
+        if (mock()) {
+            return new StatusQueryResult(true, "MOCK-Q-" + revenueId, "MOCK-Q-" + revenueId, "Accepted (mock)");
+        }
         try {
             String token = getAccessToken();
             Map<String, Object> body = new HashMap<>();

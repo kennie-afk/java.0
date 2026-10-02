@@ -64,6 +64,9 @@ kafka:
     payment-events: payment-events
 
 mpesa:
+  mode:            ${MPESA_MODE:daraja}
+  reconcile-grace-seconds: ${MPESA_RECONCILE_GRACE_SECONDS:25}
+  reconcile-interval-ms:   ${MPESA_RECONCILE_INTERVAL_MS:15000}
   consumer-key:    ${MPESA_CONSUMER_KEY:placeholder}
   consumer-secret: ${MPESA_CONSUMER_SECRET:}
   shortcode:       ${MPESA_SHORTCODE:174379}

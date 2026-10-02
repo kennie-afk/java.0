@@ -360,6 +360,7 @@ public class PaymentService {
 
         if (q.succeeded()) {
             payment.setStatus(PaymentStatus.COMPLETED);
+            if (q.receipt() != null) payment.setMpesaReceiptNumber(q.receipt());
             repo.save(payment);
             auditService.log(payment.getId(), null, "PAYMENT_COMPLETED",
                     prevStatus, PaymentStatus.COMPLETED.name(),

@@ -31,10 +31,26 @@ public class MpesaClient {
     @Value("${mpesa.auth-url}")        private String authUrl;
     @Value("${mpesa.stk-push-url}")    private String stkPushUrl;
     @Value("${mpesa.stk-query-url}")   private String stkQueryUrl;
+    /**
+     * "daraja" talks to Safaricom. "mock" never leaves the process: a push is accepted and the
+     * status query reports it settled, so the whole rent/escrow flow can be demonstrated with no
+     * credentials and no money moving. Every mock identifier carries the MOCK marker.
+     */
+    @Value("${mpesa.mode:daraja}")     private String mode;
+
+    private boolean mock() { return "mock".equalsIgnoreCase(mode); }
+
+    /** In mock mode a number ending in 00 plays a customer who declines the prompt. */
+    static final String MOCK_DECLINE_MARK = "MOCKDECLINE";
 
     public record StkPushResult(boolean success, String checkoutRequestId, String merchantRequestId, String responseDescription) {}
 
-    public record StkQueryResult(boolean resolved, boolean succeeded, String resultCode, String resultDesc) {}
+    public record StkQueryResult(boolean resolved, boolean succeeded, String resultCode, String resultDesc, String receipt) {
+        /** The Daraja status query carries no receipt; only the mock supplies one. */
+        public StkQueryResult(boolean resolved, boolean succeeded, String resultCode, String resultDesc) {
+            this(resolved, succeeded, resultCode, resultDesc, null);
+        }
+    }
 
     private String getAccessToken() {
         String creds = Base64.getEncoder().encodeToString((consumerKey+":"+consumerSecret).getBytes(StandardCharsets.UTF_8));
@@ -44,6 +60,15 @@ public class MpesaClient {
     }
 
     public StkPushResult initiateSTKPush(String phone, String amount, String accountRef, String description) {
+        if (mock()) {
+            boolean decline = phone != null && phone.endsWith("00");
+            String token = java.util.UUID.randomUUID().toString().substring(0, 12);
+            log.info("MOCK M-Pesa STK push to {} amount={} ref={} (no request sent to Safaricom)", phone, amount, accountRef);
+            return new StkPushResult(true,
+                    "ws_CO_" + (decline ? MOCK_DECLINE_MARK : "MOCK") + "_" + token,
+                    "MOCK-MR-" + token,
+                    "Success. Request accepted for processing (mock)");
+        }
         try {
             String token = getAccessToken();
             String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
@@ -82,6 +107,14 @@ public class MpesaClient {
     }
 
     public StkQueryResult queryStkStatus(String checkoutRequestId) {
+        if (mock()) {
+            boolean declined = checkoutRequestId != null && checkoutRequestId.contains(MOCK_DECLINE_MARK);
+            return declined
+                    ? new StkQueryResult(true, false, "1032", "Request cancelled by user (mock)")
+                    : new StkQueryResult(true, true, "0", "The service request is processed successfully (mock)",
+                            "MOCK" + java.util.UUID.nameUUIDFromBytes(checkoutRequestId.getBytes()).toString()
+                                    .replace("-", "").substring(0, 8).toUpperCase());
+        }
         try {
             String token = getAccessToken();
             String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
