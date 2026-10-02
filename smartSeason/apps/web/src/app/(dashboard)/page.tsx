@@ -4,6 +4,7 @@ import { api, type PageResponse } from "@/lib/api";
 import { GROUPS } from "@/lib/catalogue.generated";
 import { canSeeGroup, canSeeService, primaryRole, ROLE_LABELS, type Role } from "@/lib/roles";
 import { loadMyWork } from "@/lib/tasks";
+import { enabledServices, serviceOfPath } from "@/lib/deployment";
 import { readRoles, readToken } from "@/lib/session";
 
 async function count(path: string, token: string | null): Promise<number | null> {
@@ -100,7 +101,8 @@ const SUBTITLE: Record<Role, string> = {
 export default async function OverviewPage() {
   const [token, roles] = await Promise.all([readToken(), readRoles()]);
   const role = primaryRole(roles);
-  const headlines = HEADLINES[role];
+  const enabled = enabledServices();
+  const headlines = HEADLINES[role].filter((item) => !enabled || enabled.includes(serviceOfPath(item.path)));
 
   const counts = await Promise.all(headlines.map((item) => count(item.path, token)));
 
@@ -112,8 +114,10 @@ export default async function OverviewPage() {
   // couple of services, so a worker never sees it.
   const visibleGroups = GROUPS.filter((group) => canSeeGroup(roles, group.slug)).map((group) => ({
     ...group,
-    services: group.services.filter((service) => canSeeService(roles, service.slug))
-  }));
+    services: group.services.filter(
+      (service) => canSeeService(roles, service.slug) && (!enabled || enabled.includes(service.slug))
+    )
+  })).filter((group) => group.services.length > 0);
 
   return (
     <>

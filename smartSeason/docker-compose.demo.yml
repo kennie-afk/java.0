@@ -1,0 +1,176 @@
+# Lean demo overlay for SmartSeason. Use it through the one-command runner:
+#
+#   scripts/demo.sh            build what is missing, start, seed, print where to go
+#   scripts/demo.sh reset      throw the demo volumes away and start from empty
+#
+# which is `docker compose --env-file .env.demo -f docker-compose.yml -f docker-compose.demo.yml`.
+# What it changes, and nothing else:
+#   - The project is named `smartseason-demo`, so its volumes are separate from a normal
+#     `smartseason` stack and `reset` never touches that one.
+#   - Only the 20 services the web screens actually call are started (the runner names them);
+#     the six it leaves out are device-registry, telemetry-ingest, automation, notification,
+#     search and analytics. The web hides their menus (DEMO_SERVICES) so no screen is a dead end.
+#   - Redpanda is capped at 512 MB of its own accounting and 768 MB of container.
+#   - Nothing but the web app and the gateway is published, and only on 127.0.0.1.
+#   - The web shows the demo banner, the sign-in picker is on, reset codes come back in the
+#     response, and M-Pesa runs in mock mode: nothing leaves the machine and no money moves.
+#   - Image names are pinned to the ones a normal build already produces, so images are shared.
+name: smartseason-demo
+
+x-demo-env: &demo-env
+  # The seed makes a few hundred writes as one account in a minute or two, which the production
+  # per-identity write limits (60, refilling at 1/s) refuse. The limiter stays on; only the
+  # allowance is wider.
+  RATE_LIMIT_WRITE_CAPACITY: "2000"
+  RATE_LIMIT_WRITE_REFILL: "50"
+  RATE_LIMIT_READ_CAPACITY: "3000"
+  RATE_LIMIT_READ_REFILL: "100"
+
+services:
+  postgres:
+    ports: !reset []
+
+  redpanda:
+    mem_limit: 768m
+    mem_reservation: 384m
+    command:
+      - redpanda
+      - start
+      - --smp=1
+      - --overprovisioned
+      - --memory=512M
+      - --reserve-memory=0M
+      - --node-id=0
+      - --check=false
+      - --kafka-addr=PLAINTEXT://0.0.0.0:9092
+      - --advertise-kafka-addr=PLAINTEXT://redpanda:9092
+    ports: !reset []
+
+  objectstore:
+    ports: !reset []
+
+  redis:
+    ports: !reset []
+
+  api-gateway:
+    image: smartseason-api-gateway:latest
+    environment:
+      <<: *demo-env
+    ports: !override
+      - "127.0.0.1:${GATEWAY_PORT:-18080}:8080"
+
+  web:
+    image: smartseason-web:latest
+    environment:
+      DEMO_MODE: "true"
+      DEMO_SERVICES: ${DEMO_SERVICES:-}
+    ports: !override
+      - "127.0.0.1:${WEB_PORT:-13000}:3000"
+
+  identity-service:
+    image: smartseason-identity-service:latest
+    environment:
+      <<: *demo-env
+
+  farm-service:
+    image: smartseason-farm-service:latest
+    environment:
+      <<: *demo-env
+
+  season-service:
+    image: smartseason-season-service:latest
+    environment:
+      <<: *demo-env
+
+  agronomy-service:
+    image: smartseason-agronomy-service:latest
+    environment:
+      <<: *demo-env
+
+  weather-service:
+    image: smartseason-weather-service:latest
+    environment:
+      <<: *demo-env
+
+  workforce-service:
+    image: smartseason-workforce-service:latest
+    environment:
+      <<: *demo-env
+
+  attendance-service:
+    image: smartseason-attendance-service:latest
+    environment:
+      <<: *demo-env
+
+  task-service:
+    image: smartseason-task-service:latest
+    environment:
+      <<: *demo-env
+
+  fraud-service:
+    image: smartseason-fraud-service:latest
+    environment:
+      <<: *demo-env
+
+  catalog-service:
+    image: smartseason-catalog-service:latest
+    environment:
+      <<: *demo-env
+
+  pricing-service:
+    image: smartseason-pricing-service:latest
+    environment:
+      <<: *demo-env
+
+  order-service:
+    image: smartseason-order-service:latest
+    environment:
+      <<: *demo-env
+
+  inventory-service:
+    image: smartseason-inventory-service:latest
+    environment:
+      <<: *demo-env
+
+  logistics-service:
+    image: smartseason-logistics-service:latest
+    environment:
+      <<: *demo-env
+
+  payment-service:
+    image: smartseason-payment-service:latest
+    environment:
+      <<: *demo-env
+      # Mock gateway: STK pushes settle locally, B2C payouts are recorded, nothing is sent.
+      SMARTSEASON_MPESA_MODE: mock
+
+  ledger-service:
+    image: smartseason-ledger-service:latest
+    environment:
+      <<: *demo-env
+
+  payout-service:
+    image: smartseason-payout-service:latest
+    environment:
+      <<: *demo-env
+
+  traceability-service:
+    image: smartseason-traceability-service:latest
+    environment:
+      <<: *demo-env
+
+  media-service:
+    image: smartseason-media-service:latest
+    environment:
+      <<: *demo-env
+
+  audit-service:
+    image: smartseason-audit-service:latest
+    environment:
+      <<: *demo-env
+
+volumes:
+  postgres-data:
+  objectstore-data:
+  redis-data:
+  redpanda-data:

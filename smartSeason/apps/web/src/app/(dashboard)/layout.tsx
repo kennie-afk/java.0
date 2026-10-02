@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { Nav } from "@/components/nav";
+import { enabledServices } from "@/lib/deployment";
 import { readRoles, readToken } from "@/lib/session";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -11,7 +12,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="flex min-h-screen bg-[var(--color-canvas)]">
-      <Nav roles={roles} />
+      <Nav roles={roles} enabled={enabledServices()} />
       <main className="flex-1 px-3.5 py-7 md:px-8 lg:px-10">
         <div className="mx-auto max-w-6xl">{children}</div>
       </main>

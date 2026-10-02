@@ -19,6 +19,7 @@ build/
 __pycache__/
 *.pyc
 .build-logs/
+.demo/
 
 # Local editor and assistant tooling — never published
 .mcp.json

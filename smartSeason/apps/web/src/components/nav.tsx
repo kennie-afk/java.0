@@ -24,7 +24,7 @@ import {
  * Twenty-seven services will not fit in a flat rail, and a flyout would need
  * hover motion, which the house style does not use.
  */
-export function Nav({ roles }: { roles: string[] }) {
+export function Nav({ roles, enabled }: { roles: string[]; enabled: string[] | null }) {
   const pathname = usePathname();
   const segments = pathname.split("/").filter(Boolean);
   const serviceSlug = segments[0] ?? "";
@@ -34,8 +34,11 @@ export function Nav({ roles }: { roles: string[] }) {
     .filter((group) => canSeeGroup(roles, group.slug))
     .map((group) => ({
       ...group,
-      services: group.services.filter((service) => canSeeService(roles, service.slug))
-    }));
+      services: group.services.filter(
+        (service) => canSeeService(roles, service.slug) && (!enabled || enabled.includes(service.slug))
+      )
+    }))
+    .filter((group) => group.services.length > 0);
   const activeGroup =
     visibleGroups.find((group) => group.services.some((service) => service.slug === serviceSlug)) ??
     visibleGroups[0];
