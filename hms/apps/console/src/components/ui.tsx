@@ -7,12 +7,12 @@ import { Icon, type IconName } from "@/components/icons";
 
 export function Page({ title, actions, children, sub, eyebrow }: { title: string; actions?: React.ReactNode; sub?: string; eyebrow?: string; children: React.ReactNode }) {
   return (
-    <div className="mx-auto w-full max-w-[1680px] space-y-6 px-4 pb-20 pt-6 sm:px-6 lg:px-10 lg:pt-9">
+    <div className="mx-auto w-full max-w-[1680px] space-y-5 px-4 pb-16 pt-5 sm:px-6 lg:px-8 lg:pt-7">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0 max-w-3xl">
-          {eyebrow && <p className="mb-1 text-xs font-semibold uppercase tracking-[0.08em] text-accent">{eyebrow}</p>}
-          <h1 className="text-2xl font-semibold leading-tight sm:text-3xl">{title}</h1>
-          {sub && <p className="mt-1.5 text-base leading-relaxed text-muted">{sub}</p>}
+          {eyebrow && <p className="mb-0.5 text-xs font-semibold uppercase tracking-[0.07em] text-accent">{eyebrow}</p>}
+          <h1 className="text-xl font-semibold leading-tight tracking-[-0.01em] sm:text-2xl">{title}</h1>
+          {sub && <p className="mt-1 text-sm leading-relaxed text-muted">{sub}</p>}
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
       </header>
@@ -25,15 +25,15 @@ export function Card({ title, actions, children, pad = true, description }: { ti
   return (
     <section className="overflow-hidden rounded-xl border border-line bg-surface shadow-[var(--shadow-card)]">
       {title && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
           <div>
-            <h2 className="text-lg font-semibold">{title}</h2>
+            <h2 className="text-[15px] font-semibold leading-snug">{title}</h2>
             {description && <p className="mt-0.5 text-sm text-muted">{description}</p>}
           </div>
           {actions && <div className="flex items-center gap-2">{actions}</div>}
         </div>
       )}
-      <div className={pad ? "p-5" : ""}>{children}</div>
+      <div className={pad ? "p-4" : ""}>{children}</div>
     </section>
   );
 }
@@ -44,9 +44,9 @@ export function Table({ head, children, empty }: { head: string[]; children: Rea
     <div className="overflow-x-auto">
       <table className="w-full text-left text-sm">
         <thead>
-          <tr className="border-b border-line bg-raised">
+          <tr className="border-b border-line bg-surface">
             {head.map((h, i) => (
-              <th key={h + i} className="whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase tracking-[0.06em] text-muted first:pl-5 last:pr-5">
+              <th key={h + i} className="whitespace-nowrap px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.06em] text-muted first:pl-4 last:pr-4">
                 {h}
               </th>
             ))}
@@ -60,21 +60,21 @@ export function Table({ head, children, empty }: { head: string[]; children: Rea
 }
 
 export const Tr = ({ children, tone }: { children: React.ReactNode; href?: string; tone?: "danger" | "warn" }) => (
-  <tr className={`border-b border-line last:border-0 hover:bg-canvas ${tone === "danger" ? "bg-danger-soft/50" : tone === "warn" ? "bg-warn-soft/50" : ""}`}>{children}</tr>
+  <tr className={`border-b border-line last:border-0 hover:bg-raised ${tone === "danger" ? "bg-danger-soft/50" : tone === "warn" ? "bg-warn-soft/50" : ""}`}>{children}</tr>
 );
 export const Td = ({ children, className = "", href }: { children?: React.ReactNode; className?: string; href?: string }) => (
-  <td className={`px-4 py-3 align-middle first:pl-5 last:pr-5 max-sm:whitespace-nowrap ${className}`}>
+  <td className={`px-4 py-[11px] align-middle first:pl-4 last:pr-4 max-sm:whitespace-nowrap ${className}`}>
     {href ? <Link href={href} className="font-semibold text-accent hover:underline">{children}</Link> : children}
   </td>
 );
 
 export function Empty({ text, detail, action }: { text: string; detail?: string; action?: React.ReactNode }) {
   return (
-    <div className="px-6 py-12 text-center">
-      <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-accent-soft text-accent">
+    <div className="px-6 py-10 text-center">
+      <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-accent-soft text-accent">
         <Icon name="inbox" className="h-5 w-5" />
       </div>
-      <p className="text-base font-semibold">{text}</p>
+      <p className="text-sm font-semibold">{text}</p>
       {detail && <p className="mx-auto mt-1 max-w-md text-sm text-muted">{detail}</p>}
       {action && <div className="mt-4 flex justify-center">{action}</div>}
     </div>
@@ -82,11 +82,11 @@ export function Empty({ text, detail, action }: { text: string; detail?: string;
 }
 
 export function Loading() {
-  return <div className="px-6 py-12 text-center text-sm text-muted">Loading...</div>;
+  return <div className="px-6 py-10 text-center text-sm text-muted">Loading...</div>;
 }
 
 const NOTICE = {
-  info: "border-line bg-raised text-muted",
+  info: "border-line bg-surface text-muted",
   good: "border-[#bfe0c9] bg-good-soft text-good",
   warn: "border-[#f0d9b5] bg-warn-soft text-warn",
   danger: "border-[#f5cdcb] bg-danger-soft text-danger"
@@ -94,7 +94,7 @@ const NOTICE = {
 
 export function Notice({ tone = "info", title, children }: { tone?: keyof typeof NOTICE; title?: string; children: React.ReactNode }) {
   return (
-    <div role={tone === "danger" ? "alert" : "note"} className={`rounded-lg border px-4 py-3 text-sm leading-relaxed ${NOTICE[tone]}`}>
+    <div role={tone === "danger" ? "alert" : "note"} className={`rounded-lg border px-3.5 py-2.5 text-sm leading-relaxed ${NOTICE[tone]}`}>
       {title && <p className="font-semibold">{title}</p>}
       {children}
     </div>
@@ -123,7 +123,7 @@ const sentence = (v: string) => {
 
 export function Badge({ children, tone = "neutral" }: { children: React.ReactNode; tone?: keyof typeof tones }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${tones[tone]}`}>
+    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${tones[tone]}`}>
       <span className="h-1.5 w-1.5 rounded-full bg-current" />
       {typeof children === "string" ? sentence(children) : children}
     </span>
@@ -140,7 +140,7 @@ const STATUS_TONE: Record<string, keyof typeof tones> = {
 
 export const Status = ({ value }: { value: string }) => <Badge tone={STATUS_TONE[value] ?? "neutral"}>{value}</Badge>;
 
-const BTN = "inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold disabled:pointer-events-none disabled:opacity-50";
+const BTN = "inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap min-h-9 rounded-lg px-3.5 py-1.5 text-sm font-semibold disabled:pointer-events-none disabled:opacity-50";
 export const buttonCls = {
   primary: `${BTN} bg-accent text-white shadow-sm hover:bg-accent-deep`,
   secondary: `${BTN} border border-line-strong bg-surface text-ink hover:bg-raised`,
@@ -161,15 +161,15 @@ export function Button({ children, onClick, type = "button", variant = "primary"
 
 export function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
-    <label className="block space-y-1.5">
+    <label className="block space-y-1">
       <span className="block text-sm font-semibold text-ink">{label}</span>
       {children}
-      {hint && <span className="block text-sm text-muted">{hint}</span>}
+      {hint && <span className="block text-xs text-muted">{hint}</span>}
     </label>
   );
 }
 
-const control = "w-full rounded-lg border border-line-strong bg-surface px-3.5 py-2.5 text-base text-ink outline-none placeholder:text-faint hover:border-faint focus:border-accent focus:ring-4 focus:ring-accent-soft disabled:bg-raised disabled:opacity-70";
+const control = "w-full rounded-lg border border-line-strong bg-surface min-h-9 px-3 py-1.5 text-base text-ink outline-none placeholder:text-faint hover:border-faint focus:border-accent focus:ring-4 focus:ring-accent-soft disabled:bg-raised disabled:opacity-70";
 const chevron = "appearance-none bg-[length:16px] bg-[right_0.875rem_center] bg-no-repeat pr-9 bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.75%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M6%208l4%204%204-4%22%2F%3E%3C%2Fsvg%3E')]";
 export const Input = (p: React.InputHTMLAttributes<HTMLInputElement>) => <input {...p} className={`${control} ${p.className ?? ""}`} />;
 export const Select = (p: React.SelectHTMLAttributes<HTMLSelectElement>) => <select {...p} className={`${control} ${chevron} cursor-pointer ${p.className ?? ""}`} />;
@@ -177,7 +177,7 @@ export const Textarea = (p: React.TextareaHTMLAttributes<HTMLTextAreaElement>) =
 
 export function Grid({ cols = 3, children }: { cols?: 2 | 3 | 4; children: React.ReactNode }) {
   const c = { 2: "md:grid-cols-2", 3: "md:grid-cols-3", 4: "md:grid-cols-2 xl:grid-cols-4" }[cols];
-  return <div className={`grid ${cols === 4 ? "grid-cols-2" : "grid-cols-1"} gap-3 sm:gap-4 ${c}`}>{children}</div>;
+  return <div className={`grid ${cols === 4 ? "grid-cols-2" : "grid-cols-1"} gap-3 ${c}`}>{children}</div>;
 }
 
 const BAR = { good: "bg-accent", warn: "bg-warn", danger: "bg-danger", info: "bg-info" };
@@ -187,14 +187,14 @@ export function Stat({ label, value, tone, hint, icon }: { label: string; value:
   const t = tone ?? "good";
   const short = typeof value === "number" || (typeof value === "string" && value.length <= 6);
   return (
-    <div className="relative h-full overflow-hidden rounded-xl border border-line bg-surface px-4 py-3.5 shadow-[var(--shadow-card)] sm:px-5 sm:py-4">
+    <div className="relative h-full overflow-hidden rounded-xl border border-line bg-surface px-4 py-3 shadow-[var(--shadow-card)]">
       <span className={`absolute inset-y-0 left-0 w-1 ${BAR[t]}`} aria-hidden="true" />
       <div className="flex items-start justify-between gap-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.07em] text-muted">{label}</p>
-        {icon && <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${CHIP[t]}`}><Icon name={icon} className="h-[18px] w-[18px]" /></span>}
+        <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-muted">{label}</p>
+        {icon && <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${CHIP[t]}`}><Icon name={icon} className="h-4 w-4" /></span>}
       </div>
-      <p className={`mt-2 truncate font-[family-name:var(--font-display)] font-semibold leading-none tracking-[-0.02em] tabular-nums ${short ? "text-2xl sm:text-3xl" : "text-lg min-[420px]:text-2xl sm:text-3xl"} ${tone === "danger" ? "text-danger" : tone === "warn" ? "text-warn" : ""}`}>{value}</p>
-      {hint && <p className="mt-2 text-sm leading-snug text-muted">{hint}</p>}
+      <p className={`mt-1.5 truncate font-semibold leading-none tracking-[-0.01em] tabular-nums ${short ? "text-xl sm:text-[19px]" : "text-[17px] sm:text-[19px]"} ${tone === "danger" ? "text-danger" : tone === "warn" ? "text-warn" : ""}`}>{value}</p>
+      {hint && <p className="mt-1.5 text-[12px] leading-snug text-muted">{hint}</p>}
     </div>
   );
 }
@@ -204,7 +204,7 @@ export function Tabs({ tabs, value, onChange }: { tabs: { key: string; label: st
     <div className="flex flex-wrap gap-1">
       {tabs.map((t) => (
         <button key={t.key} type="button" onClick={() => onChange(t.key)}
-          className={`cursor-pointer rounded-lg px-3.5 py-2 text-sm font-semibold ${value === t.key ? "bg-accent-soft text-accent-deep" : "text-muted hover:bg-raised hover:text-ink"}`}>
+          className={`cursor-pointer rounded-lg min-h-9 px-3 py-1.5 text-sm font-semibold ${value === t.key ? "bg-accent-soft text-accent-deep" : "text-muted hover:bg-raised hover:text-ink"}`}>
           {t.label}
         </button>
       ))}
@@ -227,7 +227,7 @@ export function Confirm({ label, prompt, onConfirm, variant = "danger", needsRea
   const [error, setError] = useState<unknown>(null);
   if (!open) return <Button variant={variant} onClick={() => setOpen(true)}>{label}</Button>;
   return (
-    <div className="space-y-2 rounded-lg border border-line bg-raised p-3">
+    <div className="space-y-2 rounded-lg border border-line bg-surface p-3">
       <div className="text-sm">{prompt}</div>
       {needsReason && <Input placeholder="Reason" value={reason} onChange={(e) => setReason(e.target.value)} />}
       <ErrorNote error={error} />
@@ -277,7 +277,7 @@ export function KV({ k, v }: { k: string; v: React.ReactNode }) {
   return (
     <div>
       <div className="text-xs font-semibold uppercase tracking-[0.06em] text-muted">{k}</div>
-      <div className="mt-0.5 text-base">{v || <span className="text-faint">-</span>}</div>
+      <div className="mt-0.5 text-sm">{v || <span className="text-faint">-</span>}</div>
     </div>
   );
 }

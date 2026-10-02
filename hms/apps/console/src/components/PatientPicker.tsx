@@ -24,7 +24,7 @@ export function PatientPicker({ value, onPick }: { value: PatientRow | null; onP
 
   if (value) {
     return (
-      <div className="flex items-center justify-between rounded-md border border-line bg-raised px-2 py-1 text-sm">
+      <div className="flex items-center justify-between rounded-md border border-line bg-surface px-2 py-1 text-sm">
         <span><b>{value.givenName} {value.familyName}</b> <span className="text-muted">{value.mrn} · {age(value.birthDate)} · {value.sex}</span></span>
         <button type="button" className="text-accent hover:underline" onClick={() => onPick(null)}>Change</button>
       </div>

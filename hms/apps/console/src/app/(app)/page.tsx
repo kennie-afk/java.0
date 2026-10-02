@@ -40,8 +40,8 @@ export default function Overview() {
       )}
       {r && r.outpatient.topDiagnoses.length > 0 && (
         <Card title="Top diagnoses (7 days)">
-          <ul className="divide-y divide-line text-base">
-            {r.outpatient.topDiagnoses.map((t) => <li key={t.key} className="flex justify-between py-2.5"><span>{t.key}</span><b className="tabular-nums">{t.count}</b></li>)}
+          <ul className="divide-y divide-line text-sm">
+            {r.outpatient.topDiagnoses.map((t) => <li key={t.key} className="flex justify-between py-2"><span>{t.key}</span><b className="tabular-nums">{t.count}</b></li>)}
           </ul>
           <div className="pt-3 text-sm"><Link href="/reports" className="font-semibold text-accent hover:underline">All reports</Link></div>
         </Card>

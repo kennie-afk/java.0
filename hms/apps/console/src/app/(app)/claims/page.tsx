@@ -26,7 +26,7 @@ export default function Claims() {
       )}
       {summary.data && summary.data.topIssues.length > 0 && (
         <Card title="What is holding claims back">
-          <ul className="divide-y divide-line text-base">{summary.data.topIssues.map((i) => <li key={i.ruleCode + i.severity} className="flex items-center justify-between py-2.5"><span className="flex items-center gap-3">{i.ruleCode.replaceAll("_", " ")} <Badge tone={i.severity === "ERROR" ? "danger" : "warn"}>{i.severity}</Badge></span><b>{i.claims}</b></li>)}</ul>
+          <ul className="divide-y divide-line text-sm">{summary.data.topIssues.map((i) => <li key={i.ruleCode + i.severity} className="flex items-center justify-between py-2"><span className="flex items-center gap-3">{i.ruleCode.replaceAll("_", " ")} <Badge tone={i.severity === "ERROR" ? "danger" : "warn"}>{i.severity}</Badge></span><b>{i.claims}</b></li>)}</ul>
         </Card>
       )}
       <Card pad={false}>
