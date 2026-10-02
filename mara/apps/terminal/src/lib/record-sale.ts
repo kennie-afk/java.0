@@ -131,7 +131,7 @@ export async function recordSale(input: {
       head: newHead,
       expectedPreviousSequence: head?.lastSequence ?? 0,
       expectedLeaseNext: storedLease?.nextNumber ?? null,
-      lease: decision.status === "NUMBERED" && decision.lease ? toStored(decision.lease) : null,
+      lease: decision.status === "NUMBERED" && decision.lease ? { ...toStored(decision.lease), leaseId: storedLease?.leaseId } : null,
       tabId: tab.id
     });
     return record;

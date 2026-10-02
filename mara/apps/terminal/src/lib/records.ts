@@ -64,10 +64,30 @@ export interface JournalHead {
 }
 
 export interface StoredLease {
+  /** the server's id for this lease; absent on a lease installed before sync existed */
+  leaseId?: string;
   terminalId: string;
   firstNumber: string;
   lastNumber: string;
   nextNumber: string;
   issuedAtMs: number;
   expiresAtMs: number;
+}
+
+/** Where this terminal's journal stands with the server. Terminal-local bookkeeping, not signed. */
+export interface SyncState {
+  /** highest sequence the server has confirmed it holds, verified and chained */
+  syncedThrough: number;
+  lastAttemptMs: number | null;
+  lastSuccessMs: number | null;
+  lastError: string | null;
+  /** the server is holding this terminal's later entries behind a missing sequence */
+  heldAtGap: boolean;
+  openExceptions: number;
+}
+
+/** A lease the terminal replaced and still owes the server the unused tail of. */
+export interface PendingReturn {
+  leaseId: string;
+  nextUnused: string;
 }

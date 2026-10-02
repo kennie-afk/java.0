@@ -19,10 +19,19 @@ import { summariseJournal } from "../src/lib/summary";
 import { addToTab, openTab } from "../src/lib/tab-store";
 import { getIdentity } from "../src/lib/terminal-store";
 import { verifyLocalJournal } from "../src/lib/verify-journal";
+import { getLease } from "../src/lib/journal-store";
+import { getPendingReturns, getSyncState, syncCycle } from "../src/lib/sync";
 
 const BASE = process.env.LIVE_TERMINAL_URL;
 const CODE = process.env.LIVE_ENROL_CODE;
 const live = BASE && CODE ? describe : describe.skip;
+
+// Optional: with these set the sync test also reads the servers' own books back.
+const ADMIN = process.env.LIVE_ADMIN_TOKEN;
+const TENANT = process.env.LIVE_TENANT;
+const SYNC_URL = process.env.LIVE_SYNC_URL;
+const CORE_URL = process.env.LIVE_CORE_URL;
+const backOffice = ADMIN && TENANT && SYNC_URL && CORE_URL ? it : it.skip;
 
 const realFetch = globalThis.fetch;
 const viaTerminal = ((input: RequestInfo | URL, init?: RequestInit) =>
@@ -91,5 +100,62 @@ live("the till against the real stack", () => {
     for (let i = 0; i < 5; i++) await signInStaff("2002", "1111");
     const r = await signInStaff("2002", "6159");
     expect(r.kind).toBe("locked");
+  });
+
+  it("leases fiscal numbers, uploads the journal, and the servers' books agree with the till", async () => {
+    const id = (await getIdentity())!;
+    // Three more sales so there is something numbered and something pending.
+    await signInStaff("2001", "4826");
+    const s = (await getSession())!;
+    const sugar = (await listItems({ q: "sugar", limit: 1 })).items[0];
+    for (let i = 0; i < 2; i++) {
+      const tab = await openTab("sync");
+      await addToTab(tab.id, sugar);
+      await recordSale({
+        tabId: tab.id,
+        cashier: { staffId: s.staffId, staffNumber: s.staffNumber, name: s.displayName },
+        payments: [{ method: "CASH", tenderedMinor: 20000n, reference: "" }]
+      });
+    }
+    const head = (await getHead())!;
+
+    const state = await syncCycle();
+    expect(state?.lastError).toBeNull();
+    expect(state?.syncedThrough).toBe(head.lastSequence);
+    const lease = await getLease();
+    expect(lease?.leaseId).toBeTruthy();
+
+    // After a lease exists, new sales are numbered from it.
+    const tab = await openTab("numbered");
+    await addToTab(tab.id, sugar);
+    const numbered = await recordSale({
+      tabId: tab.id,
+      cashier: { staffId: s.staffId, staffNumber: s.staffNumber, name: s.displayName },
+      payments: [{ method: "CASH", tenderedMinor: 20000n, reference: "" }]
+    });
+    expect(numbered.sale.fiscal.status).toBe("NUMBERED");
+    expect(BigInt(numbered.sale.fiscal.number)).toBe(BigInt(lease!.firstNumber));
+    expect((await syncCycle())?.syncedThrough).toBe(numbered.sequence);
+    expect(await getPendingReturns()).toEqual([]);
+    expect((await getSyncState()).heldAtGap).toBe(false);
+    expect(id.terminalId).toBeTruthy();
+  });
+
+  backOffice("the sync service holds the verified chain and the core ledger balances", async () => {
+    const id = (await getIdentity())!;
+    const head = (await getHead())!;
+    const h = { Authorization: `Bearer ${ADMIN}`, "X-Mara-Tenant": TENANT! };
+    const chains = (await (await realFetch(`${SYNC_URL}/v1/admin/chains`, { headers: h })).json()) as { terminalId: string; lastSequence: number; headDigest: string }[];
+    const mine = chains.find((c) => c.terminalId === id.terminalId)!;
+    expect(mine.lastSequence).toBe(head.lastSequence);
+    expect(mine.headDigest).toBe(head.headDigest);
+    const exceptions = (await (await realFetch(`${SYNC_URL}/v1/admin/exceptions`, { headers: h })).json()) as { kind: string }[];
+    expect(exceptions.filter((e) => e.kind !== "SALE_INCONSISTENT")).toEqual([]);
+
+    // Ask core to pull now rather than waiting for its poll.
+    await realFetch(`${CORE_URL}/v1/admin/ingest/run`, { method: "POST", headers: h });
+    const tb = (await (await realFetch(`${CORE_URL}/v1/admin/ledger/trial-balance`, { headers: h })).json()) as { debitMinor: number; creditMinor: number }[];
+    expect(tb.reduce((n, r) => n + Number(r.debitMinor), 0)).toBe(tb.reduce((n, r) => n + Number(r.creditMinor), 0));
+    expect(tb.length).toBeGreaterThan(0);
   });
 });

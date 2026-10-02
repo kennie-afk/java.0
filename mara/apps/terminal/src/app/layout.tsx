@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Nav } from "@/components/nav";
 import { SwRegister } from "@/components/sw-register";
+import { SyncAgent } from "@/components/sync-agent";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <main className="min-w-0 flex-1 p-3 sm:p-4">{children}</main>
         </div>
         <SwRegister />
+        <SyncAgent />
       </body>
     </html>
   );

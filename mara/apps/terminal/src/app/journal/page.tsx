@@ -1,12 +1,62 @@
 "use client";
 
 import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 import { Badge, EmptyState, LinkButton, Loading, Notice, PageHeader, Pager, Table, usePagedList } from "@/components/ui";
 import { useTerminalStatus } from "@/components/use-status";
 import { getHead, listEntries, readAscending } from "@/lib/journal-store";
 import { getIdentity } from "@/lib/terminal-store";
 import { Button } from "@/components/ui";
 import { format, money } from "@/lib/money";
+import { Card, KeyValue } from "@/components/ui";
+import { getPendingReturns, getSyncState, syncCycle } from "@/lib/sync";
+import type { SyncState } from "@/lib/records";
+
+/** How this journal stands with the server: what it holds a verified copy of, and why not more. */
+function SyncCard({ lastSequence }: { lastSequence: number }) {
+  const [state, setState] = useState<SyncState | null>(null);
+  const [pending, setPending] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const refresh = useCallback(async () => {
+    setState(await getSyncState());
+    setPending((await getPendingReturns()).length);
+  }, []);
+  useEffect(() => {
+    void refresh();
+    const t = setInterval(() => void refresh(), 5000);
+    return () => clearInterval(t);
+  }, [refresh, lastSequence]);
+  if (!state) return null;
+  const behind = Math.max(0, lastSequence - state.syncedThrough);
+  return (
+    <Card className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold">Server copy</span>
+        <Button
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            await syncCycle().catch(() => null);
+            await refresh();
+            setBusy(false);
+          }}
+        >
+          {busy ? "Syncing..." : "Sync now"}
+        </Button>
+      </div>
+      <KeyValue
+        rows={[
+          ["Verified by the server through", state.syncedThrough === 0 ? "nothing yet" : `#${state.syncedThrough}`],
+          ["Waiting to upload", behind === 0 ? <Badge tone="good">none</Badge> : <Badge tone="warn">{behind} sale{behind === 1 ? "" : "s"}</Badge>],
+          ["Last success", state.lastSuccessMs ? new Date(state.lastSuccessMs).toLocaleString() : "never"],
+          ["Server exceptions open", state.openExceptions === 0 ? "none" : <Badge tone="danger">{state.openExceptions}</Badge>],
+          ...(pending > 0 ? ([["Fiscal numbers to hand back", `${pending} lease${pending === 1 ? "" : "s"}`]] as [string, React.ReactNode][]) : [])
+        ]}
+      />
+      {state.lastError ? <Notice tone={state.heldAtGap ? "danger" : "warn"}>{state.lastError}</Notice> : null}
+    </Card>
+  );
+}
 
 /**
  * Downloads the whole journal with the terminal's public key, as one JSON file: the bundle a
@@ -54,6 +104,7 @@ export default function JournalPage() {
           </span>
         }
       />
+      {s.head ? <SyncCard lastSequence={s.head.lastSequence} /> : null}
       {list.error ? <Notice tone="danger">{list.error}</Notice> : null}
       {list.page && list.page.items.length === 0 ? (
         <div className="card">
