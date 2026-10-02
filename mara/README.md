@@ -29,12 +29,16 @@ mara-platform-parent (aggregator)
 │   ├── money/                 currency-safe arithmetic (allocation, rounding)
 │   ├── journal/               hash-chained, gap-detecting sale journal
 │   ├── fiscal/                disjoint invoice-number leasing
-│   ├── identity/               enrolment policy, Ed25519 verification, terminal lifecycle
-│   └── staff/                  roles, PIN lockout policy, elevated-action authorisation
+│   ├── identity/              enrolment policy, Ed25519 verification, request signatures
+│   ├── staff/                 roles, PIN lockout policy, elevated-action authorisation
+│   └── sale/                  the terminal's canonical sale encoding, entry verification, arithmetic checks
 └── services/
-    └── identity-service/       the trust root: tenants, terminals, enrolment, PostgreSQL RLS
+    ├── service-kit/           two-role database + tenant-bound RLS wiring, terminal request auth, operator tokens
+    ├── identity-service/      the trust root: tenants, terminals, enrolment, staff sign-in, RLS
+    ├── sync-service/          terminal fan-in: verifies and keeps the append-only second copy of every journal
+    └── core-service/          the double-entry ledger, fiscal number leases, sales posted from verified journals
 apps/
-└── terminal/                  the till: offline-first Next.js PWA (sale, catalogue, local journal)
+└── terminal/                  the till: offline-first Next.js PWA (sale, catalogue, local journal, sync, fiscal lease)
 ```
 
 `platform` is deliberately dependency-free domain logic — every rule above can be (and
@@ -46,8 +50,8 @@ the aggregator.
 ## Demo in five minutes
 
 ```
-cp .env.example .env          # fill the three secrets (openssl rand -hex 24); ports are optional
-docker compose up --build -d
+cp .env.example .env          # fill the four secrets (openssl rand -hex 24); ports are optional
+docker compose up --build -d   # postgres, identity, sync, core and the till
 python3 scripts/demo_seed.py  # creates "Mama Njeri Mart", prints staff numbers, PINs and an enrolment code
 ```
 
@@ -63,10 +67,15 @@ Open the till at `http://localhost:3100` (or `MARA_TERMINAL_PORT`), then:
 6. **Offline**: stop the network (DevTools > Offline) or `docker compose stop identity-service`; selling and PIN
    sign-in (for anyone who has signed in online once) keep working. Re-enrolment is refused by design.
 
-What the demo does **not** show, honestly: there is no sync-service, so sales never leave the browser (the
-Journal page's *Export* downloads the signed bundle a sync service would receive); no fiscal-number leasing, so
-every sale is `FISCAL_PENDING`; no shared back office or multi-terminal stock (`apps/platform` is an empty shell;
-Summary is per terminal); stock is not tracked. Clearing the browser's site data destroys that till's journal.
+7. **Server copy**: Journal shows what the server has verified. A moment after the first sale the till
+   leases a block of fiscal numbers (set `MARA_FISCAL_LEASE_SIZE=10` to watch it renew at 20% and hand the
+   old tail back) and later sales are `NUMBERED`. Read the books back with the operator token:
+   `GET :8083/v1/admin/ledger/trial-balance`, `GET :8082/v1/admin/chains`, `/v1/admin/exceptions`
+   (header `X-Mara-Tenant: <tenant id from demo_seed>`).
+
+What the demo does **not** show, honestly: there is no api-gateway and no back-office UI (the server reads are
+operator-token JSON endpoints); stock is not tracked; there is no shared multi-terminal stock, and Summary is per
+terminal. Clearing the browser's site data destroys any sale not yet uploaded.
 
 `python3 scripts/demo_seed.py code` mints another enrolment code (15 minutes, single use).
 Operator API for tenants, staff and codes: `/v1/admin/*` with `Authorization: Bearer $MARA_ADMIN_TOKEN`.
@@ -170,8 +179,8 @@ itself is on its usual `8081`.
 ## The terminal (`apps/terminal`)
 
 A Next.js 16 / React 19 / Tailwind 4 app that is a working offline till on its own, in
-one browser, with no server other than `identity-service`, and that one only for
-enrolment.
+one browser. It needs `identity-service` once, to enrol; `sync-service` and `core-service`
+are optional for selling and only add the server's copy and fiscal numbers.
 
 - **Enrolment** — posts to the real `POST /v1/enrolment` via `/api/enrol` (a same-origin
   proxy, base URL from `IDENTITY_BASE_URL`). The Ed25519 key is generated in the browser
@@ -181,10 +190,11 @@ enrolment.
   typed by the cashier and not verified), receipt. Money is BigInt minor units.
 - **Journal** — hash-chained, signed, strictly monotonic, paged; **Verify** reports
   intact / broken-at / gap-at. There is deliberately no way to edit or delete an entry.
-- **Fiscal** — no lease can be obtained (no service issues them), so every sale is
-  `FISCAL_PENDING`, and the UI says so.
-- **Status** — enrolled or not, online or offline, "sync service not built, nothing has
-  left this device", and "no staff sign-in exists yet".
+- **Fiscal** — leases a block of fiscal numbers from `core-service`, draws from it offline,
+  renews at 20% remaining; a till that has never been online issues `FISCAL_PENDING` and says so.
+- **Sync** — a background agent uploads the journal to `sync-service` (signed requests); the
+  Journal page shows what the server has verified, what is waiting, and any exception.
+- **Status** — enrolled or not, online or offline, whether identity-service is reachable.
 
 ```
 cd apps/terminal
@@ -206,11 +216,31 @@ draws. Regenerate with `apps/terminal/vectors/generate.sh` (needs Docker only).
 
 ## Project status
 
-`identity-service` — tenants, staff and enrolment — is implemented, migrated, tested and
-RLS-hardened. `apps/terminal` is built as an offline-first till and proven against the
-platform's algorithms, but nothing it records is uploaded anywhere. The other three
-deployables (`api-gateway`, `core-service` — catalog, sales, payments, ledger, fiscal
-leases — and `sync-service`, described in [`docs/ARCHITECTURE.md §3`](docs/ARCHITECTURE.md))
-are designed but not yet built, as is staff PIN sign-in. See
-[`docs/ARCHITECTURE.md §8`](docs/ARCHITECTURE.md) for exactly what the terminal does and
-does not prove.
+Built and tested: `platform`, `service-kit`, `identity-service`, `sync-service`,
+`core-service` and `apps/terminal`, with the cross-language contract between the terminal and
+the Java platform tested in both directions. Not built: `api-gateway` (the till does not need
+one yet), `apps/platform` (a back-office UI), and in `core-service` the catalog, inventory,
+tabs and hospitality modules. [`docs/ARCHITECTURE.md §8`](docs/ARCHITECTURE.md) states what is
+built, what each piece proves and what it does not, and the exact test counts.
+
+## Running the tests
+
+```
+# platform (pure Java, no database)
+mvn -pl platform test
+
+# the three services need a PostgreSQL superuser to run against (one container is enough;
+# each service creates its own database on it)
+docker run -d --name mara-it-pg -e POSTGRES_USER=mara_owner -e POSTGRES_PASSWORD=owner-secret \
+  -e POSTGRES_DB=mara_identity -p 55444:5432 postgres:16-alpine
+mvn -pl platform,services/service-kit install -DskipTests
+mvn -pl services/identity-service test -Dmara.test.jdbc.url=jdbc:postgresql://localhost:55444/mara_identity
+mvn -pl services/sync-service     test -Dmara.test.jdbc.url=jdbc:postgresql://localhost:55444/mara_sync_test
+mvn -pl services/core-service     test -Dmara.test.jdbc.url=jdbc:postgresql://localhost:55444/mara_core_test
+
+# the till
+cd apps/terminal && npm ci && npm test
+```
+
+Without `-Dmara.test.jdbc.url` the database-backed tests are **skipped, not passed**; read the
+surefire summary's "Skipped" count.

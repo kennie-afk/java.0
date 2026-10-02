@@ -1,9 +1,9 @@
-# Brings up identity-service and the Postgres it owns from nothing — a genuinely
+# Brings up identity-service, sync-service, core-service and the Postgres they share from nothing — a genuinely
 # fresh volume, no manual role/password step. See services/identity-service/README
 # for the two-role model this depends on, and AppRoleLoginBootstrap for how
 # mara_app gets a login without a credential ever living in a migration.
 #
-#   cp .env.example .env     # then fill in the three secrets (none has a default)
+#   cp .env.example .env     # then fill in the four secrets (none has a default)
 #   docker compose up --build
 #   python3 scripts/demo_seed.py   # creates a demo shop and prints a terminal enrolment code
 
@@ -39,6 +39,9 @@ services:
       MARA_DB_APP_PASSWORD: ${MARA_DB_APP_PASSWORD:?set in .env}
       # Guards /v1/admin/* (tenant, staff and enrolment-code provisioning). No default.
       MARA_ADMIN_TOKEN: ${MARA_ADMIN_TOKEN:?set in .env (24+ characters)}
+      # What sync-service and core-service present to /v1/internal/**. A different credential
+      # from the admin token on purpose. No default.
+      MARA_INTERNAL_TOKEN: ${MARA_INTERNAL_TOKEN:?set in .env (24+ characters)}
     ports:
       - "${MARA_IDENTITY_PORT:-8081}:8081"
     healthcheck:
@@ -46,6 +49,61 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  # Terminal fan-in: verifies every uploaded journal entry (body digest, chain, Ed25519
+  # signature) and keeps the server's append-only second copy. Own database, same Postgres
+  # server; the service creates it on first start.
+  sync-service:
+    build:
+      context: .
+      dockerfile: services/sync-service/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      identity-service:
+        condition: service_healthy
+    environment: &service-env
+      MARA_DB_OWNER_USER: mara_owner
+      MARA_DB_OWNER_PASSWORD: ${MARA_DB_OWNER_PASSWORD:?set in .env}
+      MARA_DB_APP_USER: mara_app
+      MARA_DB_APP_PASSWORD: ${MARA_DB_APP_PASSWORD:?set in .env}
+      MARA_ADMIN_TOKEN: ${MARA_ADMIN_TOKEN:?set in .env (24+ characters)}
+      MARA_INTERNAL_TOKEN: ${MARA_INTERNAL_TOKEN:?set in .env (24+ characters)}
+      MARA_IDENTITY_URL: http://identity-service:8081
+      MARA_DB_URL: jdbc:postgresql://postgres:5432/mara_sync
+    ports:
+      - "${MARA_SYNC_PORT:-8082}:8082"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8082/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # The transactional core: double-entry ledger, fiscal number leases, ingested sales. Pulls
+  # verified entries from sync-service, so a till's upload never waits on it.
+  core-service:
+    build:
+      context: .
+      dockerfile: services/core-service/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      identity-service:
+        condition: service_healthy
+      sync-service:
+        condition: service_healthy
+    environment:
+      <<: *service-env
+      MARA_DB_URL: jdbc:postgresql://postgres:5432/mara_core
+      MARA_SYNC_URL: http://sync-service:8082
+      MARA_FISCAL_LEASE_SIZE: ${MARA_FISCAL_LEASE_SIZE:-5000}
+    ports:
+      - "${MARA_CORE_PORT:-8083}:8083"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8083/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   # The till. Serves the browser app and a same-origin proxy to identity-service's
   # enrolment endpoint. Deliberately no depends_on: a terminal must start, and sell,
@@ -55,6 +113,10 @@ services:
       context: ./apps/terminal
     environment:
       IDENTITY_BASE_URL: http://identity-service:8081
+      # Where the till uploads its journal and asks for fiscal numbers. Neither is needed to
+      # sell: with both down the till records, signs and chains locally and uploads later.
+      SYNC_BASE_URL: http://sync-service:8082
+      CORE_BASE_URL: http://core-service:8083
       # Only the simulated M-Pesa flow exists; anything else is refused by the route.
       MPESA_MODE: ${MARA_MPESA_MODE:-mock}
     ports:

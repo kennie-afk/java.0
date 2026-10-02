@@ -308,29 +308,31 @@ Design targets, with the reasoning rather than round numbers:
 
 ---
 
-## 8. Build status (2026-09-29)
+## 8. Build status (2026-10-02)
 
 What exists, stated plainly, because this document describes a target and the target is
 larger than the code.
 
 | Piece | State |
 | --- | --- |
-| `platform` (money, journal, fiscal lease, identity, staff policy) | Built, 86 tests. |
-| `identity-service` (tenants, terminals, enrolment, RLS) | Built, runs from an empty volume. |
-| `apps/terminal` (the till, a browser PWA) | **Built as a standalone, offline-first till.** See below. |
-| `api-gateway`, `core-service`, `sync-service`, fiscal leasing | **Not built.** |
-| Staff PIN sign-in | **Built 2026-09-30.** `POST /v1/terminals/{id}/staff-signin`: the terminal signs the attempt with its enrolment key, identity-service verifies the signature, freshness (2 min) and terminal status, then applies `PinPolicy` (Argon2id, doubling lockout, branch binding) and writes every outcome to an append-only `audit_log`. The till also keeps a salted PBKDF2 verifier after a successful online sign-in so the same PIN works offline. |
-| Provisioning | **Built 2026-09-30.** `/v1/admin/*` behind one operator token (`MARA_ADMIN_TOKEN`, no default): create tenant + first branch + owner, branches, staff, single-use enrolment codes, suspend staff/terminals, read the audit trail. |
+| `platform` (money, journal, fiscal lease, identity, staff policy, sale canonical form and checks, request signatures) | Built, 103 tests. |
+| `service-kit` (two-role database wiring with tenant-bound RLS, terminal request authentication, operator tokens) | Built. Shared by `sync-service` and `core-service`; no tests of its own, exercised through theirs. |
+| `identity-service` (tenants, terminals, enrolment, staff PIN sign-in, provisioning, internal terminal lookup, RLS) | Built, runs from an empty volume. 27 tests against a live PostgreSQL. |
+| `sync-service` (terminal fan-in, §2.2 and §2.3 on the server) | **Built 2026-10-02.** Verifies every uploaded entry, keeps the append-only second copy, raises exceptions. 9 tests against a live PostgreSQL. |
+| `core-service` (ledger, fiscal leases, ingested sales; §2.4 and §4) | **Built 2026-10-02**, scoped to what the till needs: the double-entry ledger, fiscal number leasing and the posting of verified sales. Catalog, inventory, tabs and hospitality are **not** built. 17 tests against a live PostgreSQL. |
+| `apps/terminal` (the till, a browser PWA) | Built; uploads its journal and leases fiscal numbers. 85 vitest tests. |
+| `api-gateway` | **Not built, and not needed by the till yet.** See "What is deliberately not built". |
+| `apps/platform` (back office) | **Not built.** An empty shell. Back-office reads are operator-token endpoints (`/v1/admin/*`). |
 
 ### The terminal, and what it does and does not prove
 
-`apps/terminal` implements §2.1 to §2.4 from the terminal's side of the line, against
-nothing but `identity-service`:
+`apps/terminal` implements §2.1 to §2.4 from the terminal's side of the line:
 
 - **Identity (§2.1).** Enrolment posts to the real `POST /v1/enrolment` through a
   same-origin route handler. The Ed25519 key pair is generated in the browser with
   WebCrypto, the private key non-extractable and persisted as a `CryptoKey` in
-  IndexedDB. Every journal entry's chain digest is signed with it.
+  IndexedDB. Every journal entry's chain digest is signed with it, and so is every request
+  the till makes to a server.
 - **Ordering and tamper evidence (§2.2, §2.3).** A local journal in IndexedDB: strictly
   monotonic sequence from 1, each entry chained onto the last with the platform's
   `ChainDigest` encoding, appended in a single transaction together with the head record,
@@ -338,24 +340,123 @@ nothing but `identity-service`:
   `JournalVerifier` / `ChainVerdict` semantics over the whole chain in pages and reports
   findings (intact, broken-at, gap-at), never one boolean.
 - **Money (§4).** `Money.allocate` and basis-point `percentage` ported with BigInt.
-- **Fiscal (§2.4).** The lease type and draw logic are ported, but **no lease can exist**:
-  the service that issues them is unbuilt, so every sale is recorded `FISCAL_PENDING` and
-  the UI and receipt say so. Nothing invents a number.
+- **Fiscal (§2.4).** The till leases a block of fiscal numbers from `core-service`, draws
+  from it offline, renews at 20% remaining, installs the new lease before handing the old
+  tail back (a sale never waits on the network), and falls back to `FISCAL_PENDING` only
+  when it has never been online or the lease is exhausted or expired. Nothing invents a
+  number.
+- **Sync.** A background agent uploads the journal (on load, on reconnect, every 30
+  seconds). Its cursor moves only to what the server confirms it holds verified, never past
+  what was sent. None of this is on the selling path: every failure is recorded and retried.
 
-Compatibility with the Java code is not asserted, it is tested: the TypeScript digests,
-allocations, roundings, verifier verdicts and lease draws are compared with vectors
-produced by running the platform's own classes (`apps/terminal/vectors/Vectors.java`,
-regenerated with `vectors/generate.sh`), and a WebCrypto signature was verified by the
-platform's `TerminalSignature`. One thing the platform deliberately does *not* define is
-the sale body: `ChainDigest.body()` takes caller-canonicalised fields. The terminal's
-field list (`mara.sale.v1`: version, currency, lines, payments, total, fiscal) is
-therefore the terminal's own contract, and a future `sync-service` must implement the same
-encoding to recompute body digests.
+Compatibility with the Java code is not asserted, it is tested, in both directions.
+Java to TypeScript: the TypeScript digests, allocations, roundings, verifier verdicts and
+lease draws are compared with vectors produced by running the platform's own classes
+(`apps/terminal/vectors/Vectors.java`, regenerated with `vectors/generate.sh`).
+TypeScript to Java: `apps/terminal/test/ts-journal-fixture.test.ts` has the terminal's own
+code enrol a key, sell four sales (v1 and v2 bodies, quotes, backslashes, tabs, newlines, a
+control character, accented and CJK text and an emoji in item names) and write the signed
+journal, plus a signed request, to `test/fixtures/ts-journal.json`; the platform's
+`SaleEntryVerifierTest` recomputes every body digest and chain digest in Java and verifies
+every Ed25519 signature. The sale body encoding is the terminal's contract
+(`SaleCanonical` is its Java reproduction, including `JSON.stringify`'s string escaping).
 
-**Honest limits.** Nothing leaves the device: there is no server holding a second copy of
-the journal, so tamper *evidence* here is local. A person with full control of the
-browser profile who deletes the tail of the journal and rewrites the head record together
-is not detectable until a server copy exists. Clearing the site's data destroys the sales.
+### The server side, as built
+
+**`sync-service` (own database `mara_sync`).** `POST /v1/terminal/sync/journal` takes up
+to 500 entries. Three layers, none trusting a digest the terminal supplied:
+
+1. *Per entry:* the body digest is recomputed from the sale, the chain digest from that,
+   and the signature is verified against the key identity-service holds for that terminal.
+   Failures (`BAD_BODY_DIGEST`, `BAD_DIGEST`, `BAD_SIGNATURE`, `MALFORMED`, `FOREIGN_ENTRY`)
+   raise an exception row and the entry is not stored.
+2. *Per chain:* the platform's `JournalVerifier` against the stored head: a missing
+   sequence is a `GAP` (reconciliation is held open at the last verified entry and the
+   response says where), a sequence already held with different content is a
+   `FORKED_SEQUENCE` (the first copy stands), plus broken links, a backwards clock and a
+   restarted genesis. A gap closes by itself when the missing entries arrive.
+3. *Per sale:* the arithmetic the till claims (line net, per-line half-up tax, total,
+   tenders settle the total) is rechecked. A sale that fails only this is stored and flagged
+   `SALE_INCONSISTENT`, because the till is authoritative about what happened at its counter.
+
+Entries live in `journal_entry`, append-only (a trigger refuses UPDATE, DELETE and TRUNCATE
+even for the owning role). The head row is locked per terminal for the whole upload, so a
+retry racing its original is serialised; retries are idempotent.
+
+**`core-service` (own database `mara_core`).** Pulls verified entries from `sync-service`
+per terminal, in order, with its own cursor, and posts each atomically: the `sale` row, its
+ledger transaction and the cursor advance commit together. A pull rather than a push, so
+the till's upload never waits on the core.
+
+- *Ledger.* Accounts `CASH`, `MOBILE_MONEY`, `SALES`, `VAT_PAYABLE`, `SUSPENSE`. A sale
+  debits each tender account the amount applied and credits `SALES` the net and
+  `VAT_PAYABLE` the tax. Postings are BIGINT minor units, append-only (triggers), one side
+  each and never negative. **Debits equal credits per transaction is a deferred constraint
+  trigger in the database**, not only a check in code; so is "at least two postings".
+  A sale whose tenders do not equal its net plus tax is posted anyway with the difference
+  in `SUSPENSE` and a `SALE_UNBALANCED` exception, so the books still balance and the
+  discrepancy is visible. A terminal sequence is posted at most once (a cursor and a unique
+  index both say so).
+- *Fiscal leases (§2.4).* One counter per tenant, advanced under a row lock, so blocks
+  cannot overlap; a trigger asserts disjointness independently. A terminal may hold two live
+  leases at most. Unused numbers are voided on return (`fiscal_void`), never recycled; a
+  return is refused if sales already ingested used numbers in the range. When a sale
+  arrives, a fiscal number counts only if it lies in a lease issued to that terminal, is not
+  voided and is not already held by another sale; otherwise the sale is still posted and a
+  `FISCAL_OUT_OF_LEASE` or `FISCAL_DUPLICATE` exception is raised.
+
+**Authentication.** Terminal requests carry `X-Mara-Terminal`, `X-Mara-Timestamp` and an
+Ed25519 signature over `mara.request.v1|terminal|epoch|METHOD|path?query|sha256(body)`,
+verified against the key and status identity-service holds (cached 30 s, so a suspended
+terminal stops being believed within the window; an unreachable identity-service refuses,
+never admits). The tenant comes from identity-service's record of the terminal, never from
+the request. Every failure answers the same 401. Service-to-service calls use
+`MARA_INTERNAL_TOKEN` and the operator's reads use `MARA_ADMIN_TOKEN` plus `X-Mara-Tenant`;
+neither has a default, a service refuses to start without a 24-character value, and the two
+are different credentials on purpose.
+
+**Tenant isolation** is enforced in each database exactly as in identity-service: two
+roles, `FORCE ROW LEVEL SECURITY`, the tenant bound when the transaction begins. Both new
+services have a test that reads another tenant's books and gets nothing, and one that writes
+to another tenant's rows as the application role and is refused by the database.
+
+### What has been verified, and how
+
+- 103 platform, 27 identity, 9 sync and 17 core Java tests pass with 0 failures and 0 skipped
+  (the database-backed ones run against a real PostgreSQL 16; without one they skip, they do
+  not pass). 85 terminal vitest tests pass; 5 more drive a live stack and skip without one.
+- On 2026-10-02 the whole stack was built into images and brought up from a fresh volume with
+  `docker compose up`; the till's own libraries then enrolled against the real identity-service,
+  signed staff in, sold, leased fiscal numbers from core-service and uploaded through the real
+  proxy routes. Read back through the operator endpoints: sync-service held the till's chain
+  with the same head digest, no exceptions, the first numbered sale holds fiscal number 1, and
+  the trial balance's debits equalled its credits (4 sales of KES 185.60: cash 556.80, mobile
+  money 185.60, sales 640.00, VAT 102.40).
+- **Not run live:** killing core-service mid-stream and watching it catch up (the poller's
+  idempotency and per-terminal cursors are tested, the outage is not); a browser walk of the
+  Journal page's server-copy card (typechecked and built, not looked at); load.
+
+### What is deliberately not built
+
+- **`api-gateway`.** The till talks to `identity-service`, `sync-service` and `core-service`
+  through its own same-origin proxy routes, each mapped to one fixed upstream path and
+  forwarding the signed request unchanged. Nothing the till does needs a gateway yet; what a
+  gateway adds is mTLS termination, rate limiting and *staff* tokens for a back-office UI,
+  and there is no back-office UI to issue them to.
+- **Catalog, inventory, tabs, hospitality in `core-service`.** The till keeps its own
+  catalogue and tabs; stock is not tracked anywhere (so §2.5's oversell exception does not
+  exist yet).
+- **A back office.** Reads are operator-token JSON endpoints. No per-user server login.
+- **Monthly range partitioning** of `journal_entry`, `sale` and `posting` (§6). The tables
+  are keyed so partitioning is a migration, not a redesign; it is not done.
+- **Resolving a held gap.** A real deleted sale leaves its terminal's later sales held
+  behind the gap on the server (they remain safe, signed, on the till). There is no operator
+  workflow yet to acknowledge a loss and release them.
+- **Exhaustive failure injection under load.** Concurrency is tested (20 simultaneous lease
+  requests, 8 simultaneous posts of one sale), not benchmarked.
+
+**Honest limits of the till.** Clearing the site's data destroys any sale not yet uploaded.
 The clock is the device's; a backwards clock is clamped, not refused, so the till can
-always sell. Staff sign-in does not exist, so sales are attributed to a terminal, not a
-person.
+always sell. Until the server has the tail, a person with full control of the browser
+profile can still rewrite the not-yet-uploaded tail and its head record together; once
+uploaded, the server's copy makes that detectable.

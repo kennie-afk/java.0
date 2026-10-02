@@ -14,7 +14,10 @@
 
   <modules>
     <module>platform</module>
+    <module>services/service-kit</module>
     <module>services/identity-service</module>
+    <module>services/sync-service</module>
+    <module>services/core-service</module>
   </modules>
 
   <properties>
