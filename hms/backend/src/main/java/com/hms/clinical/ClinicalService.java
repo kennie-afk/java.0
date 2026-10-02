@@ -502,7 +502,7 @@ public class ClinicalService {
     }
 
     /** A drug name that contains, or is contained in, a recorded active allergy substance. Deliberately simple and over-cautious. */
-    List<String> allergyWarnings(UUID patientId, String drugName) {
+    public List<String> allergyWarnings(UUID patientId, String drugName) {
         String drug = drugName.trim().toLowerCase();
         return allergies(patientId).stream().filter(a -> "ACTIVE".equals(a.status()))
                 .filter(a -> {

@@ -14,45 +14,45 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-final class ClinicalModels {
+public final class ClinicalModels {
     private ClinicalModels() {}
 
     static final String ICD11 = "^[0-9A-Z]{4}(\\.[0-9A-Z]{1,2})?$";
 
-    record OpenEncounter(@NotNull UUID facilityId, @NotNull UUID patientId, @NotNull @Pattern(regexp = "OPD|ED|IPD") String type,
+    public record OpenEncounter(@NotNull UUID facilityId, @NotNull UUID patientId, @NotNull @Pattern(regexp = "OPD|ED|IPD") String type,
                          UUID appointmentId, @Size(max = 500) String chiefComplaint) {}
 
-    record Triage(@NotNull @Pattern(regexp = "EMERGENCY|PRIORITY|ROUTINE") String category,
+    public record Triage(@NotNull @Pattern(regexp = "EMERGENCY|PRIORITY|ROUTINE") String category,
                   @NotBlank @Size(max = 500) String chiefComplaint) {}
 
-    record VitalsInput(@DecimalMin("25") @DecimalMax("45") BigDecimal tempC, @Min(0) @Max(300) Integer pulse,
+    public record VitalsInput(@DecimalMin("25") @DecimalMax("45") BigDecimal tempC, @Min(0) @Max(300) Integer pulse,
                        @Min(0) @Max(100) Integer respRate, @Min(20) @Max(350) Integer systolic, @Min(10) @Max(250) Integer diastolic,
                        @Min(0) @Max(100) Integer spo2, @DecimalMin("0.2") @DecimalMax("700") BigDecimal weightKg,
                        @DecimalMin("20") @DecimalMax("280") BigDecimal heightCm, @DecimalMin("3") @DecimalMax("60") BigDecimal muacCm,
                        @DecimalMin("0.5") @DecimalMax("100") BigDecimal glucoseMmol, @Min(0) @Max(10) Integer painScore) {}
 
-    record Retract(@NotBlank @Size(min = 5, max = 300) String reason) {}
+    public record Retract(@NotBlank @Size(min = 5, max = 300) String reason) {}
 
-    record NoteInput(@NotNull @Pattern(regexp = "SOAP|PROGRESS|ADMISSION|DISCHARGE|PROCEDURE|NURSING|OTHER") String kind,
+    public record NoteInput(@NotNull @Pattern(regexp = "SOAP|PROGRESS|ADMISSION|DISCHARGE|PROCEDURE|NURSING|OTHER") String kind,
                      @NotBlank @Size(max = 20000) String body) {}
 
-    record Amend(@NotBlank @Size(max = 20000) String body, @NotBlank @Size(min = 5, max = 300) String reason) {}
+    public record Amend(@NotBlank @Size(max = 20000) String body, @NotBlank @Size(min = 5, max = 300) String reason) {}
 
-    record DiagnosisInput(@NotBlank @Pattern(regexp = ICD11, message = "an ICD-11 code such as 1A00 or BA00.0") String icd11Code,
+    public record DiagnosisInput(@NotBlank @Pattern(regexp = ICD11, message = "an ICD-11 code such as 1A00 or BA00.0") String icd11Code,
                           @NotBlank @Size(min = 2, max = 300) String title,
                           @Pattern(regexp = "PRIMARY|SECONDARY") String kind,
                           @Pattern(regexp = "PROVISIONAL|CONFIRMED|RULED_OUT") String certainty) {}
 
-    record DiagnosisUpdate(@NotNull @Pattern(regexp = "PROVISIONAL|CONFIRMED|RULED_OUT") String certainty,
+    public record DiagnosisUpdate(@NotNull @Pattern(regexp = "PROVISIONAL|CONFIRMED|RULED_OUT") String certainty,
                            @NotNull @Pattern(regexp = "PRIMARY|SECONDARY") String kind) {}
 
-    record AllergyInput(@NotBlank @Size(min = 2, max = 120) String substance,
+    public record AllergyInput(@NotBlank @Size(min = 2, max = 120) String substance,
                         @Pattern(regexp = "DRUG|FOOD|ENVIRONMENT|OTHER") String category, @Size(max = 300) String reaction,
                         @NotNull @Pattern(regexp = "MILD|MODERATE|SEVERE|LIFE_THREATENING") String severity) {}
 
-    record AllergyStatus(@NotNull @Pattern(regexp = "ACTIVE|INACTIVE|ENTERED_IN_ERROR") String status, @Size(max = 300) String reason) {}
+    public record AllergyStatus(@NotNull @Pattern(regexp = "ACTIVE|INACTIVE|ENTERED_IN_ERROR") String status, @Size(max = 300) String reason) {}
 
-    record OrderInput(@NotNull @Pattern(regexp = "MEDICATION|PROCEDURE|IMAGING|REFERRAL|OTHER") String kind,
+    public record OrderInput(@NotNull @Pattern(regexp = "MEDICATION|PROCEDURE|IMAGING|REFERRAL|OTHER") String kind,
                       @Pattern(regexp = "ROUTINE|URGENT|STAT") String priority,
                       @NotBlank @Size(min = 2, max = 500) String description,
                       UUID drugId, @Size(max = 200) String drugName, @Size(max = 80) String dose, @Size(max = 40) String route,
@@ -61,35 +61,35 @@ final class ClinicalModels {
                       /** Confirms a clinician has seen an allergy warning and prescribes anyway. */
                       @Size(max = 300) String allergyOverrideReason) {}
 
-    record CancelOrder(@NotBlank @Size(min = 3, max = 300) String reason) {}
+    public record CancelOrder(@NotBlank @Size(min = 3, max = 300) String reason) {}
 
-    record CloseInput(@Size(max = 300) String noDiagnosisReason) {}
+    public record CloseInput(@Size(max = 300) String noDiagnosisReason) {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Encounter(UUID id, UUID facilityId, UUID patientId, String type, String status, UUID attendingId, UUID appointmentId,
+    public record Encounter(UUID id, UUID facilityId, UUID patientId, String type, String status, UUID attendingId, UUID appointmentId,
                      String chiefComplaint, String triageCategory, Instant triagedAt, Instant startedAt, Instant endedAt, int version) {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Vitals(UUID id, Instant recordedAt, UUID recordedBy, BigDecimal tempC, Integer pulse, Integer respRate, Integer systolic,
+    public record Vitals(UUID id, Instant recordedAt, UUID recordedBy, BigDecimal tempC, Integer pulse, Integer respRate, Integer systolic,
                   Integer diastolic, Integer spo2, BigDecimal weightKg, BigDecimal heightCm, BigDecimal muacCm, BigDecimal glucoseMmol,
                   Integer painScore, BigDecimal bmi, boolean retracted, String retractReason, List<String> alerts) {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Note(UUID id, UUID threadId, int version, String kind, String body, UUID authorId, Instant createdAt, String amendReason) {}
+    public record Note(UUID id, UUID threadId, int version, String kind, String body, UUID authorId, Instant createdAt, String amendReason) {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Diagnosis(UUID id, String icd11Code, String title, String kind, String certainty, UUID recordedBy, Instant createdAt) {}
+    public record Diagnosis(UUID id, String icd11Code, String title, String kind, String certainty, UUID recordedBy, Instant createdAt) {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Allergy(UUID id, String substance, String category, String reaction, String severity, String status, String statusReason,
+    public record Allergy(UUID id, String substance, String category, String reaction, String severity, String status, String statusReason,
                    Instant createdAt) {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record Order(UUID id, String kind, String status, String priority, String description, UUID drugId, String drugName, String dose,
+    public record Order(UUID id, String kind, String status, String priority, String description, UUID drugId, String drugName, String dose,
                  String route, String frequency, Integer durationDays, BigDecimal quantity, BigDecimal dispensedQuantity,
                  String instructions, String allergyOverrideReason, UUID orderedBy, String cancelReason, Instant createdAt, int version,
                  List<String> allergyWarnings) {}
 
-    record EncounterDetail(Encounter encounter, List<Vitals> vitals, List<Note> notes, List<Diagnosis> diagnoses, List<Order> orders,
+    public record EncounterDetail(Encounter encounter, List<Vitals> vitals, List<Note> notes, List<Diagnosis> diagnoses, List<Order> orders,
                            List<Allergy> allergies) {}
 }
