@@ -1,0 +1,128 @@
+# Lean demo overlay. Use it with the demo env file:
+#
+#   docker compose --env-file .env.demo -f docker-compose.yml -f docker-compose.demo.yml up -d
+#
+# (`make demo` does this for you.) What it changes, and nothing else:
+#   - Kafka + ZooKeeper (two JVM-ish containers, ~1.5 GiB) become one Redpanda container,
+#     the same broker the Kubernetes manifests already use.
+#   - Observability (Prometheus, Grafana, Loki, Promtail, Alertmanager) and kafka-ui move behind
+#     the opt-in `observability` profile: add `--profile observability` to bring them back.
+#   - Host ports are taken from .env.demo and default to ones the other demo stacks do not use;
+#     databases and PgBouncers publish nothing to the host.
+#   - JVMs run single-threaded GC with C1 only, which trades peak throughput nobody needs in a
+#     demo for a much smaller and faster-starting footprint.
+#
+# The project name keeps the demo's volumes separate from any earlier `smartre` stack, so a
+# demo always starts from an empty database.
+name: smartre-demo
+
+x-lean-jvm: &lean-jvm
+  JAVA_TOOL_OPTIONS: "-XX:+UseSerialGC -Xss512k -XX:TieredStopAtLevel=1 -XX:MaxRAMPercentage=70"
+  # The seed makes hundreds of writes as a handful of accounts in a couple of minutes, which the
+  # production per-identity limits (60 writes/minute) would refuse. Demo values are generous;
+  # the limiter itself stays on, and so does the gateway's stricter limit on sign-in.
+  RATE_LIMIT_CAPACITY: "3000"
+  RATE_LIMIT_REFILL_PER_MINUTE: "3000"
+  RATE_LIMIT_WRITE_CAPACITY: "1500"
+  RATE_LIMIT_WRITE_REFILL_PER_MINUTE: "1500"
+
+services:
+  zookeeper:
+    profiles: ["classic-kafka"]
+
+  kafka:
+    image: redpandadata/redpanda:v24.2.8
+    mem_limit: 768m
+    depends_on: !reset []
+    command:
+      - redpanda
+      - start
+      - --smp=1
+      - --overprovisioned
+      - --memory=384M
+      - --reserve-memory=0M
+      - --node-id=0
+      - --check=false
+      - --kafka-addr=PLAINTEXT://0.0.0.0:9092,OUTSIDE://0.0.0.0:29092
+      - --advertise-kafka-addr=PLAINTEXT://kafka:9092,OUTSIDE://localhost:${KAFKA_EXTERNAL_PORT:-29492}
+    environment: !reset {}
+    ports: !override
+      - "127.0.0.1:${KAFKA_EXTERNAL_PORT:-29492}:29092"
+    volumes: !override
+      - kafka-data:/var/lib/redpanda/data
+    healthcheck: !override
+      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy:.*true'"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 15s
+
+  kafka-ui: { profiles: ["observability"] }
+  prometheus: { profiles: ["observability"] }
+  grafana: { profiles: ["observability"] }
+  loki: { profiles: ["observability"] }
+  promtail: { profiles: ["observability"] }
+  alertmanager: { profiles: ["observability"] }
+
+  redis:
+    ports: !override
+      - "127.0.0.1:${REDIS_HOST_PORT:-6479}:6379"
+
+  user-pgbouncer: { ports: !reset [] }
+  verification-pgbouncer: { ports: !reset [] }
+  property-pgbouncer: { ports: !reset [] }
+  viewing-pgbouncer: { ports: !reset [] }
+  payment-pgbouncer: { ports: !reset [] }
+  review-pgbouncer: { ports: !reset [] }
+  notification-pgbouncer: { ports: !reset [] }
+  pms-pgbouncer: { ports: !reset [] }
+
+  user-service:
+    image: smartre-user-service:latest
+    environment: { <<: *lean-jvm }
+  verification-service:
+    image: smartre-verification-service:latest
+    environment: { <<: *lean-jvm }
+  property-service:
+    image: smartre-property-service:latest
+    environment: { <<: *lean-jvm }
+  viewing-service:
+    image: smartre-viewing-service:latest
+    environment: { <<: *lean-jvm }
+  payment-service:
+    image: smartre-payment-service:latest
+    environment:
+      <<: *lean-jvm
+      MPESA_MODE: ${MPESA_MODE:-mock}
+      MPESA_RECONCILE_GRACE_SECONDS: ${MPESA_RECONCILE_GRACE_SECONDS:-3}
+      MPESA_RECONCILE_INTERVAL_MS: ${MPESA_RECONCILE_INTERVAL_MS:-3000}
+  review-service:
+    image: smartre-review-service:latest
+    environment: { <<: *lean-jvm }
+  notification-service:
+    image: smartre-notification-service:latest
+    environment: { <<: *lean-jvm }
+  property-management-service:
+    image: smartre-property-management-service:latest
+    environment:
+      <<: *lean-jvm
+      # Invoices are normally issued by a 02:00 job. Running it every 10 seconds lets the seed
+      # back-fill six months of rent invoices (one run issues every period that is due) and lets
+      # the overdue sweep flag the unpaid ones, without waiting for the small hours.
+      PMS_INVOICE_CRON: "*/10 * * * * *"
+      PMS_ARREARS_CRON: "5/10 * * * * *"
+
+  api-gateway:
+    image: smartre-api-gateway:latest
+    environment: { <<: *lean-jvm }
+    ports: !override
+      - "${GATEWAY_PORT:-8480}:8080"
+
+  web:
+    image: smartre-web-demo:latest
+    mem_limit: 384m
+    ports: !override
+      - "${WEB_PORT:-3400}:3000"
+    build:
+      args:
+        NEXT_PUBLIC_DEMO_MODE: ${NEXT_PUBLIC_DEMO_MODE:-true}
