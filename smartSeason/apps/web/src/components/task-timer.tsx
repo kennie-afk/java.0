@@ -52,7 +52,7 @@ export function TaskTimer({
   }
 
   if (completedAt) {
-    return <span className="text-2xs text-[var(--color-muted)]">Finished</span>;
+    return <span className="text-xs text-[var(--color-muted)]">Finished</span>;
   }
 
   return (
@@ -85,7 +85,7 @@ export function TaskTimer({
         </button>
       )}
       {error && !compact ? (
-        <span className="text-2xs text-[var(--color-danger)]">{error}</span>
+        <span className="text-xs text-[var(--color-danger)]">{error}</span>
       ) : null}
     </span>
   );

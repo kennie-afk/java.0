@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 const FIELD =
-  "w-full rounded-md border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-sm outline-none focus:border-[var(--color-accent)]";
+  "w-full rounded-lg border border-[var(--color-line-strong)] bg-[var(--color-surface)] px-3.5 py-2.5 text-base outline-none focus:border-[var(--color-accent)]";
 
 export function ForgotPasswordForm() {
   const router = useRouter();
@@ -45,13 +45,13 @@ export function ForgotPasswordForm() {
 
   if (sent) {
     return (
-      <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] p-3.5">
-        <p className="text-xs leading-relaxed">
+      <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-6">
+        <p className="text-sm leading-relaxed">
           If that address has an account, a reset code has been sent to it. The code is good
           for 15 minutes.
         </p>
         {devCode ? (
-          <p className="mt-2 rounded-md bg-[var(--color-warn-soft)] px-2.5 py-2 text-xs text-[var(--color-warn)]">
+          <p className="mt-2 rounded-md bg-[var(--color-warn-soft)] px-2.5 py-2 text-sm text-[var(--color-warn)]">
             Development mode: your code is <strong className="tabular-nums">{devCode}</strong>.
             This is shown because no mail provider is configured.
           </p>
@@ -59,7 +59,7 @@ export function ForgotPasswordForm() {
         <button
           type="button"
           onClick={() => router.push("/reset-password")}
-          className="mt-3 w-full rounded-md bg-[var(--color-ink)] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[#242832]"
+          className="mt-3 w-full rounded-lg bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-good)]"
         >
           Enter the code
         </button>
@@ -70,28 +70,28 @@ export function ForgotPasswordForm() {
   return (
     <form
       onSubmit={onSubmit}
-      className="space-y-3 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] p-3.5"
+      className="space-y-3 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-6"
     >
       <label className="block">
-        <span className="mb-1 block text-xs font-medium text-[var(--color-muted)]">Email</span>
+        <span className="mb-1 block text-sm font-medium text-[var(--color-muted)]">Email</span>
         <input name="email" type="email" required autoComplete="email" className={FIELD} />
       </label>
       {error ? (
-        <p role="alert" className="text-xs text-[var(--color-danger)]">
+        <p role="alert" className="text-sm text-[var(--color-danger)]">
           {error}
         </p>
       ) : null}
       <button
         type="submit"
         disabled={busy}
-        className="w-full rounded-md bg-[var(--color-ink)] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[#242832] disabled:opacity-50"
+        className="w-full rounded-lg bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-good)] disabled:opacity-50"
       >
         {busy ? "Sending…" : "Send a reset code"}
       </button>
       <p className="text-center">
         <Link
           href="/login"
-          className="text-xs text-[var(--color-muted)] underline-offset-2 hover:text-[var(--color-ink)] hover:underline"
+          className="text-sm text-[var(--color-muted)] underline-offset-2 hover:text-[var(--color-ink)] hover:underline"
         >
           Back to sign in
         </Link>

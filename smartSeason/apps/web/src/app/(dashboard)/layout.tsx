@@ -11,10 +11,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const roles = await readRoles();
 
   return (
-    <div className="flex min-h-screen bg-[var(--color-canvas)]">
+    <div className="flex min-h-screen flex-col bg-[var(--color-canvas)] lg:flex-row">
       <Nav roles={roles} enabled={enabledServices()} />
-      <main className="flex-1 px-3.5 py-7 md:px-8 lg:px-10">
-        <div className="mx-auto max-w-6xl">{children}</div>
+      <main className="min-w-0 flex-1 px-4 pb-20 pt-6 sm:px-6 lg:px-10 lg:pt-9">
+        <div className="mx-auto w-full max-w-[1680px]">{children}</div>
       </main>
     </div>
   );

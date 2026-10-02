@@ -34,7 +34,7 @@ export function DeleteRecordButton({
 
   return (
     <span className="inline-flex items-center gap-2">
-      <span className="text-2xs text-[var(--color-muted)]">Delete this {label}?</span>
+      <span className="text-xs text-[var(--color-muted)]">Delete this {label}?</span>
       <button
         type="button"
         disabled={pending}
@@ -56,7 +56,7 @@ export function DeleteRecordButton({
       >
         Keep
       </button>
-      {error ? <span className="text-2xs text-[var(--color-danger)]">{error}</span> : null}
+      {error ? <span className="text-xs text-[var(--color-danger)]">{error}</span> : null}
     </span>
   );
 }

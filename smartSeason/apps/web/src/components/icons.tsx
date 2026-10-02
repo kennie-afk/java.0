@@ -19,7 +19,16 @@ export type IconName =
   | "devices"
   | "money"
   | "platform"
-  | "identity";
+  | "identity"
+  | "pulse"
+  | "sparkle"
+  | "menu"
+  | "close"
+  | "chevron"
+  | "logout"
+  | "tasks"
+  | "alert"
+  | "arrow";
 
 export function Icon({ name, className }: { name: IconName; className?: string }) {
   const paths: Record<IconName, ReactNode> = {
@@ -90,7 +99,37 @@ export function Icon({ name, className }: { name: IconName; className?: string }
         <circle cx="12" cy="8.5" r="3.5" />
         <path d="M5 20a7 7 0 0 1 14 0" />
       </>
-    )
+    ),
+    pulse: <path d="M3 12h4l2.5-6 4 12 2.5-6H21" />,
+    sparkle: (
+      <>
+        <path d="M12 3.5 13.8 9l5.7 1.8-5.7 1.8L12 18l-1.8-5.4L4.5 10.8 10.2 9z" />
+        <path d="M18.5 3v3M17 4.5h3" />
+      </>
+    ),
+    menu: <path d="M4 7h16M4 12h16M4 17h16" />,
+    close: <path d="M6 6l12 12M18 6 6 18" />,
+    chevron: <path d="m7 10 5 5 5-5" />,
+    logout: (
+      <>
+        <path d="M15 17l5-5-5-5" />
+        <path d="M20 12H9" />
+        <path d="M12 20H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6" />
+      </>
+    ),
+    tasks: (
+      <>
+        <rect x="4" y="4" width="16" height="16" rx="2.5" />
+        <path d="m8.5 12 2.5 2.5 4.5-5" />
+      </>
+    ),
+    alert: (
+      <>
+        <path d="M12 4 3 19.5h18z" />
+        <path d="M12 10v4.5M12 17v.3" />
+      </>
+    ),
+    arrow: <path d="M5 12h14M13 6l6 6-6 6" />
   };
 
   return (

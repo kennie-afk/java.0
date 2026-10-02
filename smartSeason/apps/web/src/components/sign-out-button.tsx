@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
+import { Icon } from "@/components/icons";
 
 export function SignOutButton() {
   const router = useRouter();
@@ -20,22 +21,10 @@ export function SignOutButton() {
       type="button"
       onClick={signOut}
       disabled={pending}
-      className="flex w-full cursor-pointer flex-col items-center gap-1 rounded-lg px-1 py-2 text-2xs font-medium text-[var(--color-muted)] transition-colors hover:bg-[var(--color-raised)] hover:text-[var(--color-ink)] disabled:opacity-50"
+      className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-[var(--color-muted)] transition-colors hover:bg-[var(--color-raised)] hover:text-[var(--color-ink)] disabled:opacity-50"
     >
-      <svg
-        viewBox="0 0 24 24"
-        className="h-[19px] w-[19px]"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M15 17l5-5-5-5" />
-        <path d="M20 12H9" />
-        <path d="M12 20H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6" />
-      </svg>
-      {pending ? "Wait…" : "Sign out"}
+      <Icon name="logout" className="h-[18px] w-[18px]" />
+      {pending ? "Signing out…" : "Sign out"}
     </button>
   );
 }

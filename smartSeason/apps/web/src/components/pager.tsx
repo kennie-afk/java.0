@@ -39,7 +39,7 @@ export function Pager({
     "rounded-md border border-[var(--color-line)] px-2.5 py-1 text-[var(--color-muted)] opacity-50";
 
   return (
-    <div className="mt-3 flex items-center justify-between text-xs text-[var(--color-muted)]">
+    <div className="mt-3 flex items-center justify-between text-sm text-[var(--color-muted)]">
       <span className="tabular-nums">
         {first}–{last} of {totalElements}
       </span>

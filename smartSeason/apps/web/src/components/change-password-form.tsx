@@ -49,12 +49,12 @@ export function ChangePasswordForm() {
     }
   }
 
-  const label = "mb-1 block text-2xs font-medium uppercase tracking-[0.06em] text-[var(--color-faint)]";
+  const label = "mb-1 block text-xs font-medium uppercase tracking-[0.06em] text-[var(--color-faint)]";
 
   return (
     <form
       onSubmit={onSubmit}
-      className="max-w-md space-y-3 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] p-3.5"
+      className="max-w-md space-y-3 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-6"
     >
       <label className="block">
         <span className={label}>Current password</span>
@@ -76,7 +76,7 @@ export function ChangePasswordForm() {
           autoComplete="new-password"
           className={bareInputClass}
         />
-        <span className="mt-1 block text-2xs text-[var(--color-muted)]">At least 12 characters.</span>
+        <span className="mt-1 block text-xs text-[var(--color-muted)]">At least 12 characters.</span>
       </label>
       <label className="block">
         <span className={label}>Confirm new password</span>
@@ -91,11 +91,11 @@ export function ChangePasswordForm() {
       </label>
 
       {error ? (
-        <p role="alert" className="text-2xs text-[var(--color-danger)]">
+        <p role="alert" className="text-xs text-[var(--color-danger)]">
           {error}
         </p>
       ) : null}
-      {done ? <p className="text-2xs text-[var(--color-good)]">{done}</p> : null}
+      {done ? <p className="text-xs text-[var(--color-good)]">{done}</p> : null}
 
       <button type="submit" disabled={busy} className={buttonClass}>
         {busy ? "Saving…" : "Change password"}

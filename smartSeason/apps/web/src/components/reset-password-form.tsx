@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 const FIELD =
-  "w-full rounded-md border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-sm outline-none focus:border-[var(--color-accent)]";
+  "w-full rounded-lg border border-[var(--color-line-strong)] bg-[var(--color-surface)] px-3.5 py-2.5 text-base outline-none focus:border-[var(--color-accent)]";
 
 export function ResetPasswordForm() {
   const router = useRouter();
@@ -53,15 +53,15 @@ export function ResetPasswordForm() {
 
   if (done) {
     return (
-      <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] p-3.5">
-        <p className="text-xs leading-relaxed">
+      <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-6">
+        <p className="text-sm leading-relaxed">
           Your password has been reset, and every other session has been signed out. Sign in
           with the new password.
         </p>
         <button
           type="button"
           onClick={() => router.push("/login")}
-          className="mt-3 w-full rounded-md bg-[var(--color-ink)] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[#242832]"
+          className="mt-3 w-full rounded-lg bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-good)]"
         >
           Go to sign in
         </button>
@@ -72,14 +72,14 @@ export function ResetPasswordForm() {
   return (
     <form
       onSubmit={onSubmit}
-      className="space-y-3 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] p-3.5"
+      className="space-y-3 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-6"
     >
       <label className="block">
-        <span className="mb-1 block text-xs font-medium text-[var(--color-muted)]">Email</span>
+        <span className="mb-1 block text-sm font-medium text-[var(--color-muted)]">Email</span>
         <input name="email" type="email" required autoComplete="email" className={FIELD} />
       </label>
       <label className="block">
-        <span className="mb-1 block text-xs font-medium text-[var(--color-muted)]">
+        <span className="mb-1 block text-sm font-medium text-[var(--color-muted)]">
           Reset code
         </span>
         <input
@@ -91,7 +91,7 @@ export function ResetPasswordForm() {
         />
       </label>
       <label className="block">
-        <span className="mb-1 block text-xs font-medium text-[var(--color-muted)]">
+        <span className="mb-1 block text-sm font-medium text-[var(--color-muted)]">
           New password
         </span>
         <input
@@ -102,10 +102,10 @@ export function ResetPasswordForm() {
           autoComplete="new-password"
           className={FIELD}
         />
-        <span className="mt-1 block text-xs text-[var(--color-muted)]">At least 12 characters.</span>
+        <span className="mt-1 block text-sm text-[var(--color-muted)]">At least 12 characters.</span>
       </label>
       <label className="block">
-        <span className="mb-1 block text-xs font-medium text-[var(--color-muted)]">
+        <span className="mb-1 block text-sm font-medium text-[var(--color-muted)]">
           Confirm new password
         </span>
         <input
@@ -118,21 +118,21 @@ export function ResetPasswordForm() {
         />
       </label>
       {error ? (
-        <p role="alert" className="text-xs text-[var(--color-danger)]">
+        <p role="alert" className="text-sm text-[var(--color-danger)]">
           {error}
         </p>
       ) : null}
       <button
         type="submit"
         disabled={busy}
-        className="w-full rounded-md bg-[var(--color-ink)] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[#242832] disabled:opacity-50"
+        className="w-full rounded-lg bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-good)] disabled:opacity-50"
       >
         {busy ? "Resetting…" : "Set the new password"}
       </button>
       <p className="text-center">
         <Link
           href="/forgot-password"
-          className="text-xs text-[var(--color-muted)] underline-offset-2 hover:text-[var(--color-ink)] hover:underline"
+          className="text-sm text-[var(--color-muted)] underline-offset-2 hover:text-[var(--color-ink)] hover:underline"
         >
           Request another code
         </Link>

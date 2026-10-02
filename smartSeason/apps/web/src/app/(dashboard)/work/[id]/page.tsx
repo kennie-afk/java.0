@@ -69,12 +69,12 @@ export default async function TaskDetailPage({
         }
       />
 
-      <div className="grid gap-2.5 lg:grid-cols-3">
-        <section className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] p-3 lg:col-span-2">
-          <h2 className="mb-2 text-2xs font-medium uppercase tracking-[0.07em] text-[var(--color-faint)]">
+      <div className="grid gap-4 lg:grid-cols-3">
+        <section className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-5 lg:col-span-2">
+          <h2 className="mb-2 text-xs font-medium uppercase tracking-[0.07em] text-[var(--color-faint)]">
             The task
           </h2>
-          <p className="text-xs leading-relaxed">
+          <p className="text-sm leading-relaxed">
             {order?.description ?? "No description was recorded for this task."}
           </p>
           <dl className="mt-3 grid gap-x-8 gap-y-2 sm:grid-cols-3">
@@ -87,22 +87,22 @@ export default async function TaskDetailPage({
               ["Worked", formatDuration(card.elapsedMinutes)]
             ] as [string, string][]).map(([label, value]) => (
               <div key={label}>
-                <dt className="text-2xs uppercase tracking-[0.06em] text-[var(--color-faint)]">
+                <dt className="text-xs uppercase tracking-[0.06em] text-[var(--color-faint)]">
                   {label}
                 </dt>
-                <dd className="mt-0.5 text-xs">{value}</dd>
+                <dd className="mt-0.5 text-sm">{value}</dd>
               </div>
             ))}
           </dl>
         </section>
 
-        <section className="rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] p-3">
-          <h2 className="mb-2 text-2xs font-medium uppercase tracking-[0.07em] text-[var(--color-faint)]">
+        <section className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-3">
+          <h2 className="mb-2 text-xs font-medium uppercase tracking-[0.07em] text-[var(--color-faint)]">
             Timeline
           </h2>
           <ol className="space-y-1.5">
             {timeline.map(([label, value]) => (
-              <li key={label} className="flex items-baseline justify-between gap-3 text-xs">
+              <li key={label} className="flex items-baseline justify-between gap-3 text-sm">
                 <span className={value ? "" : "text-[var(--color-faint)]"}>{label}</span>
                 <span className="tabular-nums text-[var(--color-muted)]">{stamp(value)}</span>
               </li>
@@ -110,7 +110,7 @@ export default async function TaskDetailPage({
           </ol>
           {card.overrun !== null ? (
             <p
-              className={`mt-2 text-2xs ${
+              className={`mt-2 text-xs ${
                 card.overrun > 1.5 ? "text-[var(--color-warn)]" : "text-[var(--color-muted)]"
               }`}
             >
@@ -120,18 +120,18 @@ export default async function TaskDetailPage({
         </section>
       </div>
 
-      <section className="mt-2.5 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] p-3">
-        <h2 className="mb-2 text-2xs font-medium uppercase tracking-[0.07em] text-[var(--color-faint)]">
+      <section className="mt-4 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-3">
+        <h2 className="mb-2 text-xs font-medium uppercase tracking-[0.07em] text-[var(--color-faint)]">
           Objectives
         </h2>
         {checklist.length === 0 ? (
-          <p className="text-2xs text-[var(--color-muted)]">
+          <p className="text-xs text-[var(--color-muted)]">
             No checklist was attached to this work order.
           </p>
         ) : (
           <ul className="space-y-1">
             {checklist.map((item) => (
-              <li key={item.id} className="flex items-baseline gap-2 text-xs">
+              <li key={item.id} className="flex items-baseline gap-2 text-sm">
                 <span
                   className={
                     item.completed ? "text-[var(--color-good)]" : "text-[var(--color-faint)]"
@@ -144,10 +144,10 @@ export default async function TaskDetailPage({
                   {item.label}
                 </span>
                 {item.required ? (
-                  <span className="text-2xs text-[var(--color-faint)]">required</span>
+                  <span className="text-xs text-[var(--color-faint)]">required</span>
                 ) : null}
                 {item.completedAt ? (
-                  <span className="ml-auto text-2xs tabular-nums text-[var(--color-muted)]">
+                  <span className="ml-auto text-xs tabular-nums text-[var(--color-muted)]">
                     {stamp(item.completedAt)}
                   </span>
                 ) : null}
@@ -157,22 +157,22 @@ export default async function TaskDetailPage({
         )}
       </section>
 
-      <section className="mt-2.5 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] p-3">
-        <h2 className="mb-2 text-2xs font-medium uppercase tracking-[0.07em] text-[var(--color-faint)]">
+      <section className="mt-4 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-3">
+        <h2 className="mb-2 text-xs font-medium uppercase tracking-[0.07em] text-[var(--color-faint)]">
           Evidence
         </h2>
         {evidence.length === 0 ? (
-          <p className="text-2xs text-[var(--color-muted)]">Nothing attached.</p>
+          <p className="text-xs text-[var(--color-muted)]">Nothing attached.</p>
         ) : (
           <ul className="space-y-1">
             {evidence.map((item) => (
-              <li key={item.id} className="flex items-baseline gap-2 text-xs">
+              <li key={item.id} className="flex items-baseline gap-2 text-sm">
                 <Badge value={item.evidenceType} />
                 <span className="text-[var(--color-muted)]">{item.notes ?? "—"}</span>
                 {item.mockLocation ? (
-                  <span className="text-2xs text-[var(--color-danger)]">mock location</span>
+                  <span className="text-xs text-[var(--color-danger)]">mock location</span>
                 ) : null}
-                <span className="ml-auto text-2xs tabular-nums text-[var(--color-muted)]">
+                <span className="ml-auto text-xs tabular-nums text-[var(--color-muted)]">
                   {stamp(item.capturedAt)}
                 </span>
               </li>
@@ -181,12 +181,12 @@ export default async function TaskDetailPage({
         )}
       </section>
 
-      <section className="mt-2.5 overflow-hidden rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)]">
+      <section className="mt-4 overflow-hidden rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)]">
         <div className="px-3 pt-3">
-          <h2 className="text-2xs font-medium uppercase tracking-[0.07em] text-[var(--color-faint)]">
+          <h2 className="text-xs font-medium uppercase tracking-[0.07em] text-[var(--color-faint)]">
             Audit log
           </h2>
-          <p className="mt-1 text-2xs text-[var(--color-muted)]">
+          <p className="mt-1 text-xs text-[var(--color-muted)]">
             Each entry is hashed together with the one before it, so an altered record breaks
             every hash that follows.
           </p>
@@ -207,15 +207,15 @@ export default async function TaskDetailPage({
             >
               {trail.map((row) => (
                 <tr key={row.id} className={rowClass}>
-                  <td className="px-3 py-1.5 text-right tabular-nums">{row.sequence}</td>
-                  <td className="px-3 py-1.5 font-medium">{row.action}</td>
-                  <td className="px-3 py-1.5 text-[var(--color-muted)]">{row.actorRole ?? "—"}</td>
-                  <td className="px-3 py-1.5 tabular-nums">{stamp(row.occurredAt)}</td>
-                  <td className="px-3 py-1.5">
+                  <td className="px-4 py-3 text-right tabular-nums">{row.sequence}</td>
+                  <td className="px-4 py-3 font-medium">{row.action}</td>
+                  <td className="px-4 py-3 text-[var(--color-muted)]">{row.actorRole ?? "—"}</td>
+                  <td className="px-4 py-3 tabular-nums">{stamp(row.occurredAt)}</td>
+                  <td className="px-4 py-3">
                     <Badge value={row.outcome} />
                   </td>
                   <td
-                    className="px-3 py-1.5 font-mono text-2xs text-[var(--color-muted)]"
+                    className="px-3 py-1.5 font-mono text-xs text-[var(--color-muted)]"
                     title={row.recordHash}
                   >
                     {row.recordHash.slice(0, 12)}…

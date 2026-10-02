@@ -14,7 +14,7 @@ export interface Field {
 }
 
 const INPUT =
-  "w-full rounded-md border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-sm outline-none focus:border-[var(--color-accent)]";
+  "w-full rounded-lg border border-[var(--color-line-strong)] bg-[var(--color-surface)] px-3.5 py-2.5 text-base outline-none focus:border-[var(--color-accent)]";
 
 export function EntityForm({
   action,
@@ -43,7 +43,7 @@ export function EntityForm({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-md bg-[var(--color-ink)] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[#242832]"
+        className="rounded-lg bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-good)]"
       >
         {title}
       </button>
@@ -54,7 +54,7 @@ export function EntityForm({
     <form
       ref={formRef}
       action={formAction}
-      className="mb-4 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] p-3.5"
+      className="mb-4 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-6"
     >
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-sm font-semibold">{title}</h2>
@@ -70,7 +70,7 @@ export function EntityForm({
       <div className="grid gap-3 sm:grid-cols-2">
         {fields.map((field) => (
           <label key={field.name} className="block">
-            <span className="mb-1 block text-xs font-medium text-[var(--color-muted)]">
+            <span className="mb-1 block text-sm font-medium text-[var(--color-muted)]">
               {field.label}
               {field.required ? " *" : ""}
             </span>
@@ -94,7 +94,7 @@ export function EntityForm({
               />
             )}
             {state.fieldErrors[field.name] ? (
-              <span className="mt-1 block text-xs text-[var(--color-danger)]">
+              <span className="mt-1 block text-sm text-[var(--color-danger)]">
                 {state.fieldErrors[field.name]}
               </span>
             ) : null}
@@ -111,7 +111,7 @@ export function EntityForm({
       <button
         type="submit"
         disabled={pending}
-        className="mt-4 rounded-md bg-[var(--color-ink)] px-3 py-2 text-sm font-medium text-white transition-opacity hover:bg-[#242832] disabled:opacity-50"
+        className="mt-4 rounded-lg bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:bg-[var(--color-good)] disabled:opacity-50"
       >
         {pending ? "Saving…" : submitLabel}
       </button>

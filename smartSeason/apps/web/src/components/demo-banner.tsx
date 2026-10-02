@@ -12,7 +12,7 @@ export function DemoBanner() {
       role="note"
       aria-label="Demo mode"
       data-testid="demo-banner"
-      className="fixed bottom-2 left-1/2 z-[60] max-w-[calc(100vw-1rem)] -translate-x-1/2 rounded border border-amber-300 bg-amber-50 px-2 py-1 text-2xs font-medium text-amber-900"
+      className="fixed bottom-3 left-1/2 z-[60] max-w-[calc(100vw-1.5rem)] -translate-x-1/2 rounded-full border border-amber-300 bg-amber-50 px-3.5 py-1.5 text-center text-xs font-semibold text-amber-900 shadow-[var(--shadow-lift)]"
     >
       Demo mode · sample data · M-Pesa is simulated, no money moves
     </div>

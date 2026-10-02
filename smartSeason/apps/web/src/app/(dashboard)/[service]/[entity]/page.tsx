@@ -66,7 +66,7 @@ export default async function EntityListPage({
           }
         />
       ) : (
-        <div className="overflow-hidden rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)]">
+        <div className="overflow-hidden rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)]">
           <Table
             head={entity.columns.map((column) => ({
               key: column.name,

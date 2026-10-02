@@ -63,11 +63,11 @@ export function RecordForm({
 
   return (
     <form action={formAction} className="max-w-3xl">
-      <div className="grid gap-3 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] p-3.5 sm:grid-cols-2">
+      <div className="grid gap-5 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-6 sm:grid-cols-2">
         {fields.map((field) => {
           const error = state.fieldErrors[field.name];
           const label = (
-            <span className="mb-1 block text-2xs font-medium uppercase tracking-[0.06em] text-[var(--color-faint)]">
+            <span className="mb-1 block text-xs font-medium uppercase tracking-[0.06em] text-[var(--color-faint)]">
               {field.label}
               {field.required ? " *" : ""}
             </span>
@@ -184,7 +184,7 @@ export function RecordForm({
               {label}
               {control}
               {error ? (
-                <span className="mt-1 block text-2xs text-[var(--color-danger)]">{error}</span>
+                <span className="mt-1 block text-xs text-[var(--color-danger)]">{error}</span>
               ) : null}
             </label>
           );
@@ -192,7 +192,7 @@ export function RecordForm({
       </div>
 
       {state.message ? (
-        <p role="alert" className="mt-3 text-xs text-[var(--color-danger)]">
+        <p role="alert" className="mt-3 text-sm text-[var(--color-danger)]">
           {state.message}
         </p>
       ) : null}

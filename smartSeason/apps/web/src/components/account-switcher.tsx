@@ -16,7 +16,7 @@ export function AccountSwitcher({ accounts }: { accounts: { email: string; label
 
   return (
     <div className="mt-4 border-t border-[var(--color-line)] pt-3">
-      <p className="mb-2 text-2xs font-medium uppercase tracking-[0.06em] text-[var(--color-faint)]">
+      <p className="mb-2 text-xs font-medium uppercase tracking-[0.06em] text-[var(--color-faint)]">
         Sign in as
       </p>
       <form action={action} className="flex items-center gap-2">
@@ -32,11 +32,11 @@ export function AccountSwitcher({ accounts }: { accounts: { email: string; label
         </button>
       </form>
       {error ? (
-        <p role="alert" className="mt-2 text-2xs text-[var(--color-danger)]">
+        <p role="alert" className="mt-2 text-xs text-[var(--color-danger)]">
           {error}
         </p>
       ) : null}
-      <p className="mt-2 text-2xs leading-relaxed text-[var(--color-muted)]">
+      <p className="mt-2 text-xs leading-relaxed text-[var(--color-muted)]">
         The same screens change with the role: a farm manager cannot alter wage rates, a
         farmer can read the ledger but not post to it, a worker sees only their own tasks.
       </p>

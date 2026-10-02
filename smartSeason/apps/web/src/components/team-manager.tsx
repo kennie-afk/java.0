@@ -13,12 +13,12 @@ import {
   Table
 } from "@/components/ui";
 
-const LABEL = "mb-1 block text-2xs font-medium uppercase tracking-[0.06em] text-[var(--color-faint)]";
+const LABEL = "mb-1 block text-xs font-medium uppercase tracking-[0.06em] text-[var(--color-faint)]";
 
 /** Checkboxes rather than a select: most people hold one role, some hold two. */
 function RoleChoice({ name, checked }: { name: Role; checked: boolean }) {
   return (
-    <label className="inline-flex items-center gap-1.5 text-2xs">
+    <label className="inline-flex items-center gap-1.5 text-xs">
       <input type="checkbox" name="roles" value={name} defaultChecked={checked} />
       {ROLE_LABELS[name]}
     </label>
@@ -44,14 +44,14 @@ function AddMemberForm() {
   return (
     <form
       action={action}
-      className="mb-4 rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] p-3.5"
+      className="mb-4 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-6"
     >
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-xs font-semibold">Add someone</h2>
+        <h2 className="text-sm font-semibold">Add someone</h2>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="text-2xs text-[var(--color-muted)] hover:text-[var(--color-ink)]"
+          className="text-xs text-[var(--color-muted)] hover:text-[var(--color-ink)]"
         >
           Cancel
         </button>
@@ -97,7 +97,7 @@ function AddMemberForm() {
             autoComplete="new-password"
             className={bareInputClass}
           />
-          <span className="mt-1 block text-2xs text-[var(--color-muted)]">
+          <span className="mt-1 block text-xs text-[var(--color-muted)]">
             At least 12 characters. They can change it once they sign in.
           </span>
         </label>
@@ -126,7 +126,7 @@ function AddMemberForm() {
       {state.message ? (
         <p
           role="alert"
-          className={`mt-3 text-2xs ${state.ok ? "text-[var(--color-good)]" : "text-[var(--color-danger)]"}`}
+          className={`mt-3 text-xs ${state.ok ? "text-[var(--color-good)]" : "text-[var(--color-danger)]"}`}
         >
           {state.message}
         </p>
@@ -159,12 +159,12 @@ function RoleEditor({ member }: { member: Member }) {
         <button
           type="button"
           onClick={() => setEditing(true)}
-          className="text-2xs text-[var(--color-muted)] underline-offset-2 hover:text-[var(--color-ink)] hover:underline"
+          className="text-xs text-[var(--color-muted)] underline-offset-2 hover:text-[var(--color-ink)] hover:underline"
         >
           Change
         </button>
         {state.message ? (
-          <span className={`text-2xs ${state.ok ? "text-[var(--color-good)]" : "text-[var(--color-danger)]"}`}>
+          <span className={`text-xs ${state.ok ? "text-[var(--color-good)]" : "text-[var(--color-danger)]"}`}>
             {state.message}
           </span>
         ) : null}
@@ -183,7 +183,7 @@ function RoleEditor({ member }: { member: Member }) {
       <button
         type="button"
         onClick={() => setEditing(false)}
-        className="text-2xs text-[var(--color-muted)] hover:text-[var(--color-ink)]"
+        className="text-xs text-[var(--color-muted)] hover:text-[var(--color-ink)]"
       >
         Cancel
       </button>
@@ -202,7 +202,7 @@ export function TeamManager({
     <>
       {canManage ? <AddMemberForm /> : null}
 
-      <div className="overflow-hidden rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)]">
+      <div className="overflow-hidden rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)]">
         <Table
           head={[
             { key: "name", label: "Name" },
@@ -214,10 +214,10 @@ export function TeamManager({
         >
           {members.map((member) => (
             <tr key={member.id} className={rowClass}>
-              <td className="px-3 py-1.5 font-medium">{member.fullName}</td>
-              <td className="px-3 py-1.5 text-[var(--color-muted)]">{member.email}</td>
-              <td className="px-3 py-1.5 text-[var(--color-muted)]">{member.phone ?? "—"}</td>
-              <td className="px-3 py-1.5">
+              <td className="px-4 py-3 font-medium">{member.fullName}</td>
+              <td className="px-4 py-3 text-[var(--color-muted)]">{member.email}</td>
+              <td className="px-4 py-3 text-[var(--color-muted)]">{member.phone ?? "—"}</td>
+              <td className="px-4 py-3">
                 {canManage ? (
                   <RoleEditor member={member} />
                 ) : (
@@ -228,7 +228,7 @@ export function TeamManager({
                   </span>
                 )}
               </td>
-              <td className="px-3 py-1.5">
+              <td className="px-4 py-3">
                 <Badge value={member.status} />
               </td>
             </tr>
