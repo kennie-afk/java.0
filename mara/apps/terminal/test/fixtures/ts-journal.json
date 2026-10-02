@@ -1,0 +1,180 @@
+{
+  "publicKeySpkiBase64": "MCowBQYDK2VwAyEA4E3tTAZvJPmzmn8a8LX3NJg6vvEUAVUmUI+0lWMIA2Y=",
+  "terminalId": "TERM-0123456789ABCDEF0123",
+  "entries": [
+    {
+      "sequence": 1,
+      "terminalId": "TERM-0123456789ABCDEF0123",
+      "epochSecond": 1760000000,
+      "nano": 0,
+      "sale": {
+        "version": "mara.sale.v1",
+        "currency": "KES",
+        "lines": [
+          {
+            "sku": "UNGA-2",
+            "name": "Unga wa Ngano 2kg",
+            "qty": 2,
+            "unitMinor": "21500",
+            "taxBp": 0,
+            "netMinor": "43000",
+            "taxMinor": "0"
+          }
+        ],
+        "payments": [
+          {
+            "method": "CASH",
+            "appliedMinor": "43000",
+            "reference": "",
+            "tenderedMinor": "86000"
+          }
+        ],
+        "totalMinor": "43000",
+        "fiscal": {
+          "status": "FISCAL_PENDING",
+          "number": ""
+        }
+      },
+      "bodyDigest": "bbb2a920786431e87af90847c737c22c7a9b4a9c00334894f99ba664805462c8",
+      "previousDigest": "0000000000000000000000000000000000000000000000000000000000000000",
+      "digest": "0edaef4b6eecf78f8ccb840d02410cc4d68927e305c5ba70d8e98ad6cc29bdc1",
+      "signature": "64e28746a1cfd9912dcc57048b97a581635d7cf54b553cbc7427a388c121f0f42edc6490400842594aa0610fa55eae78581213f921656da3c221dcfd51b8000e"
+    },
+    {
+      "sequence": 2,
+      "terminalId": "TERM-0123456789ABCDEF0123",
+      "epochSecond": 1760000001,
+      "nano": 500000000,
+      "sale": {
+        "version": "mara.sale.v2",
+        "currency": "KES",
+        "lines": [
+          {
+            "sku": "MZ-5",
+            "name": "Maziwa \"Fresh\" 500ml \\ tab\there",
+            "qty": 3,
+            "unitMinor": "7000",
+            "taxBp": 1600,
+            "netMinor": "21000",
+            "taxMinor": "3360"
+          }
+        ],
+        "payments": [
+          {
+            "method": "CASH",
+            "appliedMinor": "24360",
+            "reference": "",
+            "tenderedMinor": "42000"
+          }
+        ],
+        "totalMinor": "24360",
+        "fiscal": {
+          "status": "FISCAL_PENDING",
+          "number": ""
+        },
+        "cashier": {
+          "staffId": "STAFF-1",
+          "staffNumber": "2001",
+          "name": "Wanjiru \"W\" Kamau"
+        }
+      },
+      "bodyDigest": "2e313c7bf66fa71f3ef1cb6e9f061309a5f6df1591eec65ad272f0279fd069b7",
+      "previousDigest": "0edaef4b6eecf78f8ccb840d02410cc4d68927e305c5ba70d8e98ad6cc29bdc1",
+      "digest": "e2116c9c3bcdcccef9f0d2e1f2f03523f2432f5487c3fc30cdf0b5a15da71dc3",
+      "signature": "863e90ab68dc28c2d4bb70b09f4d6d5a1c4e21de67d93572eb0573f68e9452072e9a4da3901d7978ad619331c33b95369ab66f3616a40114f8f5b0e9a25a670e"
+    },
+    {
+      "sequence": 3,
+      "terminalId": "TERM-0123456789ABCDEF0123",
+      "epochSecond": 1760000002,
+      "nano": 750000000,
+      "sale": {
+        "version": "mara.sale.v2",
+        "currency": "KES",
+        "lines": [
+          {
+            "sku": "CH-1",
+            "name": "Chai ya Tangawizi ☕ éè 日本",
+            "qty": 1,
+            "unitMinor": "12999",
+            "taxBp": 1600,
+            "netMinor": "12999",
+            "taxMinor": "2080"
+          }
+        ],
+        "payments": [
+          {
+            "method": "CASH",
+            "appliedMinor": "15079",
+            "reference": "",
+            "tenderedMinor": "25998"
+          }
+        ],
+        "totalMinor": "15079",
+        "fiscal": {
+          "status": "FISCAL_PENDING",
+          "number": ""
+        },
+        "cashier": {
+          "staffId": "STAFF-1",
+          "staffNumber": "2001",
+          "name": "Wanjiru \"W\" Kamau"
+        }
+      },
+      "bodyDigest": "c0c5f05c2192a721ddb322422363f0a5ebb49127fca19456f65de7401e3c6406",
+      "previousDigest": "e2116c9c3bcdcccef9f0d2e1f2f03523f2432f5487c3fc30cdf0b5a15da71dc3",
+      "digest": "d8d1593cc0b7f6086b2b61c5c9831dcda7c0df2260c5be099cbf19e6d6e83458",
+      "signature": "4979f585cbfc1bd3df84efce5e41dc907680d1f06c94607a54b8977dfca521761a91b3de10c5eb1dd6bf8739291b4eed4e66cf3e727df62bc9d6f333e39c7c03"
+    },
+    {
+      "sequence": 4,
+      "terminalId": "TERM-0123456789ABCDEF0123",
+      "epochSecond": 1760000009,
+      "nano": 0,
+      "sale": {
+        "version": "mara.sale.v2",
+        "currency": "KES",
+        "lines": [
+          {
+            "sku": "BR-1",
+            "name": "Bread\nSliced \u0001",
+            "qty": 5,
+            "unitMinor": "6500",
+            "taxBp": 1600,
+            "netMinor": "32500",
+            "taxMinor": "5200"
+          }
+        ],
+        "payments": [
+          {
+            "method": "CASH",
+            "appliedMinor": "37700",
+            "reference": "",
+            "tenderedMinor": "65000"
+          }
+        ],
+        "totalMinor": "37700",
+        "fiscal": {
+          "status": "FISCAL_PENDING",
+          "number": ""
+        },
+        "cashier": {
+          "staffId": "STAFF-1",
+          "staffNumber": "2001",
+          "name": "Wanjiru \"W\" Kamau"
+        }
+      },
+      "bodyDigest": "78bba61d7a4e607d29a4d89ed32f395f878d0e5a5220b2481398315a2ae330d4",
+      "previousDigest": "d8d1593cc0b7f6086b2b61c5c9831dcda7c0df2260c5be099cbf19e6d6e83458",
+      "digest": "15d2ecb6ae03f89f07a7b00f79a4f06361cb040cf6be915e54dfb74914e903ba",
+      "signature": "ffa4c999155581fb91e8c9c04816311dbaed74007de97c7eaff52fcb13f27018a20d1ffc442594b70b91d5e4f37212f1c5bde6fc2d0db6d6802fae4294d8f909"
+    }
+  ],
+  "request": {
+    "method": "POST",
+    "path": "/v1/terminal/sync/journal",
+    "body": "{\"entries\":[{\"sequence\":1,\"terminalId\":\"TERM-0123456789ABCDEF0123\",\"epochSecond\":1760000000,\"nano\":0,\"sale\":{\"version\":\"mara.sale.v1\",\"currency\":\"KES\",\"lines\":[{\"sku\":\"UNGA-2\",\"name\":\"Unga wa Ngano 2kg\",\"qty\":2,\"unitMinor\":\"21500\",\"taxBp\":0,\"netMinor\":\"43000\",\"taxMinor\":\"0\"}],\"payments\":[{\"method\":\"CASH\",\"appliedMinor\":\"43000\",\"reference\":\"\",\"tenderedMinor\":\"86000\"}],\"totalMinor\":\"43000\",\"fiscal\":{\"status\":\"FISCAL_PENDING\",\"number\":\"\"}},\"bodyDigest\":\"bbb2a920786431e87af90847c737c22c7a9b4a9c00334894f99ba664805462c8\",\"previousDigest\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"digest\":\"0edaef4b6eecf78f8ccb840d02410cc4d68927e305c5ba70d8e98ad6cc29bdc1\",\"signature\":\"64e28746a1cfd9912dcc57048b97a581635d7cf54b553cbc7427a388c121f0f42edc6490400842594aa0610fa55eae78581213f921656da3c221dcfd51b8000e\"}]}",
+    "epochSecond": 1760000100,
+    "signature": "f59c718486953107aaee276e426c528afa0bb8cf6a5f34715d89e7249bc6b744f255ca10964ade93314fb9ac8712e1aa6ebd64d140e8a7554ca7f3bdaa271806"
+  }
+}
