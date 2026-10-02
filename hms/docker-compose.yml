@@ -46,6 +46,8 @@ services:
       HMS_API_URL: http://api:8100
       # Set true when the console is served over HTTPS so the session cookie is Secure.
       HMS_COOKIE_SECURE: ${HMS_COOKIE_SECURE:-false}
+      # Shows the "Demo mode, sample data, M-Pesa simulated" banner. Leave false in a real deployment.
+      HMS_DEMO_MODE: ${HMS_DEMO_MODE:-false}
     ports:
       - "${HMS_CONSOLE_PORT:-3600}:3600"
     depends_on:
