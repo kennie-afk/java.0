@@ -100,17 +100,21 @@ services:
   # media-service keeps MediaAsset rows describing files that exist nowhere - which is what
   # it did before 2026-09-11, having no S3 client on the classpath at all.
   objectstore:
-    image: minio/minio:RELEASE.2024-10-13T13-34-11Z
+    # Docker Hub's minio/minio and quay.io/minio/minio were withdrawn in late 2025 (MinIO went
+    # source-only), so the pinned 2024-10-13 tag no longer pulls. bitnamilegacy/minio carries the
+    # identical server build (2024-10-13T13-34-11Z) and is the pullable pin; it is frozen, so a
+    # real deployment should use managed S3 or a maintained build. Its data root is
+    # /bitnami/minio/data and it runs as uid 1001, so the stock entrypoint is used (no command).
+    image: bitnamilegacy/minio:2024.10.13
     mem_limit: 512m
     mem_reservation: 256m
     restart: unless-stopped
     logging: *default-logging
-    command: ["server", "/data", "--console-address", ":9001"]
     environment:
       MINIO_ROOT_USER: ${S3_ACCESS_KEY:-smartseason}
       MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:?S3_SECRET_KEY must be set}
     volumes:
-      - objectstore-data:/data
+      - objectstore-data:/bitnami/minio/data
     ports:
       - "${S3_PORT:-19000}:9000"
       - "${S3_CONSOLE_PORT:-19001}:9001"
@@ -334,6 +338,18 @@ WEB_PORT=3000
 PROMETHEUS_PORT=9090
 GRAFANA_PORT=3001
 REDPANDA_PORT=19092
+
+# Object storage. compose refuses to start without S3_SECRET_KEY; generate one with
+#   openssl rand -hex 16
+# (`scripts/demo.sh` does this for you and writes a complete .env.demo.)
+S3_ACCESS_KEY=smartseason
+S3_SECRET_KEY=replace-with-a-random-secret-of-at-least-8-characters
+
+# Sign-in page account picker and reset code in the response. Both off unless a
+# build or demo machine sets them; never on a deployment real people use.
+QUICK_SIGN_IN=false
+QUICK_SIGN_IN_PASSWORD=
+EXPOSE_RESET_CODE=false
 """
 
 def write(path, content, executable=False):

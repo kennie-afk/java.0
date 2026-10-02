@@ -380,8 +380,9 @@ spec:
         fsGroup: 1000
       containers:
         - name: minio
-          image: minio/minio:RELEASE.2024-10-13T13-34-11Z
-          args: ["server", "/data", "--console-address", ":9001"]
+          # minio/minio is no longer published; bitnamilegacy/minio is the same 2024-10-13
+          # server build. Its stock entrypoint serves /bitnami/minio/data on 9000/9001.
+          image: bitnamilegacy/minio:2024.10.13
           ports:
             - name: s3
               containerPort: 9000
@@ -400,7 +401,7 @@ spec:
                   key: S3_SECRET_KEY
           volumeMounts:
             - name: data
-              mountPath: /data
+              mountPath: /bitnami/minio/data
           readinessProbe:
             httpGet:
               path: /minio/health/ready
