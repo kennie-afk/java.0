@@ -16,6 +16,7 @@ import Select from '@/components/ui/Select'
 import { StatusBadge } from '@/components/ui/Badge'
 import { fmt, cn } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import { UserName, PropertyTitle } from '@/components/ui/EntityName'
 import type { IdentityVerificationResponse, OwnershipVerificationResponse } from '@/types'
 
 const ID_KEY = queryKeys.identityAdminQueue('HUMAN_REVIEW')
@@ -192,7 +193,7 @@ function VerifQueuePageInner() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <p className="font-semibold text-gray-900 dark:text-white text-base">User ID: {item.userId?.slice(0, 8)}...</p>
+                    <p className="font-semibold text-gray-900 dark:text-white text-base"><UserName id={item.userId} withEmail/></p>
                     <StatusBadge status={item.status} size="sm"/>
                   </div>
                   <p className="text-sm text-muted">Score: {item.identityScore}/100 · Docs: {item.documents?.length || 0} uploaded · {fmt.date(item.createdAt)}</p>
@@ -209,7 +210,7 @@ function VerifQueuePageInner() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <p className="font-semibold text-gray-900 dark:text-white text-base">Property ID: {item.propertyId?.slice(0, 8)}...</p>
+                    <p className="font-semibold text-gray-900 dark:text-white text-base"><PropertyTitle id={item.propertyId}/></p>
                     <StatusBadge status={item.status} size="sm"/>
                   </div>
                   <p className="text-sm text-muted">{item.county} · {item.propertyType} · Docs: {item.documents?.length || 0} uploaded · {fmt.date(item.createdAt)}</p>
@@ -239,7 +240,7 @@ function VerifQueuePageInner() {
               </Button>
             </div>
             <div className="p-3 bg-gray-50 dark:bg-[#2E2518] rounded-lg text-base space-y-1">
-              <p>User: {modal.userId}</p>
+              <p>User: <UserName id={modal.userId} withEmail/></p>
               <p>AI Score: <strong>{modal.identityScore}/100</strong></p>
               {!!modal.faceMatchSource && modal.faceMatchSource !== 'NONE' && (
                 <p className={modal.faceMatchPassed ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}>

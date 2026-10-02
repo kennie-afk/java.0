@@ -180,7 +180,7 @@ export default function Sidebar({ open, onClose }:{ open:boolean; onClose():void
             </button>
           )}
           {rail && (
-            <span className="pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-md bg-gray-900 dark:bg-black px-2.5 py-1.5 text-sm font-medium text-white opacity-0 scale-95 origin-left group-hover:opacity-100 group-hover:scale-100 transition-all duration-150 z-50 shadow-lg">
+            <span className="pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-md bg-gray-900 dark:bg-black px-2.5 py-1.5 text-sm font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50 shadow-lg">
               {item.label}
             </span>
           )}
@@ -264,7 +264,7 @@ export default function Sidebar({ open, onClose }:{ open:boolean; onClose():void
                 </div>
               )}
               {rail && (
-                <span className="pointer-events-none absolute left-full ml-3 bottom-1 whitespace-nowrap rounded-md bg-gray-900 dark:bg-black px-2.5 py-1.5 text-sm font-medium text-white opacity-0 scale-95 origin-left group-hover:opacity-100 group-hover:scale-100 transition-all duration-150 z-50 shadow-lg">
+                <span className="pointer-events-none absolute left-full ml-3 bottom-1 whitespace-nowrap rounded-md bg-gray-900 dark:bg-black px-2.5 py-1.5 text-sm font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50 shadow-lg">
                   {user.fullName} · {user.role}
                 </span>
               )}

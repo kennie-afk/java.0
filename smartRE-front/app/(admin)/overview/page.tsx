@@ -1,4 +1,5 @@
 'use client'
+import { UserName } from '@/components/ui/EntityName'
 import Link from 'next/link'
 import {
   DollarSign, TrendingUp, TrendingDown, Building2, ShieldCheck, ShieldAlert,
@@ -218,7 +219,7 @@ export default function AdminOverview() {
               {stats.topSellers.map(([id, amt], i) => (
                 <div key={id} className="flex items-center gap-2.5 text-sm">
                   <span className="w-5 h-5 rounded-full bg-gray-50 dark:bg-white/5 text-muted text-2xs font-semibold flex items-center justify-center shrink-0">{i + 1}</span>
-                  <span className="flex-1 truncate font-mono text-xs text-gray-600 dark:text-gray-300">{id.slice(0, 8)}…</span>
+                  <span className="flex-1 truncate text-sm text-gray-700 dark:text-gray-300"><UserName id={id}/></span>
                   <span className="font-semibold text-gray-900 dark:text-white tabular-nums">{fmt.currency(amt)}</span>
                 </div>
               ))}

@@ -16,6 +16,8 @@ import { InlineError } from '@/components/ui/InlineError'
 import RevealCard from '@/components/ui/RevealCard'
 import Button from '@/components/ui/Button'
 import { fmt } from '@/lib/utils'
+import LandlordHome from '@/components/dashboard/LandlordHome'
+import TenantHome from '@/components/dashboard/TenantHome'
 
 const EMPTY: never[] = []
 const VIEWING_STATUS_COLORS: Record<string, string> = {
@@ -27,7 +29,18 @@ const VIEWING_STATUS_LABELS: Record<string, string> = {
   COMPLETED: 'Completed', CANCELLED: 'Cancelled', NO_SHOW: 'No-show',
 }
 
+/**
+ * Landlords and tenants do not come here to browse the sale marketplace, so they get a home
+ * built from their own tenancy data. Sellers and buyers keep the listing/viewing/payment view.
+ */
 export default function DashboardPage() {
+  const { user } = useAuthStore()
+  if (user?.role === 'LANDLORD') return <LandlordHome firstName={user.fullName.split(' ')[0]} />
+  if (user?.role === 'TENANT') return <TenantHome firstName={user.fullName.split(' ')[0]} />
+  return <MarketplaceDashboard />
+}
+
+function MarketplaceDashboard() {
   const { user } = useAuthStore()
   const router = useRouter()
   const isSeller = isSellerOrAgent(user)
@@ -262,7 +275,7 @@ export default function DashboardPage() {
                     <p className="text-xs text-muted">{p.county} · {fmt.currency(p.price)}</p>
                   </div>
                   <StatusBadge status={p.status} size="sm"/>
-                  <ArrowRight size={13} className="text-gray-300 dark:text-gray-700 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 shrink-0"/>
+                  <ArrowRight size={13} className="text-gray-300 dark:text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity duration-150 shrink-0"/>
                 </Link>
               ))}
             </div>
