@@ -126,8 +126,14 @@ export function minutesBetween(from: string, to: string | null): number {
   return Math.max(0, Math.round((end - start) / 60000));
 }
 
+/** A task still "running" past this was almost certainly never stopped. */
+export const STALE_MINUTES = 16 * 60;
+/** Durations beyond a day are a recording problem, not a figure worth printing. */
+const MAX_PLAUSIBLE_MINUTES = 24 * 60;
+
 export function formatDuration(minutes: number | null): string {
   if (minutes === null) return "—";
+  if (minutes > MAX_PLAUSIBLE_MINUTES) return "Over 24h";
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
   return hours > 0 ? `${hours}h ${rest}m` : `${rest}m`;
@@ -166,8 +172,9 @@ export function buildCards(
       : null;
 
     const estimate = order?.estimatedHours ?? null;
+    // No ratio for a runaway clock: "28774% of estimate" says nothing a reader can use.
     const overrun =
-      estimate && estimate > 0 && elapsedMinutes !== null
+      estimate && estimate > 0 && elapsedMinutes !== null && elapsedMinutes <= MAX_PLAUSIBLE_MINUTES
         ? elapsedMinutes / 60 / estimate
         : null;
 

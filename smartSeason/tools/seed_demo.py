@@ -144,6 +144,12 @@ def ts(days_ago=0, hour=8):
     return moment.replace(hour=hour, minute=0, second=0, microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+def hours_ago(hours, minutes=0):
+    """A moment relative to now, so a seeded task is never in the future or days old."""
+    moment = datetime.now(timezone.utc) - timedelta(hours=hours, minutes=minutes)
+    return moment.replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
 def day(days_ago=0):
     return (date.today() - timedelta(days=days_ago)).isoformat()
 
@@ -332,8 +338,11 @@ def main_body():
         workers = {row["fullName"]: row["id"] for row in body.get("content", [])}
 
     plan = [
-        ("WO-2026-0001", "Amina Wanjiru", "COMPLETED", ts(0, 7), ts(0, 7), ts(0, 11)),
-        ("WO-2026-0002", "Joseph Kiptoo", "IN_PROGRESS", ts(0, 6), ts(0, 6), None),
+        # Offsets from now rather than clock hours, so the finished task always has a
+        # plausible duration and the running one has been going for about an hour, not
+        # since a fixed hour that may be in the future or, after a day, absurdly long.
+        ("WO-2026-0001", "Amina Wanjiru", "COMPLETED", hours_ago(6, 5), hours_ago(6), hours_ago(2, 15)),
+        ("WO-2026-0002", "Joseph Kiptoo", "IN_PROGRESS", hours_ago(1, 10), hours_ago(1), None),
         ("WO-2026-0003", "Grace Nyambura", "ASSIGNED", None, None, None),
     ]
     for code, worker_name, state, accepted, started, completed in plan:

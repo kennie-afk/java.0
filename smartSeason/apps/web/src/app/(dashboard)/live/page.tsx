@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Badge, EmptyState, PageHeader, Stat, Table, rowClass } from "@/components/ui";
-import { clockTime, formatDuration, loadTaskBoard, type TaskCard } from "@/lib/tasks";
+import { clockTime, formatDuration, loadTaskBoard, STALE_MINUTES, type TaskCard } from "@/lib/tasks";
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +8,9 @@ export const dynamic = "force-dynamic";
 function concern(card: TaskCard): string | null {
   if (card.overrun !== null && card.overrun > 1.5) {
     return `${Math.round(card.overrun * 100)}% of estimate`;
+  }
+  if (card.running && card.elapsedMinutes !== null && card.elapsedMinutes > STALE_MINUTES) {
+    return "not stopped? running over 16h";
   }
   if (card.running && card.elapsedMinutes !== null && card.elapsedMinutes > 12 * 60) {
     return "running over 12h";
@@ -37,7 +40,7 @@ export default async function LiveBoardPage() {
         subtitle="Every task in progress, with the time the platform recorded when it started."
       />
 
-      <section className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <Stat label="In progress" value={String(running.length)} />
         <Stat label="Not started" value={String(waiting.length)} />
         <Stat label="Finished" value={String(completed.length)} hint={formatDuration(minutesToday)} />
@@ -57,7 +60,7 @@ export default async function LiveBoardPage() {
           />
         </div>
       ) : (
-        <div className="mt-4 overflow-hidden rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)]">
+        <div className="mt-4 overflow-hidden rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)]">
           <Table
             head={[
               { key: "worker", label: "Worker" },
@@ -73,7 +76,7 @@ export default async function LiveBoardPage() {
               const flag = concern(card);
               return (
                 <tr key={card.assignment.id} className={rowClass}>
-                  <td className="px-3 py-1.5">
+                  <td className="px-4 py-3">
                     <Link
                       href={`/work/${card.assignment.id}`}
                       className="font-medium underline-offset-2 hover:underline"
@@ -81,28 +84,28 @@ export default async function LiveBoardPage() {
                       {card.worker?.fullName ?? "Unassigned"}
                     </Link>
                     {flag ? (
-                      <span className="ml-2 text-2xs text-[var(--color-warn)]">{flag}</span>
+                      <span className="ml-2 text-xs text-[var(--color-warn)]">{flag}</span>
                     ) : null}
                   </td>
-                  <td className="px-3 py-1.5 text-[var(--color-muted)]">
+                  <td className="px-4 py-3 text-[var(--color-muted)]">
                     {card.order?.title ?? "—"}
                   </td>
-                  <td className="px-3 py-1.5 tabular-nums">
+                  <td className="px-4 py-3 tabular-nums">
                     {clockTime(card.assignment.startedAt)}
                   </td>
-                  <td className="px-3 py-1.5 tabular-nums">
+                  <td className="px-4 py-3 tabular-nums">
                     {clockTime(card.assignment.completedAt)}
                   </td>
-                  <td className="px-3 py-1.5 text-right tabular-nums">
+                  <td className="px-4 py-3 text-right tabular-nums">
                     {formatDuration(card.elapsedMinutes)}
                     {card.running ? (
                       <span className="ml-1 text-[var(--color-good)]">●</span>
                     ) : null}
                   </td>
-                  <td className="px-3 py-1.5 text-right tabular-nums text-[var(--color-muted)]">
+                  <td className="px-4 py-3 text-right tabular-nums text-[var(--color-muted)]">
                     {card.order?.estimatedHours ? `${card.order.estimatedHours}h` : "—"}
                   </td>
-                  <td className="px-3 py-1.5">
+                  <td className="px-4 py-3">
                     <Badge value={card.assignment.status} />
                   </td>
                 </tr>
