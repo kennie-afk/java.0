@@ -37,6 +37,13 @@ soko:
     ttl-minutes: ${SOKO_JWT_TTL_MINUTES:720}
   cors:
     allowed-origins: ${SOKO_ALLOWED_ORIGINS:http://localhost:3500}
+  ratelimit:
+    # Per client address, on the three unauthenticated endpoints. Per replica, in memory.
+    login-per-minute: ${SOKO_RATELIMIT_LOGIN_PER_MINUTE:10}
+    register-per-hour: ${SOKO_RATELIMIT_REGISTER_PER_HOUR:10}
+    forgot-per-hour: ${SOKO_RATELIMIT_FORGOT_PER_HOUR:5}
+    # Behind a proxy that overwrites X-Forwarded-For only; otherwise a client can choose its address.
+    trust-forwarded: ${SOKO_RATELIMIT_TRUST_FORWARDED:false}
 
 management:
   endpoints:
