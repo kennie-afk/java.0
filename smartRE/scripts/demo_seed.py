@@ -10,7 +10,7 @@ the end, the platform works end to end; if it fails, it fails where a real user 
 What it builds (all names, numbers and plots are invented):
   * an admin, four landlords (one with a 42-unit portfolio), four sellers, four buyers and six
     tenants with their own logins;
-  * 20+ properties with generated photographs, taken through the real identity and ownership
+  * 20+ properties with real photographs (scripts/demo_photos, credited in CREDITS.md; generated illustrations as the fallback), taken through the real identity and ownership
     verification pipeline to ACTIVE - plus a few left mid-pipeline, rejected or suspended so
     the admin queues are not empty;
   * units, tenants and leases in every state; six months of rent invoices issued by the real
@@ -216,8 +216,55 @@ def hash_int(text: str) -> int:
     return sum((i + 1) * ord(c) for i, c in enumerate(text)) % 10_007
 
 
+PHOTO_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "demo_photos")
+_EXT = {
+    "house": ["house-1-townhouses", "house-2-detached", "house-3-two-storey", "house-4-driveway", "house-5-canal"],
+    "tower": ["apartment-1-balconies", "apartment-2-glass", "apartment-3-balconies"],
+    "land": ["land-1-farmland", "land-2-fields", "land-3-plots"],
+}
+_INT = ["interior-living-1", "interior-kitchen-1", "interior-bedroom-1", "interior-living-2", "interior-bathroom-1", "interior-bedroom-2"]
+
+
+_SLOT: dict[str, int] = {}
+_NEXT: dict[str, list[int]] = {}
+
+
+def real_photo(label: str, n: int, kind: str) -> tuple[bytes, str] | None:
+    """A real photograph (see demo_photos/CREDITS.md): the exterior first, then two interiors.
+    Chosen deterministically from the listing title so reruns and resets look the same.
+    Returns None when the folder is missing, so the generated illustration is the fallback."""
+    # Each listing takes the next exterior of its kind in turn, so neighbours on a browse page differ.
+    if label not in _SLOT:
+        _SLOT[label] = _NEXT.setdefault(kind, [0])[0]
+        _NEXT[kind][0] += 1
+    h = _SLOT[label]
+    low = label.lower()
+    if kind == "land":
+        names = _EXT["land"]
+        pick = names[(h + n) % len(names)]
+    else:
+        if "diani" in low or "beachfront" in low:
+            exterior, second = "villa-1-beach", "villa-2-patio"
+        elif "commercial" in low:
+            exterior, second = "commercial-1-glass-block", "apartment-3-balconies"
+        else:
+            exterior, second = _EXT.get(kind, _EXT["house"])[h % len(_EXT.get(kind, _EXT["house"]))], None
+        if n == 0:
+            pick = exterior
+        elif second and n == 1:
+            pick = second
+        else:
+            pick = _INT[(h + n) % len(_INT)]
+    path = os.path.join(PHOTO_DIR, pick + ".jpg")
+    try:
+        with open(path, "rb") as f:
+            return f.read(), "jpg"
+    except OSError:
+        return None
+
+
 def upload(token: str, category: str, label: str, n: int = 0, kind: str = "house") -> str | None:
-    content, ext = picture(f"{label}", n, kind)
+    content, ext = (category == "property_image" and real_photo(label, n, kind)) or picture(f"{label}", n, kind)
     # A tiny random tag makes every upload byte-unique even for identical labels.
     content += b"\x00" + uuid.uuid4().bytes if ext == "jpg" else b""
     r = multipart("/api/documents/upload", token, "file", f"{uuid.uuid4().hex[:8]}.{ext}", content, {"category": category})
