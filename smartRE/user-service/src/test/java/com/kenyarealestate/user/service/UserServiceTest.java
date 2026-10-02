@@ -129,7 +129,7 @@ class UserServiceTest {
         BadRequestException ex = assertThrows(BadRequestException.class,
                 () -> userService.register(registerRequest("SUPERUSER")));
 
-        assertTrue(ex.getMessage().contains("Role must be BUYER, SELLER or LANDLORD"));
+        assertTrue(ex.getMessage().contains("Role must be BUYER, SELLER, LANDLORD or TENANT"));
         verify(repo, never()).save(any());
     }
 

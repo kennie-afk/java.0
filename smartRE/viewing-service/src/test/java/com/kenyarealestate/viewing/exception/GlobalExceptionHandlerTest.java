@@ -57,4 +57,15 @@ class GlobalExceptionHandlerTest {
         assertThat(res.getBody()).isNotNull();
         assertThat(res.getBody().toString()).doesNotContain("postgresql");
     }
+
+    @Test
+    @DisplayName("a GET to a POST-only path is 405 with an Allow header, not a 500")
+    void wrongVerbIsMethodNotAllowed() {
+        ResponseEntity<Map<String, Object>> res = handler.wrongMethod(
+                new org.springframework.web.HttpRequestMethodNotSupportedException("GET", java.util.List.of("POST")));
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.METHOD_NOT_ALLOWED);
+        assertThat(res.getBody()).containsEntry("status", 405);
+        assertThat(res.getHeaders().getAllow()).containsExactly(HttpMethod.POST);
+    }
 }

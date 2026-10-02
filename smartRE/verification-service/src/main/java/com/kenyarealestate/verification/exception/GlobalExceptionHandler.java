@@ -15,6 +15,16 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    /** A known path hit with the wrong verb is 405 with an Allow header, not a 500 fault. */
+    @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<Map<String, Object>> wrongMethod(org.springframework.web.HttpRequestMethodNotSupportedException e) {
+        var allowed = e.getSupportedHttpMethods();
+        var b = ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED);
+        if (allowed != null && !allowed.isEmpty()) b = b.allow(allowed.toArray(new org.springframework.http.HttpMethod[0]));
+        return b.body(Map.of("timestamp", java.time.LocalDateTime.now().toString(), "status", 405,
+                "error", "Method not allowed for this endpoint."));
+    }
+
     /**
      * A request for a path this service does not serve.
      *
