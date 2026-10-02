@@ -12,6 +12,9 @@ server:
     include-stacktrace: never
 
 mara:
+  internal:
+    # Credential other Mara services present to /v1/internal/**. No default.
+    token: ${MARA_INTERNAL_TOKEN}
   admin:
     # No default: the service refuses to start without it (see AdminTokenFilter).
     token: ${MARA_ADMIN_TOKEN}

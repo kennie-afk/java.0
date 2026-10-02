@@ -1,25 +1,29 @@
-# Build context is the repository root (../.. from here), not this directory —
-# identity-service depends on the platform module by Maven coordinate, not a
-# reactor-relative path, so both must be visible to build it from source. See
-# docker-compose.yml, which sets `context: .` at the root for exactly this reason.
+# Build context is the repository root (../.. from here), not this directory: the service
+# depends on the platform module (and service-kit) by Maven coordinate, so all must be
+# visible to build from source. docker-compose.yml sets `context: .` for exactly this reason.
 
 FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /src
 
-# Dependency layer first: platform's own pom, then a throwaway `go-offline` so
-# a source-only change doesn't re-download the world.
+# Every module's pom is needed even to build one: the aggregator lists them all, and Maven
+# refuses a reactor whose child module is missing. Dependency layer first, so a source-only
+# change does not re-download the world.
 COPY pom.xml pom.xml
 COPY platform/pom.xml platform/pom.xml
+COPY services/service-kit/pom.xml services/service-kit/pom.xml
 COPY services/identity-service/pom.xml services/identity-service/pom.xml
-RUN mvn -q -pl platform,services/identity-service -am dependency:go-offline || true
+COPY services/sync-service/pom.xml services/sync-service/pom.xml
+COPY services/core-service/pom.xml services/core-service/pom.xml
+RUN mvn -q -pl platform,services/service-kit,services/identity-service -am dependency:go-offline || true
 
 COPY platform/src platform/src
+COPY services/service-kit/src services/service-kit/src
 COPY services/identity-service/src services/identity-service/src
 
-# platform has no reactor relationship to identity-service (separate Spring Boot
-# parent, on purpose — see identity-service/pom.xml) so it must be installed to
-# the local repo before identity-service can resolve it by coordinate.
-RUN mvn -q -pl platform -am install -DskipTests \
+# The services keep their own Spring Boot parent (so each stays independently buildable), so
+# platform and service-kit must be installed to the local repository before a service can
+# resolve them by coordinate.
+RUN mvn -q -pl platform,services/service-kit -am install -DskipTests \
  && mvn -q -pl services/identity-service -am package -DskipTests
 
 FROM eclipse-temurin:21-jre-alpine

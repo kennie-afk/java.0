@@ -43,6 +43,7 @@ class ProvisioningAndSignInTest {
 
     private static final String JDBC_URL = System.getProperty("mara.test.jdbc.url");
     private static final String ADMIN = "Bearer test-admin-token-0123456789-abcdef";
+    private static final String INTERNAL = "Bearer test-internal-token-0123456789-abc";
 
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry registry) {
@@ -55,6 +56,7 @@ class ProvisioningAndSignInTest {
         registry.add("mara.datasource.app.username", () -> "mara_app");
         registry.add("mara.datasource.app.password", () -> "app-secret");
         registry.add("mara.admin.token", () -> ADMIN.substring(7));
+        registry.add("mara.internal.token", () -> INTERNAL.substring(7));
     }
 
     @Autowired MockMvc mvc;
@@ -152,6 +154,28 @@ class ProvisioningAndSignInTest {
         assertThat(leaked).isZero();
         admin("GET", "/v1/admin/terminals", shop.tenantId(), null)
                 .andExpect(status().isOk()).andExpect(jsonPath("$[0].status").value("ACTIVE"));
+    }
+
+    @Test
+    @DisplayName("another service can look one terminal up with the internal token, and with nothing else")
+    void internalTerminalLookup() throws Exception {
+        Shop shop = shopWithTerminal("Lookup Lane");
+        String path = "/v1/internal/terminals/" + shop.terminalId();
+        mvc.perform(get(path).header("Authorization", INTERNAL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tenantId").value(shop.tenantId()))
+                .andExpect(jsonPath("$.branchId").value(shop.branchId()))
+                .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.publicKey").value(
+                        Base64.getEncoder().encodeToString(shop.key().getPublic().getEncoded())));
+        // The operator's admin token is a different credential and does not open this door.
+        mvc.perform(get(path).header("Authorization", ADMIN)).andExpect(status().isUnauthorized());
+        mvc.perform(get(path)).andExpect(status().isUnauthorized());
+        mvc.perform(get("/v1/internal/terminals/TERM-00000000000000000000").header("Authorization", INTERNAL))
+                .andExpect(status().isNotFound());
+        // Not a way to enumerate: only the exact id shape is routed at all.
+        mvc.perform(get("/v1/internal/terminals/").header("Authorization", INTERNAL))
+                .andExpect(status().is4xxClientError());
     }
 
     @Test

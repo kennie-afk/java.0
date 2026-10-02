@@ -102,7 +102,11 @@ public class TenantFilter extends OncePerRequestFilter {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
+    private static final java.util.regex.Pattern INTERNAL_TERMINAL =
+            java.util.regex.Pattern.compile("^/v1/internal/terminals/TERM-[0-9A-F]{20}$");
+
     private static boolean isUnscoped(String path) {
-        return UNSCOPED_PATHS.contains(path) || STAFF_SIGNIN.matcher(path).matches();
+        return UNSCOPED_PATHS.contains(path) || STAFF_SIGNIN.matcher(path).matches()
+                || INTERNAL_TERMINAL.matcher(path).matches();
     }
 }
