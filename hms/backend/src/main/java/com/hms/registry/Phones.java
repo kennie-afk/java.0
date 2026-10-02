@@ -1,11 +1,11 @@
 package com.hms.registry;
 
 /** Kenyan mobile numbers in one canonical form (+2547XXXXXXXX), so the same person matches. */
-final class Phones {
+public final class Phones {
     private Phones() {}
 
     /** Returns the canonical number, or null for blank. Throws for something that cannot be a Kenyan number. */
-    static String normalise(String raw) {
+    public static String normalise(String raw) {
         if (raw == null || raw.isBlank()) {
             return null;
         }

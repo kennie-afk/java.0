@@ -39,6 +39,9 @@ hms:
     allowed-origins: ${HMS_ALLOWED_ORIGINS:http://localhost:3600}
   roles:
     cache-ttl-ms: ${HMS_ROLE_CACHE_TTL_MS:15000}
+  mpesa:
+    # mock (default) simulates M-Pesa. live is NOT implemented and fails loudly.
+    mode: ${HMS_MPESA_MODE:mock}
   security:
     # Only for local experiments. A superuser or BYPASSRLS role defeats tenant isolation.
     allow-privileged-db-role: ${HMS_ALLOW_PRIVILEGED_DB_ROLE:false}
