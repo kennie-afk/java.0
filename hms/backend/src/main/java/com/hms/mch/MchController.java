@@ -18,9 +18,11 @@ class MchController {
     private static final String WRITE = "hasAuthority('" + Permissions.MCH_WRITE + "')";
 
     private final MchService mch;
+    private final MchSummaryService summary;
 
-    MchController(MchService mch) {
+    MchController(MchService mch, MchSummaryService summary) {
         this.mch = mch;
+        this.summary = summary;
     }
 
     @PostMapping("/pregnancies")
@@ -76,5 +78,13 @@ class MchController {
                        @RequestParam(required = false) Boolean overdueOnly, @RequestParam(required = false) String cursor,
                        @RequestParam(required = false) Integer limit) {
         return mch.due(facilityId, horizonDays, overdueOnly, cursor, limit);
+    }
+
+    @GetMapping("/summary")
+    @PreAuthorize(READ)
+    java.util.Map<String, Object> summary(@RequestParam UUID facilityId,
+                                          @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate from,
+                                          @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate to) {
+        return summary.summary(facilityId, from, to);
     }
 }
