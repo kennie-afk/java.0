@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useFetch } from "@/lib/api";
 import { addDays, kes, today } from "@/lib/format";
 import { useSession } from "@/lib/session";
-import { Card, ErrorNote, Field, Grid, Input, Loading, Page, Stat, Table, Td, Tr } from "@/components/ui";
+import { Button, Card, ErrorNote, Field, Grid, Input, Loading, Page, Stat, Table, Td, Tr } from "@/components/ui";
 
 type Count = { key: string; count: number };
 type Money = { key: string; amount: number; count: number };
@@ -25,7 +25,7 @@ export default function Reports() {
   const [to, setTo] = useState(today());
   const r = useFetch<Overview>(`/v1/reports/overview?facilityId=${facilityId}&from=${from}&to=${to}`);
   return (
-    <Page title="Reports" sub="Counts and totals for this facility. No patient is named. These are operational reports, not the official MOH returns.">
+    <Page title="Reports" actions={<Button variant="secondary" href="/reports/custom">Custom reports</Button>} sub="Counts and totals for this facility. No patient is named. These are operational reports, not the official MOH returns.">
       <Grid cols={4}><Field label="From"><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></Field><Field label="To"><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></Field></Grid>
       <ErrorNote error={r.error} />
       {r.loading && !r.data ? <Loading /> : r.data && (

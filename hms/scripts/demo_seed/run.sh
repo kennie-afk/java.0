@@ -10,4 +10,5 @@ python3 phase4_polish.py
 python3 phase5_mch.py
 python3 phase6_imaging.py
 python3 phase7_programmes.py
+python3 phase8_reports.py
 python3 phase3_check.py
