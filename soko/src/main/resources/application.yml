@@ -42,6 +42,9 @@ server:
       max: ${TOMCAT_MAX_THREADS:200}
 
 soko:
+  # Set SOKO_ENVIRONMENT=production on a real deployment: the process then refuses to start with mock
+  # M-Pesa, a short JWT secret or the demo auto-answering customer (see ProductionGuard).
+  environment: ${SOKO_ENVIRONMENT:development}
   rls:
     # Presented to the database to read across tenants (sign-in by e-mail, the M-Pesa callback,
     # the monthly billing run). The database stores only its hash.
