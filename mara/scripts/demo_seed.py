@@ -85,8 +85,10 @@ def create_shop():
 
 
 def shop_exists(state):
-    status, _ = call("GET", "/v1/admin/branches", tenant=state["tenantId"])
-    return status == 200
+    # An unknown tenant also answers 200 (row-level security just shows it nothing), so a 200
+    # alone proves nothing: a real tenant always has at least its first branch.
+    status, body = call("GET", "/v1/admin/branches", tenant=state["tenantId"])
+    return status == 200 and isinstance(body, list) and len(body) > 0
 
 
 def main():
