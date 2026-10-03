@@ -6,6 +6,7 @@ import com.soko.persistence.*;
 import com.soko.platform.Errors;
 import com.soko.routing.OrderService;
 import com.soko.security.Principal;
+import com.soko.security.tenant.TenantBinding;
 import com.soko.security.TenantContext;
 import com.soko.security.Tokens;
 import jakarta.validation.Valid;
@@ -74,6 +75,11 @@ public class ApiController {
     @PostMapping("/auth/register")
     @ResponseStatus(HttpStatus.CREATED)
     public Session register(@Valid @RequestBody RegisterRequest request) {
+        // No tenant exists yet, and the e-mail check must see every tenant's accounts.
+        return TenantBinding.asSystem(() -> registerAsSystem(request));
+    }
+
+    private Session registerAsSystem(RegisterRequest request) {
         if (users.findByEmailAndStatus(request.email(), "ACTIVE").isPresent()) {
             throw new Errors.BadRequest("that email is already registered");
         }
@@ -95,12 +101,15 @@ public class ApiController {
 
     @PostMapping("/auth/login")
     public Session login(@Valid @RequestBody LoginRequest request) {
-        AppUser user = users.findByEmailAndStatus(request.email(), "ACTIVE")
-                .orElseThrow(() -> new Errors.Unauthorized("those credentials are not valid"));
-        if (!encoder.matches(request.password(), user.getPasswordHash())) {
-            throw new Errors.Unauthorized("those credentials are not valid");
-        }
-        return session(user);
+        // Signing in is how the tenant becomes known, so the lookup is by e-mail across tenants.
+        return TenantBinding.asSystem(() -> {
+            AppUser user = users.findByEmailAndStatus(request.email(), "ACTIVE")
+                    .orElseThrow(() -> new Errors.Unauthorized("those credentials are not valid"));
+            if (!encoder.matches(request.password(), user.getPasswordHash())) {
+                throw new Errors.Unauthorized("those credentials are not valid");
+            }
+            return session(user);
+        });
     }
 
     private Session session(AppUser user) {
@@ -120,7 +129,8 @@ public class ApiController {
         if (!"OWNER".equals(context.current().role())) {
             throw new Errors.Unauthorized("only an owner can add accounts");
         }
-        if (users.findByEmailAndStatus(request.email(), "ACTIVE").isPresent()) {
+        // An e-mail is unique across tenants, so the check cannot be limited to this one.
+        if (TenantBinding.asSystem(() -> users.findByEmailAndStatus(request.email(), "ACTIVE")).isPresent()) {
             throw new Errors.BadRequest("that email is already registered");
         }
         String role = request.role().toUpperCase();
@@ -152,7 +162,7 @@ public class ApiController {
     @PostMapping("/auth/forgot")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public Acknowledged forgot(@Valid @RequestBody ForgotRequest request) {
-        users.findByEmailAndStatus(request.email(), "ACTIVE")
+        TenantBinding.asSystem(() -> users.findByEmailAndStatus(request.email(), "ACTIVE"))
                 .ifPresent(user -> resetLog.info(
                         "password reset requested for user {} on tenant {}",
                         user.getId(), user.getTenantId()));

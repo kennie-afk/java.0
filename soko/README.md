@@ -30,6 +30,19 @@ token. A second tenant asking for another tenant's order receives **404, not 403
 telling a stranger that a resource exists is itself a leak. The bundled demo seeds three
 independent distributors against one database.
 
+That scoping is also enforced **by the database**, so a query that forgets its filter leaks
+nothing. The application connects as `soko_app`, a role that owns nothing, is not a superuser
+and cannot bypass row-level security. Every tenant table has a policy (migration `V7`): a row is
+visible only when its `tenant_id` equals the tenant the application bound for the transaction
+from the signed token. A transaction with no tenant sees no rows at all.
+
+The few operations that cannot know the tenant until they have looked something up (signing in by
+e-mail, the M-Pesa callback, listing tenants for the monthly bill, finding a storefront by slug)
+run inside an explicit `TenantBinding.asSystem(...)` block and present a system key. The database
+keeps only the key's hash, in a table `soko_app` cannot read, so an injected query cannot forge it.
+`tools/rls_check.py` proves all of this with raw SQL as `soko_app`;
+`tools/tenant_isolation_check.py` proves it through the API.
+
 ## Stock cannot be oversold
 
 Reserving stock is a single conditional statement:
@@ -80,7 +93,7 @@ with all three hundred requests succeeding rather than sixty of them timing out.
 ## Running it
 
 ```bash
-cp .env.example .env        # set POSTGRES_PASSWORD and SOKO_JWT_SECRET
+cp .env.example .env        # set POSTGRES_PASSWORD, SOKO_JWT_SECRET, SOKO_DB_APP_PASSWORD, SOKO_SYSTEM_KEY
 docker compose up --build   # api on 8090, console on 3500
 python3 tools/seed.py http://localhost:8090
 ```
@@ -95,7 +108,7 @@ stack can run beside others that want 8090 or 5432.
 ## Demo in five minutes
 
 ```bash
-cp .env.example .env     # set POSTGRES_PASSWORD, SOKO_JWT_SECRET; set SOKO_MPESA_MOCK_AUTOCOMPLETE_SECONDS=4
+cp .env.example .env     # set POSTGRES_PASSWORD, SOKO_JWT_SECRET, SOKO_DB_APP_PASSWORD, SOKO_SYSTEM_KEY; set SOKO_MPESA_MOCK_AUTOCOMPLETE_SECONDS=4
 docker compose up -d --build
 python3 tools/seed.py http://localhost:8090                      # 3 distributors, 140 orders each
 SOKO_PSQL="docker compose exec -T postgres psql -U soko -d soko" \

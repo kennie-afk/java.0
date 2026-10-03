@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.soko.mpesa.StkCallback;
 import com.soko.payment.PaymentService;
 import com.soko.payment.PaymentCallbackHandler;
+import com.soko.security.tenant.TenantBinding;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +57,10 @@ public class MpesaCallbackController {
 
         // Applying the callback and settling the order/invoice are one transaction (see
         // PaymentCallbackHandler), so a payment is never recorded without being applied.
-        handler.handle(parsed, rawBody, signature != null ? signature : secret);
+        // Safaricom presents no tenant: the payment is found by its checkout id, which is why this
+        // runs as the system. The handler then touches only that payment's own order or invoice.
+        String presented = signature != null ? signature : secret;
+        TenantBinding.asSystem(() -> handler.handle(parsed, rawBody, presented));
 
         // Daraja only cares that we returned 200 with ResultCode 0; it is not
         // shown to a human and does not reflect whether the PAYMENT itself

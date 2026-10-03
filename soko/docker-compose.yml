@@ -24,6 +24,10 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-soko}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-soko}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      # The runtime role (created by migration V7) and the key that lets a few code paths read
+      # across tenants. Both are applied to the database on every start.
+      SOKO_DB_APP_PASSWORD: ${SOKO_DB_APP_PASSWORD:?set SOKO_DB_APP_PASSWORD (16+ characters)}
+      SOKO_SYSTEM_KEY: ${SOKO_SYSTEM_KEY:?set SOKO_SYSTEM_KEY (16+ characters)}
       SOKO_JWT_SECRET: ${SOKO_JWT_SECRET:?set a signing secret of at least 32 characters}
       SOKO_ALLOWED_ORIGINS: ${SOKO_ALLOWED_ORIGINS:-http://localhost:3500}
       DB_POOL_MAX: ${DB_POOL_MAX:-24}
@@ -32,6 +36,8 @@ services:
       # M-Pesa. mock (default) never calls Safaricom and accepts any callback: demo only, never
       # facing real traffic. live needs every value below, and refuses to start without a
       # callback secret of at least 16 characters.
+      # Monthly invoice run (Spring cron, UTC). Default: 03:00 on the 1st.
+      SOKO_BILLING_CRON: ${SOKO_BILLING_CRON:-0 0 3 1 * *}
       SOKO_MPESA_MODE: ${SOKO_MPESA_MODE:-mock}
       SOKO_MPESA_BASE_URL: ${SOKO_MPESA_BASE_URL:-}
       SOKO_MPESA_CONSUMER_KEY: ${SOKO_MPESA_CONSUMER_KEY:-}

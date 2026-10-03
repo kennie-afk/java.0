@@ -2,9 +2,12 @@ spring:
   application:
     name: soko
   datasource:
+    # The application runs as soko_app: it owns nothing, is not a superuser and cannot bypass
+    # row-level security. The table owner (SPRING_DATASOURCE_USERNAME below) is used only by
+    # Flyway, to migrate.
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/soko}
-    username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    username: ${SOKO_DB_APP_USER:soko_app}
+    password: ${SOKO_DB_APP_PASSWORD}
     hikari:
       maximum-pool-size: ${DB_POOL_MAX:24}
       minimum-idle: 4
@@ -22,6 +25,13 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
+    # Migrations run as the table owner, not as the runtime role.
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/soko}
+    user: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    placeholders:
+      soko_app_password: ${SOKO_DB_APP_PASSWORD}
+      soko_system_key: ${SOKO_SYSTEM_KEY}
 
 server:
   port: ${PORT:8090}
@@ -32,6 +42,11 @@ server:
       max: ${TOMCAT_MAX_THREADS:200}
 
 soko:
+  rls:
+    # Presented to the database to read across tenants (sign-in by e-mail, the M-Pesa callback,
+    # the monthly billing run). The database stores only its hash.
+    system-key: ${SOKO_SYSTEM_KEY}
+    app-password: ${SOKO_DB_APP_PASSWORD}
   jwt:
     secret: ${SOKO_JWT_SECRET}
     ttl-minutes: ${SOKO_JWT_TTL_MINUTES:720}

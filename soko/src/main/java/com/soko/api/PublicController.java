@@ -10,6 +10,7 @@ import com.soko.persistence.UserRepository;
 import com.soko.platform.Errors;
 import com.soko.security.OtpService;
 import com.soko.security.Principal;
+import com.soko.security.tenant.TenantBinding;
 import com.soko.security.Tokens;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -81,7 +82,7 @@ public class PublicController {
     public List<Map<String, Object>> catalogue(@PathVariable String slug) {
         Tenant tenant = tenant(slug);
 
-        return offers.storefront(tenant.getId(), STOREFRONT_LIMIT).stream()
+        return TenantBinding.runAs(tenant.getId(), () -> offers.storefront(tenant.getId(), STOREFRONT_LIMIT)).stream()
                 .map(
                         r -> {
                             Map<String, Object> row = new LinkedHashMap<>();
@@ -108,7 +109,7 @@ public class PublicController {
     @ResponseStatus(HttpStatus.ACCEPTED)
     public Map<String, Object> requestOtp(@PathVariable String slug, @Valid @RequestBody OtpRequest request) {
         Tenant tenant = tenant(slug);
-        otp.request(tenant.getId(), request.phone().trim());
+        TenantBinding.runAs(tenant.getId(), () -> otp.request(tenant.getId(), request.phone().trim()));
         return Map.of("detail", "a verification code has been sent");
     }
 
@@ -125,6 +126,11 @@ public class PublicController {
     @PostMapping("/{slug}/otp/verify")
     public ApiController.Session verifyOtp(@PathVariable String slug, @Valid @RequestBody OtpVerify request) {
         Tenant tenant = tenant(slug);
+        // Everything below belongs to this one tenant, whose rows the database will show us.
+        return TenantBinding.runAs(tenant.getId(), () -> verifyOtpForTenant(tenant, request));
+    }
+
+    private ApiController.Session verifyOtpForTenant(Tenant tenant, OtpVerify request) {
         String phone = request.phone().trim();
         List<Customer> existing = customers.findByTenantIdAndPhone(tenant.getId(), phone);
 
@@ -203,6 +209,9 @@ public class PublicController {
     }
 
     private Tenant tenant(String slug) {
-        return tenants.findBySlug(slug).orElseThrow(() -> new Errors.NotFound("no such storefront"));
+        // A storefront is found by slug before any tenant is known, so this is one of the few
+        // lookups that spans tenants.
+        return TenantBinding.asSystem(() -> tenants.findBySlug(slug))
+                .orElseThrow(() -> new Errors.NotFound("no such storefront"));
     }
 }
