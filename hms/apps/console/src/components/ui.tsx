@@ -133,7 +133,7 @@ export function Badge({ children, tone = "neutral" }: { children: React.ReactNod
 const STATUS_TONE: Record<string, keyof typeof tones> = {
   PAID: "good", COMPLETED: "good", READY: "good", VALIDATED: "good", SIGNED: "good", ACTIVE: "good", AVAILABLE: "good", ACCEPTED: "good", GIVEN: "good", DELIVERED: "good", VERIFIED: "good", DISPENSED: "good", RESOLVED: "good",
   DISCHARGED: "neutral", CLOSED: "neutral", WITHDRAWN: "neutral", DRAFT: "neutral", ROUTINE: "neutral", NORMAL: "neutral",
-  PARTIALLY_PAID: "warn", CHECKED_IN: "warn", PENDING: "warn", RESULTED: "warn", PERFORMED: "warn", REPORTED: "warn", SUBMISSION_STUBBED: "warn", OCCUPIED: "warn", CLEANING: "warn", PRIORITY: "warn", URGENT: "warn", UNVERIFIED: "warn", IN_PROGRESS: "warn", DUE: "warn",
+  PARTIALLY_PAID: "warn", CHECKED_IN: "warn", PENDING: "warn", RESULTED: "warn", PERFORMED: "warn", REPORTED: "warn", SUBMISSION_STUBBED: "warn", TRANSFERRED_OUT: "neutral", LOST_TO_FOLLOW_UP: "danger", STOPPED: "neutral", DIED: "neutral", OCCUPIED: "warn", CLEANING: "warn", PRIORITY: "warn", URGENT: "warn", UNVERIFIED: "warn", IN_PROGRESS: "warn", DUE: "warn",
   ISSUED: "accent", BOOKED: "accent", OPEN: "accent", ADMITTED: "accent", ORDERED: "accent", COLLECTED: "accent", SCHEDULED: "accent",
   NEEDS_ATTENTION: "danger", OVERDUE: "danger", LOST: "danger", FAILED: "danger", VOID: "danger", CANCELLED: "danger", NO_SHOW: "danger", DISABLED: "danger", REVERSED: "danger", OUT_OF_SERVICE: "danger", EMERGENCY: "danger", STAT: "danger", CRITICAL: "danger", SEVERE: "danger"
 };
