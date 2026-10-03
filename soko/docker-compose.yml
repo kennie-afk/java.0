@@ -29,6 +29,17 @@ services:
       DB_POOL_MAX: ${DB_POOL_MAX:-24}
       # Demo only: the mock M-Pesa customer approves the prompt by itself after this many seconds.
       SOKO_MPESA_MOCK_AUTOCOMPLETE_SECONDS: ${SOKO_MPESA_MOCK_AUTOCOMPLETE_SECONDS:-0}
+      # M-Pesa. mock (default) never calls Safaricom and accepts any callback: demo only, never
+      # facing real traffic. live needs every value below, and refuses to start without a
+      # callback secret of at least 16 characters.
+      SOKO_MPESA_MODE: ${SOKO_MPESA_MODE:-mock}
+      SOKO_MPESA_BASE_URL: ${SOKO_MPESA_BASE_URL:-}
+      SOKO_MPESA_CONSUMER_KEY: ${SOKO_MPESA_CONSUMER_KEY:-}
+      SOKO_MPESA_CONSUMER_SECRET: ${SOKO_MPESA_CONSUMER_SECRET:-}
+      SOKO_MPESA_SHORT_CODE: ${SOKO_MPESA_SHORT_CODE:-}
+      SOKO_MPESA_PASSKEY: ${SOKO_MPESA_PASSKEY:-}
+      SOKO_MPESA_CALLBACK_SECRET: ${SOKO_MPESA_CALLBACK_SECRET:-}
+      SOKO_MPESA_CALLBACK_URL: ${SOKO_MPESA_CALLBACK_URL:-}
     ports:
       - "${API_PORT:-8090}:8090"
     depends_on:

@@ -38,6 +38,11 @@ public class DarajaMpesaGateway implements MpesaGateway {
     private Instant tokenExpiresAt = Instant.EPOCH;
 
     public DarajaMpesaGateway(MpesaProperties properties, ObjectMapper objectMapper) {
+        // Fail closed: with no secret every caller on the internet could mark an order paid.
+        if (properties.callbackSecret() == null || properties.callbackSecret().length() < 16) {
+            throw new IllegalStateException(
+                    "soko.mpesa.mode=live needs soko.mpesa.callback-secret of at least 16 characters");
+        }
         this.properties = properties;
         this.objectMapper = objectMapper;
         this.http = RestClient.builder().baseUrl(properties.baseUrl()).build();
@@ -59,7 +64,7 @@ public class DarajaMpesaGateway implements MpesaGateway {
                 Map.entry("PartyA", request.phoneNumber()),
                 Map.entry("PartyB", properties.shortCode()),
                 Map.entry("PhoneNumber", request.phoneNumber()),
-                Map.entry("CallBackURL", request.callbackUrl()),
+                Map.entry("CallBackURL", withSecret(request.callbackUrl())),
                 Map.entry("AccountReference", request.accountReference()),
                 Map.entry("TransactionDesc", request.description()));
 
@@ -77,9 +82,16 @@ public class DarajaMpesaGateway implements MpesaGateway {
 
     @Override
     public boolean verifyCallbackSignature(String rawBody, String signature) {
-        return properties.callbackSecret() == null
-                || properties.callbackSecret().isBlank()
-                || properties.callbackSecret().equals(signature);
+        // Constant-time, and no "blank secret means accept everything" escape hatch.
+        return signature != null && java.security.MessageDigest.isEqual(
+                properties.callbackSecret().getBytes(StandardCharsets.UTF_8),
+                signature.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /** The callback URL we register carries the secret, because that URL is the one thing we control. */
+    String withSecret(String url) {
+        String encoded = java.net.URLEncoder.encode(properties.callbackSecret(), StandardCharsets.UTF_8);
+        return url + (url.contains("?") ? "&" : "?") + "secret=" + encoded;
     }
 
     private JsonNode post(String path, Map<String, Object> body) {

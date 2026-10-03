@@ -62,6 +62,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(
                         auth ->
                                 auth.requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                                        // Metrics reveal traffic and pool sizes; not for customers or suppliers.
+                                        .requestMatchers("/actuator/**").hasRole("OWNER")
                                         .requestMatchers(HttpMethod.POST, "/v1/auth/**").permitAll()
                                         .requestMatchers("/v1/public/**").permitAll()
                                         .requestMatchers("/v1/supplier/**").hasRole("SUPPLIER")

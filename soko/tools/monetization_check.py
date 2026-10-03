@@ -85,6 +85,24 @@ cb2, code = call("/v1/public/mpesa/stk-callback", callback_body, method="POST")
 check("replayed callback still returns 200 (Safaricom retries until it sees one)", code == 200)
 
 print()
+print("--- the same success callback arriving 16 times at once settles ONCE ---")
+import concurrent.futures
+race_order, code = call("/v1/shop/orders", {"lines": [{"productId": products[0]["id"], "quantity": 1}]}, CT)
+check("customer places a second order", code == 201)
+race_pay, _ = call(f"/v1/shop/orders/{race_order['orderId']}/pay", {"msisdn": "254712345678"}, CT)
+race_body = json.loads(json.dumps(callback_body))
+race_body["Body"]["stkCallback"]["CheckoutRequestID"] = race_pay["checkoutRequestId"]
+race_body["Body"]["stkCallback"]["CallbackMetadata"]["Item"][1]["Value"] = "NLJRACE001"
+with concurrent.futures.ThreadPoolExecutor(16) as pool:
+    codes = list(pool.map(lambda _: call("/v1/public/mpesa/stk-callback", race_body, method="POST")[1], range(16)))
+check("every delivery is answered 200", set(codes) == {200})
+ledger, _ = call("/v1/billing/ledger?limit=500", token=T)
+received = [e for e in ledger if e["referenceId"] == race_order["orderId"] and e["type"] == "PAYMENT_RECEIVED"]
+check("exactly one PAYMENT_RECEIVED ledger entry for the order (not 16)", len(received) == 1)
+race_after, _ = call(f"/v1/orders/{race_order['orderId']}", token=T)
+check("the order is PAID", race_after["status"] == "PAID")
+
+print()
 print("--- order cancel restocks and voids the commission ---")
 order2, _ = call("/v1/orders", {"customerId": customer_id,
                                   "lines": [{"productId": products[1]["id"], "quantity": 3}]}, T)
