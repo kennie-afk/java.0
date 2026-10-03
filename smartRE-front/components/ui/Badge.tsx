@@ -14,15 +14,10 @@ const styles: Record<Variant,string> = {
   purple: 'bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400',
 }
 
-export function Badge({ variant='muted', children, dot, size='md', className }:
-  { variant?:Variant; children:React.ReactNode; dot?:boolean; size?:'sm'|'md'; className?:string }) {
+export function Badge({ variant='muted', children, size='md', className }:
+  { variant?:Variant; children:React.ReactNode; size?:'sm'|'md'; className?:string }) {
   return (
     <span className={cn('badge', styles[variant], size==='sm'?'text-xs px-2 py-0':'', className)}>
-      {dot && <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', {
-        'bg-emerald-500':variant==='success','bg-amber-500':variant==='warning',
-        'bg-red-500':variant==='error','bg-blue-500':variant==='info',
-        'bg-gray-400':variant==='muted','bg-gold-500':variant==='gold',
-      })} />}
       {children}
     </span>
   )

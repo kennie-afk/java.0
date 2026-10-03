@@ -98,9 +98,6 @@ export default async function LiveBoardPage() {
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums">
                     {formatDuration(card.elapsedMinutes)}
-                    {card.running ? (
-                      <span className="ml-1 text-[var(--color-good)]">●</span>
-                    ) : null}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums text-[var(--color-muted)]">
                     {card.order?.estimatedHours ? `${card.order.estimatedHours}h` : "—"}

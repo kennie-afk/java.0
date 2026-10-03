@@ -206,7 +206,7 @@ export default async function FarmPage({ params }: { params: Promise<{ id: strin
                     </td>
                     <td className="px-4 py-2 text-right tabular-nums">{plot.areaHa ?? "—"} ha</td>
                     <td className="px-4 py-2">
-                      {season?.currentStage ? <Badge value={season.currentStage} dot={false} /> : <span className="text-[var(--color-muted)]">—</span>}
+                      {season?.currentStage ? <Badge value={season.currentStage} /> : <span className="text-[var(--color-muted)]">—</span>}
                     </td>
                     <td className="min-w-[180px] px-4 py-2">
                       {progress ? (

@@ -160,8 +160,8 @@ export default function AdminOverview() {
               </ResponsiveContainer>
             )}
             <div className="flex items-center justify-center gap-4 text-xs mt-1">
-              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-gold-500"/>Commission</span>
-              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-blue-500"/>Viewing fees</span>
+              <span className="text-gold-500">Commission</span>
+              <span className="text-blue-500">Viewing fees</span>
             </div>
           </Card>
         </div>

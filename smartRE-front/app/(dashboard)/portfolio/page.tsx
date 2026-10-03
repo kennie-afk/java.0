@@ -824,7 +824,6 @@ export default function PortfolioPage() {
                   .filter(([, at]) => !!at)
                   .map(([label, at]) => (
                     <li key={label} className="flex items-center gap-2.5 text-sm">
-                      <span className="w-1.5 h-1.5 rounded-full bg-gold-500 shrink-0"/>
                       <span className="text-gray-700 dark:text-gray-200">{label}</span>
                       <span className="ml-auto text-2xs text-muted tabular-nums">{fmt.date(at!)}</span>
                     </li>

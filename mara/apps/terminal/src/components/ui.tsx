@@ -134,7 +134,6 @@ export function Badge({ tone = "info", children }: { tone?: keyof typeof tones; 
 export function EmptyState({ title, children, action }: { title: string; children?: ReactNode; action?: ReactNode }) {
   return (
     <div className="flex flex-col items-center gap-1 px-3 py-9 text-center">
-      <div className="mb-1 h-2.5 w-2.5 rounded-full bg-accent-soft ring-4 ring-accent-soft" aria-hidden />
       <div className="text-base font-semibold">{title}</div>
       {children ? <div className="max-w-md text-xs text-muted">{children}</div> : null}
       {action ? <div className="mt-2">{action}</div> : null}

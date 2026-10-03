@@ -116,8 +116,6 @@ export default function NotificationsPage() {
                     'w-full text-left px-3 py-2.5 flex items-start gap-3 transition-colors',
                     'hover:bg-gray-50 dark:hover:bg-[#1A1A35]',
                     !n.read && 'bg-gold-50/50 dark:bg-gold-500/[0.06]')}>
-                  <span className={cn('mt-2 w-1.5 h-1.5 rounded-full shrink-0',
-                    n.read ? 'bg-transparent' : 'bg-gold-500')}/>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className={cn('text-lg leading-snug',

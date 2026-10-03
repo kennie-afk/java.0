@@ -200,7 +200,7 @@ export default async function OverviewPage() {
                           {farmNames.get(season.farmId) ?? "Farm"}
                         </span>
                       </span>
-                      <span className="w-28">{season.currentStage ? <Badge value={season.currentStage} dot={false} /> : null}</span>
+                      <span className="w-28">{season.currentStage ? <Badge value={season.currentStage} /> : null}</span>
                       <span className="w-48">
                         {progress ? (
                           <>

@@ -171,8 +171,8 @@ function MarketplaceDashboard() {
             </select>
           </div>
           <div className="flex items-center gap-3 text-2xs text-muted mb-3">
-            <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-blue-500"/>Viewings</span>
-            <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-gold-500"/>Payments</span>
+            <span className="text-blue-500">Viewings</span>
+            <span className="text-gold-500">Payments</span>
           </div>
           {loading ? <div className="skeleton h-[180px] rounded-md"/> : (
             <ResponsiveContainer width="100%" height={180}>
@@ -237,8 +237,8 @@ function MarketplaceDashboard() {
                 </ResponsiveContainer>
                 <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-1 text-2xs text-muted">
                   {viewingStatusBreakdown.map(d => (
-                    <span key={d.status} className="flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: VIEWING_STATUS_COLORS[d.status] || '#9CA3AF' }}/>{d.name} ({d.value})
+                    <span key={d.status} style={{ color: VIEWING_STATUS_COLORS[d.status] || '#9CA3AF' }}>
+                      {d.name} ({d.value})
                     </span>
                   ))}
                 </div>

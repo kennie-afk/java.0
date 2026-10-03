@@ -86,8 +86,6 @@ export default function NotificationBell() {
                     'hover:bg-gray-50 dark:hover:bg-[#1A1A35]',
                     !n.read && 'bg-gold-50/50 dark:bg-gold-500/[0.06]')}>
                   <div className="flex items-start gap-2.5">
-                    <span className={cn('mt-1.5 w-1.5 h-1.5 rounded-full shrink-0',
-                      n.read ? 'bg-transparent' : 'bg-gold-500')}/>
                     <div className="min-w-0 flex-1">
                       <p className={cn('text-base leading-snug truncate',
                         n.read ? 'text-gray-600 dark:text-gray-300' : 'font-semibold text-gray-900 dark:text-white')}>
