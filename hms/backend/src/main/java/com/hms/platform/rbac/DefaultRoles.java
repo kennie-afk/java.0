@@ -38,5 +38,7 @@ public final class DefaultRoles {
             new Template("RADIOGRAPHER", "Radiographer", "Performs studies and drafts reports",
                     List.of(PATIENTS_READ, CLINICAL_READ, IMAGING_READ, IMAGING_PERFORM)),
             new Template("RADIOLOGIST", "Radiologist", "Reports and signs imaging studies",
-                    List.of(PATIENTS_READ, CLINICAL_READ, IMAGING_READ, IMAGING_PERFORM, IMAGING_SIGN, IMAGING_MANAGE)));
+                    List.of(PATIENTS_READ, CLINICAL_READ, IMAGING_READ, IMAGING_PERFORM, IMAGING_SIGN, IMAGING_MANAGE)),
+            new Template("FHIR_CLIENT", "Integration (FHIR read)", "Reads patient records through the FHIR interface; cannot change anything",
+                    List.of(FHIR_READ, PATIENTS_READ, CLINICAL_READ, LAB_READ)));
 }

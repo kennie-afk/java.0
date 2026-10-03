@@ -8,4 +8,6 @@ call('POST', '/v1/report-definitions', {'code': 'CLINICAL-SUMMARY', 'name': 'Cli
     el('OPD', 'Outpatient and emergency visits', 'OPD_VISITS'), el('OPD-SEX', 'Visits by sex', 'OPD_VISITS', 'SEX'), el('OPD-AGE', 'Visits by age', 'OPD_VISITS', 'AGE_BAND'),
     el('ADM', 'Admissions', 'ADMISSIONS'), el('DIS', 'Discharges', 'DISCHARGES'), el('LAB', 'Laboratory tests validated', 'LAB_TESTS_VALIDATED'),
     el('IMG', 'Imaging studies signed, by modality', 'IMAGING_STUDIES_SIGNED', 'MODALITY'), el('TB', 'New TB enrolments', 'PROGRAMME_ENROLMENTS', 'NONE', 'TB')]}, A)
+FAC = json.load(open(os.environ.get('HMS_SEED_STATE', os.path.join(tempfile.gettempdir(), 'hms_seed_state.json'))))['FAC']
+call('POST', '/v1/staff', {'email': 'fhir@lakeview.test', 'fullName': 'Integration account (FHIR)', 'cadre': 'ADMINISTRATIVE', 'temporaryPassword': PW, 'roles': ['FHIR_CLIENT'], 'facilityIds': [FAC]}, A)
 print('phase 8 reports done')

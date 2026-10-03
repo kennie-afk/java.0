@@ -66,6 +66,27 @@ class ProblemHandler {
         return problem(HttpStatus.CONFLICT, "duplicate", "That record already exists.", null);
     }
 
+    /** A wrong HTTP method on a real path is the caller's mistake (405 with the allowed methods), not a server fault. */
+    @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
+    ResponseEntity<ProblemDetail> wrongMethod(org.springframework.web.HttpRequestMethodNotSupportedException e) {
+        ResponseEntity<ProblemDetail> r = problem(HttpStatus.METHOD_NOT_ALLOWED, "method_not_allowed", "That method is not supported on this path.", null);
+        var allowed = e.getSupportedHttpMethods();
+        if (allowed == null || allowed.isEmpty()) {
+            return r;
+        }
+        return ResponseEntity.status(r.getStatusCode()).allow(allowed.toArray(new org.springframework.http.HttpMethod[0])).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(r.getBody());
+    }
+
+    @ExceptionHandler(org.springframework.web.HttpMediaTypeNotSupportedException.class)
+    ResponseEntity<ProblemDetail> wrongMediaType(org.springframework.web.HttpMediaTypeNotSupportedException e) {
+        return problem(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "unsupported_media_type", "That content type is not supported.", null);
+    }
+
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    ResponseEntity<ProblemDetail> noResource(org.springframework.web.servlet.resource.NoResourceFoundException e) {
+        return problem(HttpStatus.NOT_FOUND, "not_found", "There is nothing at that path.", null);
+    }
+
     @ExceptionHandler(Exception.class)
     ResponseEntity<ProblemDetail> unexpected(Exception e) {
         log.error("unhandled error", e);

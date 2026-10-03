@@ -28,6 +28,7 @@ const NAV: { group: string; items: Item[] }[] = [
     { href: "/admin/staff", label: "Staff", perm: "staff:read", icon: "staff" },
     { href: "/admin/roles", label: "Roles", perm: "staff:read", icon: "key" },
     { href: "/admin/facilities", label: "Facilities", perm: "facilities:manage", icon: "building" },
+    { href: "/admin/integrations", label: "Integrations", perm: "fhir:read", icon: "key" },
     { href: "/admin/audit", label: "Audit", perm: "audit:read", icon: "audit" }] }
 ];
 
