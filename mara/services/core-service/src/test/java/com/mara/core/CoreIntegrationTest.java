@@ -396,6 +396,47 @@ class CoreIntegrationTest {
         assertThat(admin("/v1/admin/exceptions", tenant).stream().map(m -> m.get("kind"))).contains("FISCAL_OUT_OF_LEASE");
     }
 
+    /**
+     * A terminal that spends a number while returning the lease that holds it must not end with
+     * that number both used and voided. Raced many times because a missing lock shows up only
+     * occasionally; with the lease row locked the invariant holds every time.
+     */
+    @Test
+    void spendingANumberWhileReturningItsLeaseNeverLeavesItBothUsedAndVoided() throws Exception {
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        try {
+            for (int round = 0; round < 40; round++) {
+                String tenant = newTenant();
+                Till t = new Till(tenant);
+                JsonNode l = lease(t);
+                String path = "/v1/terminal/fiscal/leases/" + l.get("leaseId").asText() + "/return";
+                FeedEntry e = feed(t, cashSale(10000, 1600, "5"));
+                java.util.concurrent.CountDownLatch go = new java.util.concurrent.CountDownLatch(1);
+                Future<?> sale = pool.submit(() -> {
+                    go.await();
+                    return postSale(tenant, e);
+                });
+                Future<Integer> back = pool.submit(() -> {
+                    go.await();
+                    return signedPost(t, path, Map.of("nextUnused", "3")).andReturn().getResponse().getStatus();
+                });
+                go.countDown();
+                sale.get();
+                int returned = back.get();
+                assertThat(returned).isIn(200, 409);
+                try (var c = owner.getConnection(); var st = c.createStatement();
+                        var rs = st.executeQuery("SELECT count(*) FROM sale s JOIN fiscal_void v ON v.tenant_id = s.tenant_id"
+                                + " WHERE s.tenant_id = '" + tenant + "' AND s.fiscal_accepted"
+                                + " AND s.fiscal_number BETWEEN v.from_number AND v.to_number")) {
+                    rs.next();
+                    assertThat(rs.getLong(1)).as("round %d: number is both spent and voided", round).isZero();
+                }
+            }
+        } finally {
+            pool.shutdown();
+        }
+    }
+
     @Test
     void theSameEntryPostedFromTwoThreadsIsPostedOnce() throws Exception {
         String tenant = newTenant();

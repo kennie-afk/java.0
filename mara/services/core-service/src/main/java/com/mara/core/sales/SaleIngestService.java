@@ -145,13 +145,26 @@ public class SaleIngestService {
 
     /** Whether this sale's fiscal number counts: leased to this terminal, not voided, not already held. */
     private boolean classifyFiscal(String tenant, FeedEntry e, long number) {
-        Integer leased = jdbc.queryForObject("""
-                SELECT count(*)::int FROM fiscal_lease l
+        // Lock the lease row FOR SHARE: giveBack() takes the same row FOR UPDATE, so a lease cannot be
+        // returned (its tail voided) between this check and this sale committing. Without it a
+        // terminal could spend a number and void it at the same instant and both would stand.
+        // Two statements on purpose. If the void check lived in the locking statement, a wait on
+        // giveBack's lock would re-check only the lease row (READ COMMITTED), not the void rows
+        // giveBack committed meanwhile, and the stale answer would let the sale through. The
+        // second statement starts after the lock is held, so it sees every committed void.
+        java.util.List<Long> held = jdbc.queryForList("""
+                SELECT l.id FROM fiscal_lease l
                  WHERE l.terminal_id = ? AND l.first_number <= ? AND ? <= l.last_number
+                   FOR SHARE OF l""",
+                Long.class, e.terminalId(), number, number);
+        java.util.List<Long> leased = held.isEmpty() ? held : jdbc.queryForList("""
+                SELECT l.id FROM fiscal_lease l
+                 WHERE l.id IN (%s)
                    AND NOT EXISTS (SELECT 1 FROM fiscal_void v WHERE v.lease_id = l.id
-                                    AND v.from_number <= ? AND ? <= v.to_number)""",
-                Integer.class, e.terminalId(), number, number, number, number);
-        if (leased == null || leased == 0) {
+                                    AND v.from_number <= ? AND ? <= v.to_number)
+                 LIMIT 1""".formatted(held.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(","))),
+                Long.class, number, number);
+        if (leased.isEmpty()) {
             raise(tenant, e, "FISCAL_OUT_OF_LEASE",
                     "fiscal number " + number + " was never leased to this terminal, or was returned and voided");
             return false;
