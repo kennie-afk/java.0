@@ -16,7 +16,7 @@ def call(path, body=None, token=None, method=None):
 token = call("/v1/auth/login", {"email": "grace@mazingira.co.ke", "password": "a-strong-demo-passphrase"})["accessToken"]
 customer = call("/v1/customers", token=token)[0]["id"]
 
-product = call("/v1/products", {"sku": "SCARCE-1", "name": "Scarce test milk", "category": "Dairy",
+product = call("/v1/products", {"sku": "SCARCE-" + __import__("uuid").uuid4().hex[:8], "name": "Scarce test milk", "category": "Dairy",
     "unit": "packet", "perishable": False, "requiresColdChain": False,
     "shelfLifeHours": 720, "listPriceCents": 10000}, token)
 supplier = call("/v1/suppliers", {"name": "Solo Supplier", "county": "Nakuru",

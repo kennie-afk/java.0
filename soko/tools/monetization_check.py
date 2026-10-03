@@ -143,7 +143,10 @@ order3, _ = call("/v1/orders", {"customerId": customer_id,
                                   "lines": [{"productId": products[2]["id"], "quantity": 1}]}, T)
 commission_expected = order3["revenueCents"] * 350 // 10000  # GROWTH plan bps
 
-period = {"periodStart": "2020-01-01T00:00:00Z", "periodEnd": "2030-01-01T00:00:00Z"}
+# A billing period can be invoiced only once, so each run uses a window ending now.
+import datetime
+period = {"periodStart": "2020-01-01T00:00:00Z",
+          "periodEnd": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")}
 invoice, code = call("/v1/billing/invoices/generate", period, T)
 check("invoice generated", code == 201)
 check("invoice includes GROWTH's monthly fee", invoice["subscriptionFeeCents"] == 299900)

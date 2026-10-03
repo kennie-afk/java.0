@@ -5,7 +5,12 @@ import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -60,6 +65,25 @@ public class ApiExceptionHandler {
                         .findFirst()
                         .orElse("the request did not validate");
         return problem(HttpStatus.BAD_REQUEST, "validation-failed", detail, request);
+    }
+
+    /** Malformed JSON, a missing parameter or a bad id in the path: the caller's mistake, not a server fault. */
+    @ExceptionHandler({HttpMessageNotReadableException.class, MissingServletRequestParameterException.class,
+            MethodArgumentTypeMismatchException.class})
+    public ProblemDetail onMalformed(Exception ex, HttpServletRequest request) {
+        return problem(HttpStatus.BAD_REQUEST, "bad-request", "the request could not be understood", request);
+    }
+
+    /** A unique constraint (a repeated SKU, order reference, e-mail) is a conflict, not an internal error. */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ProblemDetail onConflict(DataIntegrityViolationException ex, HttpServletRequest request) {
+        log.warn("constraint violation on {}: {}", request.getRequestURI(), ex.getMostSpecificCause().getMessage());
+        return problem(HttpStatus.CONFLICT, "conflict", "that already exists, or conflicts with something that does", request);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ProblemDetail onDenied(AccessDeniedException ex, HttpServletRequest request) {
+        return problem(HttpStatus.FORBIDDEN, "forbidden", "That account may not use this endpoint", request);
     }
 
     @ExceptionHandler(Exception.class)

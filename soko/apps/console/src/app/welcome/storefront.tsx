@@ -130,7 +130,7 @@ function StorefrontBody({ products }: { products: PublicProduct[] }) {
                 rel="noreferrer"
                 className="group inline-flex items-center gap-2 rounded-sm bg-[var(--color-ink)] px-3.5 py-2 text-[0.958rem] text-white transition-colors"
               >
-                <WhatsAppIcon className="h-3.5 w-3.5 transition-transform" />
+                <WhatsAppIcon className="h-3.5 w-3.5" />
                 Order on WhatsApp
               </a>
               <a
@@ -156,7 +156,7 @@ function StorefrontBody({ products }: { products: PublicProduct[] }) {
                 width={736}
                 height={552}
                 priority
-                className="h-[340px] w-full object-cover transition-transform duration-700"
+                className="h-[340px] w-full object-cover"
               />
             </div>
             <div className="absolute -bottom-5 -left-5 rounded-sm border border-[var(--color-line)] bg-white px-4 py-3">
@@ -241,7 +241,7 @@ function StorefrontBody({ products }: { products: PublicProduct[] }) {
               rel="noreferrer"
               className="group inline-flex items-center gap-2 rounded-sm bg-[var(--color-ink)] px-3.5 py-2 text-[0.958rem] text-white transition-colors"
             >
-              <WhatsAppIcon className="h-3.5 w-3.5 transition-transform" />
+              <WhatsAppIcon className="h-3.5 w-3.5" />
               WhatsApp us
             </a>
             <a
