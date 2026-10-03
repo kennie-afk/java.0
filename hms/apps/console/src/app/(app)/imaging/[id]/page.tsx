@@ -60,7 +60,7 @@ export default function ImagingOrder({ params }: { params: Promise<{ id: string 
           {d.signedAt && <p className="pt-2 text-xs text-muted">Signed {stamp(d.signedAt)}</p>}
         </Card>
       )}
-      <p className="text-sm text-muted">Whoever signs a report must be a different person from whoever wrote it. This record holds the report, not the images.</p>
+      <p className="text-sm text-muted">Whoever signs a report must be a different person from whoever wrote it.</p>
     </Page>
   );
 }

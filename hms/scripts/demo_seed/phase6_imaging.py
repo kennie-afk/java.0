@@ -42,4 +42,25 @@ o = order(4, 'CT-H', 'STAT', 'Head injury, falling GCS')                        
 if o:
     perform(o); call('POST', f'/v1/imaging/orders/{o}/report', {'findings': 'Crescentic hyperdense extra-axial collection on the left with 8 mm midline shift.', 'impression': 'Acute left subdural haematoma with mass effect.', 'critical': True, 'criticalNote': 'Acute subdural haematoma, midline shift'}, R1)
     call('POST', f'/v1/imaging/orders/{o}/sign', {}, R2)
+
+# Attach images to two studies. They are generated test patterns, labelled as such: there is no real scan in the demo data.
+import struct, zlib, uuid
+def test_pattern(w, h, phase):
+    rows = b''.join(b'\x00' + b''.join(bytes([(x * 255 // w + phase) % 256, (y * 255 // h) % 256, 90 + phase % 80]) for x in range(w)) for y in range(h))
+    def chunk(t, d): return struct.pack('>I', len(d)) + t + d + struct.pack('>I', zlib.crc32(t + d) & 0xffffffff)
+    return b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', w, h, 8, 2, 0, 0, 0)) + chunk(b'IDAT', zlib.compress(rows)) + chunk(b'IEND', b'')
+def attach(order_id, tok, phase):
+    boundary = uuid.uuid4().hex
+    parts = (f'--{boundary}\r\nContent-Disposition: form-data; name="caption"\r\n\r\nSynthetic test pattern (demo data, not a patient scan)\r\n').encode()
+    parts += (f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="demo-{phase}.png"\r\nContent-Type: image/png\r\n\r\n').encode() + test_pattern(640, 480, phase) + f'\r\n--{boundary}--\r\n'.encode()
+    req = urllib.request.Request(B + f'/v1/imaging/orders/{order_id}/attachments', data=parts, method='POST', headers={'authorization': 'Bearer ' + tok, 'content-type': 'multipart/form-data; boundary=' + boundary})
+    try:
+        urllib.request.urlopen(req, timeout=60).read()
+    except urllib.error.HTTPError as e:
+        print('FAIL attach', e.code, e.read().decode()[:200])
+listing = (call('GET', '/v1/imaging/orders?limit=20', None, R1) or {}).get('data', [])
+for number, phase in (('IMG-000002', 20), ('IMG-000003', 90)):
+    hit = next((x for x in listing if x.get('orderNumber') == number), None)
+    if hit:
+        attach(hit['id'], RG, phase)
 print('phase 6 imaging done')
