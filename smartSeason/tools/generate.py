@@ -27,6 +27,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RESERVED_FIELDS = {"id", "tenantId", "createdAt", "updatedAt", "version"}
 
 PUBLIC_MATCHERS = {
+    # Safaricom's M-Pesa callback cannot present a bearer token; it authenticates with a secret in the URL.
+    "payment-service": '                .requestMatchers("/api/payment/v1/mpesa/stk-callback").permitAll()\n',
     "identity-service": '                .requestMatchers("/api/identity/v1/auth/**").permitAll()\n'
                         '                .requestMatchers("/api/identity/v1/.well-known/**").permitAll()\n',
 }
