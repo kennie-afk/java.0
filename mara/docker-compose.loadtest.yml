@@ -1,0 +1,17 @@
+# Load-test overrides: use with   docker compose -f docker-compose.yml -f docker-compose.loadtest.yml --env-file .env up -d
+#
+# The default per-address rate limits (enrolment 20/min, terminal 1200/min) are there to stop a flood, so a load
+# generator on ONE address would measure the limiter, not the system. They are raised here to a level a test cannot
+# reach; the Redis-backed limiter stays in the path (it still does its Redis round trip per request), so its cost is
+# part of what is measured. Never use this file for anything but a test stack.
+services:
+  identity-service:
+    environment:
+      MARA_RATELIMIT_ENROLMENT_PER_MINUTE: "10000000"
+      MARA_RATELIMIT_SIGNIN_PER_MINUTE: "10000000"
+  sync-service:
+    environment:
+      MARA_RATELIMIT_TERMINAL_PER_MINUTE: "100000000"
+  core-service:
+    environment:
+      MARA_RATELIMIT_TERMINAL_PER_MINUTE: "100000000"
