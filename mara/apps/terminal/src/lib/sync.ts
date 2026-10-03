@@ -24,6 +24,7 @@ import { getIdentity } from "./terminal-store";
 export const UPLOAD_BATCH = 100;
 const SYNC_KEY = "syncState";
 const RETURNS_KEY = "pendingReturns";
+const LEASE_REQUEST_KEY = "pendingLeaseRequest";
 
 export const EMPTY_SYNC: SyncState = {
   syncedThrough: 0,
@@ -175,13 +176,20 @@ export async function maintainLease(options: SyncOptions = {}): Promise<{ instal
 
   let issued: Record<string, unknown> | null = null;
   try {
-    const r = await call(identity, "/api/fiscal/lease", "/v1/terminal/fiscal/leases", "POST", {}, fetchImpl);
+    // One request id per renewal attempt, kept until a lease is actually installed: if the
+    // response is lost the retry returns the same block rather than taking another one.
+    let requestId = await getMeta<string>(LEASE_REQUEST_KEY);
+    if (!requestId) {
+      requestId = crypto.randomUUID();
+      await putMeta(LEASE_REQUEST_KEY, requestId);
+    }
+    const r = await call(identity, `/api/fiscal/lease?request=${requestId}`, `/v1/terminal/fiscal/leases?request=${requestId}`, "POST", {}, fetchImpl);
     if (r.status === 409) {
       // Two live leases already: hand back the oldest unused tail first, then try again next cycle.
       await flushReturns(identity, fetchImpl);
       return { installed: false, error: "This terminal already holds the maximum number of live fiscal leases." };
     }
-    if (r.status !== 201 || !r.json) return { installed: false, error: describe(r.status, r.json) };
+    if ((r.status !== 201 && r.status !== 200) || !r.json) return { installed: false, error: describe(r.status, r.json) };
     issued = r.json;
   } catch {
     return { installed: false, error: "The fiscal service could not be reached." };
@@ -209,6 +217,7 @@ export async function maintainLease(options: SyncOptions = {}): Promise<{ instal
     await putMeta("fiscalLease", fresh);
     return true;
   });
+  await putMeta(LEASE_REQUEST_KEY, null);
   await flushReturns(identity, fetchImpl);
   return { installed, error: null };
 }

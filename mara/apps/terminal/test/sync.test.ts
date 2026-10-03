@@ -7,7 +7,7 @@ import { fromHex, toHex, utf8 } from "../src/lib/bytes";
 import { sha256 } from "../src/lib/chain";
 import { getHead, getLease } from "../src/lib/journal-store";
 import { generateTerminalKey, verifyDigest } from "../src/lib/keys";
-import { putMeta } from "../src/lib/meta";
+import { getMeta, putMeta } from "../src/lib/meta";
 import { recordSale } from "../src/lib/record-sale";
 import { addToTab, openTab } from "../src/lib/tab-store";
 import { getIdentity, saveIdentityOnce } from "../src/lib/terminal-store";
@@ -147,7 +147,7 @@ describe("fiscal lease", () => {
     const { calls, fetchImpl } = fakeServer(() => ({ status: 201, json: lease(1, 100) }));
     const r = await maintainLease({ fetchImpl });
     expect(r.installed).toBe(true);
-    expect(calls[0].url).toBe("/api/fiscal/lease");
+    expect(calls[0].url).toMatch(/^\/api\/fiscal\/lease\?request=[0-9a-f-]{36}$/);
     expect((await getLease())!.leaseId).toBe("11");
 
     await sell(2);
@@ -160,7 +160,7 @@ describe("fiscal lease", () => {
     await enrol();
     await putMeta("fiscalLease", { ...lease(1, 10), nextNumber: "9" });   // 2 of 10 left = 20%
     const { calls, fetchImpl } = fakeServer((c) =>
-      c.url === "/api/fiscal/lease" ? { status: 201, json: lease(11, 110, "12") } : { status: 500, json: {} }
+      c.url.startsWith("/api/fiscal/lease") ? { status: 201, json: lease(11, 110, "12") } : { status: 500, json: {} }
     );
     const r = await maintainLease({ fetchImpl });
     expect(r.installed).toBe(true);
@@ -171,11 +171,29 @@ describe("fiscal lease", () => {
     expect(JSON.parse(calls.find((c) => c.url === "/api/fiscal/return/11")!.body)).toEqual({ nextUnused: "9" });
   });
 
+  it("a lost lease response is retried with the same request id, and a fresh one is used after it lands", async () => {
+    await enrol();
+    await sell(1);
+    let fail = true;
+    const urls: string[] = [];
+    const { fetchImpl } = fakeServer((c) => {
+      urls.push(c.url);
+      if (fail) { fail = false; return { status: 502, json: {} }; }
+      return { status: 201, json: lease(1, 100) };
+    });
+    expect((await maintainLease({ fetchImpl })).installed).toBe(false);
+    expect((await maintainLease({ fetchImpl })).installed).toBe(true);
+    const ids = urls.filter((u) => u.startsWith("/api/fiscal/lease")).map((u) => u.split("=")[1]);
+    expect(ids).toHaveLength(2);
+    expect(ids[1]).toBe(ids[0]);                        // the retry names the same request
+    expect(await getMeta("pendingLeaseRequest")).toBeNull();   // cleared once a lease is installed
+  });
+
   it("a returned tail that the server accepts is no longer pending", async () => {
     await enrol();
     await putMeta("fiscalLease", { ...lease(1, 10), nextNumber: "9" });
     const { fetchImpl } = fakeServer((c) =>
-      c.url === "/api/fiscal/lease" ? { status: 201, json: lease(11, 110, "12") } : { status: 200, json: { voidedFrom: 9 } }
+      c.url.startsWith("/api/fiscal/lease") ? { status: 201, json: lease(11, 110, "12") } : { status: 200, json: { voidedFrom: 9 } }
     );
     await maintainLease({ fetchImpl });
     expect(await getPendingReturns()).toEqual([]);

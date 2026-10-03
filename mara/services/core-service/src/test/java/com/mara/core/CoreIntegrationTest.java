@@ -150,8 +150,51 @@ class CoreIntegrationTest {
     }
 
     private JsonNode lease(Till t) throws Exception {
-        return json.readTree(signedPost(t, "/v1/terminal/fiscal/leases", null).andExpect(status().isCreated())
+        return json.readTree(signedPost(t, "/v1/terminal/fiscal/leases?request=" + UUID.randomUUID(), null)
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
+    }
+
+    @Test
+    void askingForALeaseTwiceWithTheSameRequestIdReturnsTheSameLeaseAndTakesNoMoreNumbers() throws Exception {
+        Till t = new Till(newTenant());
+        String path = "/v1/terminal/fiscal/leases?request=" + UUID.randomUUID();
+        JsonNode first = json.readTree(signedPost(t, path, null).andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString());
+        // A retry after a lost response: same request id, answered 200 with the same block.
+        JsonNode again = json.readTree(signedPost(t, path, null).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString());
+        assertThat(again.get("replayed").asBoolean()).isTrue();
+        assertThat(again.get("leaseId").asText()).isEqualTo(first.get("leaseId").asText());
+        assertThat(again.get("firstNumber").asText()).isEqualTo(first.get("firstNumber").asText());
+        // The replay did not consume the lease limit: a different request still gets the next block.
+        JsonNode next = lease(t);
+        assertThat(Long.parseLong(next.get("firstNumber").asText()))
+                .isEqualTo(Long.parseLong(first.get("lastNumber").asText()) + 1);
+    }
+
+    @Test
+    void aCapturedLeaseRequestReplayedWithinTheSignatureWindowCannotTakeAnotherBlock() throws Exception {
+        Till t = new Till(newTenant());
+        // No request id: the signature stands in for it. The same signed bytes, sent twice.
+        byte[] body = json.writeValueAsBytes(Map.of());
+        long at = Instant.now().getEpochSecond();
+        Map<String, String> headers = t.headers("POST", "/v1/terminal/fiscal/leases", body, at);
+        MockHttpServletRequestBuilder one = post("/v1/terminal/fiscal/leases").contentType(MediaType.APPLICATION_JSON).content(body);
+        headers.forEach(one::header);
+        String firstBody = mvc.perform(one).andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        for (int i = 0; i < 5; i++) {
+            MockHttpServletRequestBuilder replay = post("/v1/terminal/fiscal/leases").contentType(MediaType.APPLICATION_JSON).content(body);
+            headers.forEach(replay::header);
+            JsonNode r = json.readTree(mvc.perform(replay).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+            assertThat(r.get("leaseId").asText()).isEqualTo(json.readTree(firstBody).get("leaseId").asText());
+        }
+        assertThat(admin("/v1/admin/fiscal/leases", t.tenant)).hasSize(1);
+    }
+
+    @Test
+    void aMalformedLeaseRequestIdIsRefused() throws Exception {
+        Till t = new Till(newTenant());
+        signedPost(t, "/v1/terminal/fiscal/leases?request=short", null).andExpect(status().isBadRequest());
     }
 
     private static SaleBody sale(List<SaleBody.Payment> payments, String total, String fiscalNumber, long net, long tax) {
@@ -220,7 +263,7 @@ class CoreIntegrationTest {
         assertThat(a1.get("nextNumber").asText()).isEqualTo("1");
 
         // A third live lease for the same terminal is refused rather than hoarded.
-        signedPost(a, "/v1/terminal/fiscal/leases", null).andExpect(status().isConflict());
+        signedPost(a, "/v1/terminal/fiscal/leases?request=" + UUID.randomUUID(), null).andExpect(status().isConflict());
 
         // Another tenant has its own number space, starting again at 1.
         Till other = new Till(newTenant());

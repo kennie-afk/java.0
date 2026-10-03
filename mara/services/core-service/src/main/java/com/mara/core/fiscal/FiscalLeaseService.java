@@ -59,12 +59,34 @@ public class FiscalLeaseService {
         this.maxOpen = maxOpen;
     }
 
+    /** A lease and whether this answer replays an earlier request instead of taking new numbers. */
+    public record Issued(Lease lease, boolean replayed) {
+    }
+
+    /**
+     * Issues a lease for {@code requestKey}, or returns the one that key already produced.
+     * Idempotency is decided after the tenant's counter row is locked, so two identical requests
+     * racing each other serialise and the second sees the first's lease.
+     */
     @Transactional
-    public Lease issue(TerminalRecord terminal) {
+    public Issued issue(TerminalRecord terminal, String requestKey) {
         Instant now = clock.instant();
         jdbc.update("INSERT INTO fiscal_series (tenant_id) VALUES (?) ON CONFLICT DO NOTHING", terminal.tenantId());
         long first = jdbc.queryForObject(
                 "SELECT next_number FROM fiscal_series WHERE tenant_id = ? FOR UPDATE", Long.class, terminal.tenantId());
+
+        if (requestKey != null) {
+            var existing = jdbc.query("""
+                    SELECT id, first_number, last_number, issued_at, expires_at FROM fiscal_lease
+                     WHERE terminal_id = ? AND request_key = ?""",
+                    (rs, i) -> new Lease(rs.getLong("id"), terminal.id(), rs.getLong("first_number"),
+                            rs.getLong("last_number"), rs.getLong("first_number"),
+                            rs.getTimestamp("issued_at").getTime(), rs.getTimestamp("expires_at").getTime()),
+                    terminal.id(), requestKey);
+            if (!existing.isEmpty()) {
+                return new Issued(existing.get(0), true);
+            }
+        }
 
         Integer open = jdbc.queryForObject("""
                 SELECT count(*)::int FROM fiscal_lease
@@ -78,11 +100,12 @@ public class FiscalLeaseService {
         long last = first + size - 1;
         Instant expires = now.plus(lifetime);
         long id = jdbc.queryForObject("""
-                INSERT INTO fiscal_lease (tenant_id, terminal_id, first_number, last_number, issued_at, expires_at)
-                VALUES (?, ?, ?, ?, ?, ?) RETURNING id""",
-                Long.class, terminal.tenantId(), terminal.id(), first, last, Timestamp.from(now), Timestamp.from(expires));
+                INSERT INTO fiscal_lease (tenant_id, terminal_id, first_number, last_number, issued_at, expires_at, request_key)
+                VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id""",
+                Long.class, terminal.tenantId(), terminal.id(), first, last, Timestamp.from(now), Timestamp.from(expires),
+                requestKey);
         jdbc.update("UPDATE fiscal_series SET next_number = ? WHERE tenant_id = ?", last + 1, terminal.tenantId());
-        return new Lease(id, terminal.id(), first, last, first, now.toEpochMilli(), expires.toEpochMilli());
+        return new Issued(new Lease(id, terminal.id(), first, last, first, now.toEpochMilli(), expires.toEpochMilli()), false);
     }
 
     /**
