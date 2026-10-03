@@ -1,5 +1,7 @@
 package com.smartseason.identity.auth;
 
+import com.smartseason.identity.platform.IdentityTenantLookup;
+import com.smartseason.identity.platform.TenantSession;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -41,8 +43,20 @@ class AuthServiceTest {
     private final EventPublisher events = mock(EventPublisher.class);
     private final TokenService tokens = new TokenService(SECRET, "smartseason-identity", 15);
 
+    // Row-level security is off in unit tests, so the lookup answers from the repositories.
+    private final IdentityTenantLookup lookup = new IdentityTenantLookup(false, users, refreshTokens);
+    private final TenantSession session = new TenantSession(false);
+
     private final AuthService service = new AuthService(
-            organisations, users, refreshTokens, passwordEncoder, tokens, events);
+            organisations, users, refreshTokens, passwordEncoder, tokens, events, lookup, session);
+
+    private User existingUser() {
+        User existing = new User();
+        existing.setId(UUID.randomUUID());
+        existing.setTenantId(UUID.randomUUID());
+        existing.setEmail("jane@example.com");
+        return existing;
+    }
 
     private RegisterRequest registration() {
         return new RegisterRequest("Green Acres", "Jane Farmer", "Jane@Example.COM",
@@ -64,7 +78,6 @@ class AuthServiceTest {
     @Test
     @DisplayName("registration creates the organisation as its own tenant and issues tokens")
     void registrationCreatesTenant() {
-        when(users.existsByEmail("jane@example.com")).thenReturn(false);
         stubSaves();
 
         ArgumentCaptor<Organisation> orgCaptor = ArgumentCaptor.forClass(Organisation.class);
@@ -104,7 +117,7 @@ class AuthServiceTest {
     @Test
     @DisplayName("registration rejects an email that is already taken")
     void duplicateEmailRejected() {
-        when(users.existsByEmail("jane@example.com")).thenReturn(true);
+        when(users.findByEmail("jane@example.com")).thenReturn(Optional.of(existingUser()));
 
         assertThatThrownBy(() -> service.register(registration(), "junit", "127.0.0.1"))
                 .isInstanceOf(ConflictException.class);

@@ -1,5 +1,8 @@
 package com.smartseason.identity.password;
 
+import com.smartseason.identity.repo.RefreshTokenRepository;
+import com.smartseason.identity.platform.TenantSession;
+import com.smartseason.identity.platform.IdentityTenantLookup;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -41,7 +44,9 @@ class PasswordServiceTest {
         challenges = mock(PasswordResetRepository.class);
         sessions = mock(SessionRevocationRepository.class);
         encoder = new BCryptPasswordEncoder(4);
-        service = new PasswordService(users, challenges, sessions, encoder, true);
+        service = new PasswordService(users, challenges, sessions, encoder, true,
+                new IdentityTenantLookup(false, users, mock(RefreshTokenRepository.class)),
+                new TenantSession(false));
 
         user = new User();
         user.setId(UUID.randomUUID());

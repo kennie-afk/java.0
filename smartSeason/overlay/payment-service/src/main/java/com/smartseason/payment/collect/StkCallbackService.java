@@ -7,6 +7,8 @@ import com.smartseason.payment.domain.ProviderCallback;
 import com.smartseason.payment.mpesa.MpesaGateway;
 import com.smartseason.payment.mpesa.StkCallback;
 import com.smartseason.payment.platform.EventPublisher;
+import com.smartseason.payment.platform.TenantSession;
+import com.smartseason.payment.platform.PaymentTenantLookup;
 import com.smartseason.payment.repo.MpesaTransactionRepository;
 import com.smartseason.payment.repo.PaymentIntentRepository;
 import com.smartseason.payment.repo.ProviderCallbackRepository;
@@ -27,13 +29,19 @@ public class StkCallbackService {
     private final MpesaGateway gateway;
     private final EventPublisher events;
     private final ObjectMapper objectMapper;
+    private final PaymentTenantLookup tenantLookup;
+    private final TenantSession tenantSession;
 
     public StkCallbackService(PaymentIntentRepository intents,
                               MpesaTransactionRepository transactions,
                               ProviderCallbackRepository callbacks,
                               MpesaGateway gateway,
                               EventPublisher events,
-                              ObjectMapper objectMapper) {
+                              ObjectMapper objectMapper,
+                              PaymentTenantLookup tenantLookup,
+                              TenantSession tenantSession) {
+        this.tenantLookup = tenantLookup;
+        this.tenantSession = tenantSession;
         this.intents = intents;
         this.transactions = transactions;
         this.callbacks = callbacks;
@@ -46,6 +54,10 @@ public class StkCallbackService {
 
     @Transactional
     public Outcome handle(String rawBody, String signature) {
+        // Nobody is signed in on a provider callback, so nothing is attributed to a tenant yet.
+        // Anything rejected before the transaction is matched is filed under the unattributed
+        // tenant, which no real tenant can read.
+        tenantSession.bind(PaymentTenantLookup.UNATTRIBUTED);
         if (!gateway.verifyCallbackSignature(rawBody, signature)) {
             record(null, rawBody, ProviderCallback.Status.INVALID, "signature rejected");
             return Outcome.INVALID_SIGNATURE;
@@ -65,6 +77,7 @@ public class StkCallbackService {
             return Outcome.MALFORMED;
         }
 
+        tenantLookup.byCheckoutRequestId(detail.checkoutRequestId()).ifPresent(tenantSession::bind);
         var found = transactions.findByCheckoutRequestId(detail.checkoutRequestId());
         if (found.isEmpty()) {
             record(detail.checkoutRequestId(), rawBody, ProviderCallback.Status.FAILED,

@@ -116,55 +116,18 @@ public class TelemetryRetention {
     }
 
     private Result batchWork(Instant cutoff) {
-        Boolean acquired = jdbc.queryForObject("SELECT pg_try_advisory_xact_lock(?)", Boolean.class, LOCK_KEY);
-        if (!Boolean.TRUE.equals(acquired)) {
+        // The batch runs inside a database function (V5__telemetry_retention_function.sql), not
+        // as SQL here. Retention is the one job that is deliberately about every tenant at once,
+        // and row-level security - correctly - shows this service's role no rows when no tenant
+        // is bound. The function runs as the schema owner, takes the advisory lock, rolls the
+        // chosen readings up and deletes exactly those readings, all in this transaction.
+        var row = jdbc.queryForMap("SELECT * FROM ss_telemetry_retention_batch(?, ?)",
+                java.sql.Timestamp.from(cutoff), batchSize);
+        if (!Boolean.TRUE.equals(row.get("acquired"))) {
             return null;
         }
-
-        // The batch is defined by the ids being removed, and the aggregate is computed from
-        // exactly those rows. Selecting the ids first means the summary and the delete can
-        // never disagree about which readings they covered.
-        var ids = jdbc.queryForList(
-                "SELECT id FROM telemetry_readings WHERE recorded_at < ? ORDER BY recorded_at LIMIT ?",
-                java.util.UUID.class, java.sql.Timestamp.from(cutoff), batchSize);
-
-        if (ids.isEmpty()) {
-            return new Result(0, 0);
-        }
-
-        Object[] idArray = ids.toArray();
-        String placeholders = String.join(",", java.util.Collections.nCopies(ids.size(), "?"));
-
-        int summarised = jdbc.update("""
-                INSERT INTO downsampled_readings
-                    (id, tenant_id, created_at, updated_at, version,
-                     device_id, metric, bucket_start, bucket_minutes,
-                     avg_value, min_value, max_value, sample_count)
-                SELECT gen_random_uuid(), r.tenant_id, NOW(), NOW(), 0,
-                       r.device_id, r.metric,
-                       date_trunc('hour', r.recorded_at), 60,
-                       AVG(r.value), MIN(r.value), MAX(r.value), COUNT(*)
-                  FROM telemetry_readings r
-                 WHERE r.id IN (%s)
-                 GROUP BY r.tenant_id, r.device_id, r.metric, date_trunc('hour', r.recorded_at)
-                ON CONFLICT (tenant_id, device_id, metric, bucket_start, bucket_minutes)
-                DO UPDATE SET
-                    -- A bucket can be written by more than one batch when an hour straddles a
-                    -- batch boundary. Combining as a weighted mean keeps the average correct
-                    -- rather than letting the last batch overwrite the earlier one.
-                    avg_value = (downsampled_readings.avg_value * downsampled_readings.sample_count
-                                 + EXCLUDED.avg_value * EXCLUDED.sample_count)
-                                / (downsampled_readings.sample_count + EXCLUDED.sample_count),
-                    min_value = LEAST(downsampled_readings.min_value, EXCLUDED.min_value),
-                    max_value = GREATEST(downsampled_readings.max_value, EXCLUDED.max_value),
-                    sample_count = downsampled_readings.sample_count + EXCLUDED.sample_count,
-                    updated_at = NOW()
-                """.formatted(placeholders), idArray);
-
-        int deleted = jdbc.update(
-                "DELETE FROM telemetry_readings WHERE id IN (%s)".formatted(placeholders), idArray);
-
-        return new Result(summarised, deleted);
+        return new Result(((Number) row.get("summarised")).intValue(),
+                ((Number) row.get("deleted")).intValue());
     }
 
     private record Result(int summarised, int deleted) {}

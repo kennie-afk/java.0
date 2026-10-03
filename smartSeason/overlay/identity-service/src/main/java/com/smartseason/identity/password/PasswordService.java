@@ -1,5 +1,7 @@
 package com.smartseason.identity.password;
 
+import com.smartseason.identity.platform.IdentityTenantLookup;
+import com.smartseason.identity.platform.TenantSession;
 import com.smartseason.identity.domain.OtpChallenge;
 import com.smartseason.identity.domain.User;
 import com.smartseason.identity.password.PasswordDtos.ChangePasswordRequest;
@@ -44,6 +46,8 @@ public class PasswordService {
     private final UserRepository users;
     private final PasswordResetRepository challenges;
     private final SessionRevocationRepository refreshTokens;
+    private final IdentityTenantLookup tenantLookup;
+    private final TenantSession tenantSession;
     private final PasswordEncoder passwordEncoder;
     private final SecureRandom random = new SecureRandom();
 
@@ -58,7 +62,11 @@ public class PasswordService {
                            PasswordResetRepository challenges,
                            SessionRevocationRepository refreshTokens,
                            PasswordEncoder passwordEncoder,
-                           @Value("${smartseason.auth.expose-reset-code:false}") boolean exposeCode) {
+                           @Value("${smartseason.auth.expose-reset-code:false}") boolean exposeCode,
+                           IdentityTenantLookup tenantLookup,
+                           TenantSession tenantSession) {
+        this.tenantLookup = tenantLookup;
+        this.tenantSession = tenantSession;
         this.users = users;
         this.challenges = challenges;
         this.refreshTokens = refreshTokens;
@@ -90,6 +98,7 @@ public class PasswordService {
     @Transactional
     public ForgotPasswordResponse requestReset(String email) {
         String normalised = email.trim().toLowerCase(Locale.ROOT);
+        tenantLookup.byEmail(normalised).ifPresent(tenantSession::bind);
         Optional<User> found = users.findByEmail(normalised);
 
         String code = null;
@@ -117,6 +126,7 @@ public class PasswordService {
     @Transactional
     public void resetPassword(ResetPasswordRequest request) {
         String normalised = request.email().trim().toLowerCase(Locale.ROOT);
+        tenantLookup.byEmail(normalised).ifPresent(tenantSession::bind);
 
         OtpChallenge challenge = challenges
                 .findFirstByDestinationAndPurposeAndConsumedAtIsNullOrderByCreatedAtDesc(

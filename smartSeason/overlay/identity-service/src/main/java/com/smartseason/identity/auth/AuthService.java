@@ -1,5 +1,7 @@
 package com.smartseason.identity.auth;
 
+import com.smartseason.identity.platform.IdentityTenantLookup;
+import com.smartseason.identity.platform.TenantSession;
 import com.smartseason.identity.auth.AuthDtos.LoginRequest;
 import com.smartseason.identity.auth.AuthDtos.ProfileResponse;
 import com.smartseason.identity.auth.AuthDtos.RefreshRequest;
@@ -58,6 +60,8 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokens;
     private final EventPublisher events;
+    private final IdentityTenantLookup tenantLookup;
+    private final TenantSession tenantSession;
     private final SecureRandom random = new SecureRandom();
 
     public AuthService(OrganisationRepository organisations,
@@ -65,7 +69,11 @@ public class AuthService {
                        RefreshTokenRepository refreshTokens,
                        PasswordEncoder passwordEncoder,
                        TokenService tokens,
-                       EventPublisher events) {
+                       EventPublisher events,
+                       IdentityTenantLookup tenantLookup,
+                       TenantSession tenantSession) {
+        this.tenantLookup = tenantLookup;
+        this.tenantSession = tenantSession;
         this.organisations = organisations;
         this.users = users;
         this.refreshTokens = refreshTokens;
@@ -77,11 +85,15 @@ public class AuthService {
     @Transactional
     public TokenResponse register(RegisterRequest request, String userAgent, String ip) {
         String email = normalise(request.email());
-        if (users.existsByEmail(email)) {
+        // Through the lookup, not users.existsByEmail: with row-level security an unbound query
+        // sees no rows, so that check would always answer "no" and let duplicates in.
+        if (tenantLookup.emailTaken(email)) {
             throw new ConflictException("An account already exists for that email address");
         }
 
         UUID tenantId = UUID.randomUUID();
+        // The new organisation is its own tenant, and the rows below must satisfy the policy.
+        tenantSession.bind(tenantId);
 
         Organisation organisation = new Organisation();
         organisation.setId(tenantId);
@@ -116,7 +128,11 @@ public class AuthService {
 
     @Transactional
     public TokenResponse login(LoginRequest request, String userAgent, String ip) {
-        User user = users.findByEmail(normalise(request.email()))
+        String email = normalise(request.email());
+        // Sign-in knows an e-mail address, not a tenant. Find the tenant, bind it, and only then
+        // read the user - so the read is an ordinary one, filtered by row-level security.
+        tenantLookup.byEmail(email).ifPresent(tenantSession::bind);
+        User user = users.findByEmail(email)
                 .orElseThrow(() -> new DomainRuleException("Invalid email or password"));
 
         if (user.getStatus() == User.Status.LOCKED) {
@@ -145,7 +161,9 @@ public class AuthService {
 
     @Transactional
     public TokenResponse refresh(RefreshRequest request, String userAgent, String ip) {
-        RefreshToken stored = refreshTokens.findByTokenHash(hash(request.refreshToken()))
+        String tokenHash = hash(request.refreshToken());
+        tenantLookup.byRefreshTokenHash(tokenHash).ifPresent(tenantSession::bind);
+        RefreshToken stored = refreshTokens.findByTokenHash(tokenHash)
                 .orElseThrow(() -> new DomainRuleException("Invalid refresh token"));
 
         if (stored.getRevokedAt() != null) {

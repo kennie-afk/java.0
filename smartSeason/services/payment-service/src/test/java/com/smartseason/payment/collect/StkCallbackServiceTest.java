@@ -1,5 +1,7 @@
 package com.smartseason.payment.collect;
 
+import com.smartseason.payment.platform.TenantSession;
+import com.smartseason.payment.platform.PaymentTenantLookup;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -35,7 +37,8 @@ class StkCallbackServiceTest {
     private final EventPublisher events = mock(EventPublisher.class);
 
     private final StkCallbackService service = new StkCallbackService(
-            intents, transactions, callbacks, new MockMpesaGateway(), events, new ObjectMapper());
+            intents, transactions, callbacks, new MockMpesaGateway(), events, new ObjectMapper(),
+            new PaymentTenantLookup(false, transactions), new TenantSession(false));
 
     private final UUID tenant = UUID.randomUUID();
     private final String checkoutId = "ws_CO_191220191020363925";
