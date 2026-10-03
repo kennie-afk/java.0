@@ -14,7 +14,8 @@ import org.springframework.core.Ordered;
  * {@link com.mara.kit.db.MaraDatabaseConfig}.
  *
  * <p>Properties: {@code mara.identity.base-url}, {@code mara.internal.token},
- * {@code mara.admin.token}.
+ * {@code mara.admin.token}, and optionally {@code mara.ratelimit.terminal-per-minute}
+ * (default 1200 per source address).
  */
 @Configuration
 public class MaraAuthConfig {
@@ -38,6 +39,15 @@ public class MaraAuthConfig {
             @Value("${mara.admin.token}") String admin, @Value("${mara.internal.token}") String internal) {
         FilterRegistrationBean<OperatorTokenFilter> bean = new FilterRegistrationBean<>(new OperatorTokenFilter(admin, internal));
         bean.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        return bean;
+    }
+
+    @Bean
+    public FilterRegistrationBean<TerminalRateLimitFilter> terminalRateLimitFilter(
+            @Value("${mara.ratelimit.terminal-per-minute:1200}") int perMinute, Clock maraClock) {
+        FilterRegistrationBean<TerminalRateLimitFilter> bean =
+                new FilterRegistrationBean<>(new TerminalRateLimitFilter(perMinute, maraClock));
+        bean.setOrder(Ordered.HIGHEST_PRECEDENCE + 5);
         return bean;
     }
 

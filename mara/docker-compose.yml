@@ -42,6 +42,8 @@ services:
       # What sync-service and core-service present to /v1/internal/**. A different credential
       # from the admin token on purpose. No default.
       MARA_INTERNAL_TOKEN: ${MARA_INTERNAL_TOKEN:?set in .env (24+ characters)}
+      MARA_RATELIMIT_ENROLMENT_PER_MINUTE: ${MARA_RATELIMIT_ENROLMENT_PER_MINUTE:-20}
+      MARA_RATELIMIT_SIGNIN_PER_MINUTE: ${MARA_RATELIMIT_SIGNIN_PER_MINUTE:-120}
     ports:
       - "${MARA_IDENTITY_PORT:-8081}:8081"
     healthcheck:
@@ -70,6 +72,7 @@ services:
       MARA_ADMIN_TOKEN: ${MARA_ADMIN_TOKEN:?set in .env (24+ characters)}
       MARA_INTERNAL_TOKEN: ${MARA_INTERNAL_TOKEN:?set in .env (24+ characters)}
       MARA_IDENTITY_URL: http://identity-service:8081
+      MARA_RATELIMIT_TERMINAL_PER_MINUTE: ${MARA_RATELIMIT_TERMINAL_PER_MINUTE:-1200}
       MARA_DB_URL: jdbc:postgresql://postgres:5432/mara_sync
     ports:
       - "${MARA_SYNC_PORT:-8082}:8082"

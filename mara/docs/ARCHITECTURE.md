@@ -315,12 +315,13 @@ larger than the code.
 
 | Piece | State |
 | --- | --- |
-| `platform` (money, journal, fiscal lease, identity, staff policy, sale canonical form and checks, request signatures) | Built, 103 tests. |
-| `service-kit` (two-role database wiring with tenant-bound RLS, terminal request authentication, operator tokens) | Built. Shared by `sync-service` and `core-service`; no tests of its own, exercised through theirs. |
-| `identity-service` (tenants, terminals, enrolment, staff PIN sign-in, provisioning, internal terminal lookup, RLS) | Built, runs from an empty volume. 27 tests against a live PostgreSQL. |
+| `platform` (money, journal, fiscal lease, identity, staff policy, sale canonical form and checks, request signatures) | Built, 112 tests (adds the fixed-window limiter). |
+| `service-kit` (two-role database wiring with tenant-bound RLS, terminal request authentication, operator tokens) | Built. Shared by `sync-service` and `core-service`. 4 unit tests (terminal rate limit); the rest is exercised through theirs. |
+| `identity-service` (tenants, terminals, enrolment, staff PIN sign-in, provisioning, internal terminal lookup, RLS) | Built, runs from an empty volume. 31 tests against a live PostgreSQL. |
 | `sync-service` (terminal fan-in, §2.2 and §2.3 on the server) | **Built 2026-10-02.** Verifies every uploaded entry, keeps the append-only second copy, raises exceptions. 9 tests against a live PostgreSQL. |
-| `core-service` (ledger, fiscal leases, ingested sales; §2.4 and §4) | **Built 2026-10-02**, scoped to what the till needs: the double-entry ledger, fiscal number leasing and the posting of verified sales. Catalog, inventory, tabs and hospitality are **not** built. 17 tests against a live PostgreSQL. |
+| `core-service` (ledger, fiscal leases, ingested sales; §2.4 and §4) | **Built 2026-10-02**, scoped to what the till needs: the double-entry ledger, fiscal number leasing and the posting of verified sales. Catalog, inventory, tabs and hospitality are **not** built. 18 tests against a live PostgreSQL, including a 40-round race of a sale against a lease return. |
 | `apps/terminal` (the till, a browser PWA) | Built; uploads its journal and leases fiscal numbers. 85 vitest tests. |
+| Rate limiting | **Built in each service, not in a gateway.** A per-source-address fixed window (per process, so N replicas allow N times the cap): enrolment 20/min, staff sign-in 120/min, `/v1/terminal/**` 1200/min, applied before authentication so a refused flood never costs a signature check or a database call. Keyed on the socket address, never `X-Forwarded-For`. 429 with `Retry-After`. Tunable with `MARA_RATELIMIT_*`. |
 | `api-gateway` | **Not built, and not needed by the till yet.** See "What is deliberately not built". |
 | `apps/platform` (back office) | **Not built.** An empty shell. Back-office reads are operator-token endpoints (`/v1/admin/*`). |
 
