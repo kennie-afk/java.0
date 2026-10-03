@@ -41,11 +41,13 @@ public final class Permissions {
     public static final String SCHEDULING_WRITE = "scheduling:write";
     public static final String INPATIENT_READ = "inpatient:read";
     public static final String INPATIENT_WRITE = "inpatient:write";
+    public static final String MCH_READ = "mch:read";
+    public static final String MCH_WRITE = "mch:write";
 
     public static final List<String> ALL = List.of(
             PATIENTS_READ, PATIENTS_WRITE, PATIENTS_MERGE, PATIENTS_RESTRICTED, CLINICAL_READ, CLINICAL_WRITE,
             ORDERS_WRITE, PHARMACY_READ, PHARMACY_DISPENSE, PHARMACY_STOCK, LAB_READ, LAB_ENTER, LAB_VALIDATE, LAB_MANAGE,
             BILLING_READ, BILLING_POST, BILLING_REFUND, BILLING_MANAGE, CLAIMS_READ, CLAIMS_SUBMIT, REPORTS_READ, STAFF_READ,
             STAFF_MANAGE, ROLES_MANAGE, FACILITIES_MANAGE, AUDIT_READ, SCHEDULING_READ, SCHEDULING_WRITE, INPATIENT_READ,
-            INPATIENT_WRITE);
+            INPATIENT_WRITE, MCH_READ, MCH_WRITE);
 }
