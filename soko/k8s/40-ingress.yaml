@@ -1,0 +1,52 @@
+# Needs an ingress-nginx controller and, for the certificate, cert-manager with a ClusterIssuer named letsencrypt-prod
+# (or change the annotation / supply your own soko-tls Secret). Replace soko.example.org with the real host, here and in
+# SOKO_ALLOWED_ORIGINS (01-config.yaml).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: soko
+  namespace: soko
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: 6m
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [soko.example.org]
+      secretName: soko-tls
+  rules:
+    - host: soko.example.org
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: {name: console, port: {number: 3500}}
+---
+# Safaricom calls this from the internet, so it must reach the API directly. It is the only API path exposed this way; the
+# callback authenticates itself with the secret carried in the registered URL (see DarajaMpesaGateway), and it is rate
+# limited at the ingress as well.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: soko-mpesa-callback
+  namespace: soko
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: 64k
+    nginx.ingress.kubernetes.io/limit-rps: "50"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [soko.example.org]
+      secretName: soko-tls
+  rules:
+    - host: soko.example.org
+      http:
+        paths:
+          - path: /v1/public/mpesa/stk-callback
+            pathType: Prefix
+            backend:
+              service: {name: api, port: {number: 8090}}

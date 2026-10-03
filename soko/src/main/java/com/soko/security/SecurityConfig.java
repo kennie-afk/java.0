@@ -61,7 +61,7 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(
                         auth ->
-                                auth.requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                                auth.requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                                         // Metrics reveal traffic and pool sizes; not for customers or suppliers.
                                         .requestMatchers("/actuator/**").hasRole("OWNER")
                                         .requestMatchers(HttpMethod.POST, "/v1/auth/**").permitAll()

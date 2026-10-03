@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: soko-config
+  namespace: soko
+data:
+  SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/soko
+  SOKO_DB_OWNER_USER: soko
+  SOKO_DB_APP_USER: soko_app
+  # The public address of the console: the only browser origin the API accepts. Set it before deploying.
+  SOKO_ALLOWED_ORIGINS: https://soko.example.org
+  # DEMO-SAFE DEFAULTS. mock M-Pesa accepts any callback and no money moves: never face real customers with it.
+  # For a real deployment set SOKO_ENVIRONMENT to production and SOKO_MPESA_MODE to live; the API then refuses to start
+  # unless M-Pesa is live, the JWT secret is 32+ characters and the demo auto-answer is off (see ProductionGuard), and live
+  # mode additionally needs the Daraja values below and the optional secrets in soko-secrets. None of that has been
+  # exercised against Safaricom.
+  SOKO_ENVIRONMENT: development
+  SOKO_MPESA_MODE: mock
+  SOKO_MPESA_BASE_URL: ""
+  SOKO_MPESA_SHORT_CODE: ""
+  SOKO_MPESA_CALLBACK_URL: https://soko.example.org/v1/public/mpesa/stk-callback
+  # Rows the monthly invoice run bills: one transaction per tenant, 03:00 UTC on the 1st by default.
+  SOKO_BILLING_CRON: "0 0 3 1 * *"
+  DB_POOL_MAX: "24"

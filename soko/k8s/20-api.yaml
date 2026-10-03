@@ -1,0 +1,139 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: soko
+  labels: {app.kubernetes.io/name: api, app.kubernetes.io/part-of: soko}
+spec:
+  selector: {app.kubernetes.io/name: api}
+  ports:
+    - {name: http, port: 8090, targetPort: 8090}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: soko
+  labels: {app.kubernetes.io/name: api, app.kubernetes.io/part-of: soko}
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 0, maxSurge: 1}
+  selector:
+    matchLabels: {app.kubernetes.io/name: api}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: api, app.kubernetes.io/part-of: soko}
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels: {app.kubernetes.io/name: api}
+      initContainers:
+        # The API exits if the database is unreachable at start-up, which would crash-loop it while Postgres comes up.
+        # Waiting here instead keeps restarts meaningful. It reuses the API image, so no extra image is needed.
+        - name: wait-for-postgres
+          image: soko-api:1.0.0
+          imagePullPolicy: IfNotPresent
+          command: [bash, -c, "until (echo > /dev/tcp/postgres/5432) 2>/dev/null; do echo waiting for postgres; sleep 2; done"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+      containers:
+        - name: api
+          # Build and push the image (backend/Dockerfile) and set a real tag here; "latest" is refused by scripts/check-k8s.py.
+          image: soko-api:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - {name: http, containerPort: 8090}
+          envFrom:
+            - configMapRef: {name: soko-config}
+          env:
+            # The table owner is used only by Flyway to migrate; the application itself runs as soko_app, which owns
+            # nothing and cannot bypass row-level security (see src/main/resources/db/migration/V7).
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom: {configMapKeyRef: {name: soko-config, key: SOKO_DB_OWNER_USER}}
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom: {secretKeyRef: {name: soko-secrets, key: SOKO_DB_OWNER_PASSWORD}}
+            - name: SOKO_DB_APP_PASSWORD
+              valueFrom: {secretKeyRef: {name: soko-secrets, key: SOKO_DB_APP_PASSWORD}}
+            - name: SOKO_SYSTEM_KEY
+              valueFrom: {secretKeyRef: {name: soko-secrets, key: SOKO_SYSTEM_KEY}}
+            - name: SOKO_JWT_SECRET
+              valueFrom: {secretKeyRef: {name: soko-secrets, key: SOKO_JWT_SECRET}}
+            # Live M-Pesa only (see 01-config.yaml). Optional so a demo deployment starts without them.
+            - name: SOKO_MPESA_CONSUMER_KEY
+              valueFrom: {secretKeyRef: {name: soko-secrets, key: SOKO_MPESA_CONSUMER_KEY, optional: true}}
+            - name: SOKO_MPESA_CONSUMER_SECRET
+              valueFrom: {secretKeyRef: {name: soko-secrets, key: SOKO_MPESA_CONSUMER_SECRET, optional: true}}
+            - name: SOKO_MPESA_PASSKEY
+              valueFrom: {secretKeyRef: {name: soko-secrets, key: SOKO_MPESA_PASSKEY, optional: true}}
+            - name: SOKO_MPESA_CALLBACK_SECRET
+              valueFrom: {secretKeyRef: {name: soko-secrets, key: SOKO_MPESA_CALLBACK_SECRET, optional: true}}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          # Migrations run at start-up, so the first start can be slow: the startup probe gives it up to 3 minutes.
+          startupProbe:
+            httpGet: {path: /actuator/health/readiness, port: http}
+            periodSeconds: 5
+            failureThreshold: 36
+          readinessProbe:
+            httpGet: {path: /actuator/health/readiness, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet: {path: /actuator/health/liveness, port: http}
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests: {cpu: 500m, memory: 768Mi}
+            limits: {cpu: "2", memory: 1536Mi}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api
+  namespace: soko
+spec:
+  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: api}
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource: {name: cpu, target: {type: Utilization, averageUtilization: 70}}
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api
+  namespace: soko
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: api}
