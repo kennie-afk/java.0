@@ -1,0 +1,190 @@
+# Default deny, then exactly the calls the system makes. Written so that nothing but the ingress controller can reach
+# the terminal pods: the rate limits trust the address the ingress appended (MARA_RATELIMIT_TRUST_FORWARDED_FOR), which is
+# only sound under that condition. If you change this file, keep it true.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: mara
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: mara
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
+      ports:
+        - {protocol: UDP, port: 53}
+        - {protocol: TCP, port: 53}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: terminal
+  namespace: mara
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: terminal}}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: ingress-nginx}}
+      ports:
+        - {protocol: TCP, port: 3100}
+  egress:
+    - to:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: identity-service}}
+      ports:
+        - {protocol: TCP, port: 8081}
+    - to:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: sync-service}}
+      ports:
+        - {protocol: TCP, port: 8082}
+    - to:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: core-service}}
+      ports:
+        - {protocol: TCP, port: 8083}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: identity-service
+  namespace: mara
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: identity-service}}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: terminal}}
+      ports:
+        - {protocol: TCP, port: 8081}
+    - from:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: sync-service}}
+      ports:
+        - {protocol: TCP, port: 8081}
+    - from:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: core-service}}
+      ports:
+        - {protocol: TCP, port: 8081}
+  egress:
+    - to:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: postgres}}
+      ports:
+        - {protocol: TCP, port: 5432}
+    - to:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: redis}}
+      ports:
+        - {protocol: TCP, port: 6379}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sync-service
+  namespace: mara
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: sync-service}}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: terminal}}
+      ports:
+        - {protocol: TCP, port: 8082}
+    - from:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: core-service}}
+      ports:
+        - {protocol: TCP, port: 8082}
+  egress:
+    - to:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: postgres}}
+      ports:
+        - {protocol: TCP, port: 5432}
+    - to:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: redis}}
+      ports:
+        - {protocol: TCP, port: 6379}
+    - to:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: identity-service}}
+      ports:
+        - {protocol: TCP, port: 8081}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: core-service
+  namespace: mara
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: core-service}}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: terminal}}
+      ports:
+        - {protocol: TCP, port: 8083}
+  egress:
+    - to:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: postgres}}
+      ports:
+        - {protocol: TCP, port: 5432}
+    - to:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: redis}}
+      ports:
+        - {protocol: TCP, port: 6379}
+    - to:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: identity-service}}
+      ports:
+        - {protocol: TCP, port: 8081}
+    - to:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: sync-service}}
+      ports:
+        - {protocol: TCP, port: 8082}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres
+  namespace: mara
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: postgres}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: identity-service}}
+      ports:
+        - {protocol: TCP, port: 5432}
+    - from:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: sync-service}}
+      ports:
+        - {protocol: TCP, port: 5432}
+    - from:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: core-service}}
+      ports:
+        - {protocol: TCP, port: 5432}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis
+  namespace: mara
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: redis}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: identity-service}}
+      ports:
+        - {protocol: TCP, port: 6379}
+    - from:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: sync-service}}
+      ports:
+        - {protocol: TCP, port: 6379}
+    - from:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: core-service}}
+      ports:
+        - {protocol: TCP, port: 6379}

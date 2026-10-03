@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mara-config
+  namespace: mara
+data:
+  MARA_DB_OWNER_USER: mara_owner
+  MARA_DB_APP_USER: mara_app
+  MARA_IDENTITY_URL: http://identity-service:8081
+  MARA_SYNC_URL: http://sync-service:8082
+  MARA_CORE_URL: http://core-service:8083
+  # Shared rate-limit counters. If Redis is unreachable each service falls back to its own in-process limit (it neither
+  # opens up nor refuses the tills), so this is not a hard dependency.
+  MARA_REDIS_URL: redis://redis:6379
+  # The ingress appends the real client address to X-Forwarded-For and the terminal proxy passes it on; counting that
+  # instead of the proxy pod's address is what gives every shop its own allowance. Safe only because the NetworkPolicy
+  # lets nothing but the ingress controller reach the terminal pods. Do not set this where that is not true.
+  MARA_RATELIMIT_TRUST_FORWARDED_FOR: "true"
+  MARA_RATELIMIT_TERMINAL_PER_MINUTE: "1200"
+  MARA_RATELIMIT_ENROLMENT_PER_MINUTE: "20"
+  MARA_RATELIMIT_SIGNIN_PER_MINUTE: "120"
+  # Database connections per replica. Postgres connections = replicas x this x 3 services: size it against max_connections
+  # (or put PgBouncer in front; see docs/OPERATIONS.md, which says what has and has not been tested).
+  MARA_DB_POOL_SIZE: "10"
+  MARA_FISCAL_LEASE_SIZE: "5000"
+  # Only "mock" exists: the M-Pesa prompt on the till is simulated and moves no money.
+  MARA_MPESA_MODE: mock

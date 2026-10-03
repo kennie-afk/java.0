@@ -1,0 +1,25 @@
+# Only the till is public. The three services are reachable inside the namespace only (and by `kubectl port-forward` for an
+# operator's back-office calls); the actuator is never routed. TLS terminates here: set the real host and the TLS Secret.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: terminal
+  namespace: mara
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # Journal uploads carry up to 4 MiB of signed entries.
+    nginx.ingress.kubernetes.io/proxy-body-size: 5m
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "30"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [mara.example.org]
+      secretName: mara-tls
+  rules:
+    - host: mara.example.org
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: {name: terminal, port: {number: 3100}}

@@ -1,0 +1,61 @@
+# Shared rate-limit counters only. Nothing durable lives here (no volume, no persistence on purpose): losing it resets
+# every counter, and while it is down each service limits on its own.
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: mara
+  labels: {app.kubernetes.io/name: redis, app.kubernetes.io/part-of: mara}
+spec:
+  selector: {app.kubernetes.io/name: redis}
+  ports:
+    - {name: redis, port: 6379, targetPort: 6379}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: mara
+  labels: {app.kubernetes.io/name: redis, app.kubernetes.io/part-of: mara}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: redis}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: redis, app.kubernetes.io/part-of: mara}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          args: [redis-server, --save, "", --appendonly, "no", --maxmemory, 64mb, --maxmemory-policy, volatile-ttl]
+          ports:
+            - {name: redis, containerPort: 6379}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          startupProbe:
+            exec: {command: [redis-cli, ping]}
+            periodSeconds: 2
+            failureThreshold: 30
+          readinessProbe:
+            exec: {command: [redis-cli, ping]}
+            periodSeconds: 10
+          livenessProbe:
+            exec: {command: [redis-cli, ping]}
+            periodSeconds: 20
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 500m, memory: 128Mi}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: tmp
+          emptyDir: {}

@@ -1,0 +1,146 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: identity-service
+  namespace: mara
+  labels: {app.kubernetes.io/name: identity-service, app.kubernetes.io/part-of: mara}
+spec:
+  selector: {app.kubernetes.io/name: identity-service}
+  ports:
+    - {name: http, port: 8081, targetPort: 8081}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity-service
+  namespace: mara
+  labels: {app.kubernetes.io/name: identity-service, app.kubernetes.io/part-of: mara}
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 0, maxSurge: 1}
+  selector:
+    matchLabels: {app.kubernetes.io/name: identity-service}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: identity-service, app.kubernetes.io/part-of: mara}
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels: {app.kubernetes.io/name: identity-service}
+      initContainers:
+        # The service exits if its database is unreachable at start-up, which would crash-loop it while Postgres comes
+        # up. Waiting here keeps restarts meaningful. It reuses the service image, so no extra image is needed.
+        - name: wait-for-postgres
+          image: mara-identity-service:1.0.0
+          imagePullPolicy: IfNotPresent
+          command: [sh, -c, "until nc -z postgres 5432; do echo waiting for postgres; sleep 2; done"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+      containers:
+        - name: identity-service
+          image: mara-identity-service:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - {name: http, containerPort: 8081}
+          env:
+            - name: MARA_DB_OWNER_USER
+              valueFrom: {configMapKeyRef: {name: mara-config, key: MARA_DB_OWNER_USER}}
+            - name: MARA_DB_APP_USER
+              valueFrom: {configMapKeyRef: {name: mara-config, key: MARA_DB_APP_USER}}
+            - name: MARA_DB_OWNER_PASSWORD
+              valueFrom: {secretKeyRef: {name: mara-secrets, key: MARA_DB_OWNER_PASSWORD}}
+            - name: MARA_DB_APP_PASSWORD
+              valueFrom: {secretKeyRef: {name: mara-secrets, key: MARA_DB_APP_PASSWORD}}
+            - {name: MARA_DB_URL, value: "jdbc:postgresql://postgres:5432/mara_identity"}
+            - name: MARA_REDIS_URL
+              valueFrom: {configMapKeyRef: {name: mara-config, key: MARA_REDIS_URL}}
+            - name: MARA_RATELIMIT_TRUST_FORWARDED_FOR
+              valueFrom: {configMapKeyRef: {name: mara-config, key: MARA_RATELIMIT_TRUST_FORWARDED_FOR}}
+            - name: MARA_DB_POOL_SIZE
+              valueFrom: {configMapKeyRef: {name: mara-config, key: MARA_DB_POOL_SIZE}}
+            - name: MARA_SVC_SYNC_CREDENTIAL
+              valueFrom: {secretKeyRef: {name: mara-secrets, key: MARA_SVC_SYNC_CREDENTIAL}}
+            - name: MARA_SVC_CORE_CREDENTIAL
+              valueFrom: {secretKeyRef: {name: mara-secrets, key: MARA_SVC_CORE_CREDENTIAL}}
+            - name: MARA_BOOTSTRAP_CREDENTIAL
+              valueFrom: {secretKeyRef: {name: mara-secrets, key: MARA_BOOTSTRAP_CREDENTIAL, optional: true}}
+            - name: MARA_RATELIMIT_ENROLMENT_PER_MINUTE
+              valueFrom: {configMapKeyRef: {name: mara-config, key: MARA_RATELIMIT_ENROLMENT_PER_MINUTE}}
+            - name: MARA_RATELIMIT_SIGNIN_PER_MINUTE
+              valueFrom: {configMapKeyRef: {name: mara-config, key: MARA_RATELIMIT_SIGNIN_PER_MINUTE}}
+            - {name: JAVA_TOOL_OPTIONS, value: "-XX:MaxRAMPercentage=70 -XX:+ExitOnOutOfMemoryError"}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          # Migrations run at start-up, so a first start can be slow: the startup probe allows 3 minutes.
+          startupProbe:
+            httpGet: {path: /actuator/health/liveness, port: http}
+            periodSeconds: 5
+            failureThreshold: 36
+          readinessProbe:
+            httpGet: {path: /actuator/health/readiness, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet: {path: /actuator/health/liveness, port: http}
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests: {cpu: 250m, memory: 512Mi}
+            limits: {cpu: "1", memory: 768Mi}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: identity-service
+  namespace: mara
+spec:
+  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: identity-service}
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource: {name: cpu, target: {type: Utilization, averageUtilization: 70}}
+  behavior:
+    # A JVM service takes about a minute to start, so scale up promptly and down slowly.
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - {type: Percent, value: 100, periodSeconds: 60}
+    scaleDown:
+      stabilizationWindowSeconds: 300
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: identity-service
+  namespace: mara
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: identity-service}

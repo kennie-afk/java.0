@@ -1,0 +1,88 @@
+# One Postgres for small deployments and for proving these manifests. It is a single instance: no standby, no failover.
+# For real tenants use a managed or replicated Postgres (an operator such as CloudNativePG, or the provider's service) and
+# change the host in the services' MARA_DB_URL; the services need only the owner (migrations) and app (runtime) roles.
+# The services create their own databases (mara_sync, mara_core) on first start; mara_identity is created here.
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: mara
+  labels: {app.kubernetes.io/name: postgres, app.kubernetes.io/part-of: mara}
+spec:
+  clusterIP: None
+  selector: {app.kubernetes.io/name: postgres}
+  ports:
+    - {name: postgres, port: 5432, targetPort: 5432}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: mara
+  labels: {app.kubernetes.io/name: postgres, app.kubernetes.io/part-of: mara}
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: postgres}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: postgres, app.kubernetes.io/part-of: mara}
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 70
+        runAsGroup: 70
+        fsGroup: 70
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - {name: postgres, containerPort: 5432}
+          args: [postgres, -c, max_connections=300, -c, shared_buffers=512MB, -c, wal_compression=on]
+          env:
+            - {name: POSTGRES_DB, value: mara_identity}
+            - name: POSTGRES_USER
+              valueFrom: {configMapKeyRef: {name: mara-config, key: MARA_DB_OWNER_USER}}
+            - name: POSTGRES_PASSWORD
+              valueFrom: {secretKeyRef: {name: mara-secrets, key: MARA_DB_OWNER_PASSWORD}}
+            - {name: PGDATA, value: /var/lib/postgresql/data/pgdata}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+          readinessProbe:
+            exec: {command: [sh, -c, "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]}
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            exec: {command: [sh, -c, "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]}
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+          startupProbe:
+            exec: {command: [sh, -c, "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]}
+            periodSeconds: 5
+            failureThreshold: 36
+          resources:
+            requests: {cpu: 500m, memory: 1Gi}
+            limits: {cpu: "4", memory: 3Gi}
+          volumeMounts:
+            - {name: data, mountPath: /var/lib/postgresql/data}
+            - {name: run, mountPath: /var/run/postgresql}
+            - {name: shm, mountPath: /dev/shm}
+      volumes:
+        - name: run
+          emptyDir: {}
+        # Postgres wants more shared memory than a container's default 64 MB.
+        - name: shm
+          emptyDir: {medium: Memory, sizeLimit: 512Mi}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests: {storage: 50Gi}

@@ -11,7 +11,7 @@ ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0
 WORKDIR /app
 COPY --from=build /app/.next/standalone ./
-USER node
+USER 1000:1000
 EXPOSE 3100
 # IDENTITY_BASE_URL is read at request time by the enrolment proxy, so one image serves
 # any deployment. The terminal does not need identity-service to start, or to sell.

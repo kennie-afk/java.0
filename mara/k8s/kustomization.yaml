@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: mara
+resources:
+  - 00-namespace.yaml
+  - 01-config.yaml
+  - 10-postgres.yaml
+  - 11-redis.yaml
+  - 20-identity.yaml
+  - 21-sync.yaml
+  - 22-core.yaml
+  - 30-terminal.yaml
+  - 40-ingress.yaml
+  - 50-network-policy.yaml

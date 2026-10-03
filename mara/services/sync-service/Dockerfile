@@ -27,9 +27,10 @@ RUN mvn -q -pl platform,services/service-kit -am install -DskipTests \
  && mvn -q -pl services/sync-service -am package -DskipTests
 
 FROM eclipse-temurin:21-jre-alpine
-RUN addgroup -S mara && adduser -S mara -G mara
+# Numeric ids: Kubernetes can only verify "runs as non-root" for a numeric user.
+RUN addgroup -S -g 10001 mara && adduser -S -u 10001 -G mara mara
 WORKDIR /app
 COPY --from=build /src/services/sync-service/target/sync-service-*.jar app.jar
-USER mara
+USER 10001:10001
 EXPOSE 8082
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
