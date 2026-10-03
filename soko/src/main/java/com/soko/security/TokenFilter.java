@@ -16,9 +16,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class TokenFilter extends OncePerRequestFilter {
 
     private final Tokens tokens;
+    private final UserStatusGate gate;
 
-    public TokenFilter(Tokens tokens) {
+    public TokenFilter(Tokens tokens, UserStatusGate gate) {
         this.tokens = tokens;
+        this.gate = gate;
     }
 
     @Override
@@ -30,6 +32,12 @@ public class TokenFilter extends OncePerRequestFilter {
         if (header != null && header.startsWith("Bearer ")) {
             try {
                 Principal principal = tokens.verify(header.substring(7));
+                if (!gate.isActive(principal)) {
+                    // Valid signature, but the account was suspended or removed: treat as anonymous.
+                    SecurityContextHolder.clearContext();
+                    chain.doFilter(request, response);
+                    return;
+                }
                 var authentication =
                         new UsernamePasswordAuthenticationToken(
                                 principal,

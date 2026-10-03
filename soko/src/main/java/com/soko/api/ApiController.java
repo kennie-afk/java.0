@@ -9,6 +9,7 @@ import com.soko.security.Principal;
 import com.soko.security.tenant.TenantBinding;
 import com.soko.security.TenantContext;
 import com.soko.security.Tokens;
+import com.soko.security.UserStatusGate;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.util.*;
@@ -39,19 +40,22 @@ public class ApiController {
     private final PasswordEncoder encoder;
     private final Tokens tokens;
     private final TenantContext context;
+    private final UserStatusGate statusGate;
 
     public ApiController(
             TenantRepository tenants, UserRepository users, SupplierRepository suppliers,
             ProductRepository products, OfferRepository offers, CustomerRepository customers,
             OrderRepository orders, OrderLineRepository orderLines, OrderService orderService,
             WastageService wastageService, WastageRecordRepository wastageRecords,
-            PasswordEncoder encoder, Tokens tokens, TenantContext context) {
+            PasswordEncoder encoder, Tokens tokens, TenantContext context,
+            UserStatusGate statusGate) {
         this.tenants = tenants; this.users = users; this.suppliers = suppliers;
         this.products = products; this.offers = offers; this.customers = customers;
         this.orders = orders; this.orderLines = orderLines; this.orderService = orderService;
         this.wastageService = wastageService;
         this.wastageRecords = wastageRecords;
         this.encoder = encoder; this.tokens = tokens; this.context = context;
+        this.statusGate = statusGate;
     }
 
     public record RegisterRequest(
@@ -157,6 +161,41 @@ public class ApiController {
         user = users.save(user);
 
         return Map.of("id", user.getId(), "email", user.getEmail(), "role", user.getRole());
+    }
+
+    @PostMapping("/users/{id}/suspend")
+    public Map<String, Object> suspendUser(@PathVariable UUID id) {
+        return changeStatus(id, "SUSPENDED");
+    }
+
+    @PostMapping("/users/{id}/reactivate")
+    public Map<String, Object> reactivateUser(@PathVariable UUID id) {
+        return changeStatus(id, "ACTIVE");
+    }
+
+    private Map<String, Object> changeStatus(UUID id, String status) {
+        Principal caller = context.current();
+        if (!"OWNER".equals(caller.role())) {
+            throw new Errors.Unauthorized("only an owner can suspend or reactivate accounts");
+        }
+        AppUser user = users.findById(id)
+                .filter(found -> found.getTenantId().equals(caller.tenantId()))
+                .orElseThrow(() -> new Errors.NotFound("no such account"));
+        if ("SUSPENDED".equals(status)) {
+            if (user.getId().equals(caller.userId())) {
+                throw new Errors.BadRequest("you cannot suspend your own account");
+            }
+            if ("OWNER".equals(user.getRole())
+                    && users.findByTenantIdAndRole(caller.tenantId(), "OWNER").stream()
+                            .filter(owner -> "ACTIVE".equals(owner.getStatus()))
+                            .count() <= 1) {
+                throw new Errors.BadRequest("the last active owner cannot be suspended");
+            }
+        }
+        user.setStatus(status);
+        users.save(user);
+        statusGate.forget(user.getId());
+        return Map.of("id", user.getId(), "status", user.getStatus());
     }
 
     @PostMapping("/auth/forgot")
