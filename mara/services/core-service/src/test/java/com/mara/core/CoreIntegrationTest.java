@@ -215,6 +215,59 @@ class CoreIntegrationTest {
         signedPost(t, "/v1/terminal/fiscal/leases?request=short", null).andExpect(status().isBadRequest());
     }
 
+    @Test
+    void theSalesReportGroupsByLocalDayTerminalAndPaymentMethodAndStaysInsideItsTenant() throws Exception {
+        String tenant = newTenant();
+        Till a = new Till(tenant);
+        Till b = new Till(tenant);
+        long noon = java.time.Instant.parse("2025-10-09T09:00:00Z").getEpochSecond();          // 12:00 in Nairobi
+        long lateEvening = java.time.Instant.parse("2025-10-09T20:30:00Z").getEpochSecond();   // 23:30 in Nairobi, 20:30 UTC
+        long nextMorning = java.time.Instant.parse("2025-10-10T04:00:00Z").getEpochSecond();   // 07:00 in Nairobi
+        // till A: a cash sale (11,600) and a split sale (17,400 = 10,000 cash + 7,400 mobile money)
+        a.sequence++;
+        postSale(tenant, new FeedEntry(a.id, tenant, a.sequence, noon, 0, json.writeValueAsString(cashSale(10000, 1600, null))));
+        a.sequence++;
+        postSale(tenant, new FeedEntry(a.id, tenant, a.sequence, lateEvening, 0, json.writeValueAsString(sale(List.of(
+                new SaleBody.Payment("CASH", "10000", "", "10000"), new SaleBody.Payment("MOBILE_MONEY", "7400", "R1", "7400")),
+                "17400", null, 15000, 2400))));
+        // till B: a mobile sale (5,800) after midnight in Nairobi
+        b.sequence++;
+        postSale(tenant, new FeedEntry(b.id, tenant, b.sequence, nextMorning, 0, json.writeValueAsString(sale(List.of(
+                new SaleBody.Payment("MOBILE_MONEY", "5800", "R2", "5800")), "5800", null, 5000, 800))));
+
+        var byDay = admin("/v1/admin/reports/sales?from=2025-10-09&to=2025-10-10&by=day", tenant);
+        assertThat(byDay).hasSize(2);
+        var oct9 = byDay.stream().filter(r -> r.get("day").toString().equals("2025-10-09")).findFirst().orElseThrow();
+        // 23:30 in Nairobi (20:30 UTC) is still the 9th; 07:00 on the 10th is the 10th
+        assertThat(((Number) oct9.get("sales")).longValue()).isEqualTo(2);
+        assertThat(((Number) oct9.get("totalMinor")).longValue()).isEqualTo(11600 + 17400);
+        assertThat(((Number) oct9.get("cashMinor")).longValue()).isEqualTo(11600 + 10000);
+        assertThat(((Number) oct9.get("mobileMinor")).longValue()).isEqualTo(7400);
+        assertThat(((Number) oct9.get("fiscalPending")).longValue()).isEqualTo(2);
+        var oct10 = byDay.stream().filter(r -> r.get("day").toString().equals("2025-10-10")).findFirst().orElseThrow();
+        assertThat(((Number) oct10.get("mobileMinor")).longValue()).isEqualTo(5800);
+
+        // in UTC the 23:30 Nairobi sale is 20:30 and the 07:00 one is 04:00: still the same two days here, but
+        // asking for UTC must not change the totals across the whole range
+        var utc = admin("/v1/admin/reports/sales?from=2025-10-09&to=2025-10-10&by=day&zone=UTC", tenant);
+        assertThat(utc.stream().mapToLong(r -> ((Number) r.get("totalMinor")).longValue()).sum()).isEqualTo(11600 + 17400 + 5800);
+
+        var byTerminal = admin("/v1/admin/reports/sales?from=2025-10-09&to=2025-10-10&by=terminal", tenant);
+        assertThat(byTerminal.stream().map(r -> r.get("terminalId")).distinct()).containsExactlyInAnyOrder(a.id, b.id);
+        var byCashier = admin("/v1/admin/reports/sales?from=2025-10-09&to=2025-10-10&by=cashier", tenant);
+        assertThat(byCashier.get(0)).containsKey("cashierStaffId");
+
+        // another tenant sees none of it
+        assertThat(admin("/v1/admin/reports/sales?from=2025-10-09&to=2025-10-10&by=day", newTenant())).isEmpty();
+
+        // bounded and validated
+        for (String bad : new String[] {"from=2025-10-10&to=2025-10-09", "from=2025-01-01&to=2025-06-01", "from=2025-10-09&to=2025-10-10&by=sku",
+                "from=2025-10-09&to=2025-10-10&zone=Mars/Base"}) {
+            mvc.perform(get("/v1/admin/reports/sales?" + bad).header("Authorization", "Bearer " + ADMIN).header("X-Mara-Tenant", tenant))
+                    .andExpect(status().isBadRequest());
+        }
+    }
+
     private static SaleBody sale(List<SaleBody.Payment> payments, String total, String fiscalNumber, long net, long tax) {
         return new SaleBody(SaleBody.V1, "KES",
                 List.of(new SaleBody.Line("SKU", "Item", 1, String.valueOf(net), net == 0 ? 0 : (int) (tax * 10000 / net),

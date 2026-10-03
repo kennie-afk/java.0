@@ -1,5 +1,8 @@
 package com.mara.core.admin;
 
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -50,5 +53,60 @@ public class CoreQueryService {
                            AND s.fiscal_number BETWEEN l.first_number AND l.last_number) AS "used",
                        (SELECT coalesce(sum(v.to_number - v.from_number + 1), 0) FROM fiscal_void v WHERE v.lease_id = l.id) AS "voided"
                   FROM fiscal_lease l ORDER BY l.id DESC LIMIT 200""");
+    }
+
+    public static class BadRange extends RuntimeException {
+        public BadRange(String message) {
+            super(message);
+        }
+    }
+
+    /**
+     * Sales grouped by day, terminal or cashier over an inclusive date range, in the shop's own time zone
+     * (a sale at 23:30 in Nairobi belongs to that day, not the next UTC one). Cash and mobile money are what was
+     * APPLIED to the sale, so a tendered 1,000 for an 800 sale counts as 800. At most 93 days: the statement scans
+     * that range for one tenant, and a bounded range is what keeps it affordable for the largest.
+     */
+    public List<Map<String, Object>> salesReport(LocalDate from, LocalDate to, String by, String zone) {
+        ZoneId z;
+        try {
+            z = ZoneId.of(zone);
+        } catch (RuntimeException e) {
+            throw new BadRange("unknown time zone " + zone);
+        }
+        if (to.isBefore(from)) {
+            throw new BadRange("'to' is before 'from'");
+        }
+        if (to.toEpochDay() - from.toEpochDay() > 92) {
+            throw new BadRange("a report covers at most 93 days");
+        }
+        String group = switch (by) {
+            case "day" -> "day";
+            case "terminal" -> "day, terminal_id";
+            case "cashier" -> "day, cashier";
+            default -> throw new BadRange("by must be day, terminal or cashier");
+        };
+        String columns = switch (by) {
+            case "day" -> "day";
+            case "terminal" -> "day, terminal_id AS \"terminalId\"";
+            default -> "day, cashier AS \"cashierStaffId\"";
+        };
+        Timestamp start = Timestamp.from(from.atStartOfDay(z).toInstant());
+        Timestamp end = Timestamp.from(to.plusDays(1).atStartOfDay(z).toInstant());
+        return jdbc.queryForList("""
+                WITH per_sale AS (
+                    SELECT (s.occurred_at AT TIME ZONE ?)::date AS day, s.terminal_id, coalesce(s.cashier_staff_id, '') AS cashier,
+                           s.total_minor, s.tax_minor, s.fiscal_status, s.consistent,
+                           coalesce((SELECT sum((x->>'appliedMinor')::bigint) FROM jsonb_array_elements(s.body->'payments') x
+                                      WHERE x->>'method' = 'CASH'), 0) AS cash,
+                           coalesce((SELECT sum((x->>'appliedMinor')::bigint) FROM jsonb_array_elements(s.body->'payments') x
+                                      WHERE x->>'method' = 'MOBILE_MONEY'), 0) AS mobile
+                      FROM sale s WHERE s.occurred_at >= ? AND s.occurred_at < ?)
+                SELECT %s, count(*)::bigint AS sales, sum(total_minor)::bigint AS "totalMinor", sum(tax_minor)::bigint AS "taxMinor",
+                       sum(cash)::bigint AS "cashMinor", sum(mobile)::bigint AS "mobileMinor",
+                       count(*) FILTER (WHERE fiscal_status = 'FISCAL_PENDING')::bigint AS "fiscalPending",
+                       count(*) FILTER (WHERE NOT consistent)::bigint AS "inconsistent"
+                  FROM per_sale GROUP BY %s ORDER BY day DESC, 2 LIMIT 500""".formatted(columns, group),
+                zone, start, end);
     }
 }

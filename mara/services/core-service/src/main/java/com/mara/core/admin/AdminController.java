@@ -30,6 +30,19 @@ public class AdminController {
         return queries.sales(limit);
     }
 
+    /** Sales by day, terminal or cashier for a date range, in the shop's time zone. */
+    @GetMapping("/v1/admin/reports/sales")
+    public List<Map<String, Object>> salesReport(
+            @RequestParam java.time.LocalDate from, @RequestParam java.time.LocalDate to,
+            @RequestParam(defaultValue = "day") String by, @RequestParam(defaultValue = "Africa/Nairobi") String zone) {
+        return queries.salesReport(from, to, by, zone);
+    }
+
+    @org.springframework.web.bind.annotation.ExceptionHandler(CoreQueryService.BadRange.class)
+    public org.springframework.http.ResponseEntity<Map<String, String>> badRange(CoreQueryService.BadRange e) {
+        return org.springframework.http.ResponseEntity.badRequest().body(Map.of("error", "bad_range", "message", e.getMessage()));
+    }
+
     @GetMapping("/v1/admin/exceptions")
     public List<Map<String, Object>> exceptions(
             @RequestParam(defaultValue = "true") boolean open, @RequestParam(defaultValue = "100") int limit) {
