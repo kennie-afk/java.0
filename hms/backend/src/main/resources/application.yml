@@ -42,6 +42,12 @@ hms:
   mpesa:
     # mock (default) simulates M-Pesa. live is NOT implemented and fails loudly.
     mode: ${HMS_MPESA_MODE:mock}
+  notifications:
+    # mock (default) logs a masked line and sends nothing. live is NOT implemented and fails loudly.
+    mode: ${HMS_NOTIFICATIONS_MODE:mock}
+    # The dispatcher polls the outbox; switch it off on replicas that should not deliver.
+    dispatcher: ${HMS_NOTIFICATIONS_DISPATCHER:true}
+    poll-ms: ${HMS_NOTIFICATIONS_POLL_MS:5000}
   security:
     # Only for local experiments. A superuser or BYPASSRLS role defeats tenant isolation.
     allow-privileged-db-role: ${HMS_ALLOW_PRIVILEGED_DB_ROLE:false}

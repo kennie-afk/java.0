@@ -31,6 +31,7 @@ services:
       HMS_ALLOWED_ORIGINS: ${HMS_ALLOWED_ORIGINS:-http://localhost:3600}
       # Simulated M-Pesa. "live" is not implemented and refuses.
       HMS_MPESA_MODE: ${HMS_MPESA_MODE:-mock}
+      HMS_NOTIFICATIONS_MODE: ${HMS_NOTIFICATIONS_MODE:-mock}
       # Only trust X-Forwarded-For when a proxy you control sets it.
       HMS_TRUST_FORWARDED_FOR: ${HMS_TRUST_FORWARDED_FOR:-false}
     ports:

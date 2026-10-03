@@ -46,6 +46,8 @@ public abstract class IntegrationTest {
         r.add("hms.security.login-per-minute", () -> "10000");
         r.add("hms.security.onboarding-per-hour", () -> "10000");
         r.add("hms.roles.cache-ttl-ms", () -> "0");
+        // Tests run the dispatcher by hand so they can see each pass.
+        r.add("hms.notifications.dispatcher", () -> "false");
     }
 
     @Autowired protected MockMvc mvc;

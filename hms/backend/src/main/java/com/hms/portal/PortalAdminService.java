@@ -2,6 +2,7 @@ package com.hms.portal;
 
 import static com.hms.portal.PortalModels.*;
 
+import com.hms.notify.NotificationService;
 import com.hms.platform.audit.AuditService;
 import com.hms.platform.tenancy.TenantContext;
 import com.hms.platform.web.ApiException;
@@ -29,11 +30,13 @@ public class PortalAdminService {
     private final JdbcClient jdbc;
     private final AuditService audit;
     private final PatientAccess patients;
+    private final NotificationService notifications;
 
-    public PortalAdminService(JdbcClient jdbc, AuditService audit, PatientAccess patients) {
+    public PortalAdminService(JdbcClient jdbc, AuditService audit, PatientAccess patients, NotificationService notifications) {
         this.jdbc = jdbc;
         this.audit = audit;
         this.patients = patients;
+        this.notifications = notifications;
     }
 
     /** Issues a one-time code, shown once. Staff give it to the patient in person after checking who they are; earlier unused codes stop working. */
@@ -55,7 +58,19 @@ public class PortalAdminService {
         String name = jdbc.sql("SELECT given_name || ' ' || family_name FROM patients WHERE org_id = ? AND id = ?").params(t.orgId(), patientId).query(String.class).single();
         audit.record("portal.invite", "patient", patientId, null, null, Map.of());
         String shown = code.substring(0, 5) + "-" + code.substring(5);
-        return new Invitation(shown, expires, name);
+        // The patient hears that an invitation exists. The code is never in the message: it goes from staff to the patient in person.
+        var who = jdbc.sql("SELECT given_name, (SELECT name FROM organisations WHERE id = ?) AS org FROM patients WHERE org_id = ? AND id = ?").params(t.orgId(), t.orgId(), patientId)
+                .query((rs, n) -> new String[] {rs.getString("given_name"), rs.getString("org")}).single();
+        List<String> notices = notifications.enqueueToPatient(patientId, "PORTAL_INVITED",
+                Map.of("givenName", who[0], "organisation", who[1], "expiresOn", expires.atZone(java.time.ZoneOffset.UTC).toLocalDate().toString()));
+        return new Invitation(shown, expires, name, notices);
+    }
+
+    /** What happened to the messages sent to this patient about the portal, newest first. Recipients are masked. */
+    @Transactional(readOnly = true)
+    public List<NotificationService.Notice> notifications(UUID patientId) {
+        patients.require(patientId);
+        return notifications.forPatient(patientId, 20);
     }
 
     @Transactional(readOnly = true)

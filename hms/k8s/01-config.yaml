@@ -11,5 +11,6 @@ data:
   HMS_ALLOWED_ORIGINS: https://hms.example.org
   # Simulated M-Pesa. "live" is not implemented and refuses to start.
   HMS_MPESA_MODE: mock
+  HMS_NOTIFICATIONS_MODE: mock
   # The ingress controller sets X-Forwarded-For, so per-address rate limits use the real client address.
   HMS_TRUST_FORWARDED_FOR: "true"

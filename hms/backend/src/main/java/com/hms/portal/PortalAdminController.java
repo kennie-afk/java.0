@@ -38,6 +38,12 @@ class PortalAdminController {
         return admin.account(patientId);
     }
 
+    @GetMapping("/accounts/{patientId}/notifications")
+    @PreAuthorize(MANAGE)
+    List<com.hms.notify.NotificationService.Notice> notifications(@PathVariable UUID patientId) {
+        return admin.notifications(patientId);
+    }
+
     @PostMapping("/accounts/{patientId}/disable")
     @PreAuthorize(MANAGE)
     AccountInfo disable(@PathVariable UUID patientId) {

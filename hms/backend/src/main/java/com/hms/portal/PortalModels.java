@@ -22,7 +22,7 @@ public final class PortalModels {
 
     public record InviteInput(@NotNull UUID patientId) {}
 
-    public record Invitation(String code, Instant expiresAt, String patientName) {}
+    public record Invitation(String code, Instant expiresAt, String patientName, java.util.List<String> notices) {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record AccountInfo(boolean hasAccount, String status, String login, Instant lastLoginAt) {}
