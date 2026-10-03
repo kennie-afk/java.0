@@ -47,6 +47,40 @@ infant('Brian', 'Otieno', 4, '0722000404', [('BCG', 120), ('OPV_0', 120), ('OPV_
 infant('Kevin', 'Mutua', 2.5, '0733000505', [('BCG', 75), ('OPV_0', 75)])
 infant('Samuel', 'Kariuki', 0.3, '0711000606', [('BCG', 8)])
 
+
+# Postnatal care: one mother delivered a week ago with a fever and an infected cord, one routine.
+def delivered(given, family, born_years, phone, delivered_days_ago, visits):
+    pid = person(given, family, 'FEMALE', today - datetime.timedelta(days=365 * born_years), phone)
+    if not pid:
+        return
+    p = call('POST', '/v1/mch/pregnancies', {'facilityId': FAC, 'patientId': pid, 'lmp': iso(today - datetime.timedelta(days=266 + delivered_days_ago)), 'gravida': 2, 'parity': 1}, N)
+    if not p:
+        return
+    call('POST', f"/v1/mch/pregnancies/{p['id']}/delivery", {'deliveredOn': iso(today - datetime.timedelta(days=delivered_days_ago)), 'mode': 'SVD', 'outcome': 'LIVE_BIRTH', 'birthWeightG': 3100, 'apgar5': 9}, N)
+    for ago_days, body in visits:
+        call('POST', f"/v1/mch/pregnancies/{p['id']}/postnatal", dict(body, visitedOn=iso(today - datetime.timedelta(days=ago_days))), N)
+
+delivered('Mercy', 'Wanjiku', 28, '0722000707', 8, [
+    (6, {'systolic': 118, 'diastolic': 76, 'temperatureC': 36.9, 'lochia': 'NORMAL', 'breastfeeding': 'EXCLUSIVE', 'babyWeightG': 3050, 'babyTemperatureC': 36.8, 'cord': 'CLEAN', 'feedingWell': True}),
+    (0, {'systolic': 126, 'diastolic': 82, 'temperatureC': 38.5, 'lochia': 'OFFENSIVE', 'uterus': 'SUBINVOLUTED', 'breastfeeding': 'EXCLUSIVE', 'babyWeightG': 3150, 'babyTemperatureC': 36.9, 'cord': 'INFECTED', 'feedingWell': True, 'nextVisitOn': iso(today + datetime.timedelta(days=2))})])
+delivered('Grace', 'Njoroge', 24, '0733000808', 40, [
+    (38, {'systolic': 110, 'diastolic': 70, 'temperatureC': 36.7, 'lochia': 'NORMAL', 'breastfeeding': 'EXCLUSIVE', 'babyWeightG': 3200, 'cord': 'SEPARATED', 'feedingWell': True}),
+    (26, {'systolic': 112, 'diastolic': 72, 'breastfeeding': 'EXCLUSIVE', 'babyWeightG': 3900, 'feedingWell': True, 'fpCounselled': True}),
+    (0, {'systolic': 114, 'diastolic': 72, 'breastfeeding': 'MIXED', 'babyWeightG': 4900, 'feedingWell': True, 'fpCounselled': True})])
+
+# Family planning: an injectable that is overdue, an implant, and a pill started with raised pressure.
+def planning(given, family, born_years, phone, visits):
+    pid = person(given, family, 'FEMALE', today - datetime.timedelta(days=365 * born_years), phone)
+    if not pid:
+        return
+    for ago_days, body in visits:
+        call('POST', f'/v1/mch/family-planning/patients/{pid}/visits', dict(body, facilityId=FAC, visitedOn=iso(today - datetime.timedelta(days=ago_days))), N)
+
+planning('Joyce', 'Kamau', 26, '0711000909', [(200, {'visitType': 'NEW', 'method': 'DMPA'}), (109, {'visitType': 'REVISIT', 'method': 'DMPA'})])
+planning('Faith', 'Wambui', 30, '0722001010', [(60, {'visitType': 'NEW', 'method': 'IMPLANT', 'weightKg': 64})])
+planning('Beatrice', 'Atieno', 36, '0733001111', [(20, {'visitType': 'NEW', 'method': 'COC', 'systolic': 148, 'diastolic': 94, 'nextDueOn': iso(today + datetime.timedelta(days=70))})])
+print('family planning due list reachable:', call('GET', '/v1/mch/family-planning/due?limit=1', None, N) is not None)
+
 card = call('GET', '/v1/mch/immunisation/due?limit=1', None, N)
 print('due list reachable:', card is not None)
 print('phase 5 done')

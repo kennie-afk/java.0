@@ -28,7 +28,7 @@ export default function Pregnancy({ params }: { params: Promise<{ id: string }> 
   const x = p.data;
   const active = x.status === "ACTIVE";
   return (
-    <Page title={x.patientName} sub={`${x.gestationWeeks}w ${x.gestationDays}d · G${x.gravida} P${x.parity}`} actions={<><Status value={x.status} /><Button variant="secondary" href={`/patients/${x.patientId}`}>Patient record</Button></>}>
+    <Page title={x.patientName} sub={`${x.gestationWeeks}w ${x.gestationDays}d · G${x.gravida} P${x.parity}`} actions={<><Status value={x.status} />{!active && <Button variant="secondary" href={`/maternal/${id}/postnatal`}>Postnatal care</Button>}<Button variant="secondary" href={`/patients/${x.patientId}`}>Patient record</Button></>}>
       {queued && <Notice tone="warn" title="Saved on this device">There is no connection. This entry will be sent by itself when it returns; see Waiting to send.</Notice>}
       <ErrorNote error={act.error} />
       <Grid cols={4}><KV k="LMP" v={date(x.lmp)} /><KV k="Expected delivery" v={date(x.edd)} /><KV k="Next visit" v={<>{date(x.nextVisitOn)}{x.overdue && <> <Badge tone="warn">Overdue</Badge></>}</>} /><KV k="Visits" v={x.visits.length} /></Grid>
