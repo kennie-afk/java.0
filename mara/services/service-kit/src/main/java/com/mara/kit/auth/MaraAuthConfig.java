@@ -14,8 +14,7 @@ import org.springframework.core.Ordered;
  * caller learns nothing about tenants) and the directory they use. Import it next to
  * {@link com.mara.kit.db.MaraDatabaseConfig}.
  *
- * <p>Properties: {@code mara.identity.base-url}, {@code mara.internal.token},
- * {@code mara.admin.token}, and optionally {@code mara.ratelimit.terminal-per-minute}
+ * <p>Properties: {@code mara.identity.base-url}, {@code mara.service.credential}, and optionally {@code mara.ratelimit.terminal-per-minute}
  * (default 1200 per source address) and {@code mara.redis.url} (share that limit across replicas).
  */
 @Configuration
@@ -29,16 +28,25 @@ public class MaraAuthConfig {
     @Bean
     public TerminalDirectory terminalDirectory(
             @Value("${mara.identity.base-url}") String baseUrl,
-            @Value("${mara.internal.token}") String internalToken,
+            @Value("${mara.service.credential}") String serviceCredential,
             @Value("${mara.identity.cache-seconds:30}") long cacheSeconds,
             Clock maraClock) {
-        return new HttpTerminalDirectory(baseUrl, internalToken, Duration.ofSeconds(cacheSeconds), maraClock);
+        return new HttpTerminalDirectory(baseUrl, serviceCredential, Duration.ofSeconds(cacheSeconds), maraClock);
+    }
+
+    /** Back-office and service-to-service credentials are verified by identity-service. */
+    @Bean
+    public CredentialVerifier credentialVerifier(
+            @Value("${mara.identity.base-url}") String baseUrl,
+            @Value("${mara.service.credential}") String serviceCredential,
+            @Value("${mara.credential.cache-seconds:15}") long cacheSeconds,
+            Clock maraClock) {
+        return new HttpCredentialVerifier(baseUrl, serviceCredential, Duration.ofSeconds(cacheSeconds), maraClock);
     }
 
     @Bean
-    public FilterRegistrationBean<OperatorTokenFilter> operatorTokenFilter(
-            @Value("${mara.admin.token}") String admin, @Value("${mara.internal.token}") String internal) {
-        FilterRegistrationBean<OperatorTokenFilter> bean = new FilterRegistrationBean<>(new OperatorTokenFilter(admin, internal));
+    public FilterRegistrationBean<OperatorAuthFilter> operatorAuthFilter(CredentialVerifier verifier) {
+        FilterRegistrationBean<OperatorAuthFilter> bean = new FilterRegistrationBean<>(new OperatorAuthFilter(verifier));
         bean.setOrder(Ordered.HIGHEST_PRECEDENCE);
         return bean;
     }

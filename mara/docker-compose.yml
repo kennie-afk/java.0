@@ -51,11 +51,15 @@ services:
       MARA_DB_OWNER_PASSWORD: ${MARA_DB_OWNER_PASSWORD:?set in .env}
       MARA_DB_APP_USER: mara_app
       MARA_DB_APP_PASSWORD: ${MARA_DB_APP_PASSWORD:?set in .env}
-      # Guards /v1/admin/* (tenant, staff and enrolment-code provisioning). No default.
-      MARA_ADMIN_TOKEN: ${MARA_ADMIN_TOKEN:?set in .env (24+ characters)}
-      # What sync-service and core-service present to /v1/internal/**. A different credential
-      # from the admin token on purpose. No default.
-      MARA_INTERNAL_TOKEN: ${MARA_INTERNAL_TOKEN:?set in .env (24+ characters)}
+      # Credentials the deployer minted (scripts/new-credential.py --env). The two service
+      # credentials are required, one per service and never shared; the bootstrap one is optional
+      # (24 h, can only create the first platform operator); remove it when done. *_PREVIOUS keeps a
+      # rotated-out credential alive for the overlap. Identity stores hashes only.
+      MARA_SVC_SYNC_CREDENTIAL: ${MARA_SVC_SYNC_CREDENTIAL:?set in .env (scripts/new-credential.py --env)}
+      MARA_SVC_SYNC_CREDENTIAL_PREVIOUS: ${MARA_SVC_SYNC_CREDENTIAL_PREVIOUS:-}
+      MARA_SVC_CORE_CREDENTIAL: ${MARA_SVC_CORE_CREDENTIAL:?set in .env (scripts/new-credential.py --env)}
+      MARA_SVC_CORE_CREDENTIAL_PREVIOUS: ${MARA_SVC_CORE_CREDENTIAL_PREVIOUS:-}
+      MARA_BOOTSTRAP_CREDENTIAL: ${MARA_BOOTSTRAP_CREDENTIAL:-}
       MARA_REDIS_URL: redis://redis:6379
       MARA_RATELIMIT_ENROLMENT_PER_MINUTE: ${MARA_RATELIMIT_ENROLMENT_PER_MINUTE:-20}
       MARA_RATELIMIT_SIGNIN_PER_MINUTE: ${MARA_RATELIMIT_SIGNIN_PER_MINUTE:-120}
@@ -80,12 +84,11 @@ services:
       identity-service:
         condition: service_healthy
     environment: &service-env
+      MARA_SERVICE_CREDENTIAL: ${MARA_SVC_SYNC_CREDENTIAL:?set in .env (scripts/new-credential.py --env)}
       MARA_DB_OWNER_USER: mara_owner
       MARA_DB_OWNER_PASSWORD: ${MARA_DB_OWNER_PASSWORD:?set in .env}
       MARA_DB_APP_USER: mara_app
       MARA_DB_APP_PASSWORD: ${MARA_DB_APP_PASSWORD:?set in .env}
-      MARA_ADMIN_TOKEN: ${MARA_ADMIN_TOKEN:?set in .env (24+ characters)}
-      MARA_INTERNAL_TOKEN: ${MARA_INTERNAL_TOKEN:?set in .env (24+ characters)}
       MARA_IDENTITY_URL: http://identity-service:8081
       MARA_REDIS_URL: redis://redis:6379
       MARA_RATELIMIT_TERMINAL_PER_MINUTE: ${MARA_RATELIMIT_TERMINAL_PER_MINUTE:-1200}
@@ -113,6 +116,7 @@ services:
         condition: service_healthy
     environment:
       <<: *service-env
+      MARA_SERVICE_CREDENTIAL: ${MARA_SVC_CORE_CREDENTIAL:?set in .env (scripts/new-credential.py --env)}
       MARA_DB_URL: jdbc:postgresql://postgres:5432/mara_core
       MARA_SYNC_URL: http://sync-service:8082
       MARA_FISCAL_LEASE_SIZE: ${MARA_FISCAL_LEASE_SIZE:-5000}

@@ -411,10 +411,18 @@ Ed25519 signature over `mara.request.v1|terminal|epoch|METHOD|path?query|sha256(
 verified against the key and status identity-service holds (cached 30 s, so a suspended
 terminal stops being believed within the window; an unreachable identity-service refuses,
 never admits). The tenant comes from identity-service's record of the terminal, never from
-the request. Every failure answers the same 401. Service-to-service calls use
-`MARA_INTERNAL_TOKEN` and the operator's reads use `MARA_ADMIN_TOKEN` plus `X-Mara-Tenant`;
-neither has a default, a service refuses to start without a 24-character value, and the two
-are different credentials on purpose.
+the request. Every failure answers the same 401. Back-office and service-to-service
+calls use **credentials** (`mop_<keyId>.<secret>`, 256 bits, only a SHA-256 stored): each carries scopes
+(`admin:read`, `admin:write`, `platform:tenants`, `credentials:manage`, `terminals:lookup`, `credentials:verify`,
+`sync:feed`), an expiry, an optional tenant binding, and can be revoked or rotated on its own. Each endpoint names the one
+scope it needs and a path nobody has assigned a scope is closed. A tenant-bound credential is forced onto its own tenant
+(the `X-Mara-Tenant` a caller sends is overwritten, a different one refused), so one leak exposes one tenant, not all. The
+tables are reachable only through `SECURITY DEFINER` functions (the application role has no privilege on them) and every
+refusal, issue, rotation and revocation is in an append-only audit table. identity-service verifies against its database;
+sync-service and core-service ask it over HTTP with their own service credential, caching only success for 15 s and
+failing closed (503) if identity is down. The deployer mints the two service credentials and an optional 24 h bootstrap one
+(`scripts/new-credential.py --env`); rotation puts the new one in `MARA_SVC_*_CREDENTIAL` and the old in `..._PREVIOUS`
+until everything has rolled.
 
 **Tenant isolation** is enforced in each database exactly as in identity-service: two
 roles, `FORCE ROW LEVEL SECURITY`, the tenant bound when the transaction begins. Both new

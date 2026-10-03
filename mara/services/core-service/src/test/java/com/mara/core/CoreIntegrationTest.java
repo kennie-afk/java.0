@@ -65,8 +65,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 class CoreIntegrationTest {
 
     private static final String JDBC_URL = System.getProperty("mara.test.jdbc.url");
-    private static final String INTERNAL = "test-internal-token-0123456789-abc";
-    private static final String ADMIN = "test-admin-token-0123456789-abcdef";
+    private static final String INTERNAL = com.mara.platform.credential.OperatorToken.mint().token();
+    private static final String ADMIN = com.mara.platform.credential.OperatorToken.mint().token();
     private static final HttpServer SYNC = startFakeSync();
     private static final Map<String, List<FeedEntry>> FEED = new ConcurrentHashMap<>();
 
@@ -83,8 +83,7 @@ class CoreIntegrationTest {
         r.add("mara.sync.base-url", () -> "http://127.0.0.1:" + SYNC.getAddress().getPort());
         r.add("mara.sync.poll-interval-ms", () -> "3600000");
         r.add("mara.sync.initial-delay-ms", () -> "3600000");
-        r.add("mara.internal.token", () -> INTERNAL);
-        r.add("mara.admin.token", () -> ADMIN);
+        r.add("mara.service.credential", () -> INTERNAL);
         r.add("mara.fiscal.lease-size", () -> "100");
     }
 
@@ -96,6 +95,25 @@ class CoreIntegrationTest {
         @Primary
         TerminalDirectory testDirectory() {
             return id -> Optional.ofNullable(TERMINALS.get(id));
+        }
+
+        /** Stands in for identity-service's verdicts: the test's two credentials and what each may do. */
+        @Bean
+        @Primary
+        com.mara.kit.auth.CredentialVerifier testVerifier() {
+            return req -> {
+                java.util.Set<String> scopes = req.presented().equals(ADMIN)
+                        ? java.util.Set.of("admin:read", "admin:write")
+                        : req.presented().equals(INTERNAL)
+                        ? java.util.Set.of("sync:feed", "terminals:lookup", "credentials:verify")
+                        : null;
+                if (scopes == null) {
+                    return com.mara.kit.auth.CredentialVerifier.Decision.denied(401, "unknown_credential");
+                }
+                return scopes.contains(req.requiredScope())
+                        ? com.mara.kit.auth.CredentialVerifier.Decision.allowed("test", "test", null)
+                        : com.mara.kit.auth.CredentialVerifier.Decision.denied(403, "scope_denied");
+            };
         }
     }
 
@@ -573,9 +591,12 @@ class CoreIntegrationTest {
     @Test
     void adminAndInternalEndpointsRefuseTheWrongOrMissingToken() throws Exception {
         mvc.perform(get("/v1/admin/sales").header("X-Mara-Tenant", "x")).andExpect(status().isUnauthorized());
+        // a valid credential that lacks the scope is refused as forbidden, not as unknown
         mvc.perform(get("/v1/admin/sales").header("Authorization", "Bearer " + INTERNAL).header("X-Mara-Tenant", "x"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
         mvc.perform(post("/v1/admin/ingest/run").header("Authorization", "Bearer nope")).andExpect(status().isUnauthorized());
+        // a path nobody has decided who may call is closed, even to a credential with every scope
+        mvc.perform(get("/v1/admin/../internal/unlisted").header("Authorization", "Bearer " + ADMIN)).andExpect(status().is4xxClientError());
     }
 
     private static void bind(JdbcTemplate jdbc, String tenant) {

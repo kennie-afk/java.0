@@ -78,7 +78,9 @@ operator-token JSON endpoints); stock is not tracked; there is no shared multi-t
 terminal. Clearing the browser's site data destroys any sale not yet uploaded.
 
 `python3 scripts/demo_seed.py code` mints another enrolment code (15 minutes, single use).
-Operator API for tenants, staff and codes: `/v1/admin/*` with `Authorization: Bearer $MARA_ADMIN_TOKEN`.
+Operator API for tenants, staff and codes: `/v1/admin/*` with `Authorization: Bearer <operator credential>`.
+Credentials are scoped, expiring and individually revocable (`docs/ARCHITECTURE.md` §credentials): a tenant-bound credential
+reaches one tenant only, and the deployer's two service credentials are `python3 scripts/new-credential.py --env`.
 
 ## Requirements
 

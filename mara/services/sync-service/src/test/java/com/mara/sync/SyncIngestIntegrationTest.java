@@ -44,8 +44,8 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 class SyncIngestIntegrationTest {
 
     private static final String JDBC_URL = System.getProperty("mara.test.jdbc.url");
-    private static final String INTERNAL = "test-internal-token-0123456789-abc";
-    private static final String ADMIN = "test-admin-token-0123456789-abcdef";
+    private static final String INTERNAL = com.mara.platform.credential.OperatorToken.mint().token();
+    private static final String ADMIN = com.mara.platform.credential.OperatorToken.mint().token();
 
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry r) {
@@ -57,8 +57,7 @@ class SyncIngestIntegrationTest {
         r.add("mara.datasource.app.username", () -> "mara_app");
         r.add("mara.datasource.app.password", () -> "app-secret");
         r.add("mara.identity.base-url", () -> "http://localhost:1");
-        r.add("mara.internal.token", () -> INTERNAL);
-        r.add("mara.admin.token", () -> ADMIN);
+        r.add("mara.service.credential", () -> INTERNAL);
     }
 
     /** Stands in for identity-service: the enrolled terminals, by id. */
@@ -70,6 +69,25 @@ class SyncIngestIntegrationTest {
         @Primary
         TerminalDirectory testDirectory() {
             return id -> Optional.ofNullable(TERMINALS.get(id));
+        }
+
+        /** Stands in for identity-service's verdicts: the test's two credentials and what each may do. */
+        @Bean
+        @Primary
+        com.mara.kit.auth.CredentialVerifier testVerifier() {
+            return req -> {
+                java.util.Set<String> scopes = req.presented().equals(ADMIN)
+                        ? java.util.Set.of("admin:read", "admin:write")
+                        : req.presented().equals(INTERNAL)
+                        ? java.util.Set.of("sync:feed", "terminals:lookup", "credentials:verify")
+                        : null;
+                if (scopes == null) {
+                    return com.mara.kit.auth.CredentialVerifier.Decision.denied(401, "unknown_credential");
+                }
+                return scopes.contains(req.requiredScope())
+                        ? com.mara.kit.auth.CredentialVerifier.Decision.allowed("test", "test", null)
+                        : com.mara.kit.auth.CredentialVerifier.Decision.denied(403, "scope_denied");
+            };
         }
     }
 
@@ -276,8 +294,9 @@ class SyncIngestIntegrationTest {
                 .header("X-Mara-Tenant", b.tenantId)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
         assertThat(foreign).isEmpty();
         mvc.perform(get(path).header("X-Mara-Tenant", a.tenantId)).andExpect(status().isUnauthorized());
+        // the back-office credential may not read the service-to-service feed
         mvc.perform(get(path).header("Authorization", "Bearer " + ADMIN).header("X-Mara-Tenant", a.tenantId))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
 
         // The chain list is the one cross-tenant read, and it names terminals and counters only.
         JsonNode heads = json.readTree(mvc.perform(get("/v1/internal/chains").header("Authorization", "Bearer " + INTERNAL))

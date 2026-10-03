@@ -4,8 +4,12 @@
     python3 scripts/demo_seed.py            # create the shop if needed, then mint a code
     python3 scripts/demo_seed.py code       # just mint another code (valid 15 minutes)
 
-Reads MARA_ADMIN_TOKEN and MARA_IDENTITY_PORT from the environment or ./.env. Uses only the
-provisioning API (/v1/admin/*), exactly what an operator's console would call.
+Reads MARA_BOOTSTRAP_CREDENTIAL and MARA_IDENTITY_PORT from the environment or ./.env. It uses the
+bootstrap credential (which can only manage credentials) to mint a 12-hour platform operator
+credential for itself, then uses only the provisioning API (/v1/admin/*), exactly what an
+operator's console would call. It prints that operator credential at the end (it is the one the
+live tests and any curl need). The bootstrap credential lasts 24 h from identity's start; mint a
+fresh stack's with scripts/new-credential.py --env.
 
 THE PINS BELOW ARE DEVELOPMENT VALUES for a throwaway demo. Never reuse them.
 """
@@ -38,12 +42,13 @@ def env(name, default=None):
     return default
 
 
-TOKEN = env("MARA_ADMIN_TOKEN")
+BOOTSTRAP = env("MARA_BOOTSTRAP_CREDENTIAL")
 BASE = f"http://localhost:{env('MARA_IDENTITY_PORT', '8081')}"
+TOKEN = None   # the operator credential, minted from the bootstrap one in main()
 
 
-def call(method, path, body=None, tenant=None):
-    headers = {"Authorization": f"Bearer {TOKEN}", "Content-Type": "application/json"}
+def call(method, path, body=None, tenant=None, token=None):
+    headers = {"Authorization": f"Bearer {token or TOKEN}", "Content-Type": "application/json"}
     if tenant:
         headers["X-Mara-Tenant"] = tenant
     data = json.dumps(body).encode() if body is not None else None
@@ -92,8 +97,16 @@ def shop_exists(state):
 
 
 def main():
-    if not TOKEN or len(TOKEN) < 24:
-        sys.exit("MARA_ADMIN_TOKEN (24+ chars) is not set in the environment or ./.env")
+    global TOKEN
+    if not BOOTSTRAP:
+        sys.exit("MARA_BOOTSTRAP_CREDENTIAL is not set in the environment or ./.env "
+                 "(mint one with scripts/new-credential.py --env, put it in .env, restart identity-service)")
+    status, minted = call("POST", "/v1/admin/credentials", token=BOOTSTRAP, body={
+        "label": "demo-seed operator", "expiresInHours": 12,
+        "scopes": ["admin:read", "admin:write", "platform:tenants"]})
+    if status != 201:
+        sys.exit(f"could not mint an operator credential with the bootstrap credential: {status} {minted}")
+    TOKEN = minted["credential"]
     state = json.loads(STATE.read_text()) if STATE.exists() else None
     only_code = len(sys.argv) > 1 and sys.argv[1] == "code"
     if state and not shop_exists(state):

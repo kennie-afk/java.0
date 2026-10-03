@@ -41,7 +41,7 @@ public class SyncFeedPoller {
     public SyncFeedPoller(
             SaleIngestService ingest,
             @Value("${mara.sync.base-url}") String baseUrl,
-            @Value("${mara.internal.token}") String token) {
+            @Value("${mara.service.credential}") String token) {
         this.ingest = ingest;
         this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
         this.token = token;

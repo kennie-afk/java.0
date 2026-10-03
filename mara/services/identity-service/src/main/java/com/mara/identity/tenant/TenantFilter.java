@@ -55,7 +55,13 @@ public class TenantFilter extends OncePerRequestFilter {
             "/actuator/health",
             "/actuator/info",
             // The one provisioning call that precedes the tenant it creates.
-            "/v1/admin/tenants");
+            "/v1/admin/tenants",
+            // Credentials are platform-level: they are not a tenant's rows and need no tenant.
+            "/v1/admin/credentials",
+            "/v1/admin/credentials/revoke",
+            "/v1/admin/credentials/rotate",
+            "/v1/admin/credentials/audit",
+            "/v1/internal/credentials/verify");
 
     /**
      * A terminal signs in staff before the server knows whose terminal it is; the tenant is

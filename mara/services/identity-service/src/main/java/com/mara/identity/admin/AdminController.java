@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Operator provisioning, behind {@link AdminTokenFilter}. Creating a tenant needs no
+ * Operator provisioning, behind the credential filter (scopes {@code admin:read}, {@code admin:write}, {@code platform:tenants}). Creating a tenant needs no
  * {@code X-Mara-Tenant} (the tenant does not exist yet); every other call names the tenant
  * it acts on through that header, like the rest of this service.
  */

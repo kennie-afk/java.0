@@ -9,7 +9,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mara.identity.admin.AdminTokenFilter;
 import com.mara.identity.admin.PinHasher;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
@@ -42,8 +41,11 @@ import org.springframework.test.web.servlet.ResultActions;
 class ProvisioningAndSignInTest {
 
     private static final String JDBC_URL = System.getProperty("mara.test.jdbc.url");
-    private static final String ADMIN = "Bearer test-admin-token-0123456789-abcdef";
-    private static final String INTERNAL = "Bearer test-internal-token-0123456789-abc";
+    // Real-format credentials: a platform operator (inserted in clean()) and svc-core (seeded at start-up).
+    private static final String ADMIN_TOKEN = com.mara.identity.TestCredentials.PLATFORM_TOKEN;
+    private static final String INTERNAL_TOKEN = com.mara.identity.TestCredentials.SVC_CORE_TOKEN;
+    private static final String ADMIN = "Bearer " + ADMIN_TOKEN;
+    private static final String INTERNAL = "Bearer " + INTERNAL_TOKEN;
 
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry registry) {
@@ -55,8 +57,8 @@ class ProvisioningAndSignInTest {
         registry.add("mara.datasource.app.url", () -> JDBC_URL);
         registry.add("mara.datasource.app.username", () -> "mara_app");
         registry.add("mara.datasource.app.password", () -> "app-secret");
-        registry.add("mara.admin.token", () -> ADMIN.substring(7));
-        registry.add("mara.internal.token", () -> INTERNAL.substring(7));
+        registry.add("mara.credential.seed.core", () -> INTERNAL_TOKEN);
+        registry.add("mara.credential.seed.sync", () -> com.mara.identity.TestCredentials.SVC_SYNC_TOKEN);
     }
 
     @Autowired MockMvc mvc;
@@ -69,6 +71,7 @@ class ProvisioningAndSignInTest {
     void clean() {
         ownerJdbc = new JdbcTemplate(owner);
         ownerJdbc.execute("TRUNCATE enrolment_code, terminal, staff, branch, tenant, audit_log CASCADE");
+        com.mara.identity.TestCredentials.installPlatformOperator(ownerJdbc);
     }
 
     // ------------------------------------------------------------------ fixtures
@@ -168,14 +171,14 @@ class ProvisioningAndSignInTest {
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.publicKey").value(
                         Base64.getEncoder().encodeToString(shop.key().getPublic().getEncoded())));
-        // The operator's admin token is a different credential and does not open this door.
-        mvc.perform(get(path).header("Authorization", ADMIN)).andExpect(status().isUnauthorized());
+        // The operator's credential lacks terminals:lookup: valid, but forbidden from this door.
+        mvc.perform(get(path).header("Authorization", ADMIN)).andExpect(status().isForbidden());
         mvc.perform(get(path)).andExpect(status().isUnauthorized());
         mvc.perform(get("/v1/internal/terminals/TERM-00000000000000000000").header("Authorization", INTERNAL))
                 .andExpect(status().isNotFound());
         // Not a way to enumerate: only the exact id shape is routed at all.
         mvc.perform(get("/v1/internal/terminals/").header("Authorization", INTERNAL))
-                .andExpect(status().is4xxClientError());
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -292,11 +295,4 @@ class ProvisioningAndSignInTest {
         assertThat(PinHasher.refusalFor("7391")).isNull();
     }
 
-    @Test
-    @DisplayName("the admin filter refuses to exist without a real token")
-    void noDefaultToken() {
-        assertThatThrownBy(() -> new AdminTokenFilter("short")).isInstanceOf(IllegalStateException.class);
-        assertThatThrownBy(() -> new AdminTokenFilter(null)).isInstanceOf(IllegalStateException.class);
-        assertThat(StandardCharsets.UTF_8).isNotNull();
-    }
 }

@@ -12,12 +12,16 @@ server:
     include-stacktrace: never
 
 mara:
-  internal:
-    # Credential other Mara services present to /v1/internal/**. No default.
-    token: ${MARA_INTERNAL_TOKEN}
-  admin:
-    # No default: the service refuses to start without it (see AdminTokenFilter).
-    token: ${MARA_ADMIN_TOKEN}
+  credential:
+    # Credentials the deployer minted (scripts/new-credential.py) and registers at start-up;
+    # see CredentialSeeder. The two service credentials are required; the bootstrap one is
+    # optional and lasts 24 h.
+    seed:
+      bootstrap: ${MARA_BOOTSTRAP_CREDENTIAL:}
+      sync: ${MARA_SVC_SYNC_CREDENTIAL:}
+      sync-previous: ${MARA_SVC_SYNC_CREDENTIAL_PREVIOUS:}
+      core: ${MARA_SVC_CORE_CREDENTIAL:}
+      core-previous: ${MARA_SVC_CORE_CREDENTIAL_PREVIOUS:}
   datasource:
     # Owns the schema. Runs migrations. Never serves a request.
     owner:
