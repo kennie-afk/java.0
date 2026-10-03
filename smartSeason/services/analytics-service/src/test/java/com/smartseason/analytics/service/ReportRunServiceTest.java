@@ -12,6 +12,8 @@ import com.smartseason.analytics.domain.ReportRun;
 import com.smartseason.analytics.platform.CountCache;
 import com.smartseason.analytics.platform.CountCache;
 import com.smartseason.analytics.platform.EventPublisher;
+import com.smartseason.analytics.platform.ReferenceChecker;
+import com.smartseason.analytics.platform.DomainRuleException;
 import com.smartseason.analytics.platform.ResourceNotFoundException;
 import com.smartseason.analytics.platform.TenantContext;
 import com.smartseason.analytics.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class ReportRunServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final ReportRunService service = new ReportRunService(repository, events, counts);
+    private final ReportRunService service = new ReportRunService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class ReportRunServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("ReportRunCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("reportId does not refer to a Report in your organisation"))
+                .when(strict).require(eq("Report"), eq("reportId"), any());
+        ReportRunService guarded = new ReportRunService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new ReportRunCreateRequest(UUID.randomUUID(), null, null, Instant.now(), null, null, null, null, ReportRun.Status.QUEUED, null)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("reportId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(ReportRun.class));
     }
 
     @Test

@@ -4,6 +4,7 @@ import com.smartseason.analytics.domain.Report;
 import com.smartseason.analytics.platform.CountCache;
 import com.smartseason.analytics.platform.CountCache;
 import com.smartseason.analytics.platform.EventPublisher;
+import com.smartseason.analytics.platform.ReferenceChecker;
 import com.smartseason.analytics.platform.Cursor;
 import com.smartseason.analytics.platform.CursorPage;
 import com.smartseason.analytics.platform.PageResponse;
@@ -44,11 +45,14 @@ public class ReportService {
     private final ReportRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public ReportService(ReportRepository repository, EventPublisher events, CountCache counts) {
+    public ReportService(ReportRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<ReportResponse> list(Pageable pageable, Map<String, String> params) {

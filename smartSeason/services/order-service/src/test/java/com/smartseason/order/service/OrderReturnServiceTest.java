@@ -12,6 +12,8 @@ import com.smartseason.order.domain.OrderReturn;
 import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.EventPublisher;
+import com.smartseason.order.platform.ReferenceChecker;
+import com.smartseason.order.platform.DomainRuleException;
 import com.smartseason.order.platform.ResourceNotFoundException;
 import com.smartseason.order.platform.TenantContext;
 import com.smartseason.order.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class OrderReturnServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final OrderReturnService service = new OrderReturnService(repository, events, counts);
+    private final OrderReturnService service = new OrderReturnService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class OrderReturnServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("OrderReturnCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("orderId does not refer to a PurchaseOrder in your organisation"))
+                .when(strict).require(eq("PurchaseOrder"), eq("orderId"), any());
+        OrderReturnService guarded = new OrderReturnService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new OrderReturnCreateRequest(UUID.randomUUID(), null, BigDecimal.ONE, "test", null, Instant.now(), null, OrderReturn.Status.REQUESTED)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("orderId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(OrderReturn.class));
     }
 
     @Test

@@ -4,6 +4,7 @@ import com.smartseason.logistics.domain.TransportJob;
 import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.EventPublisher;
+import com.smartseason.logistics.platform.ReferenceChecker;
 import com.smartseason.logistics.platform.Cursor;
 import com.smartseason.logistics.platform.CursorPage;
 import com.smartseason.logistics.platform.PageResponse;
@@ -47,11 +48,14 @@ public class TransportJobService {
     private final TransportJobRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public TransportJobService(TransportJobRepository repository, EventPublisher events, CountCache counts) {
+    public TransportJobService(TransportJobRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<TransportJobResponse> list(Pageable pageable, Map<String, String> params) {
@@ -99,6 +103,9 @@ public class TransportJobService {
     public TransportJobResponse create(TransportJobCreateRequest request) {
         TransportJob entity = new TransportJob();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("Vehicle", "vehicleId", request.vehicleId());
+        references.require("Driver", "driverId", request.driverId());
         entity.setJobNumber(request.jobNumber());
         entity.setOrderId(request.orderId());
         entity.setBatchId(request.batchId());
@@ -128,6 +135,8 @@ public class TransportJobService {
     @Transactional
     public TransportJobResponse update(UUID id, TransportJobUpdateRequest request) {
         TransportJob entity = require(id);
+        references.require("Vehicle", "vehicleId", request.vehicleId());
+        references.require("Driver", "driverId", request.driverId());
         if (request.jobNumber() != null) {
             entity.setJobNumber(request.jobNumber());
         }

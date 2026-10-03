@@ -12,6 +12,7 @@ import com.smartseason.telemetryingest.domain.TelemetryAnomalyRecord;
 import com.smartseason.telemetryingest.platform.CountCache;
 import com.smartseason.telemetryingest.platform.CountCache;
 import com.smartseason.telemetryingest.platform.EventPublisher;
+import com.smartseason.telemetryingest.platform.ReferenceChecker;
 import com.smartseason.telemetryingest.platform.ResourceNotFoundException;
 import com.smartseason.telemetryingest.platform.TenantContext;
 import com.smartseason.telemetryingest.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class TelemetryAnomalyRecordServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final TelemetryAnomalyRecordService service = new TelemetryAnomalyRecordService(repository, events, counts);
+    private final TelemetryAnomalyRecordService service = new TelemetryAnomalyRecordService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

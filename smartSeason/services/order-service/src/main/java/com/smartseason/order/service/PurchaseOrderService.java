@@ -4,6 +4,7 @@ import com.smartseason.order.domain.PurchaseOrder;
 import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.EventPublisher;
+import com.smartseason.order.platform.ReferenceChecker;
 import com.smartseason.order.platform.Cursor;
 import com.smartseason.order.platform.CursorPage;
 import com.smartseason.order.platform.PageResponse;
@@ -47,11 +48,14 @@ public class PurchaseOrderService {
     private final PurchaseOrderRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public PurchaseOrderService(PurchaseOrderRepository repository, EventPublisher events, CountCache counts) {
+    public PurchaseOrderService(PurchaseOrderRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<PurchaseOrderResponse> list(Pageable pageable, Map<String, String> params) {

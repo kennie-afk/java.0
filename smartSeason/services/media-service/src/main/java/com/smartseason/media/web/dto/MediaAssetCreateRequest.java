@@ -9,7 +9,6 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record MediaAssetCreateRequest(
-        @NotBlank @Size(max = 255) String storageKey,
         @Size(max = 255) String originalFilename,
         @NotBlank @Size(max = 255) String contentType,
         @NotNull Long sizeBytes,

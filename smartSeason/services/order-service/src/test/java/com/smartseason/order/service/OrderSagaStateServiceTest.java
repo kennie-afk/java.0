@@ -12,6 +12,8 @@ import com.smartseason.order.domain.OrderSagaState;
 import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.EventPublisher;
+import com.smartseason.order.platform.ReferenceChecker;
+import com.smartseason.order.platform.DomainRuleException;
 import com.smartseason.order.platform.ResourceNotFoundException;
 import com.smartseason.order.platform.TenantContext;
 import com.smartseason.order.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class OrderSagaStateServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final OrderSagaStateService service = new OrderSagaStateService(repository, events, counts);
+    private final OrderSagaStateService service = new OrderSagaStateService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class OrderSagaStateServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("OrderSagaStateCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("orderId does not refer to a PurchaseOrder in your organisation"))
+                .when(strict).require(eq("PurchaseOrder"), eq("orderId"), any());
+        OrderSagaStateService guarded = new OrderSagaStateService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new OrderSagaStateCreateRequest(UUID.randomUUID(), "test", OrderSagaState.StepStatus.PENDING, 1, null, Instant.now(), null, null, null)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("orderId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(OrderSagaState.class));
     }
 
     @Test

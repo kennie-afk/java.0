@@ -4,6 +4,7 @@ import com.smartseason.task.domain.TaskEvidence;
 import com.smartseason.task.platform.CountCache;
 import com.smartseason.task.platform.CountCache;
 import com.smartseason.task.platform.EventPublisher;
+import com.smartseason.task.platform.ReferenceChecker;
 import com.smartseason.task.platform.Cursor;
 import com.smartseason.task.platform.CursorPage;
 import com.smartseason.task.platform.PageResponse;
@@ -43,11 +44,14 @@ public class TaskEvidenceService {
     private final TaskEvidenceRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public TaskEvidenceService(TaskEvidenceRepository repository, EventPublisher events, CountCache counts) {
+    public TaskEvidenceService(TaskEvidenceRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<TaskEvidenceResponse> list(Pageable pageable, Map<String, String> params) {
@@ -95,6 +99,9 @@ public class TaskEvidenceService {
     public TaskEvidenceResponse create(TaskEvidenceCreateRequest request) {
         TaskEvidence entity = new TaskEvidence();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("TaskAssignment", "assignmentId", request.assignmentId());
+        references.require("WorkOrder", "workOrderId", request.workOrderId());
         entity.setAssignmentId(request.assignmentId());
         entity.setWorkOrderId(request.workOrderId());
         entity.setEvidenceType(request.evidenceType());
@@ -117,6 +124,8 @@ public class TaskEvidenceService {
     @Transactional
     public TaskEvidenceResponse update(UUID id, TaskEvidenceUpdateRequest request) {
         TaskEvidence entity = require(id);
+        references.require("TaskAssignment", "assignmentId", request.assignmentId());
+        references.require("WorkOrder", "workOrderId", request.workOrderId());
         if (request.assignmentId() != null) {
             entity.setAssignmentId(request.assignmentId());
         }

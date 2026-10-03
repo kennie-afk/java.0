@@ -12,6 +12,7 @@ import com.smartseason.identity.domain.KycRecord;
 import com.smartseason.identity.platform.CountCache;
 import com.smartseason.identity.platform.CountCache;
 import com.smartseason.identity.platform.EventPublisher;
+import com.smartseason.identity.platform.ReferenceChecker;
 import com.smartseason.identity.platform.ResourceNotFoundException;
 import com.smartseason.identity.platform.TenantContext;
 import com.smartseason.identity.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class KycRecordServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final KycRecordService service = new KycRecordService(repository, events, counts);
+    private final KycRecordService service = new KycRecordService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

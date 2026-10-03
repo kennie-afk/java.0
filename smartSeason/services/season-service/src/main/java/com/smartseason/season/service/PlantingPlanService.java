@@ -4,6 +4,7 @@ import com.smartseason.season.domain.PlantingPlan;
 import com.smartseason.season.platform.CountCache;
 import com.smartseason.season.platform.CountCache;
 import com.smartseason.season.platform.EventPublisher;
+import com.smartseason.season.platform.ReferenceChecker;
 import com.smartseason.season.platform.Cursor;
 import com.smartseason.season.platform.CursorPage;
 import com.smartseason.season.platform.PageResponse;
@@ -40,11 +41,14 @@ public class PlantingPlanService {
     private final PlantingPlanRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public PlantingPlanService(PlantingPlanRepository repository, EventPublisher events, CountCache counts) {
+    public PlantingPlanService(PlantingPlanRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<PlantingPlanResponse> list(Pageable pageable, Map<String, String> params) {
@@ -92,6 +96,8 @@ public class PlantingPlanService {
     public PlantingPlanResponse create(PlantingPlanCreateRequest request) {
         PlantingPlan entity = new PlantingPlan();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("Season", "seasonId", request.seasonId());
         entity.setSeasonId(request.seasonId());
         entity.setSeedRateKgHa(request.seedRateKgHa());
         entity.setSpacingCm(request.spacingCm());
@@ -110,6 +116,7 @@ public class PlantingPlanService {
     @Transactional
     public PlantingPlanResponse update(UUID id, PlantingPlanUpdateRequest request) {
         PlantingPlan entity = require(id);
+        references.require("Season", "seasonId", request.seasonId());
         if (request.seasonId() != null) {
             entity.setSeasonId(request.seasonId());
         }

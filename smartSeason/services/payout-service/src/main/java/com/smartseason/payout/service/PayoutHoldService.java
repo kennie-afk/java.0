@@ -4,6 +4,7 @@ import com.smartseason.payout.domain.PayoutHold;
 import com.smartseason.payout.platform.CountCache;
 import com.smartseason.payout.platform.CountCache;
 import com.smartseason.payout.platform.EventPublisher;
+import com.smartseason.payout.platform.ReferenceChecker;
 import com.smartseason.payout.platform.Cursor;
 import com.smartseason.payout.platform.CursorPage;
 import com.smartseason.payout.platform.PageResponse;
@@ -44,11 +45,14 @@ public class PayoutHoldService {
     private final PayoutHoldRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public PayoutHoldService(PayoutHoldRepository repository, EventPublisher events, CountCache counts) {
+    public PayoutHoldService(PayoutHoldRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<PayoutHoldResponse> list(Pageable pageable, Map<String, String> params) {
@@ -96,6 +100,8 @@ public class PayoutHoldService {
     public PayoutHoldResponse create(PayoutHoldCreateRequest request) {
         PayoutHold entity = new PayoutHold();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("PayoutItem", "payoutItemId", request.payoutItemId());
         entity.setPayoutItemId(request.payoutItemId());
         entity.setPayeeId(request.payeeId());
         entity.setReason(request.reason());
@@ -117,6 +123,7 @@ public class PayoutHoldService {
     @Transactional
     public PayoutHoldResponse update(UUID id, PayoutHoldUpdateRequest request) {
         PayoutHold entity = require(id);
+        references.require("PayoutItem", "payoutItemId", request.payoutItemId());
         if (request.payoutItemId() != null) {
             entity.setPayoutItemId(request.payoutItemId());
         }

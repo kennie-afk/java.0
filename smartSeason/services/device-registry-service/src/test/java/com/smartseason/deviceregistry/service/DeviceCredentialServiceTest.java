@@ -12,6 +12,8 @@ import com.smartseason.deviceregistry.domain.DeviceCredential;
 import com.smartseason.deviceregistry.platform.CountCache;
 import com.smartseason.deviceregistry.platform.CountCache;
 import com.smartseason.deviceregistry.platform.EventPublisher;
+import com.smartseason.deviceregistry.platform.ReferenceChecker;
+import com.smartseason.deviceregistry.platform.DomainRuleException;
 import com.smartseason.deviceregistry.platform.ResourceNotFoundException;
 import com.smartseason.deviceregistry.platform.TenantContext;
 import com.smartseason.deviceregistry.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class DeviceCredentialServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final DeviceCredentialService service = new DeviceCredentialService(repository, events, counts);
+    private final DeviceCredentialService service = new DeviceCredentialService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class DeviceCredentialServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("DeviceCredentialCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("deviceId does not refer to a Device in your organisation"))
+                .when(strict).require(eq("Device"), eq("deviceId"), any());
+        DeviceCredentialService guarded = new DeviceCredentialService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new DeviceCredentialCreateRequest(UUID.randomUUID(), DeviceCredential.CredentialType.CERT, null, null, Instant.now(), null, null)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("deviceId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(DeviceCredential.class));
     }
 
     @Test

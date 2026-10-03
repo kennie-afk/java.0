@@ -12,6 +12,7 @@ import com.smartseason.notification.domain.Notification;
 import com.smartseason.notification.platform.CountCache;
 import com.smartseason.notification.platform.CountCache;
 import com.smartseason.notification.platform.EventPublisher;
+import com.smartseason.notification.platform.ReferenceChecker;
 import com.smartseason.notification.platform.ResourceNotFoundException;
 import com.smartseason.notification.platform.TenantContext;
 import com.smartseason.notification.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class NotificationServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final NotificationService service = new NotificationService(repository, events, counts);
+    private final NotificationService service = new NotificationService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

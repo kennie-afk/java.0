@@ -4,6 +4,7 @@ import com.smartseason.logistics.domain.RouteStop;
 import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.EventPublisher;
+import com.smartseason.logistics.platform.ReferenceChecker;
 import com.smartseason.logistics.platform.Cursor;
 import com.smartseason.logistics.platform.CursorPage;
 import com.smartseason.logistics.platform.PageResponse;
@@ -40,11 +41,14 @@ public class RouteStopService {
     private final RouteStopRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public RouteStopService(RouteStopRepository repository, EventPublisher events, CountCache counts) {
+    public RouteStopService(RouteStopRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<RouteStopResponse> list(Pageable pageable, Map<String, String> params) {
@@ -92,6 +96,8 @@ public class RouteStopService {
     public RouteStopResponse create(RouteStopCreateRequest request) {
         RouteStop entity = new RouteStop();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("TransportJob", "transportJobId", request.transportJobId());
         entity.setTransportJobId(request.transportJobId());
         entity.setSequence(request.sequence());
         entity.setStopType(request.stopType());
@@ -112,6 +118,7 @@ public class RouteStopService {
     @Transactional
     public RouteStopResponse update(UUID id, RouteStopUpdateRequest request) {
         RouteStop entity = require(id);
+        references.require("TransportJob", "transportJobId", request.transportJobId());
         if (request.transportJobId() != null) {
             entity.setTransportJobId(request.transportJobId());
         }

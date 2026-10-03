@@ -4,6 +4,7 @@ import com.smartseason.task.domain.WorkOrder;
 import com.smartseason.task.platform.CountCache;
 import com.smartseason.task.platform.CountCache;
 import com.smartseason.task.platform.EventPublisher;
+import com.smartseason.task.platform.ReferenceChecker;
 import com.smartseason.task.platform.Cursor;
 import com.smartseason.task.platform.CursorPage;
 import com.smartseason.task.platform.PageResponse;
@@ -45,11 +46,14 @@ public class WorkOrderService {
     private final WorkOrderRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public WorkOrderService(WorkOrderRepository repository, EventPublisher events, CountCache counts) {
+    public WorkOrderService(WorkOrderRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<WorkOrderResponse> list(Pageable pageable, Map<String, String> params) {

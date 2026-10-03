@@ -4,6 +4,7 @@ import com.smartseason.media.domain.UploadTicket;
 import com.smartseason.media.platform.CountCache;
 import com.smartseason.media.platform.CountCache;
 import com.smartseason.media.platform.EventPublisher;
+import com.smartseason.media.platform.ReferenceChecker;
 import com.smartseason.media.platform.Cursor;
 import com.smartseason.media.platform.CursorPage;
 import com.smartseason.media.platform.PageResponse;
@@ -31,22 +32,25 @@ public class UploadTicketService {
     private static final String ENTITY = "upload_tickets";
 
     private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
-            Map.entry("storageKey", String.class),
             Map.entry("method", String.class),
             Map.entry("requestedBy", UUID.class),
             Map.entry("contentType", String.class),
-            Map.entry("status", UploadTicket.Status.class));
+            Map.entry("status", UploadTicket.Status.class),
+            Map.entry("storageKey", String.class));
 
-    private static final List<String> SEARCHABLE = List.of("storageKey", "method", "contentType");
+    private static final List<String> SEARCHABLE = List.of("method", "contentType", "storageKey");
 
     private final UploadTicketRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public UploadTicketService(UploadTicketRepository repository, EventPublisher events, CountCache counts) {
+    public UploadTicketService(UploadTicketRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<UploadTicketResponse> list(Pageable pageable, Map<String, String> params) {
@@ -94,7 +98,6 @@ public class UploadTicketService {
     public UploadTicketResponse create(UploadTicketCreateRequest request) {
         UploadTicket entity = new UploadTicket();
         entity.setTenantId(TenantContext.requireTenantId());
-        entity.setStorageKey(request.storageKey());
         entity.setUploadUrl(request.uploadUrl());
         entity.setMethod(request.method());
         entity.setRequestedBy(request.requestedBy());
@@ -103,6 +106,7 @@ public class UploadTicketService {
         entity.setExpiresAt(request.expiresAt());
         entity.setConsumedAt(request.consumedAt());
         entity.setStatus(request.status());
+        entity.setStorageKey(TenantContext.requireTenantId() + "/upload_tickets/" + UUID.randomUUID());
 
         UploadTicket saved = repository.save(entity);
         counts.invalidate(ENTITY, saved.getTenantId());
@@ -113,9 +117,6 @@ public class UploadTicketService {
     @Transactional
     public UploadTicketResponse update(UUID id, UploadTicketUpdateRequest request) {
         UploadTicket entity = require(id);
-        if (request.storageKey() != null) {
-            entity.setStorageKey(request.storageKey());
-        }
         if (request.uploadUrl() != null) {
             entity.setUploadUrl(request.uploadUrl());
         }

@@ -12,6 +12,8 @@ import com.smartseason.inventory.domain.Reservation;
 import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.EventPublisher;
+import com.smartseason.inventory.platform.ReferenceChecker;
+import com.smartseason.inventory.platform.DomainRuleException;
 import com.smartseason.inventory.platform.ResourceNotFoundException;
 import com.smartseason.inventory.platform.TenantContext;
 import com.smartseason.inventory.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class ReservationServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final ReservationService service = new ReservationService(repository, events, counts);
+    private final ReservationService service = new ReservationService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class ReservationServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("ReservationCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("stockItemId does not refer to a StockItem in your organisation"))
+                .when(strict).require(eq("StockItem"), eq("stockItemId"), any());
+        ReservationService guarded = new ReservationService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new ReservationCreateRequest(UUID.randomUUID(), null, BigDecimal.ONE, Instant.now(), null, null, Reservation.Status.HELD)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("stockItemId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(Reservation.class));
     }
 
     @Test

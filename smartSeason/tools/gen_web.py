@@ -153,7 +153,7 @@ def form_spec(field):
 
 def pick_form_fields(fields):
     """Every field a caller may legitimately set, required ones first."""
-    usable = [f for f in fields if not is_secret(f)]
+    usable = [f for f in fields if not is_secret(f) and not f.server]
     required = [f for f in usable if f.notnull]
     optional = [f for f in usable if not f.notnull]
     return [form_spec(f) for f in required + optional]

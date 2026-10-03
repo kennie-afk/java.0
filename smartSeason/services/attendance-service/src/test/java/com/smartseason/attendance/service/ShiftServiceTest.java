@@ -12,6 +12,7 @@ import com.smartseason.attendance.domain.Shift;
 import com.smartseason.attendance.platform.CountCache;
 import com.smartseason.attendance.platform.CountCache;
 import com.smartseason.attendance.platform.EventPublisher;
+import com.smartseason.attendance.platform.ReferenceChecker;
 import com.smartseason.attendance.platform.ResourceNotFoundException;
 import com.smartseason.attendance.platform.TenantContext;
 import com.smartseason.attendance.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class ShiftServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final ShiftService service = new ShiftService(repository, events, counts);
+    private final ShiftService service = new ShiftService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

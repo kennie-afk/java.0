@@ -4,6 +4,7 @@ import com.smartseason.ledger.domain.JournalEntry;
 import com.smartseason.ledger.platform.CountCache;
 import com.smartseason.ledger.platform.CountCache;
 import com.smartseason.ledger.platform.EventPublisher;
+import com.smartseason.ledger.platform.ReferenceChecker;
 import com.smartseason.ledger.platform.Cursor;
 import com.smartseason.ledger.platform.CursorPage;
 import com.smartseason.ledger.platform.PageResponse;
@@ -45,11 +46,14 @@ public class JournalEntryService {
     private final JournalEntryRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public JournalEntryService(JournalEntryRepository repository, EventPublisher events, CountCache counts) {
+    public JournalEntryService(JournalEntryRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<JournalEntryResponse> list(Pageable pageable, Map<String, String> params) {
@@ -97,6 +101,8 @@ public class JournalEntryService {
     public JournalEntryResponse create(JournalEntryCreateRequest request) {
         JournalEntry entity = new JournalEntry();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("JournalEntry", "reversalOfId", request.reversalOfId());
         entity.setEntryNumber(request.entryNumber());
         entity.setDescription(request.description());
         entity.setSourceEvent(request.sourceEvent());
@@ -119,6 +125,7 @@ public class JournalEntryService {
     @Transactional
     public JournalEntryResponse update(UUID id, JournalEntryUpdateRequest request) {
         JournalEntry entity = require(id);
+        references.require("JournalEntry", "reversalOfId", request.reversalOfId());
         if (request.entryNumber() != null) {
             entity.setEntryNumber(request.entryNumber());
         }

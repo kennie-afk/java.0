@@ -12,6 +12,7 @@ import com.smartseason.media.domain.MediaAsset;
 import com.smartseason.media.platform.CountCache;
 import com.smartseason.media.platform.CountCache;
 import com.smartseason.media.platform.EventPublisher;
+import com.smartseason.media.platform.ReferenceChecker;
 import com.smartseason.media.platform.ResourceNotFoundException;
 import com.smartseason.media.platform.TenantContext;
 import com.smartseason.media.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class MediaAssetServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final MediaAssetService service = new MediaAssetService(repository, events, counts);
+    private final MediaAssetService service = new MediaAssetService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -59,7 +60,7 @@ class MediaAssetServiceTest {
             return saved;
         });
 
-        var response = service.create(new MediaAssetCreateRequest("test", null, "test", 1L, null, null, null, null, null, null, null, null, null, null, null, null, true, true, MediaAsset.Status.PENDING));
+        var response = service.create(new MediaAssetCreateRequest(null, "test", 1L, null, null, null, null, null, null, null, null, null, null, null, null, true, true, MediaAsset.Status.PENDING));
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("MediaAssetCreated"), any(), any());

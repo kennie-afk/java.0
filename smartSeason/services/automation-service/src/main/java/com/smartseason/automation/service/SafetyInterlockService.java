@@ -4,6 +4,7 @@ import com.smartseason.automation.domain.SafetyInterlock;
 import com.smartseason.automation.platform.CountCache;
 import com.smartseason.automation.platform.CountCache;
 import com.smartseason.automation.platform.EventPublisher;
+import com.smartseason.automation.platform.ReferenceChecker;
 import com.smartseason.automation.platform.Cursor;
 import com.smartseason.automation.platform.CursorPage;
 import com.smartseason.automation.platform.PageResponse;
@@ -42,11 +43,14 @@ public class SafetyInterlockService {
     private final SafetyInterlockRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public SafetyInterlockService(SafetyInterlockRepository repository, EventPublisher events, CountCache counts) {
+    public SafetyInterlockService(SafetyInterlockRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<SafetyInterlockResponse> list(Pageable pageable, Map<String, String> params) {

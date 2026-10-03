@@ -4,6 +4,7 @@ import com.smartseason.weather.domain.WeatherAlertRecord;
 import com.smartseason.weather.platform.CountCache;
 import com.smartseason.weather.platform.CountCache;
 import com.smartseason.weather.platform.EventPublisher;
+import com.smartseason.weather.platform.ReferenceChecker;
 import com.smartseason.weather.platform.Cursor;
 import com.smartseason.weather.platform.CursorPage;
 import com.smartseason.weather.platform.PageResponse;
@@ -42,11 +43,14 @@ public class WeatherAlertRecordService {
     private final WeatherAlertRecordRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public WeatherAlertRecordService(WeatherAlertRecordRepository repository, EventPublisher events, CountCache counts) {
+    public WeatherAlertRecordService(WeatherAlertRecordRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<WeatherAlertRecordResponse> list(Pageable pageable, Map<String, String> params) {

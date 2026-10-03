@@ -4,6 +4,7 @@ import com.smartseason.fraud.domain.WorkerRiskScore;
 import com.smartseason.fraud.platform.CountCache;
 import com.smartseason.fraud.platform.CountCache;
 import com.smartseason.fraud.platform.EventPublisher;
+import com.smartseason.fraud.platform.ReferenceChecker;
 import com.smartseason.fraud.platform.Cursor;
 import com.smartseason.fraud.platform.CursorPage;
 import com.smartseason.fraud.platform.PageResponse;
@@ -40,11 +41,14 @@ public class WorkerRiskScoreService {
     private final WorkerRiskScoreRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public WorkerRiskScoreService(WorkerRiskScoreRepository repository, EventPublisher events, CountCache counts) {
+    public WorkerRiskScoreService(WorkerRiskScoreRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<WorkerRiskScoreResponse> list(Pageable pageable, Map<String, String> params) {

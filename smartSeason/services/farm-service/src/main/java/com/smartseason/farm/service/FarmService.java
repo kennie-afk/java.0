@@ -4,6 +4,7 @@ import com.smartseason.farm.domain.Farm;
 import com.smartseason.farm.platform.CountCache;
 import com.smartseason.farm.platform.CountCache;
 import com.smartseason.farm.platform.EventPublisher;
+import com.smartseason.farm.platform.ReferenceChecker;
 import com.smartseason.farm.platform.Cursor;
 import com.smartseason.farm.platform.CursorPage;
 import com.smartseason.farm.platform.PageResponse;
@@ -45,11 +46,14 @@ public class FarmService {
     private final FarmRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public FarmService(FarmRepository repository, EventPublisher events, CountCache counts) {
+    public FarmService(FarmRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<FarmResponse> list(Pageable pageable, Map<String, String> params) {

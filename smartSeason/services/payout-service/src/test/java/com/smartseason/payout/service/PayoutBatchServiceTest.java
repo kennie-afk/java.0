@@ -12,6 +12,7 @@ import com.smartseason.payout.domain.PayoutBatch;
 import com.smartseason.payout.platform.CountCache;
 import com.smartseason.payout.platform.CountCache;
 import com.smartseason.payout.platform.EventPublisher;
+import com.smartseason.payout.platform.ReferenceChecker;
 import com.smartseason.payout.platform.ResourceNotFoundException;
 import com.smartseason.payout.platform.TenantContext;
 import com.smartseason.payout.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class PayoutBatchServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final PayoutBatchService service = new PayoutBatchService(repository, events, counts);
+    private final PayoutBatchService service = new PayoutBatchService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

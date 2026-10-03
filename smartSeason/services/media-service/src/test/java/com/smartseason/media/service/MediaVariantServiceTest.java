@@ -12,6 +12,8 @@ import com.smartseason.media.domain.MediaVariant;
 import com.smartseason.media.platform.CountCache;
 import com.smartseason.media.platform.CountCache;
 import com.smartseason.media.platform.EventPublisher;
+import com.smartseason.media.platform.ReferenceChecker;
+import com.smartseason.media.platform.DomainRuleException;
 import com.smartseason.media.platform.ResourceNotFoundException;
 import com.smartseason.media.platform.TenantContext;
 import com.smartseason.media.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class MediaVariantServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final MediaVariantService service = new MediaVariantService(repository, events, counts);
+    private final MediaVariantService service = new MediaVariantService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -59,10 +61,25 @@ class MediaVariantServiceTest {
             return saved;
         });
 
-        var response = service.create(new MediaVariantCreateRequest(UUID.randomUUID(), "test", "test", null, null, null, null, null));
+        var response = service.create(new MediaVariantCreateRequest(UUID.randomUUID(), "test", null, null, null, null, null));
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("MediaVariantCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("assetId does not refer to a MediaAsset in your organisation"))
+                .when(strict).require(eq("MediaAsset"), eq("assetId"), any());
+        MediaVariantService guarded = new MediaVariantService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new MediaVariantCreateRequest(UUID.randomUUID(), "test", null, null, null, null, null)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("assetId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(MediaVariant.class));
     }
 
     @Test

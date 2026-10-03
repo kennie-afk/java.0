@@ -12,6 +12,8 @@ import com.smartseason.identity.domain.User;
 import com.smartseason.identity.platform.CountCache;
 import com.smartseason.identity.platform.CountCache;
 import com.smartseason.identity.platform.EventPublisher;
+import com.smartseason.identity.platform.ReferenceChecker;
+import com.smartseason.identity.platform.DomainRuleException;
 import com.smartseason.identity.platform.ResourceNotFoundException;
 import com.smartseason.identity.platform.TenantContext;
 import com.smartseason.identity.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class UserServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final UserService service = new UserService(repository, events, counts);
+    private final UserService service = new UserService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class UserServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("UserCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("organisationId does not refer to a Organisation in your organisation"))
+                .when(strict).require(eq("Organisation"), eq("organisationId"), any());
+        UserService guarded = new UserService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new UserCreateRequest("test", null, "test", "test", null, "test", User.Status.ACTIVE, true, null, 1, null)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("organisationId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(User.class));
     }
 
     @Test

@@ -4,6 +4,7 @@ import com.smartseason.ledger.domain.Account;
 import com.smartseason.ledger.platform.CountCache;
 import com.smartseason.ledger.platform.CountCache;
 import com.smartseason.ledger.platform.EventPublisher;
+import com.smartseason.ledger.platform.ReferenceChecker;
 import com.smartseason.ledger.platform.Cursor;
 import com.smartseason.ledger.platform.CursorPage;
 import com.smartseason.ledger.platform.PageResponse;
@@ -46,11 +47,14 @@ public class AccountService {
     private final AccountRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public AccountService(AccountRepository repository, EventPublisher events, CountCache counts) {
+    public AccountService(AccountRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<AccountResponse> list(Pageable pageable, Map<String, String> params) {
@@ -98,6 +102,8 @@ public class AccountService {
     public AccountResponse create(AccountCreateRequest request) {
         Account entity = new Account();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("Account", "parentAccountId", request.parentAccountId());
         entity.setAccountCode(request.accountCode());
         entity.setName(request.name());
         entity.setAccountType(request.accountType());
@@ -117,6 +123,7 @@ public class AccountService {
     @Transactional
     public AccountResponse update(UUID id, AccountUpdateRequest request) {
         Account entity = require(id);
+        references.require("Account", "parentAccountId", request.parentAccountId());
         if (request.accountCode() != null) {
             entity.setAccountCode(request.accountCode());
         }

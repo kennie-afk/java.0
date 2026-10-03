@@ -4,6 +4,7 @@ import com.smartseason.season.domain.SeasonStage;
 import com.smartseason.season.platform.CountCache;
 import com.smartseason.season.platform.CountCache;
 import com.smartseason.season.platform.EventPublisher;
+import com.smartseason.season.platform.ReferenceChecker;
 import com.smartseason.season.platform.Cursor;
 import com.smartseason.season.platform.CursorPage;
 import com.smartseason.season.platform.PageResponse;
@@ -40,11 +41,14 @@ public class SeasonStageService {
     private final SeasonStageRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public SeasonStageService(SeasonStageRepository repository, EventPublisher events, CountCache counts) {
+    public SeasonStageService(SeasonStageRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<SeasonStageResponse> list(Pageable pageable, Map<String, String> params) {
@@ -92,6 +96,8 @@ public class SeasonStageService {
     public SeasonStageResponse create(SeasonStageCreateRequest request) {
         SeasonStage entity = new SeasonStage();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("Season", "seasonId", request.seasonId());
         entity.setSeasonId(request.seasonId());
         entity.setStageName(request.stageName());
         entity.setSequence(request.sequence());
@@ -111,6 +117,7 @@ public class SeasonStageService {
     @Transactional
     public SeasonStageResponse update(UUID id, SeasonStageUpdateRequest request) {
         SeasonStage entity = require(id);
+        references.require("Season", "seasonId", request.seasonId());
         if (request.seasonId() != null) {
             entity.setSeasonId(request.seasonId());
         }

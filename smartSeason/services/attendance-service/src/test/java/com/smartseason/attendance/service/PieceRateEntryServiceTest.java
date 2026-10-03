@@ -12,6 +12,8 @@ import com.smartseason.attendance.domain.PieceRateEntry;
 import com.smartseason.attendance.platform.CountCache;
 import com.smartseason.attendance.platform.CountCache;
 import com.smartseason.attendance.platform.EventPublisher;
+import com.smartseason.attendance.platform.ReferenceChecker;
+import com.smartseason.attendance.platform.DomainRuleException;
 import com.smartseason.attendance.platform.ResourceNotFoundException;
 import com.smartseason.attendance.platform.TenantContext;
 import com.smartseason.attendance.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class PieceRateEntryServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final PieceRateEntryService service = new PieceRateEntryService(repository, events, counts);
+    private final PieceRateEntryService service = new PieceRateEntryService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class PieceRateEntryServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("PieceRateEntryCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("shiftId does not refer to a Shift in your organisation"))
+                .when(strict).require(eq("Shift"), eq("shiftId"), any());
+        PieceRateEntryService guarded = new PieceRateEntryService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new PieceRateEntryCreateRequest(UUID.randomUUID(), null, UUID.randomUUID(), null, "test", BigDecimal.ONE, "test", Instant.now(), null, null, null, null, PieceRateEntry.Status.RECORDED)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("shiftId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(PieceRateEntry.class));
     }
 
     @Test

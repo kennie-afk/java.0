@@ -12,6 +12,8 @@ import com.smartseason.ledger.domain.Account;
 import com.smartseason.ledger.platform.CountCache;
 import com.smartseason.ledger.platform.CountCache;
 import com.smartseason.ledger.platform.EventPublisher;
+import com.smartseason.ledger.platform.ReferenceChecker;
+import com.smartseason.ledger.platform.DomainRuleException;
 import com.smartseason.ledger.platform.ResourceNotFoundException;
 import com.smartseason.ledger.platform.TenantContext;
 import com.smartseason.ledger.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class AccountServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final AccountService service = new AccountService(repository, events, counts);
+    private final AccountService service = new AccountService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class AccountServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("AccountCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("parentAccountId does not refer to a Account in your organisation"))
+                .when(strict).require(eq("Account"), eq("parentAccountId"), any());
+        AccountService guarded = new AccountService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new AccountCreateRequest("test", "test", Account.AccountType.ASSET, null, null, "test", Account.NormalBalance.DEBIT, Account.Status.ACTIVE, null)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("parentAccountId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(Account.class));
     }
 
     @Test

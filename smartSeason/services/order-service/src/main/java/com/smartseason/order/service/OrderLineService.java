@@ -4,6 +4,7 @@ import com.smartseason.order.domain.OrderLine;
 import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.EventPublisher;
+import com.smartseason.order.platform.ReferenceChecker;
 import com.smartseason.order.platform.Cursor;
 import com.smartseason.order.platform.CursorPage;
 import com.smartseason.order.platform.PageResponse;
@@ -43,11 +44,14 @@ public class OrderLineService {
     private final OrderLineRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public OrderLineService(OrderLineRepository repository, EventPublisher events, CountCache counts) {
+    public OrderLineService(OrderLineRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<OrderLineResponse> list(Pageable pageable, Map<String, String> params) {
@@ -95,6 +99,8 @@ public class OrderLineService {
     public OrderLineResponse create(OrderLineCreateRequest request) {
         OrderLine entity = new OrderLine();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("PurchaseOrder", "orderId", request.orderId());
         entity.setOrderId(request.orderId());
         entity.setListingId(request.listingId());
         entity.setCommodityCode(request.commodityCode());
@@ -115,6 +121,7 @@ public class OrderLineService {
     @Transactional
     public OrderLineResponse update(UUID id, OrderLineUpdateRequest request) {
         OrderLine entity = require(id);
+        references.require("PurchaseOrder", "orderId", request.orderId());
         if (request.orderId() != null) {
             entity.setOrderId(request.orderId());
         }

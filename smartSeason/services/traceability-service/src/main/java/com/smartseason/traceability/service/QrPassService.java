@@ -4,6 +4,7 @@ import com.smartseason.traceability.domain.QrPass;
 import com.smartseason.traceability.platform.CountCache;
 import com.smartseason.traceability.platform.CountCache;
 import com.smartseason.traceability.platform.EventPublisher;
+import com.smartseason.traceability.platform.ReferenceChecker;
 import com.smartseason.traceability.platform.Cursor;
 import com.smartseason.traceability.platform.CursorPage;
 import com.smartseason.traceability.platform.PageResponse;
@@ -41,11 +42,14 @@ public class QrPassService {
     private final QrPassRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public QrPassService(QrPassRepository repository, EventPublisher events, CountCache counts) {
+    public QrPassService(QrPassRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<QrPassResponse> list(Pageable pageable, Map<String, String> params) {

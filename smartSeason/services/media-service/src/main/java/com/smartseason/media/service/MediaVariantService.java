@@ -4,6 +4,7 @@ import com.smartseason.media.domain.MediaVariant;
 import com.smartseason.media.platform.CountCache;
 import com.smartseason.media.platform.CountCache;
 import com.smartseason.media.platform.EventPublisher;
+import com.smartseason.media.platform.ReferenceChecker;
 import com.smartseason.media.platform.Cursor;
 import com.smartseason.media.platform.CursorPage;
 import com.smartseason.media.platform.PageResponse;
@@ -33,20 +34,23 @@ public class MediaVariantService {
     private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
             Map.entry("assetId", UUID.class),
             Map.entry("variantName", String.class),
-            Map.entry("storageKey", String.class),
             Map.entry("contentType", String.class),
-            Map.entry("publicUrl", String.class));
+            Map.entry("publicUrl", String.class),
+            Map.entry("storageKey", String.class));
 
-    private static final List<String> SEARCHABLE = List.of("variantName", "storageKey", "contentType", "publicUrl");
+    private static final List<String> SEARCHABLE = List.of("variantName", "contentType", "publicUrl", "storageKey");
 
     private final MediaVariantRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public MediaVariantService(MediaVariantRepository repository, EventPublisher events, CountCache counts) {
+    public MediaVariantService(MediaVariantRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<MediaVariantResponse> list(Pageable pageable, Map<String, String> params) {
@@ -94,14 +98,16 @@ public class MediaVariantService {
     public MediaVariantResponse create(MediaVariantCreateRequest request) {
         MediaVariant entity = new MediaVariant();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("MediaAsset", "assetId", request.assetId());
         entity.setAssetId(request.assetId());
         entity.setVariantName(request.variantName());
-        entity.setStorageKey(request.storageKey());
         entity.setWidth(request.width());
         entity.setHeight(request.height());
         entity.setSizeBytes(request.sizeBytes());
         entity.setContentType(request.contentType());
         entity.setPublicUrl(request.publicUrl());
+        entity.setStorageKey(TenantContext.requireTenantId() + "/media_variants/" + UUID.randomUUID());
 
         MediaVariant saved = repository.save(entity);
         counts.invalidate(ENTITY, saved.getTenantId());
@@ -112,14 +118,12 @@ public class MediaVariantService {
     @Transactional
     public MediaVariantResponse update(UUID id, MediaVariantUpdateRequest request) {
         MediaVariant entity = require(id);
+        references.require("MediaAsset", "assetId", request.assetId());
         if (request.assetId() != null) {
             entity.setAssetId(request.assetId());
         }
         if (request.variantName() != null) {
             entity.setVariantName(request.variantName());
-        }
-        if (request.storageKey() != null) {
-            entity.setStorageKey(request.storageKey());
         }
         if (request.width() != null) {
             entity.setWidth(request.width());

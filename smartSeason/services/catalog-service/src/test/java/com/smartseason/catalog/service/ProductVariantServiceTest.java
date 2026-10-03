@@ -12,6 +12,8 @@ import com.smartseason.catalog.domain.ProductVariant;
 import com.smartseason.catalog.platform.CountCache;
 import com.smartseason.catalog.platform.CountCache;
 import com.smartseason.catalog.platform.EventPublisher;
+import com.smartseason.catalog.platform.ReferenceChecker;
+import com.smartseason.catalog.platform.DomainRuleException;
 import com.smartseason.catalog.platform.ResourceNotFoundException;
 import com.smartseason.catalog.platform.TenantContext;
 import com.smartseason.catalog.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class ProductVariantServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final ProductVariantService service = new ProductVariantService(repository, events, counts);
+    private final ProductVariantService service = new ProductVariantService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class ProductVariantServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("ProductVariantCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("productId does not refer to a Product in your organisation"))
+                .when(strict).require(eq("Product"), eq("productId"), any());
+        ProductVariantService guarded = new ProductVariantService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new ProductVariantCreateRequest(UUID.randomUUID(), "test", "test", null, null, null, true)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("productId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(ProductVariant.class));
     }
 
     @Test

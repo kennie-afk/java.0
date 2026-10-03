@@ -4,6 +4,7 @@ import com.smartseason.notification.domain.UssdSession;
 import com.smartseason.notification.platform.CountCache;
 import com.smartseason.notification.platform.CountCache;
 import com.smartseason.notification.platform.EventPublisher;
+import com.smartseason.notification.platform.ReferenceChecker;
 import com.smartseason.notification.platform.Cursor;
 import com.smartseason.notification.platform.CursorPage;
 import com.smartseason.notification.platform.PageResponse;
@@ -43,11 +44,14 @@ public class UssdSessionService {
     private final UssdSessionRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public UssdSessionService(UssdSessionRepository repository, EventPublisher events, CountCache counts) {
+    public UssdSessionService(UssdSessionRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<UssdSessionResponse> list(Pageable pageable, Map<String, String> params) {

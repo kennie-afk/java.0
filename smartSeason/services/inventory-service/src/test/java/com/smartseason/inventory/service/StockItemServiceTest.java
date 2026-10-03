@@ -12,6 +12,8 @@ import com.smartseason.inventory.domain.StockItem;
 import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.EventPublisher;
+import com.smartseason.inventory.platform.ReferenceChecker;
+import com.smartseason.inventory.platform.DomainRuleException;
 import com.smartseason.inventory.platform.ResourceNotFoundException;
 import com.smartseason.inventory.platform.TenantContext;
 import com.smartseason.inventory.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class StockItemServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final StockItemService service = new StockItemService(repository, events, counts);
+    private final StockItemService service = new StockItemService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class StockItemServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("StockItemCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("warehouseId does not refer to a Warehouse in your organisation"))
+                .when(strict).require(eq("Warehouse"), eq("warehouseId"), any());
+        StockItemService guarded = new StockItemService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new StockItemCreateRequest(UUID.randomUUID(), "test", null, null, BigDecimal.ONE, "test", BigDecimal.ONE, null, null)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("warehouseId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(StockItem.class));
     }
 
     @Test

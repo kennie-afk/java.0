@@ -535,18 +535,18 @@ SERVICES += [
       publishes=["MediaUploaded","MediaProcessed"],
       entities=[
         ("MediaAsset","media_assets",[
-          "storageKey:string:uq,nn","originalFilename:string","contentType:string:nn","sizeBytes:long:nn",
+          "storageKey:string:uq,nn,srv","originalFilename:string","contentType:string:nn","sizeBytes:long:nn",
           "checksum:string:ix","ownerUserId:uuid:ix","context:string:ix","contextRef:string:ix",
           "width:int","height:int","durationSeconds:int","perceptualHash:string:ix",
           "exifTimestamp:ts","exifLatitude:decimal","exifLongitude:decimal","publicUrl:string",
           "virusScanned:bool:nn","virusClean:bool:nn",
           "status:enum(PENDING|UPLOADED|PROCESSING|READY|QUARANTINED|DELETED):nn"]),
         ("UploadTicket","upload_tickets",[
-          "storageKey:string:uq,nn","uploadUrl:text:nn","method:string:nn","requestedBy:uuid:nn",
+          "storageKey:string:uq,nn,srv","uploadUrl:text:nn","method:string:nn","requestedBy:uuid:nn",
           "contentType:string","maxSizeBytes:long","expiresAt:ts:nn","consumedAt:ts",
           "status:enum(ISSUED|CONSUMED|EXPIRED):nn"]),
         ("MediaVariant","media_variants",[
-          "assetId:uuid:ix,nn","variantName:string:nn","storageKey:string:nn","width:int","height:int",
+          "assetId:uuid:ix,nn","variantName:string:nn","storageKey:string:nn,srv","width:int","height:int",
           "sizeBytes:long","contentType:string","publicUrl:string"]),
       ]),
 

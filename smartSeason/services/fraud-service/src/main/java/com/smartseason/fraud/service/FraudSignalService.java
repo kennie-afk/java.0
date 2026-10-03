@@ -4,6 +4,7 @@ import com.smartseason.fraud.domain.FraudSignal;
 import com.smartseason.fraud.platform.CountCache;
 import com.smartseason.fraud.platform.CountCache;
 import com.smartseason.fraud.platform.EventPublisher;
+import com.smartseason.fraud.platform.ReferenceChecker;
 import com.smartseason.fraud.platform.Cursor;
 import com.smartseason.fraud.platform.CursorPage;
 import com.smartseason.fraud.platform.PageResponse;
@@ -43,11 +44,14 @@ public class FraudSignalService {
     private final FraudSignalRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public FraudSignalService(FraudSignalRepository repository, EventPublisher events, CountCache counts) {
+    public FraudSignalService(FraudSignalRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<FraudSignalResponse> list(Pageable pageable, Map<String, String> params) {
@@ -95,6 +99,8 @@ public class FraudSignalService {
     public FraudSignalResponse create(FraudSignalCreateRequest request) {
         FraudSignal entity = new FraudSignal();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("FraudCase", "caseId", request.caseId());
         entity.setSubjectType(request.subjectType());
         entity.setSubjectId(request.subjectId());
         entity.setRuleCode(request.ruleCode());
@@ -114,6 +120,7 @@ public class FraudSignalService {
     @Transactional
     public FraudSignalResponse update(UUID id, FraudSignalUpdateRequest request) {
         FraudSignal entity = require(id);
+        references.require("FraudCase", "caseId", request.caseId());
         if (request.subjectType() != null) {
             entity.setSubjectType(request.subjectType());
         }

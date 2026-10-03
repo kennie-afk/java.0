@@ -12,6 +12,8 @@ import com.smartseason.payout.domain.PayoutItem;
 import com.smartseason.payout.platform.CountCache;
 import com.smartseason.payout.platform.CountCache;
 import com.smartseason.payout.platform.EventPublisher;
+import com.smartseason.payout.platform.ReferenceChecker;
+import com.smartseason.payout.platform.DomainRuleException;
 import com.smartseason.payout.platform.ResourceNotFoundException;
 import com.smartseason.payout.platform.TenantContext;
 import com.smartseason.payout.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class PayoutItemServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final PayoutItemService service = new PayoutItemService(repository, events, counts);
+    private final PayoutItemService service = new PayoutItemService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class PayoutItemServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("PayoutItemCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("batchId does not refer to a PayoutBatch in your organisation"))
+                .when(strict).require(eq("PayoutBatch"), eq("batchId"), any());
+        PayoutItemService guarded = new PayoutItemService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new PayoutItemCreateRequest(null, null, PayoutItem.PayeeType.WORKER, UUID.randomUUID(), null, null, BigDecimal.ONE, "test", null, PayoutItem.Status.PENDING, null, null, null, null)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("batchId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(PayoutItem.class));
     }
 
     @Test

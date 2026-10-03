@@ -4,6 +4,7 @@ import com.smartseason.farm.domain.SoilProfile;
 import com.smartseason.farm.platform.CountCache;
 import com.smartseason.farm.platform.CountCache;
 import com.smartseason.farm.platform.EventPublisher;
+import com.smartseason.farm.platform.ReferenceChecker;
 import com.smartseason.farm.platform.Cursor;
 import com.smartseason.farm.platform.CursorPage;
 import com.smartseason.farm.platform.PageResponse;
@@ -41,11 +42,14 @@ public class SoilProfileService {
     private final SoilProfileRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public SoilProfileService(SoilProfileRepository repository, EventPublisher events, CountCache counts) {
+    public SoilProfileService(SoilProfileRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<SoilProfileResponse> list(Pageable pageable, Map<String, String> params) {
@@ -93,6 +97,8 @@ public class SoilProfileService {
     public SoilProfileResponse create(SoilProfileCreateRequest request) {
         SoilProfile entity = new SoilProfile();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("Plot", "plotId", request.plotId());
         entity.setPlotId(request.plotId());
         entity.setSampledAt(request.sampledAt());
         entity.setPh(request.ph());
@@ -113,6 +119,7 @@ public class SoilProfileService {
     @Transactional
     public SoilProfileResponse update(UUID id, SoilProfileUpdateRequest request) {
         SoilProfile entity = require(id);
+        references.require("Plot", "plotId", request.plotId());
         if (request.plotId() != null) {
             entity.setPlotId(request.plotId());
         }

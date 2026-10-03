@@ -4,6 +4,7 @@ import com.smartseason.analytics.domain.ReportRun;
 import com.smartseason.analytics.platform.CountCache;
 import com.smartseason.analytics.platform.CountCache;
 import com.smartseason.analytics.platform.EventPublisher;
+import com.smartseason.analytics.platform.ReferenceChecker;
 import com.smartseason.analytics.platform.Cursor;
 import com.smartseason.analytics.platform.CursorPage;
 import com.smartseason.analytics.platform.PageResponse;
@@ -42,11 +43,14 @@ public class ReportRunService {
     private final ReportRunRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public ReportRunService(ReportRunRepository repository, EventPublisher events, CountCache counts) {
+    public ReportRunService(ReportRunRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<ReportRunResponse> list(Pageable pageable, Map<String, String> params) {
@@ -94,6 +98,8 @@ public class ReportRunService {
     public ReportRunResponse create(ReportRunCreateRequest request) {
         ReportRun entity = new ReportRun();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("Report", "reportId", request.reportId());
         entity.setReportId(request.reportId());
         entity.setReportCode(request.reportCode());
         entity.setTriggeredBy(request.triggeredBy());
@@ -114,6 +120,7 @@ public class ReportRunService {
     @Transactional
     public ReportRunResponse update(UUID id, ReportRunUpdateRequest request) {
         ReportRun entity = require(id);
+        references.require("Report", "reportId", request.reportId());
         if (request.reportId() != null) {
             entity.setReportId(request.reportId());
         }

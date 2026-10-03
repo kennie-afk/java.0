@@ -12,6 +12,8 @@ import com.smartseason.identity.domain.RefreshToken;
 import com.smartseason.identity.platform.CountCache;
 import com.smartseason.identity.platform.CountCache;
 import com.smartseason.identity.platform.EventPublisher;
+import com.smartseason.identity.platform.ReferenceChecker;
+import com.smartseason.identity.platform.DomainRuleException;
 import com.smartseason.identity.platform.ResourceNotFoundException;
 import com.smartseason.identity.platform.TenantContext;
 import com.smartseason.identity.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class RefreshTokenServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final RefreshTokenService service = new RefreshTokenService(repository, events, counts);
+    private final RefreshTokenService service = new RefreshTokenService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class RefreshTokenServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("RefreshTokenCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("userId does not refer to a User in your organisation"))
+                .when(strict).require(eq("User"), eq("userId"), any());
+        RefreshTokenService guarded = new RefreshTokenService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new RefreshTokenCreateRequest(UUID.randomUUID(), "test", Instant.now(), null, null, null)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("userId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(RefreshToken.class));
     }
 
     @Test

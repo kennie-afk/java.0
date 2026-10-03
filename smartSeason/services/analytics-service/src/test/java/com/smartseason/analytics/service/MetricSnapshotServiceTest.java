@@ -12,6 +12,7 @@ import com.smartseason.analytics.domain.MetricSnapshot;
 import com.smartseason.analytics.platform.CountCache;
 import com.smartseason.analytics.platform.CountCache;
 import com.smartseason.analytics.platform.EventPublisher;
+import com.smartseason.analytics.platform.ReferenceChecker;
 import com.smartseason.analytics.platform.ResourceNotFoundException;
 import com.smartseason.analytics.platform.TenantContext;
 import com.smartseason.analytics.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class MetricSnapshotServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final MetricSnapshotService service = new MetricSnapshotService(repository, events, counts);
+    private final MetricSnapshotService service = new MetricSnapshotService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

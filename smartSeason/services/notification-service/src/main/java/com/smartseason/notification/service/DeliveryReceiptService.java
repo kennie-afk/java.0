@@ -4,6 +4,7 @@ import com.smartseason.notification.domain.DeliveryReceipt;
 import com.smartseason.notification.platform.CountCache;
 import com.smartseason.notification.platform.CountCache;
 import com.smartseason.notification.platform.EventPublisher;
+import com.smartseason.notification.platform.ReferenceChecker;
 import com.smartseason.notification.platform.Cursor;
 import com.smartseason.notification.platform.CursorPage;
 import com.smartseason.notification.platform.PageResponse;
@@ -42,11 +43,14 @@ public class DeliveryReceiptService {
     private final DeliveryReceiptRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public DeliveryReceiptService(DeliveryReceiptRepository repository, EventPublisher events, CountCache counts) {
+    public DeliveryReceiptService(DeliveryReceiptRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<DeliveryReceiptResponse> list(Pageable pageable, Map<String, String> params) {
@@ -94,6 +98,8 @@ public class DeliveryReceiptService {
     public DeliveryReceiptResponse create(DeliveryReceiptCreateRequest request) {
         DeliveryReceipt entity = new DeliveryReceipt();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("Notification", "notificationId", request.notificationId());
         entity.setNotificationId(request.notificationId());
         entity.setProvider(request.provider());
         entity.setProviderRef(request.providerRef());
@@ -111,6 +117,7 @@ public class DeliveryReceiptService {
     @Transactional
     public DeliveryReceiptResponse update(UUID id, DeliveryReceiptUpdateRequest request) {
         DeliveryReceipt entity = require(id);
+        references.require("Notification", "notificationId", request.notificationId());
         if (request.notificationId() != null) {
             entity.setNotificationId(request.notificationId());
         }

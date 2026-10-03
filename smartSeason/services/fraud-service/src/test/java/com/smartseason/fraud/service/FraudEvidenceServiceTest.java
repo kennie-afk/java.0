@@ -12,6 +12,8 @@ import com.smartseason.fraud.domain.FraudEvidence;
 import com.smartseason.fraud.platform.CountCache;
 import com.smartseason.fraud.platform.CountCache;
 import com.smartseason.fraud.platform.EventPublisher;
+import com.smartseason.fraud.platform.ReferenceChecker;
+import com.smartseason.fraud.platform.DomainRuleException;
 import com.smartseason.fraud.platform.ResourceNotFoundException;
 import com.smartseason.fraud.platform.TenantContext;
 import com.smartseason.fraud.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class FraudEvidenceServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final FraudEvidenceService service = new FraudEvidenceService(repository, events, counts);
+    private final FraudEvidenceService service = new FraudEvidenceService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class FraudEvidenceServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("FraudEvidenceCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("caseId does not refer to a FraudCase in your organisation"))
+                .when(strict).require(eq("FraudCase"), eq("caseId"), any());
+        FraudEvidenceService guarded = new FraudEvidenceService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new FraudEvidenceCreateRequest(UUID.randomUUID(), "test", "test", null, null, Instant.now())))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("caseId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(FraudEvidence.class));
     }
 
     @Test

@@ -12,6 +12,7 @@ import com.smartseason.payment.domain.Wallet;
 import com.smartseason.payment.platform.CountCache;
 import com.smartseason.payment.platform.CountCache;
 import com.smartseason.payment.platform.EventPublisher;
+import com.smartseason.payment.platform.ReferenceChecker;
 import com.smartseason.payment.platform.ResourceNotFoundException;
 import com.smartseason.payment.platform.TenantContext;
 import com.smartseason.payment.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class WalletServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final WalletService service = new WalletService(repository, events, counts);
+    private final WalletService service = new WalletService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

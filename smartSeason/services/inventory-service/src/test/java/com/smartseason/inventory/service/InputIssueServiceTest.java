@@ -12,6 +12,7 @@ import com.smartseason.inventory.domain.InputIssue;
 import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.EventPublisher;
+import com.smartseason.inventory.platform.ReferenceChecker;
 import com.smartseason.inventory.platform.ResourceNotFoundException;
 import com.smartseason.inventory.platform.TenantContext;
 import com.smartseason.inventory.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class InputIssueServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final InputIssueService service = new InputIssueService(repository, events, counts);
+    private final InputIssueService service = new InputIssueService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

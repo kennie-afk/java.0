@@ -4,6 +4,7 @@ import com.smartseason.payment.domain.EscrowHold;
 import com.smartseason.payment.platform.CountCache;
 import com.smartseason.payment.platform.CountCache;
 import com.smartseason.payment.platform.EventPublisher;
+import com.smartseason.payment.platform.ReferenceChecker;
 import com.smartseason.payment.platform.Cursor;
 import com.smartseason.payment.platform.CursorPage;
 import com.smartseason.payment.platform.PageResponse;
@@ -43,11 +44,14 @@ public class EscrowHoldService {
     private final EscrowHoldRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public EscrowHoldService(EscrowHoldRepository repository, EventPublisher events, CountCache counts) {
+    public EscrowHoldService(EscrowHoldRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<EscrowHoldResponse> list(Pageable pageable, Map<String, String> params) {
@@ -95,6 +99,8 @@ public class EscrowHoldService {
     public EscrowHoldResponse create(EscrowHoldCreateRequest request) {
         EscrowHold entity = new EscrowHold();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("PaymentIntent", "paymentIntentId", request.paymentIntentId());
         entity.setPaymentIntentId(request.paymentIntentId());
         entity.setOrderId(request.orderId());
         entity.setAmount(request.amount());
@@ -116,6 +122,7 @@ public class EscrowHoldService {
     @Transactional
     public EscrowHoldResponse update(UUID id, EscrowHoldUpdateRequest request) {
         EscrowHold entity = require(id);
+        references.require("PaymentIntent", "paymentIntentId", request.paymentIntentId());
         if (request.paymentIntentId() != null) {
             entity.setPaymentIntentId(request.paymentIntentId());
         }

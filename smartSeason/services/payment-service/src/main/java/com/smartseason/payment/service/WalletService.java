@@ -4,6 +4,7 @@ import com.smartseason.payment.domain.Wallet;
 import com.smartseason.payment.platform.CountCache;
 import com.smartseason.payment.platform.CountCache;
 import com.smartseason.payment.platform.EventPublisher;
+import com.smartseason.payment.platform.ReferenceChecker;
 import com.smartseason.payment.platform.Cursor;
 import com.smartseason.payment.platform.CursorPage;
 import com.smartseason.payment.platform.PageResponse;
@@ -41,11 +42,14 @@ public class WalletService {
     private final WalletRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public WalletService(WalletRepository repository, EventPublisher events, CountCache counts) {
+    public WalletService(WalletRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<WalletResponse> list(Pageable pageable, Map<String, String> params) {

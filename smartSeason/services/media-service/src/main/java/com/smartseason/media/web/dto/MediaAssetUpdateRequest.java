@@ -9,7 +9,6 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record MediaAssetUpdateRequest(
-        @Size(max = 255) String storageKey,
         @Size(max = 255) String originalFilename,
         @Size(max = 255) String contentType,
         Long sizeBytes,

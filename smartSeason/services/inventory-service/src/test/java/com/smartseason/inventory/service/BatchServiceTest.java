@@ -12,6 +12,8 @@ import com.smartseason.inventory.domain.Batch;
 import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.EventPublisher;
+import com.smartseason.inventory.platform.ReferenceChecker;
+import com.smartseason.inventory.platform.DomainRuleException;
 import com.smartseason.inventory.platform.ResourceNotFoundException;
 import com.smartseason.inventory.platform.TenantContext;
 import com.smartseason.inventory.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class BatchServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final BatchService service = new BatchService(repository, events, counts);
+    private final BatchService service = new BatchService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class BatchServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("BatchCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("warehouseId does not refer to a Warehouse in your organisation"))
+                .when(strict).require(eq("Warehouse"), eq("warehouseId"), any());
+        BatchService guarded = new BatchService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new BatchCreateRequest("test", "test", null, null, null, null, null, null, null, null, null, null, Batch.Status.HARVESTED)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("warehouseId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(Batch.class));
     }
 
     @Test

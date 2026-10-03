@@ -4,6 +4,7 @@ import com.smartseason.analytics.domain.MetricSnapshot;
 import com.smartseason.analytics.platform.CountCache;
 import com.smartseason.analytics.platform.CountCache;
 import com.smartseason.analytics.platform.EventPublisher;
+import com.smartseason.analytics.platform.ReferenceChecker;
 import com.smartseason.analytics.platform.Cursor;
 import com.smartseason.analytics.platform.CursorPage;
 import com.smartseason.analytics.platform.PageResponse;
@@ -42,11 +43,14 @@ public class MetricSnapshotService {
     private final MetricSnapshotRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public MetricSnapshotService(MetricSnapshotRepository repository, EventPublisher events, CountCache counts) {
+    public MetricSnapshotService(MetricSnapshotRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<MetricSnapshotResponse> list(Pageable pageable, Map<String, String> params) {

@@ -4,6 +4,7 @@ import com.smartseason.media.domain.MediaAsset;
 import com.smartseason.media.platform.CountCache;
 import com.smartseason.media.platform.CountCache;
 import com.smartseason.media.platform.EventPublisher;
+import com.smartseason.media.platform.ReferenceChecker;
 import com.smartseason.media.platform.Cursor;
 import com.smartseason.media.platform.CursorPage;
 import com.smartseason.media.platform.PageResponse;
@@ -31,7 +32,6 @@ public class MediaAssetService {
     private static final String ENTITY = "media_assets";
 
     private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
-            Map.entry("storageKey", String.class),
             Map.entry("originalFilename", String.class),
             Map.entry("contentType", String.class),
             Map.entry("checksum", String.class),
@@ -41,18 +41,22 @@ public class MediaAssetService {
             Map.entry("publicUrl", String.class),
             Map.entry("virusScanned", Boolean.class),
             Map.entry("virusClean", Boolean.class),
-            Map.entry("status", MediaAsset.Status.class));
+            Map.entry("status", MediaAsset.Status.class),
+            Map.entry("storageKey", String.class));
 
-    private static final List<String> SEARCHABLE = List.of("storageKey", "originalFilename", "contentType", "checksum", "context", "contextRef", "publicUrl");
+    private static final List<String> SEARCHABLE = List.of("originalFilename", "contentType", "checksum", "context", "contextRef", "publicUrl", "storageKey");
 
     private final MediaAssetRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public MediaAssetService(MediaAssetRepository repository, EventPublisher events, CountCache counts) {
+    public MediaAssetService(MediaAssetRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<MediaAssetResponse> list(Pageable pageable, Map<String, String> params) {
@@ -100,7 +104,6 @@ public class MediaAssetService {
     public MediaAssetResponse create(MediaAssetCreateRequest request) {
         MediaAsset entity = new MediaAsset();
         entity.setTenantId(TenantContext.requireTenantId());
-        entity.setStorageKey(request.storageKey());
         entity.setOriginalFilename(request.originalFilename());
         entity.setContentType(request.contentType());
         entity.setSizeBytes(request.sizeBytes());
@@ -119,6 +122,7 @@ public class MediaAssetService {
         entity.setVirusScanned(request.virusScanned());
         entity.setVirusClean(request.virusClean());
         entity.setStatus(request.status());
+        entity.setStorageKey(TenantContext.requireTenantId() + "/media_assets/" + UUID.randomUUID());
 
         MediaAsset saved = repository.save(entity);
         counts.invalidate(ENTITY, saved.getTenantId());
@@ -129,9 +133,6 @@ public class MediaAssetService {
     @Transactional
     public MediaAssetResponse update(UUID id, MediaAssetUpdateRequest request) {
         MediaAsset entity = require(id);
-        if (request.storageKey() != null) {
-            entity.setStorageKey(request.storageKey());
-        }
         if (request.originalFilename() != null) {
             entity.setOriginalFilename(request.originalFilename());
         }

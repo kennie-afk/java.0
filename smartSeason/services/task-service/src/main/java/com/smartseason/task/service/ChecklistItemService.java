@@ -4,6 +4,7 @@ import com.smartseason.task.domain.ChecklistItem;
 import com.smartseason.task.platform.CountCache;
 import com.smartseason.task.platform.CountCache;
 import com.smartseason.task.platform.EventPublisher;
+import com.smartseason.task.platform.ReferenceChecker;
 import com.smartseason.task.platform.Cursor;
 import com.smartseason.task.platform.CursorPage;
 import com.smartseason.task.platform.PageResponse;
@@ -42,11 +43,14 @@ public class ChecklistItemService {
     private final ChecklistItemRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public ChecklistItemService(ChecklistItemRepository repository, EventPublisher events, CountCache counts) {
+    public ChecklistItemService(ChecklistItemRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<ChecklistItemResponse> list(Pageable pageable, Map<String, String> params) {
@@ -94,6 +98,8 @@ public class ChecklistItemService {
     public ChecklistItemResponse create(ChecklistItemCreateRequest request) {
         ChecklistItem entity = new ChecklistItem();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("WorkOrder", "workOrderId", request.workOrderId());
         entity.setWorkOrderId(request.workOrderId());
         entity.setLabel(request.label());
         entity.setSequence(request.sequence());
@@ -111,6 +117,7 @@ public class ChecklistItemService {
     @Transactional
     public ChecklistItemResponse update(UUID id, ChecklistItemUpdateRequest request) {
         ChecklistItem entity = require(id);
+        references.require("WorkOrder", "workOrderId", request.workOrderId());
         if (request.workOrderId() != null) {
             entity.setWorkOrderId(request.workOrderId());
         }

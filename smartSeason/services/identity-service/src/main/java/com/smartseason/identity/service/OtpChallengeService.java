@@ -4,6 +4,7 @@ import com.smartseason.identity.domain.OtpChallenge;
 import com.smartseason.identity.platform.CountCache;
 import com.smartseason.identity.platform.CountCache;
 import com.smartseason.identity.platform.EventPublisher;
+import com.smartseason.identity.platform.ReferenceChecker;
 import com.smartseason.identity.platform.Cursor;
 import com.smartseason.identity.platform.CursorPage;
 import com.smartseason.identity.platform.PageResponse;
@@ -41,11 +42,14 @@ public class OtpChallengeService {
     private final OtpChallengeRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public OtpChallengeService(OtpChallengeRepository repository, EventPublisher events, CountCache counts) {
+    public OtpChallengeService(OtpChallengeRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<OtpChallengeResponse> list(Pageable pageable, Map<String, String> params) {
@@ -93,6 +97,8 @@ public class OtpChallengeService {
     public OtpChallengeResponse create(OtpChallengeCreateRequest request) {
         OtpChallenge entity = new OtpChallenge();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("User", "userId", request.userId());
         entity.setUserId(request.userId());
         entity.setDestination(request.destination());
         entity.setChannel(request.channel());
@@ -111,6 +117,7 @@ public class OtpChallengeService {
     @Transactional
     public OtpChallengeResponse update(UUID id, OtpChallengeUpdateRequest request) {
         OtpChallenge entity = require(id);
+        references.require("User", "userId", request.userId());
         if (request.userId() != null) {
             entity.setUserId(request.userId());
         }

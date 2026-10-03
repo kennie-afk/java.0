@@ -4,6 +4,7 @@ import com.smartseason.attendance.domain.Shift;
 import com.smartseason.attendance.platform.CountCache;
 import com.smartseason.attendance.platform.CountCache;
 import com.smartseason.attendance.platform.EventPublisher;
+import com.smartseason.attendance.platform.ReferenceChecker;
 import com.smartseason.attendance.platform.Cursor;
 import com.smartseason.attendance.platform.CursorPage;
 import com.smartseason.attendance.platform.PageResponse;
@@ -43,11 +44,14 @@ public class ShiftService {
     private final ShiftRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public ShiftService(ShiftRepository repository, EventPublisher events, CountCache counts) {
+    public ShiftService(ShiftRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<ShiftResponse> list(Pageable pageable, Map<String, String> params) {

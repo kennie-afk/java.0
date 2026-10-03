@@ -4,6 +4,7 @@ import com.smartseason.ledger.domain.AccountBalance;
 import com.smartseason.ledger.platform.CountCache;
 import com.smartseason.ledger.platform.CountCache;
 import com.smartseason.ledger.platform.EventPublisher;
+import com.smartseason.ledger.platform.ReferenceChecker;
 import com.smartseason.ledger.platform.Cursor;
 import com.smartseason.ledger.platform.CursorPage;
 import com.smartseason.ledger.platform.PageResponse;
@@ -40,11 +41,14 @@ public class AccountBalanceService {
     private final AccountBalanceRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public AccountBalanceService(AccountBalanceRepository repository, EventPublisher events, CountCache counts) {
+    public AccountBalanceService(AccountBalanceRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<AccountBalanceResponse> list(Pageable pageable, Map<String, String> params) {
@@ -92,6 +96,8 @@ public class AccountBalanceService {
     public AccountBalanceResponse create(AccountBalanceCreateRequest request) {
         AccountBalance entity = new AccountBalance();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("Account", "accountId", request.accountId());
         entity.setAccountId(request.accountId());
         entity.setAccountCode(request.accountCode());
         entity.setCurrency(request.currency());
@@ -110,6 +116,7 @@ public class AccountBalanceService {
     @Transactional
     public AccountBalanceResponse update(UUID id, AccountBalanceUpdateRequest request) {
         AccountBalance entity = require(id);
+        references.require("Account", "accountId", request.accountId());
         if (request.accountId() != null) {
             entity.setAccountId(request.accountId());
         }

@@ -4,6 +4,7 @@ import com.smartseason.automation.domain.AutomationRule;
 import com.smartseason.automation.platform.CountCache;
 import com.smartseason.automation.platform.CountCache;
 import com.smartseason.automation.platform.EventPublisher;
+import com.smartseason.automation.platform.ReferenceChecker;
 import com.smartseason.automation.platform.Cursor;
 import com.smartseason.automation.platform.CursorPage;
 import com.smartseason.automation.platform.PageResponse;
@@ -44,11 +45,14 @@ public class AutomationRuleService {
     private final AutomationRuleRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public AutomationRuleService(AutomationRuleRepository repository, EventPublisher events, CountCache counts) {
+    public AutomationRuleService(AutomationRuleRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<AutomationRuleResponse> list(Pageable pageable, Map<String, String> params) {

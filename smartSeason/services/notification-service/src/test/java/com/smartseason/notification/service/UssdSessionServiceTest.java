@@ -12,6 +12,7 @@ import com.smartseason.notification.domain.UssdSession;
 import com.smartseason.notification.platform.CountCache;
 import com.smartseason.notification.platform.CountCache;
 import com.smartseason.notification.platform.EventPublisher;
+import com.smartseason.notification.platform.ReferenceChecker;
 import com.smartseason.notification.platform.ResourceNotFoundException;
 import com.smartseason.notification.platform.TenantContext;
 import com.smartseason.notification.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class UssdSessionServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final UssdSessionService service = new UssdSessionService(repository, events, counts);
+    private final UssdSessionService service = new UssdSessionService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

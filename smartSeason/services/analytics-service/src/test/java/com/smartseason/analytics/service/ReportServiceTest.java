@@ -12,6 +12,7 @@ import com.smartseason.analytics.domain.Report;
 import com.smartseason.analytics.platform.CountCache;
 import com.smartseason.analytics.platform.CountCache;
 import com.smartseason.analytics.platform.EventPublisher;
+import com.smartseason.analytics.platform.ReferenceChecker;
 import com.smartseason.analytics.platform.ResourceNotFoundException;
 import com.smartseason.analytics.platform.TenantContext;
 import com.smartseason.analytics.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class ReportServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final ReportService service = new ReportService(repository, events, counts);
+    private final ReportService service = new ReportService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

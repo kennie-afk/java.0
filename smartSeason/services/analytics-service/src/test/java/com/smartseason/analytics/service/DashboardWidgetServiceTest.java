@@ -12,6 +12,7 @@ import com.smartseason.analytics.domain.DashboardWidget;
 import com.smartseason.analytics.platform.CountCache;
 import com.smartseason.analytics.platform.CountCache;
 import com.smartseason.analytics.platform.EventPublisher;
+import com.smartseason.analytics.platform.ReferenceChecker;
 import com.smartseason.analytics.platform.ResourceNotFoundException;
 import com.smartseason.analytics.platform.TenantContext;
 import com.smartseason.analytics.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class DashboardWidgetServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final DashboardWidgetService service = new DashboardWidgetService(repository, events, counts);
+    private final DashboardWidgetService service = new DashboardWidgetService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

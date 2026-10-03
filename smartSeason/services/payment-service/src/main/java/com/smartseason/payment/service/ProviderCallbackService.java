@@ -4,6 +4,7 @@ import com.smartseason.payment.domain.ProviderCallback;
 import com.smartseason.payment.platform.CountCache;
 import com.smartseason.payment.platform.CountCache;
 import com.smartseason.payment.platform.EventPublisher;
+import com.smartseason.payment.platform.ReferenceChecker;
 import com.smartseason.payment.platform.Cursor;
 import com.smartseason.payment.platform.CursorPage;
 import com.smartseason.payment.platform.PageResponse;
@@ -42,11 +43,14 @@ public class ProviderCallbackService {
     private final ProviderCallbackRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public ProviderCallbackService(ProviderCallbackRepository repository, EventPublisher events, CountCache counts) {
+    public ProviderCallbackService(ProviderCallbackRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<ProviderCallbackResponse> list(Pageable pageable, Map<String, String> params) {

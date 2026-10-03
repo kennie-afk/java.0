@@ -12,6 +12,7 @@ import com.smartseason.season.domain.Season;
 import com.smartseason.season.platform.CountCache;
 import com.smartseason.season.platform.CountCache;
 import com.smartseason.season.platform.EventPublisher;
+import com.smartseason.season.platform.ReferenceChecker;
 import com.smartseason.season.platform.ResourceNotFoundException;
 import com.smartseason.season.platform.TenantContext;
 import com.smartseason.season.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class SeasonServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final SeasonService service = new SeasonService(repository, events, counts);
+    private final SeasonService service = new SeasonService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

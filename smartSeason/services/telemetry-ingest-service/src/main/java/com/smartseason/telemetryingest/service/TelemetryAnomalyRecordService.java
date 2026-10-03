@@ -4,6 +4,7 @@ import com.smartseason.telemetryingest.domain.TelemetryAnomalyRecord;
 import com.smartseason.telemetryingest.platform.CountCache;
 import com.smartseason.telemetryingest.platform.CountCache;
 import com.smartseason.telemetryingest.platform.EventPublisher;
+import com.smartseason.telemetryingest.platform.ReferenceChecker;
 import com.smartseason.telemetryingest.platform.Cursor;
 import com.smartseason.telemetryingest.platform.CursorPage;
 import com.smartseason.telemetryingest.platform.PageResponse;
@@ -42,11 +43,14 @@ public class TelemetryAnomalyRecordService {
     private final TelemetryAnomalyRecordRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public TelemetryAnomalyRecordService(TelemetryAnomalyRecordRepository repository, EventPublisher events, CountCache counts) {
+    public TelemetryAnomalyRecordService(TelemetryAnomalyRecordRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<TelemetryAnomalyRecordResponse> list(Pageable pageable, Map<String, String> params) {

@@ -4,6 +4,7 @@ import com.smartseason.deviceregistry.domain.DeviceCredential;
 import com.smartseason.deviceregistry.platform.CountCache;
 import com.smartseason.deviceregistry.platform.CountCache;
 import com.smartseason.deviceregistry.platform.EventPublisher;
+import com.smartseason.deviceregistry.platform.ReferenceChecker;
 import com.smartseason.deviceregistry.platform.Cursor;
 import com.smartseason.deviceregistry.platform.CursorPage;
 import com.smartseason.deviceregistry.platform.PageResponse;
@@ -40,11 +41,14 @@ public class DeviceCredentialService {
     private final DeviceCredentialRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public DeviceCredentialService(DeviceCredentialRepository repository, EventPublisher events, CountCache counts) {
+    public DeviceCredentialService(DeviceCredentialRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<DeviceCredentialResponse> list(Pageable pageable, Map<String, String> params) {
@@ -92,6 +96,8 @@ public class DeviceCredentialService {
     public DeviceCredentialResponse create(DeviceCredentialCreateRequest request) {
         DeviceCredential entity = new DeviceCredential();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("Device", "deviceId", request.deviceId());
         entity.setDeviceId(request.deviceId());
         entity.setCredentialType(request.credentialType());
         entity.setPublicKey(request.publicKey());
@@ -109,6 +115,7 @@ public class DeviceCredentialService {
     @Transactional
     public DeviceCredentialResponse update(UUID id, DeviceCredentialUpdateRequest request) {
         DeviceCredential entity = require(id);
+        references.require("Device", "deviceId", request.deviceId());
         if (request.deviceId() != null) {
             entity.setDeviceId(request.deviceId());
         }

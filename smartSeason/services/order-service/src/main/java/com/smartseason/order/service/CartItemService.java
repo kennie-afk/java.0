@@ -4,6 +4,7 @@ import com.smartseason.order.domain.CartItem;
 import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.EventPublisher;
+import com.smartseason.order.platform.ReferenceChecker;
 import com.smartseason.order.platform.Cursor;
 import com.smartseason.order.platform.CursorPage;
 import com.smartseason.order.platform.PageResponse;
@@ -42,11 +43,14 @@ public class CartItemService {
     private final CartItemRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public CartItemService(CartItemRepository repository, EventPublisher events, CountCache counts) {
+    public CartItemService(CartItemRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<CartItemResponse> list(Pageable pageable, Map<String, String> params) {
@@ -94,6 +98,8 @@ public class CartItemService {
     public CartItemResponse create(CartItemCreateRequest request) {
         CartItem entity = new CartItem();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("Cart", "cartId", request.cartId());
         entity.setCartId(request.cartId());
         entity.setListingId(request.listingId());
         entity.setCommodityCode(request.commodityCode());
@@ -111,6 +117,7 @@ public class CartItemService {
     @Transactional
     public CartItemResponse update(UUID id, CartItemUpdateRequest request) {
         CartItem entity = require(id);
+        references.require("Cart", "cartId", request.cartId());
         if (request.cartId() != null) {
             entity.setCartId(request.cartId());
         }

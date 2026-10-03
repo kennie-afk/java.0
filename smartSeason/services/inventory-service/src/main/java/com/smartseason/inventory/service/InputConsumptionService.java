@@ -4,6 +4,7 @@ import com.smartseason.inventory.domain.InputConsumption;
 import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.EventPublisher;
+import com.smartseason.inventory.platform.ReferenceChecker;
 import com.smartseason.inventory.platform.Cursor;
 import com.smartseason.inventory.platform.CursorPage;
 import com.smartseason.inventory.platform.PageResponse;
@@ -45,11 +46,14 @@ public class InputConsumptionService {
     private final InputConsumptionRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public InputConsumptionService(InputConsumptionRepository repository, EventPublisher events, CountCache counts) {
+    public InputConsumptionService(InputConsumptionRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<InputConsumptionResponse> list(Pageable pageable, Map<String, String> params) {
@@ -97,6 +101,8 @@ public class InputConsumptionService {
     public InputConsumptionResponse create(InputConsumptionCreateRequest request) {
         InputConsumption entity = new InputConsumption();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("InputIssue", "inputIssueId", request.inputIssueId());
         entity.setInputIssueId(request.inputIssueId());
         entity.setFarmId(request.farmId());
         entity.setPlotId(request.plotId());
@@ -119,6 +125,7 @@ public class InputConsumptionService {
     @Transactional
     public InputConsumptionResponse update(UUID id, InputConsumptionUpdateRequest request) {
         InputConsumption entity = require(id);
+        references.require("InputIssue", "inputIssueId", request.inputIssueId());
         if (request.inputIssueId() != null) {
             entity.setInputIssueId(request.inputIssueId());
         }

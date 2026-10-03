@@ -4,6 +4,7 @@ import com.smartseason.fraud.domain.FraudCase;
 import com.smartseason.fraud.platform.CountCache;
 import com.smartseason.fraud.platform.CountCache;
 import com.smartseason.fraud.platform.EventPublisher;
+import com.smartseason.fraud.platform.ReferenceChecker;
 import com.smartseason.fraud.platform.Cursor;
 import com.smartseason.fraud.platform.CursorPage;
 import com.smartseason.fraud.platform.PageResponse;
@@ -47,11 +48,14 @@ public class FraudCaseService {
     private final FraudCaseRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public FraudCaseService(FraudCaseRepository repository, EventPublisher events, CountCache counts) {
+    public FraudCaseService(FraudCaseRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<FraudCaseResponse> list(Pageable pageable, Map<String, String> params) {

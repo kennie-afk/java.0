@@ -12,6 +12,7 @@ import com.smartseason.deviceregistry.domain.FirmwareRelease;
 import com.smartseason.deviceregistry.platform.CountCache;
 import com.smartseason.deviceregistry.platform.CountCache;
 import com.smartseason.deviceregistry.platform.EventPublisher;
+import com.smartseason.deviceregistry.platform.ReferenceChecker;
 import com.smartseason.deviceregistry.platform.ResourceNotFoundException;
 import com.smartseason.deviceregistry.platform.TenantContext;
 import com.smartseason.deviceregistry.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class FirmwareReleaseServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final FirmwareReleaseService service = new FirmwareReleaseService(repository, events, counts);
+    private final FirmwareReleaseService service = new FirmwareReleaseService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

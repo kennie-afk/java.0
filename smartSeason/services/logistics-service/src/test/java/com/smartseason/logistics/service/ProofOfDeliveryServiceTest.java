@@ -12,6 +12,8 @@ import com.smartseason.logistics.domain.ProofOfDelivery;
 import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.EventPublisher;
+import com.smartseason.logistics.platform.ReferenceChecker;
+import com.smartseason.logistics.platform.DomainRuleException;
 import com.smartseason.logistics.platform.ResourceNotFoundException;
 import com.smartseason.logistics.platform.TenantContext;
 import com.smartseason.logistics.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class ProofOfDeliveryServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final ProofOfDeliveryService service = new ProofOfDeliveryService(repository, events, counts);
+    private final ProofOfDeliveryService service = new ProofOfDeliveryService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class ProofOfDeliveryServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("ProofOfDeliveryCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("transportJobId does not refer to a TransportJob in your organisation"))
+                .when(strict).require(eq("TransportJob"), eq("transportJobId"), any());
+        ProofOfDeliveryService guarded = new ProofOfDeliveryService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new ProofOfDeliveryCreateRequest(UUID.randomUUID(), "test", Instant.now(), null, null, null, null, null, null, null, true)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("transportJobId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(ProofOfDelivery.class));
     }
 
     @Test

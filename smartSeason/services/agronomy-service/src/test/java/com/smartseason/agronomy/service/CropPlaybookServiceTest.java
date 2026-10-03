@@ -12,6 +12,7 @@ import com.smartseason.agronomy.domain.CropPlaybook;
 import com.smartseason.agronomy.platform.CountCache;
 import com.smartseason.agronomy.platform.CountCache;
 import com.smartseason.agronomy.platform.EventPublisher;
+import com.smartseason.agronomy.platform.ReferenceChecker;
 import com.smartseason.agronomy.platform.ResourceNotFoundException;
 import com.smartseason.agronomy.platform.TenantContext;
 import com.smartseason.agronomy.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class CropPlaybookServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final CropPlaybookService service = new CropPlaybookService(repository, events, counts);
+    private final CropPlaybookService service = new CropPlaybookService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

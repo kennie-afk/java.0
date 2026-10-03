@@ -12,6 +12,8 @@ import com.smartseason.payout.domain.PayoutHold;
 import com.smartseason.payout.platform.CountCache;
 import com.smartseason.payout.platform.CountCache;
 import com.smartseason.payout.platform.EventPublisher;
+import com.smartseason.payout.platform.ReferenceChecker;
+import com.smartseason.payout.platform.DomainRuleException;
 import com.smartseason.payout.platform.ResourceNotFoundException;
 import com.smartseason.payout.platform.TenantContext;
 import com.smartseason.payout.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class PayoutHoldServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final PayoutHoldService service = new PayoutHoldService(repository, events, counts);
+    private final PayoutHoldService service = new PayoutHoldService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class PayoutHoldServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("PayoutHoldCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("payoutItemId does not refer to a PayoutItem in your organisation"))
+                .when(strict).require(eq("PayoutItem"), eq("payoutItemId"), any());
+        PayoutHoldService guarded = new PayoutHoldService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new PayoutHoldCreateRequest(null, UUID.randomUUID(), PayoutHold.Reason.FRAUD_CASE, null, null, Instant.now(), null, null, null, PayoutHold.Status.ACTIVE, null)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("payoutItemId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(PayoutHold.class));
     }
 
     @Test

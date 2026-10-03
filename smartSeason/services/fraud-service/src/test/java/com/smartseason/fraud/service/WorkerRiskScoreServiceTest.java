@@ -12,6 +12,7 @@ import com.smartseason.fraud.domain.WorkerRiskScore;
 import com.smartseason.fraud.platform.CountCache;
 import com.smartseason.fraud.platform.CountCache;
 import com.smartseason.fraud.platform.EventPublisher;
+import com.smartseason.fraud.platform.ReferenceChecker;
 import com.smartseason.fraud.platform.ResourceNotFoundException;
 import com.smartseason.fraud.platform.TenantContext;
 import com.smartseason.fraud.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class WorkerRiskScoreServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final WorkerRiskScoreService service = new WorkerRiskScoreService(repository, events, counts);
+    private final WorkerRiskScoreService service = new WorkerRiskScoreService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

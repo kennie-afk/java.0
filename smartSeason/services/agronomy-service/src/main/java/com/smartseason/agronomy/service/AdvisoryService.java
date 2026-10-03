@@ -4,6 +4,7 @@ import com.smartseason.agronomy.domain.Advisory;
 import com.smartseason.agronomy.platform.CountCache;
 import com.smartseason.agronomy.platform.CountCache;
 import com.smartseason.agronomy.platform.EventPublisher;
+import com.smartseason.agronomy.platform.ReferenceChecker;
 import com.smartseason.agronomy.platform.Cursor;
 import com.smartseason.agronomy.platform.CursorPage;
 import com.smartseason.agronomy.platform.PageResponse;
@@ -44,11 +45,14 @@ public class AdvisoryService {
     private final AdvisoryRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public AdvisoryService(AdvisoryRepository repository, EventPublisher events, CountCache counts) {
+    public AdvisoryService(AdvisoryRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<AdvisoryResponse> list(Pageable pageable, Map<String, String> params) {

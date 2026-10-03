@@ -12,6 +12,7 @@ import com.smartseason.pricing.domain.PriceQuote;
 import com.smartseason.pricing.platform.CountCache;
 import com.smartseason.pricing.platform.CountCache;
 import com.smartseason.pricing.platform.EventPublisher;
+import com.smartseason.pricing.platform.ReferenceChecker;
 import com.smartseason.pricing.platform.ResourceNotFoundException;
 import com.smartseason.pricing.platform.TenantContext;
 import com.smartseason.pricing.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class PriceQuoteServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final PriceQuoteService service = new PriceQuoteService(repository, events, counts);
+    private final PriceQuoteService service = new PriceQuoteService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

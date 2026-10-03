@@ -12,6 +12,8 @@ import com.smartseason.farm.domain.Plot;
 import com.smartseason.farm.platform.CountCache;
 import com.smartseason.farm.platform.CountCache;
 import com.smartseason.farm.platform.EventPublisher;
+import com.smartseason.farm.platform.ReferenceChecker;
+import com.smartseason.farm.platform.DomainRuleException;
 import com.smartseason.farm.platform.ResourceNotFoundException;
 import com.smartseason.farm.platform.TenantContext;
 import com.smartseason.farm.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class PlotServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final PlotService service = new PlotService(repository, events, counts);
+    private final PlotService service = new PlotService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class PlotServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("PlotCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("farmId does not refer to a Farm in your organisation"))
+                .when(strict).require(eq("Farm"), eq("farmId"), any());
+        PlotService guarded = new PlotService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new PlotCreateRequest(UUID.randomUUID(), "test", BigDecimal.ONE, null, null, null, true, null, Plot.Status.ACTIVE)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("farmId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(Plot.class));
     }
 
     @Test

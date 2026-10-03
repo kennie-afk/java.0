@@ -4,6 +4,7 @@ import com.smartseason.inventory.domain.Reservation;
 import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.EventPublisher;
+import com.smartseason.inventory.platform.ReferenceChecker;
 import com.smartseason.inventory.platform.Cursor;
 import com.smartseason.inventory.platform.CursorPage;
 import com.smartseason.inventory.platform.PageResponse;
@@ -40,11 +41,14 @@ public class ReservationService {
     private final ReservationRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public ReservationService(ReservationRepository repository, EventPublisher events, CountCache counts) {
+    public ReservationService(ReservationRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<ReservationResponse> list(Pageable pageable, Map<String, String> params) {
@@ -92,6 +96,8 @@ public class ReservationService {
     public ReservationResponse create(ReservationCreateRequest request) {
         Reservation entity = new Reservation();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("StockItem", "stockItemId", request.stockItemId());
         entity.setStockItemId(request.stockItemId());
         entity.setOrderId(request.orderId());
         entity.setQuantity(request.quantity());
@@ -109,6 +115,7 @@ public class ReservationService {
     @Transactional
     public ReservationResponse update(UUID id, ReservationUpdateRequest request) {
         Reservation entity = require(id);
+        references.require("StockItem", "stockItemId", request.stockItemId());
         if (request.stockItemId() != null) {
             entity.setStockItemId(request.stockItemId());
         }

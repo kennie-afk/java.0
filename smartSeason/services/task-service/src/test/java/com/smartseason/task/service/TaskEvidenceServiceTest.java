@@ -12,6 +12,8 @@ import com.smartseason.task.domain.TaskEvidence;
 import com.smartseason.task.platform.CountCache;
 import com.smartseason.task.platform.CountCache;
 import com.smartseason.task.platform.EventPublisher;
+import com.smartseason.task.platform.ReferenceChecker;
+import com.smartseason.task.platform.DomainRuleException;
 import com.smartseason.task.platform.ResourceNotFoundException;
 import com.smartseason.task.platform.TenantContext;
 import com.smartseason.task.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class TaskEvidenceServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final TaskEvidenceService service = new TaskEvidenceService(repository, events, counts);
+    private final TaskEvidenceService service = new TaskEvidenceService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class TaskEvidenceServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("TaskEvidenceCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("assignmentId does not refer to a TaskAssignment in your organisation"))
+                .when(strict).require(eq("TaskAssignment"), eq("assignmentId"), any());
+        TaskEvidenceService guarded = new TaskEvidenceService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new TaskEvidenceCreateRequest(UUID.randomUUID(), null, TaskEvidence.EvidenceType.PHOTO, null, null, null, null, null, null, true, null, TaskEvidence.Verdict.PENDING)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("assignmentId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(TaskEvidence.class));
     }
 
     @Test

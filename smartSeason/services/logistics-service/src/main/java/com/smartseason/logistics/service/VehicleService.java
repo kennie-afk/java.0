@@ -4,6 +4,7 @@ import com.smartseason.logistics.domain.Vehicle;
 import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.EventPublisher;
+import com.smartseason.logistics.platform.ReferenceChecker;
 import com.smartseason.logistics.platform.Cursor;
 import com.smartseason.logistics.platform.CursorPage;
 import com.smartseason.logistics.platform.PageResponse;
@@ -42,11 +43,14 @@ public class VehicleService {
     private final VehicleRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public VehicleService(VehicleRepository repository, EventPublisher events, CountCache counts) {
+    public VehicleService(VehicleRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<VehicleResponse> list(Pageable pageable, Map<String, String> params) {

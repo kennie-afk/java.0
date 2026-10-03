@@ -12,6 +12,8 @@ import com.smartseason.notification.domain.DeliveryReceipt;
 import com.smartseason.notification.platform.CountCache;
 import com.smartseason.notification.platform.CountCache;
 import com.smartseason.notification.platform.EventPublisher;
+import com.smartseason.notification.platform.ReferenceChecker;
+import com.smartseason.notification.platform.DomainRuleException;
 import com.smartseason.notification.platform.ResourceNotFoundException;
 import com.smartseason.notification.platform.TenantContext;
 import com.smartseason.notification.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class DeliveryReceiptServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final DeliveryReceiptService service = new DeliveryReceiptService(repository, events, counts);
+    private final DeliveryReceiptService service = new DeliveryReceiptService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class DeliveryReceiptServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("DeliveryReceiptCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("notificationId does not refer to a Notification in your organisation"))
+                .when(strict).require(eq("Notification"), eq("notificationId"), any());
+        DeliveryReceiptService guarded = new DeliveryReceiptService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new DeliveryReceiptCreateRequest(UUID.randomUUID(), "test", null, null, null, Instant.now(), null)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("notificationId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(DeliveryReceipt.class));
     }
 
     @Test

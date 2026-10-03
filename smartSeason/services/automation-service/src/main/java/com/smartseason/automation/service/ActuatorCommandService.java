@@ -4,6 +4,7 @@ import com.smartseason.automation.domain.ActuatorCommand;
 import com.smartseason.automation.platform.CountCache;
 import com.smartseason.automation.platform.CountCache;
 import com.smartseason.automation.platform.EventPublisher;
+import com.smartseason.automation.platform.ReferenceChecker;
 import com.smartseason.automation.platform.Cursor;
 import com.smartseason.automation.platform.CursorPage;
 import com.smartseason.automation.platform.PageResponse;
@@ -43,11 +44,14 @@ public class ActuatorCommandService {
     private final ActuatorCommandRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public ActuatorCommandService(ActuatorCommandRepository repository, EventPublisher events, CountCache counts) {
+    public ActuatorCommandService(ActuatorCommandRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<ActuatorCommandResponse> list(Pageable pageable, Map<String, String> params) {
@@ -95,6 +99,8 @@ public class ActuatorCommandService {
     public ActuatorCommandResponse create(ActuatorCommandCreateRequest request) {
         ActuatorCommand entity = new ActuatorCommand();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("AutomationRule", "ruleId", request.ruleId());
         entity.setDeviceId(request.deviceId());
         entity.setRuleId(request.ruleId());
         entity.setCommandKey(request.commandKey());
@@ -116,6 +122,7 @@ public class ActuatorCommandService {
     @Transactional
     public ActuatorCommandResponse update(UUID id, ActuatorCommandUpdateRequest request) {
         ActuatorCommand entity = require(id);
+        references.require("AutomationRule", "ruleId", request.ruleId());
         if (request.deviceId() != null) {
             entity.setDeviceId(request.deviceId());
         }

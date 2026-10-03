@@ -4,6 +4,7 @@ import com.smartseason.logistics.domain.ProofOfDelivery;
 import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.EventPublisher;
+import com.smartseason.logistics.platform.ReferenceChecker;
 import com.smartseason.logistics.platform.Cursor;
 import com.smartseason.logistics.platform.CursorPage;
 import com.smartseason.logistics.platform.PageResponse;
@@ -42,11 +43,14 @@ public class ProofOfDeliveryService {
     private final ProofOfDeliveryRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public ProofOfDeliveryService(ProofOfDeliveryRepository repository, EventPublisher events, CountCache counts) {
+    public ProofOfDeliveryService(ProofOfDeliveryRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<ProofOfDeliveryResponse> list(Pageable pageable, Map<String, String> params) {
@@ -94,6 +98,8 @@ public class ProofOfDeliveryService {
     public ProofOfDeliveryResponse create(ProofOfDeliveryCreateRequest request) {
         ProofOfDelivery entity = new ProofOfDelivery();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("TransportJob", "transportJobId", request.transportJobId());
         entity.setTransportJobId(request.transportJobId());
         entity.setReceivedBy(request.receivedBy());
         entity.setReceivedAt(request.receivedAt());
@@ -115,6 +121,7 @@ public class ProofOfDeliveryService {
     @Transactional
     public ProofOfDeliveryResponse update(UUID id, ProofOfDeliveryUpdateRequest request) {
         ProofOfDelivery entity = require(id);
+        references.require("TransportJob", "transportJobId", request.transportJobId());
         if (request.transportJobId() != null) {
             entity.setTransportJobId(request.transportJobId());
         }

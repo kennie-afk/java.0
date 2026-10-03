@@ -12,6 +12,7 @@ import com.smartseason.farm.domain.Farm;
 import com.smartseason.farm.platform.CountCache;
 import com.smartseason.farm.platform.CountCache;
 import com.smartseason.farm.platform.EventPublisher;
+import com.smartseason.farm.platform.ReferenceChecker;
 import com.smartseason.farm.platform.ResourceNotFoundException;
 import com.smartseason.farm.platform.TenantContext;
 import com.smartseason.farm.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class FarmServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final FarmService service = new FarmService(repository, events, counts);
+    private final FarmService service = new FarmService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

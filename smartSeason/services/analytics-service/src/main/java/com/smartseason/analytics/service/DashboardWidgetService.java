@@ -4,6 +4,7 @@ import com.smartseason.analytics.domain.DashboardWidget;
 import com.smartseason.analytics.platform.CountCache;
 import com.smartseason.analytics.platform.CountCache;
 import com.smartseason.analytics.platform.EventPublisher;
+import com.smartseason.analytics.platform.ReferenceChecker;
 import com.smartseason.analytics.platform.Cursor;
 import com.smartseason.analytics.platform.CursorPage;
 import com.smartseason.analytics.platform.PageResponse;
@@ -41,11 +42,14 @@ public class DashboardWidgetService {
     private final DashboardWidgetRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public DashboardWidgetService(DashboardWidgetRepository repository, EventPublisher events, CountCache counts) {
+    public DashboardWidgetService(DashboardWidgetRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<DashboardWidgetResponse> list(Pageable pageable, Map<String, String> params) {

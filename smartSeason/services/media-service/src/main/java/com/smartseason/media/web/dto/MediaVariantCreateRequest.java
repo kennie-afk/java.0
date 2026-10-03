@@ -9,7 +9,6 @@ import java.util.UUID;
 public record MediaVariantCreateRequest(
         @NotNull UUID assetId,
         @NotBlank @Size(max = 255) String variantName,
-        @NotBlank @Size(max = 255) String storageKey,
         Integer width,
         Integer height,
         Long sizeBytes,

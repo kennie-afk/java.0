@@ -10170,12 +10170,6 @@ export const GROUPS: GroupSpec[] = [
             ],
             "formFields": [
               {
-                "name": "storageKey",
-                "label": "Storage key",
-                "kind": "string",
-                "required": true
-              },
-              {
                 "name": "contentType",
                 "label": "Content type",
                 "kind": "string",
@@ -10335,12 +10329,6 @@ export const GROUPS: GroupSpec[] = [
             ],
             "formFields": [
               {
-                "name": "storageKey",
-                "label": "Storage key",
-                "kind": "string",
-                "required": true
-              },
-              {
                 "name": "uploadUrl",
                 "label": "Upload url",
                 "kind": "text",
@@ -10445,12 +10433,6 @@ export const GROUPS: GroupSpec[] = [
               {
                 "name": "variantName",
                 "label": "Variant name",
-                "kind": "string",
-                "required": true
-              },
-              {
-                "name": "storageKey",
-                "label": "Storage key",
                 "kind": "string",
                 "required": true
               },

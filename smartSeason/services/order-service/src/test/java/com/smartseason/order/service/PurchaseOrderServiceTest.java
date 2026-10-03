@@ -12,6 +12,7 @@ import com.smartseason.order.domain.PurchaseOrder;
 import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.EventPublisher;
+import com.smartseason.order.platform.ReferenceChecker;
 import com.smartseason.order.platform.ResourceNotFoundException;
 import com.smartseason.order.platform.TenantContext;
 import com.smartseason.order.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class PurchaseOrderServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final PurchaseOrderService service = new PurchaseOrderService(repository, events, counts);
+    private final PurchaseOrderService service = new PurchaseOrderService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

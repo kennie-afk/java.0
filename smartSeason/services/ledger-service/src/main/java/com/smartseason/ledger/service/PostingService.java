@@ -4,6 +4,7 @@ import com.smartseason.ledger.domain.Posting;
 import com.smartseason.ledger.platform.CountCache;
 import com.smartseason.ledger.platform.CountCache;
 import com.smartseason.ledger.platform.EventPublisher;
+import com.smartseason.ledger.platform.ReferenceChecker;
 import com.smartseason.ledger.platform.Cursor;
 import com.smartseason.ledger.platform.CursorPage;
 import com.smartseason.ledger.platform.PageResponse;
@@ -43,11 +44,14 @@ public class PostingService {
     private final PostingRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public PostingService(PostingRepository repository, EventPublisher events, CountCache counts) {
+    public PostingService(PostingRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<PostingResponse> list(Pageable pageable, Map<String, String> params) {
@@ -95,6 +99,9 @@ public class PostingService {
     public PostingResponse create(PostingCreateRequest request) {
         Posting entity = new Posting();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("JournalEntry", "journalEntryId", request.journalEntryId());
+        references.require("Account", "accountId", request.accountId());
         entity.setJournalEntryId(request.journalEntryId());
         entity.setAccountId(request.accountId());
         entity.setAccountCode(request.accountCode());
@@ -113,6 +120,8 @@ public class PostingService {
     @Transactional
     public PostingResponse update(UUID id, PostingUpdateRequest request) {
         Posting entity = require(id);
+        references.require("JournalEntry", "journalEntryId", request.journalEntryId());
+        references.require("Account", "accountId", request.accountId());
         if (request.journalEntryId() != null) {
             entity.setJournalEntryId(request.journalEntryId());
         }

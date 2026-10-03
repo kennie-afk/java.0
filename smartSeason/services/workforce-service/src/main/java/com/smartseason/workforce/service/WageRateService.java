@@ -4,6 +4,7 @@ import com.smartseason.workforce.domain.WageRate;
 import com.smartseason.workforce.platform.CountCache;
 import com.smartseason.workforce.platform.CountCache;
 import com.smartseason.workforce.platform.EventPublisher;
+import com.smartseason.workforce.platform.ReferenceChecker;
 import com.smartseason.workforce.platform.Cursor;
 import com.smartseason.workforce.platform.CursorPage;
 import com.smartseason.workforce.platform.PageResponse;
@@ -42,11 +43,14 @@ public class WageRateService {
     private final WageRateRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public WageRateService(WageRateRepository repository, EventPublisher events, CountCache counts) {
+    public WageRateService(WageRateRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<WageRateResponse> list(Pageable pageable, Map<String, String> params) {

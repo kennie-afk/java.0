@@ -4,6 +4,7 @@ import com.smartseason.payment.domain.PaymentIntent;
 import com.smartseason.payment.platform.CountCache;
 import com.smartseason.payment.platform.CountCache;
 import com.smartseason.payment.platform.EventPublisher;
+import com.smartseason.payment.platform.ReferenceChecker;
 import com.smartseason.payment.platform.Cursor;
 import com.smartseason.payment.platform.CursorPage;
 import com.smartseason.payment.platform.PageResponse;
@@ -50,11 +51,14 @@ public class PaymentIntentService {
     private final PaymentIntentRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public PaymentIntentService(PaymentIntentRepository repository, EventPublisher events, CountCache counts) {
+    public PaymentIntentService(PaymentIntentRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<PaymentIntentResponse> list(Pageable pageable, Map<String, String> params) {

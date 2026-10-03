@@ -4,6 +4,7 @@ import com.smartseason.search.domain.IndexJob;
 import com.smartseason.search.platform.CountCache;
 import com.smartseason.search.platform.CountCache;
 import com.smartseason.search.platform.EventPublisher;
+import com.smartseason.search.platform.ReferenceChecker;
 import com.smartseason.search.platform.Cursor;
 import com.smartseason.search.platform.CursorPage;
 import com.smartseason.search.platform.PageResponse;
@@ -41,11 +42,14 @@ public class IndexJobService {
     private final IndexJobRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public IndexJobService(IndexJobRepository repository, EventPublisher events, CountCache counts) {
+    public IndexJobService(IndexJobRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<IndexJobResponse> list(Pageable pageable, Map<String, String> params) {

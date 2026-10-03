@@ -4,6 +4,7 @@ import com.smartseason.traceability.domain.CertEvidence;
 import com.smartseason.traceability.platform.CountCache;
 import com.smartseason.traceability.platform.CountCache;
 import com.smartseason.traceability.platform.EventPublisher;
+import com.smartseason.traceability.platform.ReferenceChecker;
 import com.smartseason.traceability.platform.Cursor;
 import com.smartseason.traceability.platform.CursorPage;
 import com.smartseason.traceability.platform.PageResponse;
@@ -44,11 +45,14 @@ public class CertEvidenceService {
     private final CertEvidenceRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public CertEvidenceService(CertEvidenceRepository repository, EventPublisher events, CountCache counts) {
+    public CertEvidenceService(CertEvidenceRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<CertEvidenceResponse> list(Pageable pageable, Map<String, String> params) {

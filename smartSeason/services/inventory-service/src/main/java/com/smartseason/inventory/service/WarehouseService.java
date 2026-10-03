@@ -4,6 +4,7 @@ import com.smartseason.inventory.domain.Warehouse;
 import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.EventPublisher;
+import com.smartseason.inventory.platform.ReferenceChecker;
 import com.smartseason.inventory.platform.Cursor;
 import com.smartseason.inventory.platform.CursorPage;
 import com.smartseason.inventory.platform.PageResponse;
@@ -42,11 +43,14 @@ public class WarehouseService {
     private final WarehouseRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public WarehouseService(WarehouseRepository repository, EventPublisher events, CountCache counts) {
+    public WarehouseService(WarehouseRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<WarehouseResponse> list(Pageable pageable, Map<String, String> params) {

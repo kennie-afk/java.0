@@ -4,6 +4,7 @@ import com.smartseason.identity.domain.RefreshToken;
 import com.smartseason.identity.platform.CountCache;
 import com.smartseason.identity.platform.CountCache;
 import com.smartseason.identity.platform.EventPublisher;
+import com.smartseason.identity.platform.ReferenceChecker;
 import com.smartseason.identity.platform.Cursor;
 import com.smartseason.identity.platform.CursorPage;
 import com.smartseason.identity.platform.PageResponse;
@@ -40,11 +41,14 @@ public class RefreshTokenService {
     private final RefreshTokenRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public RefreshTokenService(RefreshTokenRepository repository, EventPublisher events, CountCache counts) {
+    public RefreshTokenService(RefreshTokenRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<RefreshTokenResponse> list(Pageable pageable, Map<String, String> params) {
@@ -92,6 +96,8 @@ public class RefreshTokenService {
     public RefreshTokenResponse create(RefreshTokenCreateRequest request) {
         RefreshToken entity = new RefreshToken();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("User", "userId", request.userId());
         entity.setUserId(request.userId());
         entity.setTokenHash(request.tokenHash());
         entity.setExpiresAt(request.expiresAt());
@@ -108,6 +114,7 @@ public class RefreshTokenService {
     @Transactional
     public RefreshTokenResponse update(UUID id, RefreshTokenUpdateRequest request) {
         RefreshToken entity = require(id);
+        references.require("User", "userId", request.userId());
         if (request.userId() != null) {
             entity.setUserId(request.userId());
         }

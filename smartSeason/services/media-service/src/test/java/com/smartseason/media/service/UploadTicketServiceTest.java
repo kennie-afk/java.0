@@ -12,6 +12,7 @@ import com.smartseason.media.domain.UploadTicket;
 import com.smartseason.media.platform.CountCache;
 import com.smartseason.media.platform.CountCache;
 import com.smartseason.media.platform.EventPublisher;
+import com.smartseason.media.platform.ReferenceChecker;
 import com.smartseason.media.platform.ResourceNotFoundException;
 import com.smartseason.media.platform.TenantContext;
 import com.smartseason.media.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class UploadTicketServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final UploadTicketService service = new UploadTicketService(repository, events, counts);
+    private final UploadTicketService service = new UploadTicketService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -59,7 +60,7 @@ class UploadTicketServiceTest {
             return saved;
         });
 
-        var response = service.create(new UploadTicketCreateRequest("test", "test", "test", UUID.randomUUID(), null, null, Instant.now(), null, UploadTicket.Status.ISSUED));
+        var response = service.create(new UploadTicketCreateRequest("test", "test", UUID.randomUUID(), null, null, Instant.now(), null, UploadTicket.Status.ISSUED));
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("UploadTicketCreated"), any(), any());

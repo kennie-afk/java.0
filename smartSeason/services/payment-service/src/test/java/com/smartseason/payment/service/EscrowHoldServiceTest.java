@@ -12,6 +12,8 @@ import com.smartseason.payment.domain.EscrowHold;
 import com.smartseason.payment.platform.CountCache;
 import com.smartseason.payment.platform.CountCache;
 import com.smartseason.payment.platform.EventPublisher;
+import com.smartseason.payment.platform.ReferenceChecker;
+import com.smartseason.payment.platform.DomainRuleException;
 import com.smartseason.payment.platform.ResourceNotFoundException;
 import com.smartseason.payment.platform.TenantContext;
 import com.smartseason.payment.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class EscrowHoldServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final EscrowHoldService service = new EscrowHoldService(repository, events, counts);
+    private final EscrowHoldService service = new EscrowHoldService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class EscrowHoldServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("EscrowHoldCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("paymentIntentId does not refer to a PaymentIntent in your organisation"))
+                .when(strict).require(eq("PaymentIntent"), eq("paymentIntentId"), any());
+        EscrowHoldService guarded = new EscrowHoldService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new EscrowHoldCreateRequest(UUID.randomUUID(), UUID.randomUUID(), BigDecimal.ONE, "test", Instant.now(), null, null, null, null, EscrowHold.Status.HELD, null)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("paymentIntentId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(EscrowHold.class));
     }
 
     @Test

@@ -12,6 +12,7 @@ import com.smartseason.workforce.domain.WageRate;
 import com.smartseason.workforce.platform.CountCache;
 import com.smartseason.workforce.platform.CountCache;
 import com.smartseason.workforce.platform.EventPublisher;
+import com.smartseason.workforce.platform.ReferenceChecker;
 import com.smartseason.workforce.platform.ResourceNotFoundException;
 import com.smartseason.workforce.platform.TenantContext;
 import com.smartseason.workforce.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class WageRateServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final WageRateService service = new WageRateService(repository, events, counts);
+    private final WageRateService service = new WageRateService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

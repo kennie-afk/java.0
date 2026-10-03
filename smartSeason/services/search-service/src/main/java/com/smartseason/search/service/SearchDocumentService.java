@@ -4,6 +4,7 @@ import com.smartseason.search.domain.SearchDocument;
 import com.smartseason.search.platform.CountCache;
 import com.smartseason.search.platform.CountCache;
 import com.smartseason.search.platform.EventPublisher;
+import com.smartseason.search.platform.ReferenceChecker;
 import com.smartseason.search.platform.Cursor;
 import com.smartseason.search.platform.CursorPage;
 import com.smartseason.search.platform.PageResponse;
@@ -44,11 +45,14 @@ public class SearchDocumentService {
     private final SearchDocumentRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public SearchDocumentService(SearchDocumentRepository repository, EventPublisher events, CountCache counts) {
+    public SearchDocumentService(SearchDocumentRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<SearchDocumentResponse> list(Pageable pageable, Map<String, String> params) {

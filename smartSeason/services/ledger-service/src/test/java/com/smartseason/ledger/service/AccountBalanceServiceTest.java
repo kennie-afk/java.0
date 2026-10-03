@@ -12,6 +12,8 @@ import com.smartseason.ledger.domain.AccountBalance;
 import com.smartseason.ledger.platform.CountCache;
 import com.smartseason.ledger.platform.CountCache;
 import com.smartseason.ledger.platform.EventPublisher;
+import com.smartseason.ledger.platform.ReferenceChecker;
+import com.smartseason.ledger.platform.DomainRuleException;
 import com.smartseason.ledger.platform.ResourceNotFoundException;
 import com.smartseason.ledger.platform.TenantContext;
 import com.smartseason.ledger.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class AccountBalanceServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final AccountBalanceService service = new AccountBalanceService(repository, events, counts);
+    private final AccountBalanceService service = new AccountBalanceService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class AccountBalanceServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("AccountBalanceCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("accountId does not refer to a Account in your organisation"))
+                .when(strict).require(eq("Account"), eq("accountId"), any());
+        AccountBalanceService guarded = new AccountBalanceService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new AccountBalanceCreateRequest(UUID.randomUUID(), "test", "test", BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, 1L, null)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("accountId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(AccountBalance.class));
     }
 
     @Test

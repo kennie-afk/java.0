@@ -12,6 +12,8 @@ import com.smartseason.ledger.domain.Posting;
 import com.smartseason.ledger.platform.CountCache;
 import com.smartseason.ledger.platform.CountCache;
 import com.smartseason.ledger.platform.EventPublisher;
+import com.smartseason.ledger.platform.ReferenceChecker;
+import com.smartseason.ledger.platform.DomainRuleException;
 import com.smartseason.ledger.platform.ResourceNotFoundException;
 import com.smartseason.ledger.platform.TenantContext;
 import com.smartseason.ledger.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class PostingServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final PostingService service = new PostingService(repository, events, counts);
+    private final PostingService service = new PostingService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class PostingServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("PostingCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("journalEntryId does not refer to a JournalEntry in your organisation"))
+                .when(strict).require(eq("JournalEntry"), eq("journalEntryId"), any());
+        PostingService guarded = new PostingService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new PostingCreateRequest(UUID.randomUUID(), UUID.randomUUID(), "test", Posting.Direction.DEBIT, BigDecimal.ONE, "test", Instant.now(), null)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("journalEntryId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(Posting.class));
     }
 
     @Test

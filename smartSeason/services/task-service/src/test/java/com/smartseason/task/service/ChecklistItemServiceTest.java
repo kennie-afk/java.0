@@ -12,6 +12,8 @@ import com.smartseason.task.domain.ChecklistItem;
 import com.smartseason.task.platform.CountCache;
 import com.smartseason.task.platform.CountCache;
 import com.smartseason.task.platform.EventPublisher;
+import com.smartseason.task.platform.ReferenceChecker;
+import com.smartseason.task.platform.DomainRuleException;
 import com.smartseason.task.platform.ResourceNotFoundException;
 import com.smartseason.task.platform.TenantContext;
 import com.smartseason.task.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class ChecklistItemServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final ChecklistItemService service = new ChecklistItemService(repository, events, counts);
+    private final ChecklistItemService service = new ChecklistItemService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class ChecklistItemServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("ChecklistItemCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("workOrderId does not refer to a WorkOrder in your organisation"))
+                .when(strict).require(eq("WorkOrder"), eq("workOrderId"), any());
+        ChecklistItemService guarded = new ChecklistItemService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new ChecklistItemCreateRequest(UUID.randomUUID(), "test", 1, true, true, null, null)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("workOrderId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(ChecklistItem.class));
     }
 
     @Test

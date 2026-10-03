@@ -4,6 +4,7 @@ import com.smartseason.order.domain.OrderSagaState;
 import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.EventPublisher;
+import com.smartseason.order.platform.ReferenceChecker;
 import com.smartseason.order.platform.Cursor;
 import com.smartseason.order.platform.CursorPage;
 import com.smartseason.order.platform.PageResponse;
@@ -40,11 +41,14 @@ public class OrderSagaStateService {
     private final OrderSagaStateRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public OrderSagaStateService(OrderSagaStateRepository repository, EventPublisher events, CountCache counts) {
+    public OrderSagaStateService(OrderSagaStateRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<OrderSagaStateResponse> list(Pageable pageable, Map<String, String> params) {
@@ -92,6 +96,8 @@ public class OrderSagaStateService {
     public OrderSagaStateResponse create(OrderSagaStateCreateRequest request) {
         OrderSagaState entity = new OrderSagaState();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("PurchaseOrder", "orderId", request.orderId());
         entity.setOrderId(request.orderId());
         entity.setCurrentStep(request.currentStep());
         entity.setStepStatus(request.stepStatus());
@@ -111,6 +117,7 @@ public class OrderSagaStateService {
     @Transactional
     public OrderSagaStateResponse update(UUID id, OrderSagaStateUpdateRequest request) {
         OrderSagaState entity = require(id);
+        references.require("PurchaseOrder", "orderId", request.orderId());
         if (request.orderId() != null) {
             entity.setOrderId(request.orderId());
         }

@@ -4,6 +4,7 @@ import com.smartseason.workforce.domain.GangMembership;
 import com.smartseason.workforce.platform.CountCache;
 import com.smartseason.workforce.platform.CountCache;
 import com.smartseason.workforce.platform.EventPublisher;
+import com.smartseason.workforce.platform.ReferenceChecker;
 import com.smartseason.workforce.platform.Cursor;
 import com.smartseason.workforce.platform.CursorPage;
 import com.smartseason.workforce.platform.PageResponse;
@@ -40,11 +41,14 @@ public class GangMembershipService {
     private final GangMembershipRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public GangMembershipService(GangMembershipRepository repository, EventPublisher events, CountCache counts) {
+    public GangMembershipService(GangMembershipRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<GangMembershipResponse> list(Pageable pageable, Map<String, String> params) {
@@ -92,6 +96,9 @@ public class GangMembershipService {
     public GangMembershipResponse create(GangMembershipCreateRequest request) {
         GangMembership entity = new GangMembership();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("Gang", "gangId", request.gangId());
+        references.require("Worker", "workerId", request.workerId());
         entity.setGangId(request.gangId());
         entity.setWorkerId(request.workerId());
         entity.setJoinedAt(request.joinedAt());
@@ -107,6 +114,8 @@ public class GangMembershipService {
     @Transactional
     public GangMembershipResponse update(UUID id, GangMembershipUpdateRequest request) {
         GangMembership entity = require(id);
+        references.require("Gang", "gangId", request.gangId());
+        references.require("Worker", "workerId", request.workerId());
         if (request.gangId() != null) {
             entity.setGangId(request.gangId());
         }

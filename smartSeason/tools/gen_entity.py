@@ -217,6 +217,9 @@ public record {name}Response(
 def request_dto_source(pkg, name, fields, kind):
     """kind: 'Create' (validated, required fields enforced) or 'Update' (all optional)."""
     for_create = kind == "Create"
+    # Server-built fields (object-store keys) are not part of any request: a client that could
+    # name its own storage key could point it at another tenant's object.
+    fields = [f for f in fields if not f.server]
     body = ",\n        ".join(_dto_field_decl(f, for_create, name) for f in fields)
     imports = "".join(f"import {i};\n" for i in _imports(fields))
     note = ("Fields marked required here mirror the NOT NULL constraints in the migration,"

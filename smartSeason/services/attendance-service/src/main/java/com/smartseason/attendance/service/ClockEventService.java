@@ -4,6 +4,7 @@ import com.smartseason.attendance.domain.ClockEvent;
 import com.smartseason.attendance.platform.CountCache;
 import com.smartseason.attendance.platform.CountCache;
 import com.smartseason.attendance.platform.EventPublisher;
+import com.smartseason.attendance.platform.ReferenceChecker;
 import com.smartseason.attendance.platform.Cursor;
 import com.smartseason.attendance.platform.CursorPage;
 import com.smartseason.attendance.platform.PageResponse;
@@ -49,11 +50,14 @@ public class ClockEventService {
     private final ClockEventRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public ClockEventService(ClockEventRepository repository, EventPublisher events, CountCache counts) {
+    public ClockEventService(ClockEventRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<ClockEventResponse> list(Pageable pageable, Map<String, String> params) {
@@ -101,6 +105,9 @@ public class ClockEventService {
     public ClockEventResponse create(ClockEventCreateRequest request) {
         ClockEvent entity = new ClockEvent();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("Shift", "shiftId", request.shiftId());
+        references.require("Geofence", "geofenceId", request.geofenceId());
         entity.setWorkerId(request.workerId());
         entity.setFarmId(request.farmId());
         entity.setShiftId(request.shiftId());
@@ -129,6 +136,8 @@ public class ClockEventService {
     @Transactional
     public ClockEventResponse update(UUID id, ClockEventUpdateRequest request) {
         ClockEvent entity = require(id);
+        references.require("Shift", "shiftId", request.shiftId());
+        references.require("Geofence", "geofenceId", request.geofenceId());
         if (request.workerId() != null) {
             entity.setWorkerId(request.workerId());
         }

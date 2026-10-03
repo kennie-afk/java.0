@@ -12,6 +12,7 @@ import com.smartseason.traceability.domain.TraceBatch;
 import com.smartseason.traceability.platform.CountCache;
 import com.smartseason.traceability.platform.CountCache;
 import com.smartseason.traceability.platform.EventPublisher;
+import com.smartseason.traceability.platform.ReferenceChecker;
 import com.smartseason.traceability.platform.ResourceNotFoundException;
 import com.smartseason.traceability.platform.TenantContext;
 import com.smartseason.traceability.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class TraceBatchServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final TraceBatchService service = new TraceBatchService(repository, events, counts);
+    private final TraceBatchService service = new TraceBatchService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

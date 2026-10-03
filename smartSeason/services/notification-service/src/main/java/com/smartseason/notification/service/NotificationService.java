@@ -4,6 +4,7 @@ import com.smartseason.notification.domain.Notification;
 import com.smartseason.notification.platform.CountCache;
 import com.smartseason.notification.platform.CountCache;
 import com.smartseason.notification.platform.EventPublisher;
+import com.smartseason.notification.platform.ReferenceChecker;
 import com.smartseason.notification.platform.Cursor;
 import com.smartseason.notification.platform.CursorPage;
 import com.smartseason.notification.platform.PageResponse;
@@ -49,11 +50,14 @@ public class NotificationService {
     private final NotificationRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public NotificationService(NotificationRepository repository, EventPublisher events, CountCache counts) {
+    public NotificationService(NotificationRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<NotificationResponse> list(Pageable pageable, Map<String, String> params) {

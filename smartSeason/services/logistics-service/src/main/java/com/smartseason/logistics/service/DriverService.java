@@ -4,6 +4,7 @@ import com.smartseason.logistics.domain.Driver;
 import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.EventPublisher;
+import com.smartseason.logistics.platform.ReferenceChecker;
 import com.smartseason.logistics.platform.Cursor;
 import com.smartseason.logistics.platform.CursorPage;
 import com.smartseason.logistics.platform.PageResponse;
@@ -43,11 +44,14 @@ public class DriverService {
     private final DriverRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public DriverService(DriverRepository repository, EventPublisher events, CountCache counts) {
+    public DriverService(DriverRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<DriverResponse> list(Pageable pageable, Map<String, String> params) {
@@ -95,6 +99,8 @@ public class DriverService {
     public DriverResponse create(DriverCreateRequest request) {
         Driver entity = new Driver();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("Vehicle", "assignedVehicleId", request.assignedVehicleId());
         entity.setUserId(request.userId());
         entity.setFullName(request.fullName());
         entity.setPhone(request.phone());
@@ -113,6 +119,7 @@ public class DriverService {
     @Transactional
     public DriverResponse update(UUID id, DriverUpdateRequest request) {
         Driver entity = require(id);
+        references.require("Vehicle", "assignedVehicleId", request.assignedVehicleId());
         if (request.userId() != null) {
             entity.setUserId(request.userId());
         }

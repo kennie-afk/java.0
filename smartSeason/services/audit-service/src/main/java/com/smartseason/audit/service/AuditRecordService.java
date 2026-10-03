@@ -4,6 +4,7 @@ import com.smartseason.audit.domain.AuditRecord;
 import com.smartseason.audit.platform.CountCache;
 import com.smartseason.audit.platform.CountCache;
 import com.smartseason.audit.platform.EventPublisher;
+import com.smartseason.audit.platform.ReferenceChecker;
 import com.smartseason.audit.platform.Cursor;
 import com.smartseason.audit.platform.CursorPage;
 import com.smartseason.audit.platform.PageResponse;
@@ -46,11 +47,14 @@ public class AuditRecordService {
     private final AuditRecordRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public AuditRecordService(AuditRecordRepository repository, EventPublisher events, CountCache counts) {
+    public AuditRecordService(AuditRecordRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<AuditRecordResponse> list(Pageable pageable, Map<String, String> params) {

@@ -4,6 +4,7 @@ import com.smartseason.catalog.domain.Product;
 import com.smartseason.catalog.platform.CountCache;
 import com.smartseason.catalog.platform.CountCache;
 import com.smartseason.catalog.platform.EventPublisher;
+import com.smartseason.catalog.platform.ReferenceChecker;
 import com.smartseason.catalog.platform.Cursor;
 import com.smartseason.catalog.platform.CursorPage;
 import com.smartseason.catalog.platform.PageResponse;
@@ -41,11 +42,14 @@ public class ProductService {
     private final ProductRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public ProductService(ProductRepository repository, EventPublisher events, CountCache counts) {
+    public ProductService(ProductRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<ProductResponse> list(Pageable pageable, Map<String, String> params) {

@@ -4,6 +4,7 @@ import com.smartseason.payment.domain.MpesaTransaction;
 import com.smartseason.payment.platform.CountCache;
 import com.smartseason.payment.platform.CountCache;
 import com.smartseason.payment.platform.EventPublisher;
+import com.smartseason.payment.platform.ReferenceChecker;
 import com.smartseason.payment.platform.Cursor;
 import com.smartseason.payment.platform.CursorPage;
 import com.smartseason.payment.platform.PageResponse;
@@ -46,11 +47,14 @@ public class MpesaTransactionService {
     private final MpesaTransactionRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public MpesaTransactionService(MpesaTransactionRepository repository, EventPublisher events, CountCache counts) {
+    public MpesaTransactionService(MpesaTransactionRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<MpesaTransactionResponse> list(Pageable pageable, Map<String, String> params) {
@@ -98,6 +102,8 @@ public class MpesaTransactionService {
     public MpesaTransactionResponse create(MpesaTransactionCreateRequest request) {
         MpesaTransaction entity = new MpesaTransaction();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("PaymentIntent", "paymentIntentId", request.paymentIntentId());
         entity.setPaymentIntentId(request.paymentIntentId());
         entity.setMerchantRequestId(request.merchantRequestId());
         entity.setCheckoutRequestId(request.checkoutRequestId());
@@ -121,6 +127,7 @@ public class MpesaTransactionService {
     @Transactional
     public MpesaTransactionResponse update(UUID id, MpesaTransactionUpdateRequest request) {
         MpesaTransaction entity = require(id);
+        references.require("PaymentIntent", "paymentIntentId", request.paymentIntentId());
         if (request.paymentIntentId() != null) {
             entity.setPaymentIntentId(request.paymentIntentId());
         }

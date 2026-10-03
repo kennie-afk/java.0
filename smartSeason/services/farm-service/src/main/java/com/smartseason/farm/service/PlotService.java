@@ -4,6 +4,7 @@ import com.smartseason.farm.domain.Plot;
 import com.smartseason.farm.platform.CountCache;
 import com.smartseason.farm.platform.CountCache;
 import com.smartseason.farm.platform.EventPublisher;
+import com.smartseason.farm.platform.ReferenceChecker;
 import com.smartseason.farm.platform.Cursor;
 import com.smartseason.farm.platform.CursorPage;
 import com.smartseason.farm.platform.PageResponse;
@@ -42,11 +43,14 @@ public class PlotService {
     private final PlotRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public PlotService(PlotRepository repository, EventPublisher events, CountCache counts) {
+    public PlotService(PlotRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<PlotResponse> list(Pageable pageable, Map<String, String> params) {
@@ -94,6 +98,8 @@ public class PlotService {
     public PlotResponse create(PlotCreateRequest request) {
         Plot entity = new Plot();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("Farm", "farmId", request.farmId());
         entity.setFarmId(request.farmId());
         entity.setName(request.name());
         entity.setAreaHa(request.areaHa());
@@ -113,6 +119,7 @@ public class PlotService {
     @Transactional
     public PlotResponse update(UUID id, PlotUpdateRequest request) {
         Plot entity = require(id);
+        references.require("Farm", "farmId", request.farmId());
         if (request.farmId() != null) {
             entity.setFarmId(request.farmId());
         }

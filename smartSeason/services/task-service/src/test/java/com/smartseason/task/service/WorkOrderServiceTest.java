@@ -12,6 +12,7 @@ import com.smartseason.task.domain.WorkOrder;
 import com.smartseason.task.platform.CountCache;
 import com.smartseason.task.platform.CountCache;
 import com.smartseason.task.platform.EventPublisher;
+import com.smartseason.task.platform.ReferenceChecker;
 import com.smartseason.task.platform.ResourceNotFoundException;
 import com.smartseason.task.platform.TenantContext;
 import com.smartseason.task.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class WorkOrderServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final WorkOrderService service = new WorkOrderService(repository, events, counts);
+    private final WorkOrderService service = new WorkOrderService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

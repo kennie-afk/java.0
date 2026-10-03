@@ -12,6 +12,7 @@ import com.smartseason.payment.domain.ProviderCallback;
 import com.smartseason.payment.platform.CountCache;
 import com.smartseason.payment.platform.CountCache;
 import com.smartseason.payment.platform.EventPublisher;
+import com.smartseason.payment.platform.ReferenceChecker;
 import com.smartseason.payment.platform.ResourceNotFoundException;
 import com.smartseason.payment.platform.TenantContext;
 import com.smartseason.payment.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class ProviderCallbackServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final ProviderCallbackService service = new ProviderCallbackService(repository, events, counts);
+    private final ProviderCallbackService service = new ProviderCallbackService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

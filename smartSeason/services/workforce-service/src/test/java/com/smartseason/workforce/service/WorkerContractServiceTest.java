@@ -12,6 +12,8 @@ import com.smartseason.workforce.domain.WorkerContract;
 import com.smartseason.workforce.platform.CountCache;
 import com.smartseason.workforce.platform.CountCache;
 import com.smartseason.workforce.platform.EventPublisher;
+import com.smartseason.workforce.platform.ReferenceChecker;
+import com.smartseason.workforce.platform.DomainRuleException;
 import com.smartseason.workforce.platform.ResourceNotFoundException;
 import com.smartseason.workforce.platform.TenantContext;
 import com.smartseason.workforce.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class WorkerContractServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final WorkerContractService service = new WorkerContractService(repository, events, counts);
+    private final WorkerContractService service = new WorkerContractService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class WorkerContractServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("WorkerContractCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("workerId does not refer to a Worker in your organisation"))
+                .when(strict).require(eq("Worker"), eq("workerId"), any());
+        WorkerContractService guarded = new WorkerContractService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new WorkerContractCreateRequest(UUID.randomUUID(), UUID.randomUUID(), WorkerContract.ContractType.CASUAL, LocalDate.now(), null, null, null, null, null, WorkerContract.Status.DRAFT, null)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("workerId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(WorkerContract.class));
     }
 
     @Test

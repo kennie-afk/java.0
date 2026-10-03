@@ -12,6 +12,7 @@ import com.smartseason.weather.domain.Forecast;
 import com.smartseason.weather.platform.CountCache;
 import com.smartseason.weather.platform.CountCache;
 import com.smartseason.weather.platform.EventPublisher;
+import com.smartseason.weather.platform.ReferenceChecker;
 import com.smartseason.weather.platform.ResourceNotFoundException;
 import com.smartseason.weather.platform.TenantContext;
 import com.smartseason.weather.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class ForecastServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final ForecastService service = new ForecastService(repository, events, counts);
+    private final ForecastService service = new ForecastService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

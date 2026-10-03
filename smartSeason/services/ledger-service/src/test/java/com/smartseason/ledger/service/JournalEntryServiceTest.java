@@ -12,6 +12,8 @@ import com.smartseason.ledger.domain.JournalEntry;
 import com.smartseason.ledger.platform.CountCache;
 import com.smartseason.ledger.platform.CountCache;
 import com.smartseason.ledger.platform.EventPublisher;
+import com.smartseason.ledger.platform.ReferenceChecker;
+import com.smartseason.ledger.platform.DomainRuleException;
 import com.smartseason.ledger.platform.ResourceNotFoundException;
 import com.smartseason.ledger.platform.TenantContext;
 import com.smartseason.ledger.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class JournalEntryServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final JournalEntryService service = new JournalEntryService(repository, events, counts);
+    private final JournalEntryService service = new JournalEntryService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class JournalEntryServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("JournalEntryCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("reversalOfId does not refer to a JournalEntry in your organisation"))
+                .when(strict).require(eq("JournalEntry"), eq("reversalOfId"), any());
+        JournalEntryService guarded = new JournalEntryService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new JournalEntryCreateRequest("test", "test", null, null, Instant.now(), LocalDate.now(), "test", BigDecimal.ONE, BigDecimal.ONE, true, null, "test")))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("reversalOfId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(JournalEntry.class));
     }
 
     @Test

@@ -4,6 +4,7 @@ import com.smartseason.deviceregistry.domain.FirmwareRelease;
 import com.smartseason.deviceregistry.platform.CountCache;
 import com.smartseason.deviceregistry.platform.CountCache;
 import com.smartseason.deviceregistry.platform.EventPublisher;
+import com.smartseason.deviceregistry.platform.ReferenceChecker;
 import com.smartseason.deviceregistry.platform.Cursor;
 import com.smartseason.deviceregistry.platform.CursorPage;
 import com.smartseason.deviceregistry.platform.PageResponse;
@@ -42,11 +43,14 @@ public class FirmwareReleaseService {
     private final FirmwareReleaseRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public FirmwareReleaseService(FirmwareReleaseRepository repository, EventPublisher events, CountCache counts) {
+    public FirmwareReleaseService(FirmwareReleaseRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<FirmwareReleaseResponse> list(Pageable pageable, Map<String, String> params) {

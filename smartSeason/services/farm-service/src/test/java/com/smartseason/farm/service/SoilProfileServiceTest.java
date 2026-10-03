@@ -12,6 +12,8 @@ import com.smartseason.farm.domain.SoilProfile;
 import com.smartseason.farm.platform.CountCache;
 import com.smartseason.farm.platform.CountCache;
 import com.smartseason.farm.platform.EventPublisher;
+import com.smartseason.farm.platform.ReferenceChecker;
+import com.smartseason.farm.platform.DomainRuleException;
 import com.smartseason.farm.platform.ResourceNotFoundException;
 import com.smartseason.farm.platform.TenantContext;
 import com.smartseason.farm.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class SoilProfileServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final SoilProfileService service = new SoilProfileService(repository, events, counts);
+    private final SoilProfileService service = new SoilProfileService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class SoilProfileServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("SoilProfileCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("plotId does not refer to a Plot in your organisation"))
+                .when(strict).require(eq("Plot"), eq("plotId"), any());
+        SoilProfileService guarded = new SoilProfileService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new SoilProfileCreateRequest(UUID.randomUUID(), LocalDate.now(), null, null, null, null, null, null, null, null)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("plotId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(SoilProfile.class));
     }
 
     @Test

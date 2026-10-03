@@ -4,6 +4,7 @@ import com.smartseason.telemetryingest.domain.DownsampledReading;
 import com.smartseason.telemetryingest.platform.CountCache;
 import com.smartseason.telemetryingest.platform.CountCache;
 import com.smartseason.telemetryingest.platform.EventPublisher;
+import com.smartseason.telemetryingest.platform.ReferenceChecker;
 import com.smartseason.telemetryingest.platform.Cursor;
 import com.smartseason.telemetryingest.platform.CursorPage;
 import com.smartseason.telemetryingest.platform.PageResponse;
@@ -39,11 +40,14 @@ public class DownsampledReadingService {
     private final DownsampledReadingRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public DownsampledReadingService(DownsampledReadingRepository repository, EventPublisher events, CountCache counts) {
+    public DownsampledReadingService(DownsampledReadingRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<DownsampledReadingResponse> list(Pageable pageable, Map<String, String> params) {

@@ -4,6 +4,7 @@ import com.smartseason.fraud.domain.FraudRule;
 import com.smartseason.fraud.platform.CountCache;
 import com.smartseason.fraud.platform.CountCache;
 import com.smartseason.fraud.platform.EventPublisher;
+import com.smartseason.fraud.platform.ReferenceChecker;
 import com.smartseason.fraud.platform.Cursor;
 import com.smartseason.fraud.platform.CursorPage;
 import com.smartseason.fraud.platform.PageResponse;
@@ -43,11 +44,14 @@ public class FraudRuleService {
     private final FraudRuleRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public FraudRuleService(FraudRuleRepository repository, EventPublisher events, CountCache counts) {
+    public FraudRuleService(FraudRuleRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<FraudRuleResponse> list(Pageable pageable, Map<String, String> params) {

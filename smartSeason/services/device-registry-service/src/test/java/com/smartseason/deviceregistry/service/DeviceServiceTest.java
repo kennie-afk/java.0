@@ -12,6 +12,7 @@ import com.smartseason.deviceregistry.domain.Device;
 import com.smartseason.deviceregistry.platform.CountCache;
 import com.smartseason.deviceregistry.platform.CountCache;
 import com.smartseason.deviceregistry.platform.EventPublisher;
+import com.smartseason.deviceregistry.platform.ReferenceChecker;
 import com.smartseason.deviceregistry.platform.ResourceNotFoundException;
 import com.smartseason.deviceregistry.platform.TenantContext;
 import com.smartseason.deviceregistry.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class DeviceServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final DeviceService service = new DeviceService(repository, events, counts);
+    private final DeviceService service = new DeviceService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

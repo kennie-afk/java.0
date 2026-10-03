@@ -4,6 +4,7 @@ import com.smartseason.audit.domain.AuditAnchor;
 import com.smartseason.audit.platform.CountCache;
 import com.smartseason.audit.platform.CountCache;
 import com.smartseason.audit.platform.EventPublisher;
+import com.smartseason.audit.platform.ReferenceChecker;
 import com.smartseason.audit.platform.Cursor;
 import com.smartseason.audit.platform.CursorPage;
 import com.smartseason.audit.platform.PageResponse;
@@ -38,11 +39,14 @@ public class AuditAnchorService {
     private final AuditAnchorRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public AuditAnchorService(AuditAnchorRepository repository, EventPublisher events, CountCache counts) {
+    public AuditAnchorService(AuditAnchorRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<AuditAnchorResponse> list(Pageable pageable, Map<String, String> params) {

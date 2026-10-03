@@ -12,6 +12,8 @@ import com.smartseason.workforce.domain.GangMembership;
 import com.smartseason.workforce.platform.CountCache;
 import com.smartseason.workforce.platform.CountCache;
 import com.smartseason.workforce.platform.EventPublisher;
+import com.smartseason.workforce.platform.ReferenceChecker;
+import com.smartseason.workforce.platform.DomainRuleException;
 import com.smartseason.workforce.platform.ResourceNotFoundException;
 import com.smartseason.workforce.platform.TenantContext;
 import com.smartseason.workforce.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class GangMembershipServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final GangMembershipService service = new GangMembershipService(repository, events, counts);
+    private final GangMembershipService service = new GangMembershipService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class GangMembershipServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("GangMembershipCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("gangId does not refer to a Gang in your organisation"))
+                .when(strict).require(eq("Gang"), eq("gangId"), any());
+        GangMembershipService guarded = new GangMembershipService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new GangMembershipCreateRequest(UUID.randomUUID(), UUID.randomUUID(), Instant.now(), null, GangMembership.Role.MEMBER)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("gangId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(GangMembership.class));
     }
 
     @Test

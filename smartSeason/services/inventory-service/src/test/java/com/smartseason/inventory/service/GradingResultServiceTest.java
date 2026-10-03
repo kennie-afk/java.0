@@ -12,6 +12,8 @@ import com.smartseason.inventory.domain.GradingResult;
 import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.EventPublisher;
+import com.smartseason.inventory.platform.ReferenceChecker;
+import com.smartseason.inventory.platform.DomainRuleException;
 import com.smartseason.inventory.platform.ResourceNotFoundException;
 import com.smartseason.inventory.platform.TenantContext;
 import com.smartseason.inventory.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class GradingResultServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final GradingResultService service = new GradingResultService(repository, events, counts);
+    private final GradingResultService service = new GradingResultService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class GradingResultServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("GradingResultCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("batchId does not refer to a Batch in your organisation"))
+                .when(strict).require(eq("Batch"), eq("batchId"), any());
+        GradingResultService guarded = new GradingResultService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new GradingResultCreateRequest(UUID.randomUUID(), null, Instant.now(), "test", null, null, null, null, null, null)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("batchId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(GradingResult.class));
     }
 
     @Test

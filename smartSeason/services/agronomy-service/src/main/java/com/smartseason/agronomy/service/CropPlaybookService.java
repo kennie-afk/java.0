@@ -4,6 +4,7 @@ import com.smartseason.agronomy.domain.CropPlaybook;
 import com.smartseason.agronomy.platform.CountCache;
 import com.smartseason.agronomy.platform.CountCache;
 import com.smartseason.agronomy.platform.EventPublisher;
+import com.smartseason.agronomy.platform.ReferenceChecker;
 import com.smartseason.agronomy.platform.Cursor;
 import com.smartseason.agronomy.platform.CursorPage;
 import com.smartseason.agronomy.platform.PageResponse;
@@ -39,11 +40,14 @@ public class CropPlaybookService {
     private final CropPlaybookRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public CropPlaybookService(CropPlaybookRepository repository, EventPublisher events, CountCache counts) {
+    public CropPlaybookService(CropPlaybookRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<CropPlaybookResponse> list(Pageable pageable, Map<String, String> params) {

@@ -12,6 +12,7 @@ import com.smartseason.search.domain.SearchDocument;
 import com.smartseason.search.platform.CountCache;
 import com.smartseason.search.platform.CountCache;
 import com.smartseason.search.platform.EventPublisher;
+import com.smartseason.search.platform.ReferenceChecker;
 import com.smartseason.search.platform.ResourceNotFoundException;
 import com.smartseason.search.platform.TenantContext;
 import com.smartseason.search.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class SearchDocumentServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final SearchDocumentService service = new SearchDocumentService(repository, events, counts);
+    private final SearchDocumentService service = new SearchDocumentService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

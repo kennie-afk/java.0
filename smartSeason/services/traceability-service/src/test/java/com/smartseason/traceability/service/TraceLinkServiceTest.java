@@ -12,6 +12,7 @@ import com.smartseason.traceability.domain.TraceLink;
 import com.smartseason.traceability.platform.CountCache;
 import com.smartseason.traceability.platform.CountCache;
 import com.smartseason.traceability.platform.EventPublisher;
+import com.smartseason.traceability.platform.ReferenceChecker;
 import com.smartseason.traceability.platform.ResourceNotFoundException;
 import com.smartseason.traceability.platform.TenantContext;
 import com.smartseason.traceability.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class TraceLinkServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final TraceLinkService service = new TraceLinkService(repository, events, counts);
+    private final TraceLinkService service = new TraceLinkService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

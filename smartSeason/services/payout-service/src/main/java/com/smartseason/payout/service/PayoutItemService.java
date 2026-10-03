@@ -4,6 +4,7 @@ import com.smartseason.payout.domain.PayoutItem;
 import com.smartseason.payout.platform.CountCache;
 import com.smartseason.payout.platform.CountCache;
 import com.smartseason.payout.platform.EventPublisher;
+import com.smartseason.payout.platform.ReferenceChecker;
 import com.smartseason.payout.platform.Cursor;
 import com.smartseason.payout.platform.CursorPage;
 import com.smartseason.payout.platform.PageResponse;
@@ -48,11 +49,14 @@ public class PayoutItemService {
     private final PayoutItemRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public PayoutItemService(PayoutItemRepository repository, EventPublisher events, CountCache counts) {
+    public PayoutItemService(PayoutItemRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<PayoutItemResponse> list(Pageable pageable, Map<String, String> params) {
@@ -100,6 +104,9 @@ public class PayoutItemService {
     public PayoutItemResponse create(PayoutItemCreateRequest request) {
         PayoutItem entity = new PayoutItem();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("PayoutBatch", "batchId", request.batchId());
+        references.require("Settlement", "settlementId", request.settlementId());
         entity.setBatchId(request.batchId());
         entity.setSettlementId(request.settlementId());
         entity.setPayeeType(request.payeeType());
@@ -124,6 +131,8 @@ public class PayoutItemService {
     @Transactional
     public PayoutItemResponse update(UUID id, PayoutItemUpdateRequest request) {
         PayoutItem entity = require(id);
+        references.require("PayoutBatch", "batchId", request.batchId());
+        references.require("Settlement", "settlementId", request.settlementId());
         if (request.batchId() != null) {
             entity.setBatchId(request.batchId());
         }

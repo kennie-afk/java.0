@@ -460,8 +460,10 @@ def main_body():
         "active": True, "revision": 1}, "harvest reminder template")
 
     print("Media")
-    seed("/api/media/v1/media-assets", "storageKey", {
-        "storageKey": "scouting/2026/njoro-a1-faw.jpg", "contentType": "image/jpeg",
+    # The storage key is minted by the service under the caller's tenant, so the natural key for
+    # idempotence is the filename, not the key.
+    seed("/api/media/v1/media-assets", "originalFilename", {
+        "originalFilename": "njoro-a1-faw.jpg", "contentType": "image/jpeg",
         "sizeBytes": 482113, "width": 1600, "height": 1200, "virusScanned": True,
         "virusClean": True, "status": "READY"}, "scouting photo")
 

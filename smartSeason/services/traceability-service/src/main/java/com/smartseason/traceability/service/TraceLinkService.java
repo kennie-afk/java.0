@@ -4,6 +4,7 @@ import com.smartseason.traceability.domain.TraceLink;
 import com.smartseason.traceability.platform.CountCache;
 import com.smartseason.traceability.platform.CountCache;
 import com.smartseason.traceability.platform.EventPublisher;
+import com.smartseason.traceability.platform.ReferenceChecker;
 import com.smartseason.traceability.platform.Cursor;
 import com.smartseason.traceability.platform.CursorPage;
 import com.smartseason.traceability.platform.PageResponse;
@@ -43,11 +44,14 @@ public class TraceLinkService {
     private final TraceLinkRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public TraceLinkService(TraceLinkRepository repository, EventPublisher events, CountCache counts) {
+    public TraceLinkService(TraceLinkRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<TraceLinkResponse> list(Pageable pageable, Map<String, String> params) {

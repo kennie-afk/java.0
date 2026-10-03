@@ -12,6 +12,7 @@ import com.smartseason.automation.domain.SafetyInterlock;
 import com.smartseason.automation.platform.CountCache;
 import com.smartseason.automation.platform.CountCache;
 import com.smartseason.automation.platform.EventPublisher;
+import com.smartseason.automation.platform.ReferenceChecker;
 import com.smartseason.automation.platform.ResourceNotFoundException;
 import com.smartseason.automation.platform.TenantContext;
 import com.smartseason.automation.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class SafetyInterlockServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final SafetyInterlockService service = new SafetyInterlockService(repository, events, counts);
+    private final SafetyInterlockService service = new SafetyInterlockService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

@@ -4,6 +4,7 @@ import com.smartseason.catalog.domain.ProductVariant;
 import com.smartseason.catalog.platform.CountCache;
 import com.smartseason.catalog.platform.CountCache;
 import com.smartseason.catalog.platform.EventPublisher;
+import com.smartseason.catalog.platform.ReferenceChecker;
 import com.smartseason.catalog.platform.Cursor;
 import com.smartseason.catalog.platform.CursorPage;
 import com.smartseason.catalog.platform.PageResponse;
@@ -43,11 +44,14 @@ public class ProductVariantService {
     private final ProductVariantRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public ProductVariantService(ProductVariantRepository repository, EventPublisher events, CountCache counts) {
+    public ProductVariantService(ProductVariantRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<ProductVariantResponse> list(Pageable pageable, Map<String, String> params) {
@@ -95,6 +99,8 @@ public class ProductVariantService {
     public ProductVariantResponse create(ProductVariantCreateRequest request) {
         ProductVariant entity = new ProductVariant();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("Product", "productId", request.productId());
         entity.setProductId(request.productId());
         entity.setSku(request.sku());
         entity.setVariantName(request.variantName());
@@ -112,6 +118,7 @@ public class ProductVariantService {
     @Transactional
     public ProductVariantResponse update(UUID id, ProductVariantUpdateRequest request) {
         ProductVariant entity = require(id);
+        references.require("Product", "productId", request.productId());
         if (request.productId() != null) {
             entity.setProductId(request.productId());
         }

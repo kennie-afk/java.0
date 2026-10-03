@@ -12,6 +12,8 @@ import com.smartseason.attendance.domain.ClockEvent;
 import com.smartseason.attendance.platform.CountCache;
 import com.smartseason.attendance.platform.CountCache;
 import com.smartseason.attendance.platform.EventPublisher;
+import com.smartseason.attendance.platform.ReferenceChecker;
+import com.smartseason.attendance.platform.DomainRuleException;
 import com.smartseason.attendance.platform.ResourceNotFoundException;
 import com.smartseason.attendance.platform.TenantContext;
 import com.smartseason.attendance.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class ClockEventServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final ClockEventService service = new ClockEventService(repository, events, counts);
+    private final ClockEventService service = new ClockEventService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class ClockEventServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("ClockEventCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("shiftId does not refer to a Shift in your organisation"))
+                .when(strict).require(eq("Shift"), eq("shiftId"), any());
+        ClockEventService guarded = new ClockEventService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new ClockEventCreateRequest(UUID.randomUUID(), UUID.randomUUID(), null, ClockEvent.EventType.CLOCK_IN, Instant.now(), Instant.now(), null, null, null, null, true, null, null, true, true, null, ClockEvent.Verdict.ACCEPTED, null)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("shiftId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(ClockEvent.class));
     }
 
     @Test

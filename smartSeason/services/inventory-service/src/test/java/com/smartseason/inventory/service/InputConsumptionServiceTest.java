@@ -12,6 +12,8 @@ import com.smartseason.inventory.domain.InputConsumption;
 import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.EventPublisher;
+import com.smartseason.inventory.platform.ReferenceChecker;
+import com.smartseason.inventory.platform.DomainRuleException;
 import com.smartseason.inventory.platform.ResourceNotFoundException;
 import com.smartseason.inventory.platform.TenantContext;
 import com.smartseason.inventory.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class InputConsumptionServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final InputConsumptionService service = new InputConsumptionService(repository, events, counts);
+    private final InputConsumptionService service = new InputConsumptionService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class InputConsumptionServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("InputConsumptionCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("inputIssueId does not refer to a InputIssue in your organisation"))
+                .when(strict).require(eq("InputIssue"), eq("inputIssueId"), any());
+        InputConsumptionService guarded = new InputConsumptionService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new InputConsumptionCreateRequest(null, UUID.randomUUID(), null, null, "test", BigDecimal.ONE, "test", Instant.now(), null, null, null, null)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("inputIssueId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(InputConsumption.class));
     }
 
     @Test

@@ -12,6 +12,8 @@ import com.smartseason.order.domain.CartItem;
 import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.EventPublisher;
+import com.smartseason.order.platform.ReferenceChecker;
+import com.smartseason.order.platform.DomainRuleException;
 import com.smartseason.order.platform.ResourceNotFoundException;
 import com.smartseason.order.platform.TenantContext;
 import com.smartseason.order.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class CartItemServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final CartItemService service = new CartItemService(repository, events, counts);
+    private final CartItemService service = new CartItemService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class CartItemServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("CartItemCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("cartId does not refer to a Cart in your organisation"))
+                .when(strict).require(eq("Cart"), eq("cartId"), any());
+        CartItemService guarded = new CartItemService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new CartItemCreateRequest(UUID.randomUUID(), UUID.randomUUID(), "test", BigDecimal.ONE, "test", BigDecimal.ONE, UUID.randomUUID())))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("cartId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(CartItem.class));
     }
 
     @Test

@@ -4,6 +4,7 @@ import com.smartseason.workforce.domain.WorkerContract;
 import com.smartseason.workforce.platform.CountCache;
 import com.smartseason.workforce.platform.CountCache;
 import com.smartseason.workforce.platform.EventPublisher;
+import com.smartseason.workforce.platform.ReferenceChecker;
 import com.smartseason.workforce.platform.Cursor;
 import com.smartseason.workforce.platform.CursorPage;
 import com.smartseason.workforce.platform.PageResponse;
@@ -43,11 +44,14 @@ public class WorkerContractService {
     private final WorkerContractRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public WorkerContractService(WorkerContractRepository repository, EventPublisher events, CountCache counts) {
+    public WorkerContractService(WorkerContractRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<WorkerContractResponse> list(Pageable pageable, Map<String, String> params) {
@@ -95,6 +99,8 @@ public class WorkerContractService {
     public WorkerContractResponse create(WorkerContractCreateRequest request) {
         WorkerContract entity = new WorkerContract();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("Worker", "workerId", request.workerId());
         entity.setWorkerId(request.workerId());
         entity.setFarmId(request.farmId());
         entity.setContractType(request.contractType());
@@ -116,6 +122,7 @@ public class WorkerContractService {
     @Transactional
     public WorkerContractResponse update(UUID id, WorkerContractUpdateRequest request) {
         WorkerContract entity = require(id);
+        references.require("Worker", "workerId", request.workerId());
         if (request.workerId() != null) {
             entity.setWorkerId(request.workerId());
         }

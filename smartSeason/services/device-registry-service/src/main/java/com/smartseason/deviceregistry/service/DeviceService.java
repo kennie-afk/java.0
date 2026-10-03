@@ -4,6 +4,7 @@ import com.smartseason.deviceregistry.domain.Device;
 import com.smartseason.deviceregistry.platform.CountCache;
 import com.smartseason.deviceregistry.platform.CountCache;
 import com.smartseason.deviceregistry.platform.EventPublisher;
+import com.smartseason.deviceregistry.platform.ReferenceChecker;
 import com.smartseason.deviceregistry.platform.Cursor;
 import com.smartseason.deviceregistry.platform.CursorPage;
 import com.smartseason.deviceregistry.platform.PageResponse;
@@ -44,11 +45,14 @@ public class DeviceService {
     private final DeviceRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public DeviceService(DeviceRepository repository, EventPublisher events, CountCache counts) {
+    public DeviceService(DeviceRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<DeviceResponse> list(Pageable pageable, Map<String, String> params) {

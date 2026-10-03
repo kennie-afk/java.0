@@ -4,6 +4,7 @@ import com.smartseason.inventory.domain.GradingResult;
 import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.EventPublisher;
+import com.smartseason.inventory.platform.ReferenceChecker;
 import com.smartseason.inventory.platform.Cursor;
 import com.smartseason.inventory.platform.CursorPage;
 import com.smartseason.inventory.platform.PageResponse;
@@ -40,11 +41,14 @@ public class GradingResultService {
     private final GradingResultRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public GradingResultService(GradingResultRepository repository, EventPublisher events, CountCache counts) {
+    public GradingResultService(GradingResultRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<GradingResultResponse> list(Pageable pageable, Map<String, String> params) {
@@ -92,6 +96,8 @@ public class GradingResultService {
     public GradingResultResponse create(GradingResultCreateRequest request) {
         GradingResult entity = new GradingResult();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("Batch", "batchId", request.batchId());
         entity.setBatchId(request.batchId());
         entity.setGradedBy(request.gradedBy());
         entity.setGradedAt(request.gradedAt());
@@ -112,6 +118,7 @@ public class GradingResultService {
     @Transactional
     public GradingResultResponse update(UUID id, GradingResultUpdateRequest request) {
         GradingResult entity = require(id);
+        references.require("Batch", "batchId", request.batchId());
         if (request.batchId() != null) {
             entity.setBatchId(request.batchId());
         }

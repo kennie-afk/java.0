@@ -4,6 +4,7 @@ import com.smartseason.payout.domain.PayoutBatch;
 import com.smartseason.payout.platform.CountCache;
 import com.smartseason.payout.platform.CountCache;
 import com.smartseason.payout.platform.EventPublisher;
+import com.smartseason.payout.platform.ReferenceChecker;
 import com.smartseason.payout.platform.Cursor;
 import com.smartseason.payout.platform.CursorPage;
 import com.smartseason.payout.platform.PageResponse;
@@ -43,11 +44,14 @@ public class PayoutBatchService {
     private final PayoutBatchRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public PayoutBatchService(PayoutBatchRepository repository, EventPublisher events, CountCache counts) {
+    public PayoutBatchService(PayoutBatchRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<PayoutBatchResponse> list(Pageable pageable, Map<String, String> params) {

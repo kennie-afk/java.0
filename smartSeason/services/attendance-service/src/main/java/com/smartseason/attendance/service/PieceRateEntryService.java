@@ -4,6 +4,7 @@ import com.smartseason.attendance.domain.PieceRateEntry;
 import com.smartseason.attendance.platform.CountCache;
 import com.smartseason.attendance.platform.CountCache;
 import com.smartseason.attendance.platform.EventPublisher;
+import com.smartseason.attendance.platform.ReferenceChecker;
 import com.smartseason.attendance.platform.Cursor;
 import com.smartseason.attendance.platform.CursorPage;
 import com.smartseason.attendance.platform.PageResponse;
@@ -47,11 +48,14 @@ public class PieceRateEntryService {
     private final PieceRateEntryRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public PieceRateEntryService(PieceRateEntryRepository repository, EventPublisher events, CountCache counts) {
+    public PieceRateEntryService(PieceRateEntryRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<PieceRateEntryResponse> list(Pageable pageable, Map<String, String> params) {
@@ -99,6 +103,8 @@ public class PieceRateEntryService {
     public PieceRateEntryResponse create(PieceRateEntryCreateRequest request) {
         PieceRateEntry entity = new PieceRateEntry();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("Shift", "shiftId", request.shiftId());
         entity.setWorkerId(request.workerId());
         entity.setShiftId(request.shiftId());
         entity.setFarmId(request.farmId());
@@ -122,6 +128,7 @@ public class PieceRateEntryService {
     @Transactional
     public PieceRateEntryResponse update(UUID id, PieceRateEntryUpdateRequest request) {
         PieceRateEntry entity = require(id);
+        references.require("Shift", "shiftId", request.shiftId());
         if (request.workerId() != null) {
             entity.setWorkerId(request.workerId());
         }

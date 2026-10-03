@@ -4,6 +4,7 @@ import com.smartseason.order.domain.OrderReturn;
 import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.EventPublisher;
+import com.smartseason.order.platform.ReferenceChecker;
 import com.smartseason.order.platform.Cursor;
 import com.smartseason.order.platform.CursorPage;
 import com.smartseason.order.platform.PageResponse;
@@ -41,11 +42,14 @@ public class OrderReturnService {
     private final OrderReturnRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public OrderReturnService(OrderReturnRepository repository, EventPublisher events, CountCache counts) {
+    public OrderReturnService(OrderReturnRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<OrderReturnResponse> list(Pageable pageable, Map<String, String> params) {
@@ -93,6 +97,9 @@ public class OrderReturnService {
     public OrderReturnResponse create(OrderReturnCreateRequest request) {
         OrderReturn entity = new OrderReturn();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("PurchaseOrder", "orderId", request.orderId());
+        references.require("OrderLine", "orderLineId", request.orderLineId());
         entity.setOrderId(request.orderId());
         entity.setOrderLineId(request.orderLineId());
         entity.setQuantity(request.quantity());
@@ -111,6 +118,8 @@ public class OrderReturnService {
     @Transactional
     public OrderReturnResponse update(UUID id, OrderReturnUpdateRequest request) {
         OrderReturn entity = require(id);
+        references.require("PurchaseOrder", "orderId", request.orderId());
+        references.require("OrderLine", "orderLineId", request.orderLineId());
         if (request.orderId() != null) {
             entity.setOrderId(request.orderId());
         }

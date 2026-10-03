@@ -4,6 +4,7 @@ import com.smartseason.logistics.domain.ColdChainReading;
 import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.EventPublisher;
+import com.smartseason.logistics.platform.ReferenceChecker;
 import com.smartseason.logistics.platform.Cursor;
 import com.smartseason.logistics.platform.CursorPage;
 import com.smartseason.logistics.platform.PageResponse;
@@ -40,11 +41,14 @@ public class ColdChainReadingService {
     private final ColdChainReadingRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public ColdChainReadingService(ColdChainReadingRepository repository, EventPublisher events, CountCache counts) {
+    public ColdChainReadingService(ColdChainReadingRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<ColdChainReadingResponse> list(Pageable pageable, Map<String, String> params) {
@@ -92,6 +96,8 @@ public class ColdChainReadingService {
     public ColdChainReadingResponse create(ColdChainReadingCreateRequest request) {
         ColdChainReading entity = new ColdChainReading();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("TransportJob", "transportJobId", request.transportJobId());
         entity.setTransportJobId(request.transportJobId());
         entity.setRecordedAt(request.recordedAt());
         entity.setTemperatureC(request.temperatureC());
@@ -108,6 +114,7 @@ public class ColdChainReadingService {
     @Transactional
     public ColdChainReadingResponse update(UUID id, ColdChainReadingUpdateRequest request) {
         ColdChainReading entity = require(id);
+        references.require("TransportJob", "transportJobId", request.transportJobId());
         if (request.transportJobId() != null) {
             entity.setTransportJobId(request.transportJobId());
         }

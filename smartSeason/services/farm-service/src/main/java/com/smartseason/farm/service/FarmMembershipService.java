@@ -4,6 +4,7 @@ import com.smartseason.farm.domain.FarmMembership;
 import com.smartseason.farm.platform.CountCache;
 import com.smartseason.farm.platform.CountCache;
 import com.smartseason.farm.platform.EventPublisher;
+import com.smartseason.farm.platform.ReferenceChecker;
 import com.smartseason.farm.platform.Cursor;
 import com.smartseason.farm.platform.CursorPage;
 import com.smartseason.farm.platform.PageResponse;
@@ -42,11 +43,14 @@ public class FarmMembershipService {
     private final FarmMembershipRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public FarmMembershipService(FarmMembershipRepository repository, EventPublisher events, CountCache counts) {
+    public FarmMembershipService(FarmMembershipRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<FarmMembershipResponse> list(Pageable pageable, Map<String, String> params) {
@@ -94,6 +98,8 @@ public class FarmMembershipService {
     public FarmMembershipResponse create(FarmMembershipCreateRequest request) {
         FarmMembership entity = new FarmMembership();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("Farm", "farmId", request.farmId());
         entity.setFarmId(request.farmId());
         entity.setUserId(request.userId());
         entity.setRole(request.role());
@@ -110,6 +116,7 @@ public class FarmMembershipService {
     @Transactional
     public FarmMembershipResponse update(UUID id, FarmMembershipUpdateRequest request) {
         FarmMembership entity = require(id);
+        references.require("Farm", "farmId", request.farmId());
         if (request.farmId() != null) {
             entity.setFarmId(request.farmId());
         }

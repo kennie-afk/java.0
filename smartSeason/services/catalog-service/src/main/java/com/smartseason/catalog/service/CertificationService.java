@@ -4,6 +4,7 @@ import com.smartseason.catalog.domain.Certification;
 import com.smartseason.catalog.platform.CountCache;
 import com.smartseason.catalog.platform.CountCache;
 import com.smartseason.catalog.platform.EventPublisher;
+import com.smartseason.catalog.platform.ReferenceChecker;
 import com.smartseason.catalog.platform.Cursor;
 import com.smartseason.catalog.platform.CursorPage;
 import com.smartseason.catalog.platform.PageResponse;
@@ -40,11 +41,14 @@ public class CertificationService {
     private final CertificationRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public CertificationService(CertificationRepository repository, EventPublisher events, CountCache counts) {
+    public CertificationService(CertificationRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<CertificationResponse> list(Pageable pageable, Map<String, String> params) {

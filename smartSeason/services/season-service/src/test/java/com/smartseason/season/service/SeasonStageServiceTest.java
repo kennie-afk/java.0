@@ -12,6 +12,8 @@ import com.smartseason.season.domain.SeasonStage;
 import com.smartseason.season.platform.CountCache;
 import com.smartseason.season.platform.CountCache;
 import com.smartseason.season.platform.EventPublisher;
+import com.smartseason.season.platform.ReferenceChecker;
+import com.smartseason.season.platform.DomainRuleException;
 import com.smartseason.season.platform.ResourceNotFoundException;
 import com.smartseason.season.platform.TenantContext;
 import com.smartseason.season.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class SeasonStageServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final SeasonStageService service = new SeasonStageService(repository, events, counts);
+    private final SeasonStageService service = new SeasonStageService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class SeasonStageServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("SeasonStageCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("seasonId does not refer to a Season in your organisation"))
+                .when(strict).require(eq("Season"), eq("seasonId"), any());
+        SeasonStageService guarded = new SeasonStageService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new SeasonStageCreateRequest(UUID.randomUUID(), "test", 1, null, null, null, null, SeasonStage.Status.PENDING, null)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("seasonId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(SeasonStage.class));
     }
 
     @Test

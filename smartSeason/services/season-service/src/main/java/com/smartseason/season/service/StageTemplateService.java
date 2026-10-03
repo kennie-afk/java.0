@@ -4,6 +4,7 @@ import com.smartseason.season.domain.StageTemplate;
 import com.smartseason.season.platform.CountCache;
 import com.smartseason.season.platform.CountCache;
 import com.smartseason.season.platform.EventPublisher;
+import com.smartseason.season.platform.ReferenceChecker;
 import com.smartseason.season.platform.Cursor;
 import com.smartseason.season.platform.CursorPage;
 import com.smartseason.season.platform.PageResponse;
@@ -39,11 +40,14 @@ public class StageTemplateService {
     private final StageTemplateRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public StageTemplateService(StageTemplateRepository repository, EventPublisher events, CountCache counts) {
+    public StageTemplateService(StageTemplateRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<StageTemplateResponse> list(Pageable pageable, Map<String, String> params) {

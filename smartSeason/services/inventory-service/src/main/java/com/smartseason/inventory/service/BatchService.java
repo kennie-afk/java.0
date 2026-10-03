@@ -4,6 +4,7 @@ import com.smartseason.inventory.domain.Batch;
 import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.EventPublisher;
+import com.smartseason.inventory.platform.ReferenceChecker;
 import com.smartseason.inventory.platform.Cursor;
 import com.smartseason.inventory.platform.CursorPage;
 import com.smartseason.inventory.platform.PageResponse;
@@ -45,11 +46,14 @@ public class BatchService {
     private final BatchRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public BatchService(BatchRepository repository, EventPublisher events, CountCache counts) {
+    public BatchService(BatchRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<BatchResponse> list(Pageable pageable, Map<String, String> params) {
@@ -97,6 +101,8 @@ public class BatchService {
     public BatchResponse create(BatchCreateRequest request) {
         Batch entity = new Batch();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("Warehouse", "warehouseId", request.warehouseId());
         entity.setBatchCode(request.batchCode());
         entity.setCommodityCode(request.commodityCode());
         entity.setFarmId(request.farmId());
@@ -120,6 +126,7 @@ public class BatchService {
     @Transactional
     public BatchResponse update(UUID id, BatchUpdateRequest request) {
         Batch entity = require(id);
+        references.require("Warehouse", "warehouseId", request.warehouseId());
         if (request.batchCode() != null) {
             entity.setBatchCode(request.batchCode());
         }

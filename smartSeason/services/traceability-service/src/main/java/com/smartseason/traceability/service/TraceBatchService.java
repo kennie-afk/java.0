@@ -4,6 +4,7 @@ import com.smartseason.traceability.domain.TraceBatch;
 import com.smartseason.traceability.platform.CountCache;
 import com.smartseason.traceability.platform.CountCache;
 import com.smartseason.traceability.platform.EventPublisher;
+import com.smartseason.traceability.platform.ReferenceChecker;
 import com.smartseason.traceability.platform.Cursor;
 import com.smartseason.traceability.platform.CursorPage;
 import com.smartseason.traceability.platform.PageResponse;
@@ -45,11 +46,14 @@ public class TraceBatchService {
     private final TraceBatchRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public TraceBatchService(TraceBatchRepository repository, EventPublisher events, CountCache counts) {
+    public TraceBatchService(TraceBatchRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<TraceBatchResponse> list(Pageable pageable, Map<String, String> params) {

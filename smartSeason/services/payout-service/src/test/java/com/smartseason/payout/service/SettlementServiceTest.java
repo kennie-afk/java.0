@@ -12,6 +12,7 @@ import com.smartseason.payout.domain.Settlement;
 import com.smartseason.payout.platform.CountCache;
 import com.smartseason.payout.platform.CountCache;
 import com.smartseason.payout.platform.EventPublisher;
+import com.smartseason.payout.platform.ReferenceChecker;
 import com.smartseason.payout.platform.ResourceNotFoundException;
 import com.smartseason.payout.platform.TenantContext;
 import com.smartseason.payout.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class SettlementServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final SettlementService service = new SettlementService(repository, events, counts);
+    private final SettlementService service = new SettlementService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

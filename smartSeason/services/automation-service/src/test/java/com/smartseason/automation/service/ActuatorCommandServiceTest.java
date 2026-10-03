@@ -12,6 +12,8 @@ import com.smartseason.automation.domain.ActuatorCommand;
 import com.smartseason.automation.platform.CountCache;
 import com.smartseason.automation.platform.CountCache;
 import com.smartseason.automation.platform.EventPublisher;
+import com.smartseason.automation.platform.ReferenceChecker;
+import com.smartseason.automation.platform.DomainRuleException;
 import com.smartseason.automation.platform.ResourceNotFoundException;
 import com.smartseason.automation.platform.TenantContext;
 import com.smartseason.automation.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class ActuatorCommandServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final ActuatorCommandService service = new ActuatorCommandService(repository, events, counts);
+    private final ActuatorCommandService service = new ActuatorCommandService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class ActuatorCommandServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("ActuatorCommandCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("ruleId does not refer to a AutomationRule in your organisation"))
+                .when(strict).require(eq("AutomationRule"), eq("ruleId"), any());
+        ActuatorCommandService guarded = new ActuatorCommandService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new ActuatorCommandCreateRequest(UUID.randomUUID(), null, "test", "test", null, Instant.now(), null, null, ActuatorCommand.Status.PENDING, 1, null)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("ruleId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(ActuatorCommand.class));
     }
 
     @Test

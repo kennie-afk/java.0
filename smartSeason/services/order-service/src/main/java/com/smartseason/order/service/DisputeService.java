@@ -4,6 +4,7 @@ import com.smartseason.order.domain.Dispute;
 import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.EventPublisher;
+import com.smartseason.order.platform.ReferenceChecker;
 import com.smartseason.order.platform.Cursor;
 import com.smartseason.order.platform.CursorPage;
 import com.smartseason.order.platform.PageResponse;
@@ -42,11 +43,14 @@ public class DisputeService {
     private final DisputeRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public DisputeService(DisputeRepository repository, EventPublisher events, CountCache counts) {
+    public DisputeService(DisputeRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<DisputeResponse> list(Pageable pageable, Map<String, String> params) {
@@ -94,6 +98,8 @@ public class DisputeService {
     public DisputeResponse create(DisputeCreateRequest request) {
         Dispute entity = new Dispute();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("PurchaseOrder", "orderId", request.orderId());
         entity.setOrderId(request.orderId());
         entity.setRaisedByOrgId(request.raisedByOrgId());
         entity.setCategory(request.category());
@@ -113,6 +119,7 @@ public class DisputeService {
     @Transactional
     public DisputeResponse update(UUID id, DisputeUpdateRequest request) {
         Dispute entity = require(id);
+        references.require("PurchaseOrder", "orderId", request.orderId());
         if (request.orderId() != null) {
             entity.setOrderId(request.orderId());
         }

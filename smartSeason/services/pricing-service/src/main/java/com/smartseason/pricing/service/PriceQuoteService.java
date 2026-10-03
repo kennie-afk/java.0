@@ -4,6 +4,7 @@ import com.smartseason.pricing.domain.PriceQuote;
 import com.smartseason.pricing.platform.CountCache;
 import com.smartseason.pricing.platform.CountCache;
 import com.smartseason.pricing.platform.EventPublisher;
+import com.smartseason.pricing.platform.ReferenceChecker;
 import com.smartseason.pricing.platform.Cursor;
 import com.smartseason.pricing.platform.CursorPage;
 import com.smartseason.pricing.platform.PageResponse;
@@ -42,11 +43,14 @@ public class PriceQuoteService {
     private final PriceQuoteRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public PriceQuoteService(PriceQuoteRepository repository, EventPublisher events, CountCache counts) {
+    public PriceQuoteService(PriceQuoteRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<PriceQuoteResponse> list(Pageable pageable, Map<String, String> params) {

@@ -4,6 +4,7 @@ import com.smartseason.inventory.domain.StockItem;
 import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.CountCache;
 import com.smartseason.inventory.platform.EventPublisher;
+import com.smartseason.inventory.platform.ReferenceChecker;
 import com.smartseason.inventory.platform.Cursor;
 import com.smartseason.inventory.platform.CursorPage;
 import com.smartseason.inventory.platform.PageResponse;
@@ -42,11 +43,14 @@ public class StockItemService {
     private final StockItemRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public StockItemService(StockItemRepository repository, EventPublisher events, CountCache counts) {
+    public StockItemService(StockItemRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<StockItemResponse> list(Pageable pageable, Map<String, String> params) {
@@ -94,6 +98,9 @@ public class StockItemService {
     public StockItemResponse create(StockItemCreateRequest request) {
         StockItem entity = new StockItem();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("Warehouse", "warehouseId", request.warehouseId());
+        references.require("Batch", "batchId", request.batchId());
         entity.setWarehouseId(request.warehouseId());
         entity.setCommodityCode(request.commodityCode());
         entity.setGrade(request.grade());
@@ -113,6 +120,8 @@ public class StockItemService {
     @Transactional
     public StockItemResponse update(UUID id, StockItemUpdateRequest request) {
         StockItem entity = require(id);
+        references.require("Warehouse", "warehouseId", request.warehouseId());
+        references.require("Batch", "batchId", request.batchId());
         if (request.warehouseId() != null) {
             entity.setWarehouseId(request.warehouseId());
         }

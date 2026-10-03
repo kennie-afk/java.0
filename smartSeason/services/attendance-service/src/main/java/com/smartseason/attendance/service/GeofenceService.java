@@ -4,6 +4,7 @@ import com.smartseason.attendance.domain.Geofence;
 import com.smartseason.attendance.platform.CountCache;
 import com.smartseason.attendance.platform.CountCache;
 import com.smartseason.attendance.platform.EventPublisher;
+import com.smartseason.attendance.platform.ReferenceChecker;
 import com.smartseason.attendance.platform.Cursor;
 import com.smartseason.attendance.platform.CursorPage;
 import com.smartseason.attendance.platform.PageResponse;
@@ -41,11 +42,14 @@ public class GeofenceService {
     private final GeofenceRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public GeofenceService(GeofenceRepository repository, EventPublisher events, CountCache counts) {
+    public GeofenceService(GeofenceRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<GeofenceResponse> list(Pageable pageable, Map<String, String> params) {

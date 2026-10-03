@@ -12,6 +12,8 @@ import com.smartseason.order.domain.Dispute;
 import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.CountCache;
 import com.smartseason.order.platform.EventPublisher;
+import com.smartseason.order.platform.ReferenceChecker;
+import com.smartseason.order.platform.DomainRuleException;
 import com.smartseason.order.platform.ResourceNotFoundException;
 import com.smartseason.order.platform.TenantContext;
 import com.smartseason.order.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class DisputeServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final DisputeService service = new DisputeService(repository, events, counts);
+    private final DisputeService service = new DisputeService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class DisputeServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("DisputeCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("orderId does not refer to a PurchaseOrder in your organisation"))
+                .when(strict).require(eq("PurchaseOrder"), eq("orderId"), any());
+        DisputeService guarded = new DisputeService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new DisputeCreateRequest(UUID.randomUUID(), UUID.randomUUID(), Dispute.Category.QUALITY, "test", Instant.now(), Dispute.Status.OPEN, null, null, null)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("orderId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(Dispute.class));
     }
 
     @Test

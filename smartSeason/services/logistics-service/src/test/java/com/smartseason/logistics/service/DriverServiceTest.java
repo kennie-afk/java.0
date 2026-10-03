@@ -12,6 +12,8 @@ import com.smartseason.logistics.domain.Driver;
 import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.EventPublisher;
+import com.smartseason.logistics.platform.ReferenceChecker;
+import com.smartseason.logistics.platform.DomainRuleException;
 import com.smartseason.logistics.platform.ResourceNotFoundException;
 import com.smartseason.logistics.platform.TenantContext;
 import com.smartseason.logistics.platform.TenantMissingException;
@@ -34,7 +36,7 @@ class DriverServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final DriverService service = new DriverService(repository, events, counts);
+    private final DriverService service = new DriverService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -63,6 +65,21 @@ class DriverServiceTest {
 
         assertThat(response.id()).isNotNull();
         verify(events).publish(any(), eq("DriverCreated"), any(), any());
+    }
+
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("assignedVehicleId does not refer to a Vehicle in your organisation"))
+                .when(strict).require(eq("Vehicle"), eq("assignedVehicleId"), any());
+        DriverService guarded = new DriverService(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new DriverCreateRequest(null, "test", "test", null, null, null, null, Driver.Status.AVAILABLE)))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("assignedVehicleId");
+
+        verify(repository, org.mockito.Mockito.never()).save(any(Driver.class));
     }
 
     @Test

@@ -4,6 +4,7 @@ import com.smartseason.automation.domain.DigitalTwin;
 import com.smartseason.automation.platform.CountCache;
 import com.smartseason.automation.platform.CountCache;
 import com.smartseason.automation.platform.EventPublisher;
+import com.smartseason.automation.platform.ReferenceChecker;
 import com.smartseason.automation.platform.Cursor;
 import com.smartseason.automation.platform.CursorPage;
 import com.smartseason.automation.platform.PageResponse;
@@ -39,11 +40,14 @@ public class DigitalTwinService {
     private final DigitalTwinRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public DigitalTwinService(DigitalTwinRepository repository, EventPublisher events, CountCache counts) {
+    public DigitalTwinService(DigitalTwinRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<DigitalTwinResponse> list(Pageable pageable, Map<String, String> params) {

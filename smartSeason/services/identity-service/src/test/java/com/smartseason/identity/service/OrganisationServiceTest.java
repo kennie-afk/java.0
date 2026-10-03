@@ -12,6 +12,7 @@ import com.smartseason.identity.domain.Organisation;
 import com.smartseason.identity.platform.CountCache;
 import com.smartseason.identity.platform.CountCache;
 import com.smartseason.identity.platform.EventPublisher;
+import com.smartseason.identity.platform.ReferenceChecker;
 import com.smartseason.identity.platform.ResourceNotFoundException;
 import com.smartseason.identity.platform.TenantContext;
 import com.smartseason.identity.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class OrganisationServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final OrganisationService service = new OrganisationService(repository, events, counts);
+    private final OrganisationService service = new OrganisationService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

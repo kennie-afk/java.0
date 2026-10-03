@@ -1,6 +1,6 @@
 """Service, controller, test and SQL-migration generators."""
 import rbac
-from gen_support import lower_first
+from gen_support import lower_first, reference_fields
 
 
 def resource_path(table):
@@ -10,17 +10,36 @@ def resource_path(table):
 from gen_entity import ref_type
 
 
-def service_source(pkg, name, table, fields, domain):
+def service_source(pkg, name, table, fields, domain, siblings=()):
     var = lower_first(name)
+    refs = reference_fields(fields, siblings, name, pkg)
+    check_create = "\n".join(
+        f'        references.require("{ent}", "{f.name}", request.{f.name}());' for f, ent in refs)
+    check_update = "\n".join(
+        f'        references.require("{ent}", "{f.name}", request.{f.name}());' for f, ent in refs)
+    if check_create:
+        check_create = ("        // Every id this row points at must belong to the caller's tenant: a foreign\n"
+                        "        // tenant's id is refused here, exactly as a missing one is.\n") + check_create + "\n"
+    if check_update:
+        check_update += "\n"
+
+    server_fields = [f for f in fields if f.server]
+    fields = [f for f in fields if not f.server]
     setters_create = "\n".join(
         f"        entity.{f.setter}(request.{f.name}());" for f in fields)
+    # An object-store key is minted here, under the caller's tenant, and never read from the
+    # request: whatever a client sends in a field of that name does not exist as far as the
+    # service is concerned.
+    setters_create += "".join(
+        f'\n        entity.{f.setter}(TenantContext.requireTenantId() + "/{table}/" + UUID.randomUUID());'
+        for f in server_fields)
     setters_update = "\n".join(
         f"""        if (request.{f.name}() != null) {{
             entity.{f.setter}(request.{f.name}());
         }}""" for f in fields)
 
     secret = ("hash", "secret", "token", "password")
-    safe = [f for f in fields if not any(w in f.name.lower() for w in secret)]
+    safe = [f for f in fields + server_fields if not any(w in f.name.lower() for w in secret)]
     filterable = ",\n".join(
         f'            Map.entry("{f.name}", {ref_type(f, name)}.class)'
         for f in safe if f.kind in ("uuid", "string", "bool", "enum")) or ""
@@ -34,6 +53,7 @@ import com.smartseason.{pkg}.domain.{name};
 import com.smartseason.{pkg}.platform.CountCache;
 import com.smartseason.{pkg}.platform.CountCache;
 import com.smartseason.{pkg}.platform.EventPublisher;
+import com.smartseason.{pkg}.platform.ReferenceChecker;
 import com.smartseason.{pkg}.platform.Cursor;
 import com.smartseason.{pkg}.platform.CursorPage;
 import com.smartseason.{pkg}.platform.PageResponse;
@@ -77,11 +97,14 @@ public class {name}Service {{
     private final {name}Repository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public {name}Service({name}Repository repository, EventPublisher events, CountCache counts) {{
+    public {name}Service({name}Repository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {{
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }}
 
     /**
@@ -142,7 +165,7 @@ public class {name}Service {{
     public {name}Response create({name}CreateRequest request) {{
         {name} entity = new {name}();
         entity.setTenantId(TenantContext.requireTenantId());
-{setters_create}
+{check_create}{setters_create}
 
         {name} saved = repository.save(entity);
         counts.invalidate(ENTITY, saved.getTenantId());
@@ -153,7 +176,7 @@ public class {name}Service {{
     @Transactional
     public {name}Response update(UUID id, {name}UpdateRequest request) {{
         {name} entity = require(id);
-{setters_update}
+{check_update}{setters_update}
 
         {name} saved = repository.save(entity);
         events.publish("{domain}", "{name}Updated", saved.getId(), {name}Response.from(saved));
@@ -323,8 +346,30 @@ def migration_source(service, entities):
     return "\n".join(out)
 
 
-def service_test_source(pkg, name, fields):
+def service_test_source(pkg, name, fields, siblings=()):
     """Unit test proving tenant scoping and not-found behaviour."""
+    refs = reference_fields(fields, siblings, name, pkg)
+    ref_test = ""
+    if refs:
+        f0, ent0 = refs[0]
+        ref_test = f"""
+    @Test
+    @DisplayName("create refuses an id that does not belong to the caller's tenant")
+    void createRefusesForeignReference() {{
+        ReferenceChecker strict = mock(ReferenceChecker.class);
+        org.mockito.Mockito.doThrow(new DomainRuleException("{f0.name} does not refer to a {ent0} in your organisation"))
+                .when(strict).require(eq("{ent0}"), eq("{f0.name}"), any());
+        {name}Service guarded = new {name}Service(repository, events, counts, strict);
+
+        assertThatThrownBy(() -> guarded.create(new {name}CreateRequest({{ARGS}})))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("{f0.name}");
+
+        verify(repository, org.mockito.Mockito.never()).save(any({name}.class));
+    }}
+"""
+    ref_import = ("import com.smartseason.{pkg}.platform.DomainRuleException;\n" if refs else "")
+    fields = [f for f in fields if not f.server]
     required = [f for f in fields if f.notnull]
     def sample(f):
         if f.kind == "enum":
@@ -336,6 +381,8 @@ def service_test_source(pkg, name, fields):
         }[f.java_type]
 
     args = ", ".join(sample(f) if f.notnull else "null" for f in fields)
+    ref_test = ref_test.replace("{ARGS}", args)
+    ref_import = ref_import.replace("{pkg}", pkg)
 
     return f"""package com.smartseason.{pkg}.service;
 
@@ -351,7 +398,8 @@ import com.smartseason.{pkg}.domain.{name};
 import com.smartseason.{pkg}.platform.CountCache;
 import com.smartseason.{pkg}.platform.CountCache;
 import com.smartseason.{pkg}.platform.EventPublisher;
-import com.smartseason.{pkg}.platform.ResourceNotFoundException;
+import com.smartseason.{pkg}.platform.ReferenceChecker;
+{ref_import}import com.smartseason.{pkg}.platform.ResourceNotFoundException;
 import com.smartseason.{pkg}.platform.TenantContext;
 import com.smartseason.{pkg}.platform.TenantMissingException;
 import com.smartseason.{pkg}.repo.{name}Repository;
@@ -377,7 +425,7 @@ class {name}ServiceTest {{
      */
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final {name}Service service = new {name}Service(repository, events, counts);
+    private final {name}Service service = new {name}Service(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
@@ -408,6 +456,7 @@ class {name}ServiceTest {{
         verify(events).publish(any(), eq("{name}Created"), any(), any());
     }}
 
+{ref_test}
     @Test
     @DisplayName("a row belonging to another tenant reads as not found")
     void otherTenantRowIsNotFound() {{

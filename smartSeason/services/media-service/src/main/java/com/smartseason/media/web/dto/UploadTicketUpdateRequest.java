@@ -8,7 +8,6 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record UploadTicketUpdateRequest(
-        @Size(max = 255) String storageKey,
         String uploadUrl,
         @Size(max = 255) String method,
         UUID requestedBy,

@@ -4,6 +4,7 @@ import com.smartseason.identity.domain.KycRecord;
 import com.smartseason.identity.platform.CountCache;
 import com.smartseason.identity.platform.CountCache;
 import com.smartseason.identity.platform.EventPublisher;
+import com.smartseason.identity.platform.ReferenceChecker;
 import com.smartseason.identity.platform.Cursor;
 import com.smartseason.identity.platform.CursorPage;
 import com.smartseason.identity.platform.PageResponse;
@@ -43,11 +44,14 @@ public class KycRecordService {
     private final KycRecordRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public KycRecordService(KycRecordRepository repository, EventPublisher events, CountCache counts) {
+    public KycRecordService(KycRecordRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<KycRecordResponse> list(Pageable pageable, Map<String, String> params) {

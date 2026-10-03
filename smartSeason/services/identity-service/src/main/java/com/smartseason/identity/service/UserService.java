@@ -4,6 +4,7 @@ import com.smartseason.identity.domain.User;
 import com.smartseason.identity.platform.CountCache;
 import com.smartseason.identity.platform.CountCache;
 import com.smartseason.identity.platform.EventPublisher;
+import com.smartseason.identity.platform.ReferenceChecker;
 import com.smartseason.identity.platform.Cursor;
 import com.smartseason.identity.platform.CursorPage;
 import com.smartseason.identity.platform.PageResponse;
@@ -45,11 +46,14 @@ public class UserService {
     private final UserRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
+    private final ReferenceChecker references;
 
-    public UserService(UserRepository repository, EventPublisher events, CountCache counts) {
+    public UserService(UserRepository repository, EventPublisher events, CountCache counts,
+            ReferenceChecker references) {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+        this.references = references;
     }
 
     public PageResponse<UserResponse> list(Pageable pageable, Map<String, String> params) {
@@ -97,6 +101,8 @@ public class UserService {
     public UserResponse create(UserCreateRequest request) {
         User entity = new User();
         entity.setTenantId(TenantContext.requireTenantId());
+
+        references.require("Organisation", "organisationId", request.organisationId());
         entity.setEmail(request.email());
         entity.setPhone(request.phone());
         entity.setFullName(request.fullName());
@@ -118,6 +124,7 @@ public class UserService {
     @Transactional
     public UserResponse update(UUID id, UserUpdateRequest request) {
         User entity = require(id);
+        references.require("Organisation", "organisationId", request.organisationId());
         if (request.email() != null) {
             entity.setEmail(request.email());
         }

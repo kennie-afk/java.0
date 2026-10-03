@@ -12,6 +12,7 @@ import com.smartseason.catalog.domain.Certification;
 import com.smartseason.catalog.platform.CountCache;
 import com.smartseason.catalog.platform.CountCache;
 import com.smartseason.catalog.platform.EventPublisher;
+import com.smartseason.catalog.platform.ReferenceChecker;
 import com.smartseason.catalog.platform.ResourceNotFoundException;
 import com.smartseason.catalog.platform.TenantContext;
 import com.smartseason.catalog.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class CertificationServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final CertificationService service = new CertificationService(repository, events, counts);
+    private final CertificationService service = new CertificationService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 

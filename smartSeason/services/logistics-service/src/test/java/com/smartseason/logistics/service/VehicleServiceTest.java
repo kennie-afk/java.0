@@ -12,6 +12,7 @@ import com.smartseason.logistics.domain.Vehicle;
 import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.CountCache;
 import com.smartseason.logistics.platform.EventPublisher;
+import com.smartseason.logistics.platform.ReferenceChecker;
 import com.smartseason.logistics.platform.ResourceNotFoundException;
 import com.smartseason.logistics.platform.TenantContext;
 import com.smartseason.logistics.platform.TenantMissingException;
@@ -34,7 +35,7 @@ class VehicleServiceTest {
 
     private final CountCache counts = new CountCache(null, 30, false);
 
-    private final VehicleService service = new VehicleService(repository, events, counts);
+    private final VehicleService service = new VehicleService(repository, events, counts, ReferenceChecker.disabled());
 
     private final UUID tenant = UUID.randomUUID();
 
