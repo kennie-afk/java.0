@@ -467,6 +467,16 @@ spring:
                 name: pmsServiceCB
                 fallbackUri: forward:/fallback/property-management-service
 
+        - id: mri-secured
+          uri: http://property-management-service:8088
+          predicates: [Path=/api/mri/**]
+          filters:
+            - AuthFilter
+            - name: CircuitBreaker
+              args:
+                name: pmsServiceCB
+                fallbackUri: forward:/fallback/property-management-service
+
         - id: leases-secured
           uri: http://property-management-service:8088
           predicates: [Path=/api/leases/**]
