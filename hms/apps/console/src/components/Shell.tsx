@@ -15,6 +15,7 @@ const NAV: { group: string; items: Item[] }[] = [
     { href: "/appointments", label: "Appointments", perm: "scheduling:read", icon: "calendar" }] },
   { group: "Care", items: [
     { href: "/wards", label: "Wards and beds", perm: "inpatient:read", icon: "bed" },
+    { href: "/maternal", label: "Maternal and child", perm: "mch:read", icon: "pulse" },
     { href: "/lab", label: "Laboratory", perm: "lab:read", icon: "flask" },
     { href: "/pharmacy", label: "Pharmacy", perm: "pharmacy:read", icon: "pill" }] },
   { group: "Money", items: [

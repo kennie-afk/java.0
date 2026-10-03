@@ -1,7 +1,7 @@
 import os, tempfile
 STATE = os.environ.get('HMS_SEED_STATE', os.path.join(tempfile.gettempdir(), 'hms_seed_state.json'))
 import json, urllib.request, urllib.error, datetime, sys
-B='http://localhost:8100'
+B=os.environ.get('HMS_API_URL','http://localhost:8100')
 def call(m, path, body=None, tok=None, hdr=None, quiet=False):
     h={'content-type':'application/json'}
     if tok: h['authorization']='Bearer '+tok

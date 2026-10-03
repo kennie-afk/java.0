@@ -7,4 +7,5 @@ export HMS_SEED_STATE="${HMS_SEED_STATE:-/tmp/hms_seed_state.json}"
 python3 phase1_foundation.py
 python3 phase2_visits.py
 python3 phase4_polish.py
+python3 phase5_mch.py
 python3 phase3_check.py
