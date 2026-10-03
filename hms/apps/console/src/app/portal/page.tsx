@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { papi, usePortal } from "@/lib/portal";
-import { stamp, today, addDays } from "@/lib/format";
+import { date, stamp, today, addDays } from "@/lib/format";
 import { Badge, Button, Card, ErrorNote, Field, Input, Loading, Select, Status, Table, Td, Tabs, Tr, useAction } from "@/components/ui";
 
 type Result = { id: string; test: string; valueNumeric?: number; valueText?: string; unit?: string; flag?: string; refLow?: number; refHigh?: number; releasedAt: string };
@@ -20,7 +20,7 @@ function Results() {
   return (
     <Card title="Test results" description="Your care team releases results here once they have been checked." pad={false}>
       <Table head={["Test", "Result", "Normal range", "Released"]} empty="No results have been released to you yet.">
-        {(r.data?.data ?? []).map((x) => <Tr key={x.id}><Td>{x.test}</Td><Td>{x.valueNumeric ?? x.valueText} {x.unit} {x.flag && x.flag !== "N" && <Badge tone="warn">{FLAG[x.flag] ?? x.flag}</Badge>}</Td><Td>{x.refLow !== undefined || x.refHigh !== undefined ? `${x.refLow ?? ""} - ${x.refHigh ?? ""}` : ""}</Td><Td>{stamp(x.releasedAt)}</Td></Tr>)}
+        {(r.data?.data ?? []).map((x) => <Tr key={x.id}><Td>{x.test}</Td><Td>{x.valueNumeric ?? x.valueText} {x.unit} {x.flag && x.flag !== "N" && <Badge tone="warn">{FLAG[x.flag] ?? x.flag}</Badge>}</Td><Td>{x.refLow !== undefined || x.refHigh !== undefined ? `${x.refLow ?? ""} - ${x.refHigh ?? ""}` : ""}</Td><Td>{date(x.releasedAt)}</Td></Tr>)}
       </Table>
     </Card>
   );

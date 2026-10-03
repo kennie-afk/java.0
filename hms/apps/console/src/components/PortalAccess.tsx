@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { post, useFetch } from "@/lib/api";
 import { stamp } from "@/lib/format";
-import { Button, Card, ErrorNote, Notice, Status, useAction } from "@/components/ui";
+import { Button, Card, Confirm, ErrorNote, Notice, Status, useAction } from "@/components/ui";
 
 type Account = { hasAccount: boolean; status?: string; login?: string; lastLoginAt?: string };
 type Invitation = { code: string; expiresAt: string; patientName: string };
@@ -20,6 +20,7 @@ export function PortalAccess({ patientId }: { patientId: string }) {
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-2"><Status value={a.status ?? "ACTIVE"} /> <span className="text-muted">signs in as {a.login}{a.lastLoginAt ? `, last on ${stamp(a.lastLoginAt)}` : ""}</span></div>
           <Button variant="secondary" busy={act.busy} onClick={() => void act.run(async () => { await post(`/v1/portal/accounts/${patientId}/${a.status === "ACTIVE" ? "disable" : "enable"}`); await acc.reload(); })}>{a.status === "ACTIVE" ? "Disable access" : "Enable access"}</Button>
+          <Confirm label="Forgot password: reset" prompt="Remove this portal account so a new invitation can be issued? Check who the patient is first. Their medical record is not touched." onConfirm={() => act.run(async () => { await post(`/v1/portal/accounts/${patientId}/reset`); await acc.reload(); })} />
         </div>
       ) : (
         <div className="space-y-2 text-sm">

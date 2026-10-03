@@ -50,6 +50,13 @@ class PortalAdminController {
         return admin.setEnabled(patientId, true);
     }
 
+    @PostMapping("/accounts/{patientId}/reset")
+    @PreAuthorize(MANAGE)
+    AccountInfo reset(@PathVariable UUID patientId) {
+        admin.reset(patientId);
+        return admin.account(patientId);
+    }
+
     @GetMapping("/requests")
     @PreAuthorize(MANAGE)
     List<AppointmentRequest> requests(@RequestParam UUID facilityId, @RequestParam(required = false) String status) {

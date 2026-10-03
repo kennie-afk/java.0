@@ -40,6 +40,20 @@ spec:
           whenUnsatisfiable: ScheduleAnyway
           labelSelector:
             matchLabels: {app.kubernetes.io/name: api}
+      initContainers:
+        # The API exits if the database is unreachable at start-up, which would crash-loop it while Postgres comes up.
+        # Waiting here instead keeps restarts meaningful. It reuses the API image, so no extra image is needed.
+        - name: wait-for-postgres
+          image: hms-api:1.0.0
+          imagePullPolicy: IfNotPresent
+          command: [bash, -c, "until (echo > /dev/tcp/postgres/5432) 2>/dev/null; do echo waiting for postgres; sleep 2; done"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: 100m, memory: 64Mi}
       containers:
         - name: api
           # Build and push the image (backend/Dockerfile) and set a real tag here; "latest" is refused by scripts/check-k8s.py.

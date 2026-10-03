@@ -13,15 +13,19 @@ if pat:
     inv = call('POST', '/v1/portal/invitations', {'patientId': pid}, R)
     org_slug = 'lakeview'
     call('POST', '/portal/auth/activate', {'organisation': org_slug, 'code': inv['code'], 'birthDate': '1992-02-02', 'login': 'wanjiku.demo@lakeview.test', 'password': PW})
-    tests = call('GET', '/v1/lab/tests', None, A) or []
+    tests = {t['code']: t for t in (call('GET', '/v1/lab/tests', None, A) or [])}
+    # Plausible values for the organisation's own tests (units and ranges differ per test), the first released and the second withheld.
+    plan = [('HB', {'numeric': 14.1}), ('GLU', {'numeric': 5.2})]
     done = 0
-    for t in tests[:2]:
+    for code, val in plan:
+        t = tests.get(code)
+        if not t:
+            continue
         o = call('POST', '/v1/lab/orders', {'facilityId': FAC, 'patientId': pid, 'testIds': [t['id']], 'clinicalInfo': 'Routine check'}, D)
         if not o:
             continue
         call('POST', f"/v1/lab/orders/{o['id']}/collect", {}, L)
         item = o['items'][0]['id']
-        val = {'numeric': 14.1} if t['resultType'] == 'NUMERIC' else {'text': 'Negative'}
         # Entered by the administrator, validated by the technologist: four eyes.
         call('POST', f'/v1/lab/items/{item}/result', val, A)
         call('POST', f'/v1/lab/items/{item}/validate', {}, L)

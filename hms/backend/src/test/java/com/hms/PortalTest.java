@@ -205,4 +205,20 @@ class PortalTest extends IntegrationTest {
         assertThat(portal("/allergies", token)).isEmpty();
         assertThat(portal("/appointments", token)).isEmpty();
     }
+
+    @Test
+    void staffCanResetAnAccountSoAPatientWhoForgotTheirPasswordCanBeInvitedAgain() throws Exception {
+        Org org = newOrg("portal-reset");
+        UUID p = newPatient(org, "Forgot", "1990-04-04");
+        String token = activate(org, p, "forgot@example.org", "a-long-password-1");
+        mvc.perform(get("/portal/me", token)).andExpect(status().isOk());
+        send(post("/v1/portal/accounts/" + p + "/reset", org.token()), 200);
+        assertThat(fetch("/v1/portal/accounts/" + p, org.token()).get("hasAccount").asBoolean()).isFalse();
+        sendJson(post("/portal/auth/login", null), Map.of("organisation", slug(org), "login", "forgot@example.org", "password", "a-long-password-1"), 401);
+        sendJson(post("/v1/portal/accounts/" + p + "/reset", org.token()), Map.of(), 404);
+        // A fresh invitation sets a new password.
+        String again = activate(org, p, "forgot@example.org", "another-long-password-2");
+        mvc.perform(get("/portal/me", again)).andExpect(status().isOk());
+        assertThat(fetch("/v1/audit/events?entityType=patient&entityId=" + p, org.token()).findValuesAsText("action")).contains("portal.account.reset");
+    }
 }

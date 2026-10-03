@@ -79,6 +79,22 @@ public class PortalAdminService {
         return account(patientId);
     }
 
+    /**
+     * For a patient who has forgotten their password: removes the account so a fresh invitation can be issued after staff have
+     * checked who they are again. The account holds only a sign-in name and a password; nothing about the patient's record goes.
+     */
+    @Transactional
+    public void reset(UUID patientId) {
+        TenantContext.Tenant t = TenantContext.require();
+        patients.require(patientId);
+        int n = jdbc.sql("DELETE FROM portal_accounts WHERE org_id = ? AND patient_id = ?").params(t.orgId(), patientId).update();
+        if (n == 0) {
+            throw ApiException.notFound("Portal account");
+        }
+        jdbc.sql("UPDATE portal_invitations SET revoked_at = now() WHERE org_id = ? AND patient_id = ? AND used_at IS NULL AND revoked_at IS NULL").params(t.orgId(), patientId).update();
+        audit.record("portal.account.reset", "patient", patientId, null, null, Map.of());
+    }
+
     // ---- appointment requests ----------------------------------------------------------------
 
     @Transactional(readOnly = true)

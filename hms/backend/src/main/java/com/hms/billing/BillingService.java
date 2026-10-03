@@ -165,8 +165,8 @@ public class BillingService {
     }
 
     /**
-     * Adds what the encounter actually consumed: every dispensing (drug price x quantity) and every laboratory
-     * test that has a result, each at most once across all invoices. Safe to run again.
+     * Adds what the encounter actually consumed: every dispensing (drug price x quantity), every laboratory
+     * test that has a result and every imaging study that was performed, each at most once across all invoices. Safe to run again.
      */
     @Transactional
     public Invoice importEncounter(UUID invoiceId) {
@@ -190,6 +190,14 @@ public class BillingService {
                 .query((rs, n) -> new Object[] {rs.getObject("id", UUID.class), rs.getString("name"), rs.getBigDecimal("price")}).list();
         for (Object[] l : labs) {
             added += claimSource(t, invoiceId, "LAB", (UUID) l[0], "Laboratory: " + l[1], BigDecimal.ONE, (BigDecimal) l[2]);
+        }
+        // A study is charged once it has been performed (not before, and not if the order was cancelled).
+        var scans = jdbc.sql("""
+                SELECT o.id, ip.name, ip.price FROM imaging_orders o JOIN imaging_procedures ip ON ip.org_id = o.org_id AND ip.id = o.procedure_id
+                 WHERE o.org_id = ? AND o.encounter_id = ? AND o.status IN ('PERFORMED', 'REPORTED', 'SIGNED') ORDER BY o.created_at""").params(t.orgId(), inv.encounterId())
+                .query((rs, n) -> new Object[] {rs.getObject("id", UUID.class), rs.getString("name"), rs.getBigDecimal("price")}).list();
+        for (Object[] i : scans) {
+            added += claimSource(t, invoiceId, "IMAGING", (UUID) i[0], "Imaging: " + i[1], BigDecimal.ONE, (BigDecimal) i[2]);
         }
         retotal(invoiceId);
         audit.record("invoice.import", "invoice", invoiceId, inv.facilityId(), null, Map.of("added", added));

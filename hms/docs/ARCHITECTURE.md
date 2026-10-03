@@ -42,15 +42,15 @@ permission vocabulary in code (`patients:read`, `clinical:write`, `pharmacy:disp
 | `clinical` | encounters (OPD/ED/IPD), vitals, notes, diagnoses, allergies, problem list, orders |
 | `pharmacy` | formulary, stock batches and expiry, dispensing, controlled-drug register |
 | `lab` | test catalogue, orders, specimens, results, critical values, quality control |
-| `imaging` | radiology orders, reports |
+| `imaging` | radiology orders, reports signed by a second person, critical findings |
 | `inpatient` | wards, beds, admission/transfer/discharge, nursing, theatre |
-| `maternal` | ANC, delivery, postnatal, immunisation (EPI), family planning |
-| `programs` | HIV, TB, NCD registers and cohorts |
+| `mch` | ANC, delivery, immunisation schedule, programme summary (postnatal and family planning not built) |
+| `programmes` | HIV, TB and NCD registers, follow-up, outcomes, defaulter tracing |
 | `billing` | price lists, charges, invoices, payers (cash, M-Pesa, SHA, insurers), receipts, eTIMS |
 | `claims` | SHA claim builder and validator against the DHA eClaims FHIR guide, tracking, appeals |
-| `reporting` | MOH returns (705, 711, 731...) and KHIS/DHIS2 export from aggregate queries |
-| `interop` | FHIR R4 facade, DHA/SHA adapters (unverified until credentials exist) |
-| `portal` | the patient's own record, appointments, results, bills |
+| `reporting` | aggregate reports and configurable definitions with CSV and DHIS2 data value set export; the official MOH returns (705, 711, 731...) are not reproduced |
+| `fhir` | read-only FHIR R4 interface; DHA/SHA adapters are unverified stubs |
+| `portal` | the patient's own view: released results and reports, medicines, allergies, appointment requests (bills not included) |
 
 ## Data design for scale
 
@@ -63,10 +63,19 @@ permission vocabulary in code (`patients:read`, `clinical:write`, `pharmacy:disp
 
 ## Offline
 
-Rural facilities lose power and links. Registration, triage and dispensing run in an offline-first
-PWA with a local queue, idempotency keys and server-side conflict rules (clinical data is merged by
-append, never overwritten). Delivered in the last phase; the API is designed for it from day one
-(client-generated ids, idempotent commands).
+Rural facilities lose power and links. What is built is deliberately narrow:
+
+- A service worker keeps the app (scripts, styles, pages already opened) so the console opens without a connection, and a copy of
+  the point-of-care records a person has read (queue, patient, encounter, maternal, programme, ward screens) for up to 12 hours.
+  Anything sent with an access reason, anything about billing, claims, staff, reports or audit, and the patient portal are never
+  kept. The copies are deleted on sign-out, and a screen served from a copy says so.
+- Bedside capture (vitals, notes, antenatal and programme visits, immunisation doses) made while offline is kept in the browser's
+  IndexedDB and sent when the connection returns, oldest first. Each entry carries an `Idempotency-Key`, and the server carries a
+  write out once per key, so a resend after a dropped connection cannot double it. An entry the server refuses is kept as failed
+  and shown on the Waiting to send screen; nothing is dropped silently.
+- Not queued, on purpose: anything that needs a live decision (orders checked against allergies, payments, results, dispensing).
+  Those need the connection.
+- Entries waiting on a device are patient information at rest in that browser; the console warns when someone signs out with entries unsent.
 
 ## Phases
 
@@ -74,7 +83,7 @@ append, never overwritten). Delivered in the last phase; the API is designed for
 1. **Outpatient care:** scheduling, triage, consultation, diagnoses, prescriptions, referrals.
 2. **Ancillary and money:** pharmacy, lab, billing, M-Pesa, receipts.
 3. **SHA and inpatient:** claims builder/validator/tracker, wards and beds, discharge, reporting.
-4. **Programmes and reach:** maternal/immunisation, HIV/TB, patient portal, offline PWA, FHIR facade.
+4. **Programmes and reach:** maternal/immunisation, HIV/TB/NCD registers, imaging, configurable reports, FHIR read interface, patient portal, offline bedside capture (all built; see the README for what is not verified).
 
 ## What is not verified
 

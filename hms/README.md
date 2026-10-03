@@ -13,18 +13,29 @@ Backend modules, each with a Flyway migration, row-level security, permissions, 
 - Clinical: encounters, triage, append-only vitals and notes, ICD-11 diagnoses (code shape only), allergies, orders and prescriptions.
 - Pharmacy: formulary, first-expiry-first-out stock, ledger, dispensing, controlled-drug witness.
 - Laboratory: catalogue, orders, specimens, four-eyes validation, critical values, amendments.
+- Imaging: procedure catalogue, orders, performed study, reports signed by a second person, critical findings, amendments, billing of performed studies. The record holds the report, not the images (no DICOM or PACS).
+- Maternal and child health: antenatal visits with computed warning flags, delivery outcome, immunisation schedule, programme summary.
+- Programmes: HIV, TB, hypertension, diabetes, asthma and epilepsy registers with follow-up visits, outcomes and defaulter tracing. HIV care has its own permission and every opening of it is audited.
 - Billing: price list, invoices frozen on issue, payments, receipts, M-Pesa (simulated).
 - Claims readiness (Madai): assembly and readiness checks. The adapter is an unverified stub that sends nothing.
 - Inpatient: wards, beds, admissions, transfers, discharge.
-- Reporting: operational aggregates (not the official MOH returns).
+- Reporting: operational aggregates, plus configurable report definitions built from a fixed catalogue of measures (no free-form SQL), CSV export and a DHIS2 data value set export (whole calendar months only). Not the official MOH returns.
+- FHIR R4 read interface (`/fhir/r4`): Patient, Encounter, Observation, MedicationRequest, AllergyIntolerance. See `docs/FHIR.md`.
+- Patient portal: accounts created from a one-time code handed over in person plus the date of birth, a separate token type, results and reports shown only after a clinician releases them, appointment requests, medicines and allergies.
+- Idempotent writes: any write sent with an `Idempotency-Key` is carried out once.
 
-A Next.js console in `apps/console` covers all of the above.
+The Next.js console in `apps/console` covers all of the above, including the patient portal under `/portal`, and keeps working through short connection losses for bedside capture (vitals, notes, visits, doses): see Offline in `docs/ARCHITECTURE.md`.
+
+Deployment: Docker Compose for a single machine, Kubernetes manifests in `k8s/` (see `docs/DEPLOY.md`), and a CI workflow in `.github/workflows/hms.yml` at the repository root.
 
 ## Not built or not verified
 
 - No live SHA/DHA submission and no live M-Pesa: both are behind adapters that do not talk to anyone.
 - ICD-11 codes are checked for shape only; there is no licensed catalogue. LOINC and PPB codes are stored, not validated.
-- Maternal, programmes, imaging, FHIR facade, patient portal, offline PWA, official MOH forms and KHIS export.
+- Official MOH forms and a KHIS export are not built. The DHIS2 export follows the public data value set format but has not been sent to a DHIS2 server.
+- The FHIR interface has not been run through the HL7 validator and is not claimed to conform to any national implementation guide.
+- The patient portal sends nothing by SMS or e-mail: staff hand over the invitation code in person. Offline support has been tried in Chrome only (not Safari or Firefox).
+- Imaging has no DICOM, PACS or viewer.
 
 ## Run it
 

@@ -7,13 +7,18 @@ def call(m, path, body=None, tok=None, hdr=None, quiet=False):
     if tok: h['authorization']='Bearer '+tok
     if hdr: h.update(hdr)
     r=urllib.request.Request(B+path, data=json.dumps(body).encode() if body is not None else None, headers=h, method=m)
-    try:
-        with urllib.request.urlopen(r, timeout=60) as x:
-            t=x.read().decode(); return json.loads(t) if t else {}
-    except urllib.error.HTTPError as e:
-        t=e.read().decode()
-        if not quiet: print('FAIL',m,path,e.code,t[:300])
-        return None
+    import time
+    for attempt in range(6):
+        try:
+            with urllib.request.urlopen(r, timeout=60) as x:
+                t=x.read().decode(); return json.loads(t) if t else {}
+        except urllib.error.HTTPError as e:
+            t=e.read().decode()
+            if e.code == 429 and attempt < 5:
+                # The login and portal endpoints rate-limit by address; wait as long as the server says and try again.
+                time.sleep(int(e.headers.get('Retry-After') or 15) + 1); continue
+            if not quiet: print('FAIL',m,path,e.code,t[:300])
+            return None
 PW='Lakeview-Demo-2026'
 org=call('POST','/v1/organisations',{'organisationName':'Lakeview Community Hospital','slug':'lakeview','facility':{'name':'Lakeview Community Hospital','kephLevel':4,'ownership':'PRIVATE','county':'Kisumu'},'admin':{'fullName':'Amina Otieno','email':'admin@lakeview.test','password':PW}})
 print(org)

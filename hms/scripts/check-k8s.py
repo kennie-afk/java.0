@@ -65,7 +65,8 @@ for w in workloads:
     short = w["metadata"]["name"]
     if short in image_uid and image_uid[short] is not None and ps.get("runAsUser") != image_uid[short]:
         fail(f"{name(w)}: runAsUser {ps.get('runAsUser')} differs from the Dockerfile's USER {image_uid[short]}")
-    for c in spec["containers"]:
+    for c in [dict(i, _init=True) for i in spec.get("initContainers", [])] + spec["containers"]:
+        init = c.get("_init", False)
         who = f'{name(w)}/{c["name"]}'
         img = c["image"]
         if ":" not in img.split("/")[-1] or img.endswith(":latest"):
@@ -76,7 +77,7 @@ for w in workloads:
                 if res not in r.get(part, {}):
                     fail(f"{who}: resources.{part}.{res} missing")
         for probe in ("startupProbe", "readinessProbe", "livenessProbe"):
-            if probe not in c:
+            if probe not in c and not init:
                 fail(f"{who}: {probe} missing")
         sc = c.get("securityContext", {})
         if sc.get("allowPrivilegeEscalation") is not False:
@@ -100,7 +101,7 @@ for w in workloads:
                 fail(f"{who}: ConfigMap key {vf['configMapKeyRef']['key']} does not exist")
             if "secretKeyRef" in vf and vf["secretKeyRef"]["key"] not in secret_keys:
                 fail(f"{who}: Secret key {vf['secretKeyRef']['key']} is not in the example Secret")
-        if c.get("securityContext", {}).get("readOnlyRootFilesystem"):
+        if c.get("securityContext", {}).get("readOnlyRootFilesystem") and not init:
             mounted = {m["mountPath"] for m in c.get("volumeMounts", [])}
             if not any(p in mounted for p in ("/tmp", "/var/lib/postgresql/data")):
                 fail(f"{who}: read-only root filesystem with no writable /tmp")

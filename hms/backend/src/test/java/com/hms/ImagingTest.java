@@ -110,4 +110,31 @@ class ImagingTest extends IntegrationTest {
         sendJson(put("/v1/imaging/procedures/" + us, a.token()), Map.of("code", "USA", "name", "Ultrasound abdomen", "modality", "US", "active", false), 200);
         sendJson(post("/v1/imaging/orders", a.token()), order(a, pa, us), 409);
     }
+
+    @Test
+    void aPerformedStudyIsBilledOnceAndACancelledOneNever() throws Exception {
+        Org org = newOrg("imgbill");
+        String doctor = userWithRole(org, "DOCTOR");
+        String radiographer = userWithRole(org, "RADIOGRAPHER", "RADIOGRAPHER");
+        String cashier = userWithRole(org, "CASHIER", "ACCOUNTANT");
+        String cxr = procedure(org, "CXR", "Chest X-ray, PA", "XR");
+        UUID p = newPatient(org);
+        String enc = create("/v1/clinical/encounters", doctor, Map.of("facilityId", org.facilityId().toString(), "patientId", p.toString(), "type", "OPD")).get("id").asText();
+        Map<String, Object> o = new java.util.LinkedHashMap<>(order(org, p, cxr));
+        o.put("encounterId", enc);
+        String performed = create("/v1/imaging/orders", doctor, o).get("id").asText();
+        String cancelled = create("/v1/imaging/orders", doctor, o).get("id").asText();
+        String waiting = create("/v1/imaging/orders", doctor, o).get("id").asText();
+        send(post("/v1/imaging/orders/" + performed + "/perform", radiographer), 200);
+        sendJson(post("/v1/imaging/orders/" + cancelled + "/cancel", doctor), Map.of("reason", "duplicate request"), 200);
+        String inv = create("/v1/billing/invoices", cashier, Map.of("facilityId", org.facilityId().toString(), "patientId", p.toString(), "encounterId", enc)).get("id").asText();
+        JsonNode first = send(post("/v1/billing/invoices/" + inv + "/import-encounter", cashier), 200);
+        assertThat(first.get("lines")).hasSize(1);
+        assertThat(first.get("lines").get(0).get("description").asText()).isEqualTo("Imaging: Chest X-ray, PA");
+        assertThat(first.get("lines").get(0).get("unitPrice").decimalValue()).isEqualByComparingTo("1500");
+        // Importing again adds nothing; once the waiting order is performed it is picked up, still once.
+        assertThat(send(post("/v1/billing/invoices/" + inv + "/import-encounter", cashier), 200).get("lines")).hasSize(1);
+        send(post("/v1/imaging/orders/" + waiting + "/perform", radiographer), 200);
+        assertThat(send(post("/v1/billing/invoices/" + inv + "/import-encounter", cashier), 200).get("lines")).hasSize(2);
+    }
 }
