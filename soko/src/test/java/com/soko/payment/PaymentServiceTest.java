@@ -128,6 +128,31 @@ class PaymentServiceTest {
         assertThat(fake.all).isEmpty();
     }
 
+    @Test
+    void anAmountWithCentsIsChargedRoundedUpAndTheRecordKeepsBothFigures() {
+        FakeRepo fake = new FakeRepo();
+        PaymentService service = new PaymentService(adapt(fake), new MockMpesaGateway(), properties());
+
+        // KSh 1,234.56 is due; M-Pesa moves whole shillings, so the customer is charged KSh 1,235.
+        MpesaPayment payment = service.initiate(UUID.randomUUID(), MpesaPayment.Purpose.ORDER,
+                UUID.randomUUID(), 123456, "254712345678", "SO-ROUND", "rounding");
+
+        assertThat(payment.getDueCents()).isEqualTo(123456);
+        assertThat(payment.getAmountCents()).isEqualTo(123500);
+        assertThat(payment.getAmountCents() - payment.getDueCents()).isEqualTo(44);
+    }
+
+    @Test
+    void anAmountInWholeShillingsHasNoRounding() {
+        FakeRepo fake = new FakeRepo();
+        PaymentService service = new PaymentService(adapt(fake), new MockMpesaGateway(), properties());
+
+        MpesaPayment payment = service.initiate(UUID.randomUUID(), MpesaPayment.Purpose.ORDER,
+                UUID.randomUUID(), 150000, "254712345678", "SO-WHOLE", "whole");
+
+        assertThat(payment.getAmountCents()).isEqualTo(payment.getDueCents()).isEqualTo(150000);
+    }
+
     private static StkCallback callback(String merchantRequestId, String checkoutRequestId, int resultCode) {
         var detail = new StkCallback.StkCallbackDetail(
                 merchantRequestId, checkoutRequestId, resultCode,

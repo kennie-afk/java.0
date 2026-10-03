@@ -59,7 +59,8 @@ public class PaymentCallbackHandler {
                 order.setStatus("PAID");
                 orders.save(order);
                 ledger.append(order.getTenantId(), "PAYMENT_RECEIVED", "ORDER", order.getId(),
-                        payment.getAmountCents(), "M-Pesa receipt " + payment.getMpesaReceiptNumber());
+                        payment.getDueCents(), "M-Pesa receipt " + payment.getMpesaReceiptNumber());
+                recordRounding(payment, "ORDER", order.getId());
             }, () -> log.error("M-Pesa payment {} succeeded but order {} was not found for tenant {}",
                     payment.getId(), payment.getReferenceId(), payment.getTenantId()));
         } else {
@@ -68,9 +69,19 @@ public class PaymentCallbackHandler {
                 invoice.setPaidAt(Instant.now());
                 invoices.save(invoice);
                 ledger.append(invoice.getTenantId(), "PAYMENT_RECEIVED", "INVOICE", invoice.getId(),
-                        payment.getAmountCents(), "M-Pesa receipt " + payment.getMpesaReceiptNumber());
+                        payment.getDueCents(), "M-Pesa receipt " + payment.getMpesaReceiptNumber());
+                recordRounding(payment, "INVOICE", invoice.getId());
             }, () -> log.error("M-Pesa payment {} succeeded but invoice {} was not found for tenant {}",
                     payment.getId(), payment.getReferenceId(), payment.getTenantId()));
+        }
+    }
+
+    /** The cents collected beyond what was due, so ledger receipts sum to what Safaricom paid out. */
+    private void recordRounding(MpesaPayment payment, String referenceType, java.util.UUID referenceId) {
+        long extra = payment.getAmountCents() - payment.getDueCents();
+        if (extra > 0) {
+            ledger.append(payment.getTenantId(), "ROUNDING_COLLECTED", referenceType, referenceId,
+                    extra, "Rounded up to whole shillings for M-Pesa receipt " + payment.getMpesaReceiptNumber());
         }
     }
 }

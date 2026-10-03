@@ -65,14 +65,19 @@ public class PaymentService {
         record.setPurpose(purpose);
         record.setReferenceId(referenceId);
         record.setMsisdn(msisdn);
-        record.setAmountCents(amountCents);
+        // M-Pesa moves whole shillings only. The customer is charged the due amount rounded UP, so
+        // the shop is never short; the record keeps both figures so the ledger can show the
+        // difference as its own line and still reconcile to the Safaricom statement.
+        long wholeShillings = Math.ceilDiv(amountCents, 100);
+        record.setDueCents(amountCents);
+        record.setAmountCents(wholeShillings * 100);
         record.setStatus(MpesaPayment.Status.PENDING);
 
         StkPushResponse response;
         try {
             response = gateway.stkPush(new StkPushRequest(
                     msisdn,
-                    BigDecimal.valueOf(Math.ceilDiv(amountCents, 100)),
+                    BigDecimal.valueOf(wholeShillings),
                     accountReference,
                     description,
                     properties.callbackUrl()));

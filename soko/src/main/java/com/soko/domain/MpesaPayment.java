@@ -30,7 +30,10 @@ public class MpesaPayment {
     @Column(nullable = false) private String purpose;
     @Column(name = "reference_id", nullable = false) private UUID referenceId;
     @Column(nullable = false) private String msisdn;
+    /** What actually moved through M-Pesa: the due amount rounded UP to whole shillings. */
     @Column(name = "amount_cents", nullable = false) private long amountCents;
+    /** What the order or invoice asked for, exact. {@code amountCents - dueCents} is the rounding. */
+    @Column(name = "due_cents", nullable = false) private long dueCents;
     @Column(name = "merchant_request_id") private String merchantRequestId;
     @Column(name = "checkout_request_id") private String checkoutRequestId;
     @Column(name = "mpesa_receipt_number") private String mpesaReceiptNumber;
@@ -51,6 +54,8 @@ public class MpesaPayment {
     public void setMsisdn(String v) { this.msisdn = v; }
     public long getAmountCents() { return amountCents; }
     public void setAmountCents(long v) { this.amountCents = v; }
+    public long getDueCents() { return dueCents; }
+    public void setDueCents(long v) { this.dueCents = v; }
     public String getMerchantRequestId() { return merchantRequestId; }
     public void setMerchantRequestId(String v) { this.merchantRequestId = v; }
     public String getCheckoutRequestId() { return checkoutRequestId; }
