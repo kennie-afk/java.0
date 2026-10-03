@@ -11,6 +11,6 @@ WORKDIR /app
 COPY --from=build /app/.next/standalone ./
 # Next writes its cache under .next/cache at run time; the unprivileged user must own it.
 RUN mkdir -p /app/.next/cache && chown -R node:node /app/.next
-USER node
+USER 1000:1000
 EXPOSE 3600
 CMD ["node", "server.js"]

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hms-config
+  namespace: hms
+data:
+  HMS_DB_URL: jdbc:postgresql://postgres:5432/hms
+  HMS_DB_OWNER_USER: hms
+  HMS_DB_APP_USER: hms_app
+  # The public address of the console. Set this to the real host before deploying: it is the only browser origin the API accepts.
+  HMS_ALLOWED_ORIGINS: https://hms.example.org
+  # Simulated M-Pesa. "live" is not implemented and refuses to start.
+  HMS_MPESA_MODE: mock
+  # The ingress controller sets X-Forwarded-For, so per-address rate limits use the real client address.
+  HMS_TRUST_FORWARDED_FOR: "true"

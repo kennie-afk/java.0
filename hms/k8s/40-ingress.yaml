@@ -1,0 +1,55 @@
+# Needs an ingress-nginx controller and, for the certificate, cert-manager with a ClusterIssuer named letsencrypt-prod
+# (or change the annotation / supply your own hms-tls Secret). Replace hms.example.org with the real host, here and in
+# HMS_ALLOWED_ORIGINS.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hms
+  namespace: hms
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: 2m
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [hms.example.org]
+      secretName: hms-tls
+  rules:
+    - host: hms.example.org
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: {name: console, port: {number: 3600}}
+---
+# The FHIR read interface is for other systems and is the only part of the API reachable from outside; it has its own
+# rate limit. Staff and patients never call the API directly: they go through the console, which holds the session.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hms-fhir
+  namespace: hms
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: 1m
+    nginx.ingress.kubernetes.io/limit-rps: "20"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [hms.example.org]
+      secretName: hms-tls
+  rules:
+    - host: hms.example.org
+      http:
+        paths:
+          - path: /fhir
+            pathType: Prefix
+            backend:
+              service: {name: api, port: {number: 8100}}
+          - path: /v1/auth/login
+            pathType: Exact
+            backend:
+              service: {name: api, port: {number: 8100}}

@@ -1,0 +1,83 @@
+name: HMS CI
+
+on:
+  push:
+    branches: [main]
+    paths: ['hms/**', '.github/workflows/hms.yml']
+  pull_request:
+    branches: [main]
+    paths: ['hms/**', '.github/workflows/hms.yml']
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    # The tests run against a real Postgres: row-level security, exclusion constraints and triggers are part of what is tested.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: hms
+          POSTGRES_PASSWORD: ownerpw
+          POSTGRES_DB: hms_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U hms -d hms_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      HMS_TEST_DB_URL: jdbc:postgresql://localhost:5432/hms_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+      - name: Build and test
+        working-directory: hms/backend
+        run: mvn -B verify
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hms-surefire-reports
+          path: hms/backend/target/surefire-reports
+          if-no-files-found: ignore
+
+  console:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: hms/apps/console
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: hms/apps/console/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+
+  kubernetes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Static checks
+        run: |
+          python3 -m pip install --quiet pyyaml
+          python3 hms/scripts/check-k8s.py
+      - name: Validate against the Kubernetes schemas
+        run: |
+          docker run --rm -v "$PWD/hms/k8s":/k8s ghcr.io/yannh/kubeconform:v0.6.7 \
+            -strict -summary -kubernetes-version 1.30.0 -ignore-filename-pattern 'kustomization.yaml|secret.example' /k8s
+
+  images:
+    runs-on: ubuntu-latest
+    needs: [backend, console]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the API image
+        run: docker build -t hms-api:ci hms/backend
+      - name: Build the console image
+        run: docker build -t hms-console:ci hms/apps/console

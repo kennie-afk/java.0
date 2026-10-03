@@ -7,10 +7,11 @@ COPY src ./src
 RUN mvn -q -B -DskipTests package
 
 FROM eclipse-temurin:21-jre
-RUN groupadd --system hms && useradd --system --gid hms --no-create-home hms
+# A fixed numeric id: Kubernetes cannot verify a named user is non-root, and the manifests set runAsUser to this.
+RUN groupadd --system --gid 10001 hms && useradd --system --uid 10001 --gid hms --no-create-home hms
 WORKDIR /app
 COPY --from=build /build/target/hms-backend-*.jar app.jar
-USER hms
+USER 10001:10001
 EXPOSE 8100
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError"
 HEALTHCHECK --interval=15s --timeout=3s --start-period=40s --retries=5 \
