@@ -13,6 +13,9 @@ import com.smartseason.fraud.repo.FraudRuleRepository;
 import com.smartseason.fraud.web.dto.FraudRuleCreateRequest;
 import com.smartseason.fraud.web.dto.FraudRuleResponse;
 import com.smartseason.fraud.web.dto.FraudRuleUpdateRequest;
+import com.smartseason.fraud.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,16 @@ public class FraudRuleService {
     private static final String RESOURCE = "FraudRule";
     private static final String ENTITY = "fraud_rules";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("code", String.class),
+            Map.entry("typology", FraudRule.Typology.class),
+            Map.entry("name", String.class),
+            Map.entry("severity", FraudRule.Severity.class),
+            Map.entry("enabled", Boolean.class),
+            Map.entry("autoHoldPayout", Boolean.class));
+
+    private static final List<String> SEARCHABLE = List.of("code", "name");
+
     private final FraudRuleRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +48,15 @@ public class FraudRuleService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<FraudRuleResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<FraudRule>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(FraudRuleResponse::from));
     }
 
     public PageResponse<FraudRuleResponse> list(Pageable pageable) {

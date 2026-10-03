@@ -13,6 +13,9 @@ import com.smartseason.identity.repo.KycRecordRepository;
 import com.smartseason.identity.web.dto.KycRecordCreateRequest;
 import com.smartseason.identity.web.dto.KycRecordResponse;
 import com.smartseason.identity.web.dto.KycRecordUpdateRequest;
+import com.smartseason.identity.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,16 @@ public class KycRecordService {
     private static final String RESOURCE = "KycRecord";
     private static final String ENTITY = "kyc_records";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("subjectId", UUID.class),
+            Map.entry("subjectType", KycRecord.SubjectType.class),
+            Map.entry("idNumber", String.class),
+            Map.entry("documentUrl", String.class),
+            Map.entry("status", KycRecord.Status.class),
+            Map.entry("reviewedBy", UUID.class));
+
+    private static final List<String> SEARCHABLE = List.of("idNumber", "documentUrl");
+
     private final KycRecordRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +48,15 @@ public class KycRecordService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<KycRecordResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<KycRecord>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(KycRecordResponse::from));
     }
 
     public PageResponse<KycRecordResponse> list(Pageable pageable) {

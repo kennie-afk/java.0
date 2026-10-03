@@ -13,6 +13,9 @@ import com.smartseason.automation.repo.DigitalTwinRepository;
 import com.smartseason.automation.web.dto.DigitalTwinCreateRequest;
 import com.smartseason.automation.web.dto.DigitalTwinResponse;
 import com.smartseason.automation.web.dto.DigitalTwinUpdateRequest;
+import com.smartseason.automation.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,12 @@ public class DigitalTwinService {
     private static final String RESOURCE = "DigitalTwin";
     private static final String ENTITY = "digital_twins";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("plotId", UUID.class),
+            Map.entry("irrigationState", DigitalTwin.IrrigationState.class));
+
+    private static final List<String> SEARCHABLE = List.of();
+
     private final DigitalTwinRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +44,15 @@ public class DigitalTwinService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<DigitalTwinResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<DigitalTwin>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(DigitalTwinResponse::from));
     }
 
     public PageResponse<DigitalTwinResponse> list(Pageable pageable) {

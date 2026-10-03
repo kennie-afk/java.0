@@ -13,6 +13,9 @@ import com.smartseason.farm.repo.FarmMembershipRepository;
 import com.smartseason.farm.web.dto.FarmMembershipCreateRequest;
 import com.smartseason.farm.web.dto.FarmMembershipResponse;
 import com.smartseason.farm.web.dto.FarmMembershipUpdateRequest;
+import com.smartseason.farm.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,15 @@ public class FarmMembershipService {
     private static final String RESOURCE = "FarmMembership";
     private static final String ENTITY = "farm_memberships";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("farmId", UUID.class),
+            Map.entry("userId", UUID.class),
+            Map.entry("role", FarmMembership.Role.class),
+            Map.entry("invitedBy", UUID.class),
+            Map.entry("status", FarmMembership.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of();
+
     private final FarmMembershipRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +47,15 @@ public class FarmMembershipService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<FarmMembershipResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<FarmMembership>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(FarmMembershipResponse::from));
     }
 
     public PageResponse<FarmMembershipResponse> list(Pageable pageable) {

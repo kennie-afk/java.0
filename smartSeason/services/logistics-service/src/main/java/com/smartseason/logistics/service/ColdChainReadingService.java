@@ -13,6 +13,9 @@ import com.smartseason.logistics.repo.ColdChainReadingRepository;
 import com.smartseason.logistics.web.dto.ColdChainReadingCreateRequest;
 import com.smartseason.logistics.web.dto.ColdChainReadingResponse;
 import com.smartseason.logistics.web.dto.ColdChainReadingUpdateRequest;
+import com.smartseason.logistics.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,13 @@ public class ColdChainReadingService {
     private static final String RESOURCE = "ColdChainReading";
     private static final String ENTITY = "cold_chain_readings";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("transportJobId", UUID.class),
+            Map.entry("deviceId", String.class),
+            Map.entry("breach", Boolean.class));
+
+    private static final List<String> SEARCHABLE = List.of("deviceId");
+
     private final ColdChainReadingRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +45,15 @@ public class ColdChainReadingService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<ColdChainReadingResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<ColdChainReading>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(ColdChainReadingResponse::from));
     }
 
     public PageResponse<ColdChainReadingResponse> list(Pageable pageable) {

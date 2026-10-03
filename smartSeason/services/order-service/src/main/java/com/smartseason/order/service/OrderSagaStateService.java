@@ -13,6 +13,9 @@ import com.smartseason.order.repo.OrderSagaStateRepository;
 import com.smartseason.order.web.dto.OrderSagaStateCreateRequest;
 import com.smartseason.order.web.dto.OrderSagaStateResponse;
 import com.smartseason.order.web.dto.OrderSagaStateUpdateRequest;
+import com.smartseason.order.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,13 @@ public class OrderSagaStateService {
     private static final String RESOURCE = "OrderSagaState";
     private static final String ENTITY = "order_saga_states";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("orderId", UUID.class),
+            Map.entry("currentStep", String.class),
+            Map.entry("stepStatus", OrderSagaState.StepStatus.class));
+
+    private static final List<String> SEARCHABLE = List.of("currentStep");
+
     private final OrderSagaStateRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +45,15 @@ public class OrderSagaStateService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<OrderSagaStateResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<OrderSagaState>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(OrderSagaStateResponse::from));
     }
 
     public PageResponse<OrderSagaStateResponse> list(Pageable pageable) {

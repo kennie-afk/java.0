@@ -13,6 +13,9 @@ import com.smartseason.ledger.repo.AccountRepository;
 import com.smartseason.ledger.web.dto.AccountCreateRequest;
 import com.smartseason.ledger.web.dto.AccountResponse;
 import com.smartseason.ledger.web.dto.AccountUpdateRequest;
+import com.smartseason.ledger.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,19 @@ public class AccountService {
     private static final String RESOURCE = "Account";
     private static final String ENTITY = "accounts";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("accountCode", String.class),
+            Map.entry("name", String.class),
+            Map.entry("accountType", Account.AccountType.class),
+            Map.entry("ownerOrgId", UUID.class),
+            Map.entry("ownerUserId", UUID.class),
+            Map.entry("currency", String.class),
+            Map.entry("normalBalance", Account.NormalBalance.class),
+            Map.entry("status", Account.Status.class),
+            Map.entry("parentAccountId", UUID.class));
+
+    private static final List<String> SEARCHABLE = List.of("accountCode", "name", "currency");
+
     private final AccountRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +51,15 @@ public class AccountService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<AccountResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<Account>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(AccountResponse::from));
     }
 
     public PageResponse<AccountResponse> list(Pageable pageable) {

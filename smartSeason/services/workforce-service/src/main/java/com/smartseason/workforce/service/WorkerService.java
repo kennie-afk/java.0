@@ -13,6 +13,9 @@ import com.smartseason.workforce.repo.WorkerRepository;
 import com.smartseason.workforce.web.dto.WorkerCreateRequest;
 import com.smartseason.workforce.web.dto.WorkerResponse;
 import com.smartseason.workforce.web.dto.WorkerUpdateRequest;
+import com.smartseason.workforce.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,21 @@ public class WorkerService {
     private static final String RESOURCE = "Worker";
     private static final String ENTITY = "workers";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("userId", UUID.class),
+            Map.entry("nationalId", String.class),
+            Map.entry("fullName", String.class),
+            Map.entry("phone", String.class),
+            Map.entry("gender", Worker.Gender.class),
+            Map.entry("farmId", UUID.class),
+            Map.entry("payoutPhone", String.class),
+            Map.entry("payoutAccount", String.class),
+            Map.entry("biometricRef", String.class),
+            Map.entry("status", Worker.Status.class),
+            Map.entry("photoUrl", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("nationalId", "fullName", "phone", "payoutPhone", "payoutAccount", "biometricRef", "photoUrl");
+
     private final WorkerRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +53,15 @@ public class WorkerService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<WorkerResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<Worker>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(WorkerResponse::from));
     }
 
     public PageResponse<WorkerResponse> list(Pageable pageable) {

@@ -13,6 +13,9 @@ import com.smartseason.telemetryingest.repo.TelemetryReadingRepository;
 import com.smartseason.telemetryingest.web.dto.TelemetryReadingCreateRequest;
 import com.smartseason.telemetryingest.web.dto.TelemetryReadingResponse;
 import com.smartseason.telemetryingest.web.dto.TelemetryReadingUpdateRequest;
+import com.smartseason.telemetryingest.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,15 @@ public class TelemetryReadingService {
     private static final String RESOURCE = "TelemetryReading";
     private static final String ENTITY = "telemetry_readings";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("deviceId", UUID.class),
+            Map.entry("plotId", UUID.class),
+            Map.entry("metric", String.class),
+            Map.entry("unit", String.class),
+            Map.entry("quality", TelemetryReading.Quality.class));
+
+    private static final List<String> SEARCHABLE = List.of("metric", "unit");
+
     private final TelemetryReadingRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +47,15 @@ public class TelemetryReadingService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<TelemetryReadingResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<TelemetryReading>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(TelemetryReadingResponse::from));
     }
 
     public PageResponse<TelemetryReadingResponse> list(Pageable pageable) {

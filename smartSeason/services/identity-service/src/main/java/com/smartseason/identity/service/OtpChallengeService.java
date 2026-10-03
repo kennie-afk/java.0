@@ -13,6 +13,9 @@ import com.smartseason.identity.repo.OtpChallengeRepository;
 import com.smartseason.identity.web.dto.OtpChallengeCreateRequest;
 import com.smartseason.identity.web.dto.OtpChallengeResponse;
 import com.smartseason.identity.web.dto.OtpChallengeUpdateRequest;
+import com.smartseason.identity.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,14 @@ public class OtpChallengeService {
     private static final String RESOURCE = "OtpChallenge";
     private static final String ENTITY = "otp_challenges";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("userId", UUID.class),
+            Map.entry("destination", String.class),
+            Map.entry("channel", OtpChallenge.Channel.class),
+            Map.entry("purpose", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("destination", "purpose");
+
     private final OtpChallengeRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +46,15 @@ public class OtpChallengeService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<OtpChallengeResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<OtpChallenge>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(OtpChallengeResponse::from));
     }
 
     public PageResponse<OtpChallengeResponse> list(Pageable pageable) {

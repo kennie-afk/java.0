@@ -13,6 +13,9 @@ import com.smartseason.pricing.repo.PriceQuoteRepository;
 import com.smartseason.pricing.web.dto.PriceQuoteCreateRequest;
 import com.smartseason.pricing.web.dto.PriceQuoteResponse;
 import com.smartseason.pricing.web.dto.PriceQuoteUpdateRequest;
+import com.smartseason.pricing.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,15 @@ public class PriceQuoteService {
     private static final String RESOURCE = "PriceQuote";
     private static final String ENTITY = "price_quotes";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("commodityCode", String.class),
+            Map.entry("grade", String.class),
+            Map.entry("county", String.class),
+            Map.entry("currency", String.class),
+            Map.entry("requestedBy", UUID.class));
+
+    private static final List<String> SEARCHABLE = List.of("commodityCode", "grade", "county", "currency");
+
     private final PriceQuoteRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +47,15 @@ public class PriceQuoteService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<PriceQuoteResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<PriceQuote>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(PriceQuoteResponse::from));
     }
 
     public PageResponse<PriceQuoteResponse> list(Pageable pageable) {

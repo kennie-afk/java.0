@@ -13,6 +13,9 @@ import com.smartseason.agronomy.repo.CropPlaybookRepository;
 import com.smartseason.agronomy.web.dto.CropPlaybookCreateRequest;
 import com.smartseason.agronomy.web.dto.CropPlaybookResponse;
 import com.smartseason.agronomy.web.dto.CropPlaybookUpdateRequest;
+import com.smartseason.agronomy.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,12 @@ public class CropPlaybookService {
     private static final String RESOURCE = "CropPlaybook";
     private static final String ENTITY = "crop_playbooks";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("cropCode", String.class),
+            Map.entry("stageName", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("cropCode", "stageName");
+
     private final CropPlaybookRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +44,15 @@ public class CropPlaybookService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<CropPlaybookResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<CropPlaybook>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(CropPlaybookResponse::from));
     }
 
     public PageResponse<CropPlaybookResponse> list(Pageable pageable) {

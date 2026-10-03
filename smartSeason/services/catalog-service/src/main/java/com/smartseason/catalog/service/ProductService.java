@@ -13,6 +13,9 @@ import com.smartseason.catalog.repo.ProductRepository;
 import com.smartseason.catalog.web.dto.ProductCreateRequest;
 import com.smartseason.catalog.web.dto.ProductResponse;
 import com.smartseason.catalog.web.dto.ProductUpdateRequest;
+import com.smartseason.catalog.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,14 @@ public class ProductService {
     private static final String RESOURCE = "Product";
     private static final String ENTITY = "products";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("commodityCode", String.class),
+            Map.entry("name", String.class),
+            Map.entry("defaultGrade", String.class),
+            Map.entry("status", Product.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of("commodityCode", "name", "defaultGrade");
+
     private final ProductRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +46,15 @@ public class ProductService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<ProductResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<Product>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(ProductResponse::from));
     }
 
     public PageResponse<ProductResponse> list(Pageable pageable) {

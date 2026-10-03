@@ -798,3 +798,173 @@ public class ReadReplicaConfig {{
     }}
 }}
 '''
+
+
+LIST_FILTER = '''package com.smartseason.{pkg}.platform;
+
+import jakarta.persistence.criteria.Predicate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import org.springframework.data.jpa.domain.Specification;
+
+/**
+ * Turns query-string filters into a tenant-scoped JPA specification.
+ *
+ * <p>{{@code ?farmId=...&status=ACTIVE}} is an exact match on a declared field, and
+ * {{@code ?q=text}} is a case-insensitive "contains" over the entity's short text columns.
+ * Only fields the generator declared filterable are accepted: a name that is not one of
+ * them is a 422, never silently ignored, because an ignored filter returns the whole
+ * collection and looks like a working one. Values are parsed up front, so a malformed
+ * one fails before any query runs.
+ */
+public final class ListFilter {{
+
+    private static final Set<String> RESERVED = Set.of("page", "size", "sort", "q");
+    private static final int MAX_QUERY = 100;
+
+    private ListFilter() {{
+    }}
+
+    /** True when the request carries nothing to filter on, so the cached unfiltered path applies. */
+    public static boolean isEmpty(Map<String, String> params) {{
+        if (params == null) {{
+            return true;
+        }}
+        boolean onlyPaging = params.keySet().stream().allMatch(RESERVED::contains);
+        String q = params.get("q");
+        return onlyPaging && (q == null || q.isBlank());
+    }}
+
+    public static <T> Specification<T> of(UUID tenantId, Map<String, String> params,
+                                          Map<String, Class<?>> filterable, List<String> searchable) {{
+        List<Object[]> exact = new ArrayList<>();
+        for (Map.Entry<String, String> entry : params.entrySet()) {{
+            String key = entry.getKey();
+            if (RESERVED.contains(key)) {{
+                continue;
+            }}
+            Class<?> type = filterable.get(key);
+            if (type == null) {{
+                throw new DomainRuleException("Cannot filter by '" + key + "'. Filterable: "
+                        + String.join(", ", filterable.keySet().stream().sorted().toList()));
+            }}
+            exact.add(new Object[] {{key, parse(key, type, entry.getValue())}});
+        }}
+        String q = params.get("q");
+        String needle = q == null ? "" : q.strip();
+        if (needle.length() > MAX_QUERY) {{
+            throw new DomainRuleException("Search text is limited to " + MAX_QUERY + " characters");
+        }}
+        String like = "%" + needle.toLowerCase(Locale.ROOT)
+                .replace("\\\\", "\\\\\\\\").replace("%", "\\\\%").replace("_", "\\\\_") + "%";
+
+        return (root, query, cb) -> {{
+            List<Predicate> all = new ArrayList<>();
+            all.add(cb.equal(root.get("tenantId"), tenantId));
+            for (Object[] pair : exact) {{
+                all.add(cb.equal(root.get((String) pair[0]), pair[1]));
+            }}
+            if (!needle.isEmpty() && !searchable.isEmpty()) {{
+                List<Predicate> any = new ArrayList<>();
+                for (String column : searchable) {{
+                    any.add(cb.like(cb.lower(root.<String>get(column)), like, '\\\\'));
+                }}
+                all.add(cb.or(any.toArray(new Predicate[0])));
+            }}
+            return cb.and(all.toArray(new Predicate[0]));
+        }};
+    }}
+
+    @SuppressWarnings({{"unchecked", "rawtypes"}})
+    private static Object parse(String key, Class<?> type, String raw) {{
+        String text = raw == null ? "" : raw.strip();
+        try {{
+            if (type == UUID.class) {{
+                return UUID.fromString(text);
+            }}
+            if (type == Boolean.class) {{
+                if (!text.equalsIgnoreCase("true") && !text.equalsIgnoreCase("false")) {{
+                    throw new IllegalArgumentException(text);
+                }}
+                return Boolean.valueOf(text);
+            }}
+            if (type.isEnum()) {{
+                return Enum.valueOf((Class<Enum>) type, text.toUpperCase(Locale.ROOT));
+            }}
+            return text;
+        }} catch (IllegalArgumentException ex) {{
+            throw new DomainRuleException("'" + text + "' is not a valid value for " + key);
+        }}
+    }}
+}}
+'''
+
+
+LIST_FILTER_TEST = '''package com.smartseason.{pkg}.platform;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+class ListFilterTest {{
+
+    enum Status {{ ACTIVE, CLOSED }}
+
+    private static final Map<String, Class<?>> FILTERABLE = Map.of(
+            "farmId", UUID.class, "status", Status.class, "irrigated", Boolean.class, "name", String.class);
+    private static final List<String> SEARCHABLE = List.of("name");
+
+    private static void build(Map<String, String> params) {{
+        ListFilter.of(UUID.randomUUID(), params, FILTERABLE, SEARCHABLE);
+    }}
+
+    @Test
+    @DisplayName("paging and sort parameters alone are not a filter")
+    void pagingIsNotAFilter() {{
+        assertThat(ListFilter.isEmpty(Map.of("page", "2", "size", "25", "sort", "name,asc"))).isTrue();
+        assertThat(ListFilter.isEmpty(Map.of("q", "  "))).isTrue();
+        assertThat(ListFilter.isEmpty(Map.of("q", "maize"))).isFalse();
+        assertThat(ListFilter.isEmpty(Map.of("status", "ACTIVE"))).isFalse();
+    }}
+
+    @Test
+    @DisplayName("a field that is not declared filterable is rejected, never ignored")
+    void unknownFieldIsRejected() {{
+        assertThatThrownBy(() -> build(Map.of("tenantId", UUID.randomUUID().toString())))
+                .isInstanceOf(DomainRuleException.class)
+                .hasMessageContaining("Cannot filter by 'tenantId'");
+    }}
+
+    @Test
+    @DisplayName("a malformed value is a rule violation, not a server error")
+    void badValueIsRejected() {{
+        assertThatThrownBy(() -> build(Map.of("farmId", "not-a-uuid"))).isInstanceOf(DomainRuleException.class);
+        assertThatThrownBy(() -> build(Map.of("status", "NOPE"))).isInstanceOf(DomainRuleException.class);
+        assertThatThrownBy(() -> build(Map.of("irrigated", "maybe"))).isInstanceOf(DomainRuleException.class);
+    }}
+
+    @Test
+    @DisplayName("valid values and enum case are accepted")
+    void validValuesPass() {{
+        assertThatCode(() -> build(Map.of(
+                "farmId", UUID.randomUUID().toString(), "status", "active", "irrigated", "TRUE", "q", "maize")))
+                .doesNotThrowAnyException();
+    }}
+
+    @Test
+    @DisplayName("search text is capped so one caller cannot send a megabyte LIKE")
+    void searchTextIsCapped() {{
+        assertThatThrownBy(() -> build(Map.of("q", "x".repeat(101)))).isInstanceOf(DomainRuleException.class);
+    }}
+}}
+'''

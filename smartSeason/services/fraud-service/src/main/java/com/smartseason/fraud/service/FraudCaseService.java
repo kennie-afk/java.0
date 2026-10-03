@@ -13,6 +13,9 @@ import com.smartseason.fraud.repo.FraudCaseRepository;
 import com.smartseason.fraud.web.dto.FraudCaseCreateRequest;
 import com.smartseason.fraud.web.dto.FraudCaseResponse;
 import com.smartseason.fraud.web.dto.FraudCaseUpdateRequest;
+import com.smartseason.fraud.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,20 @@ public class FraudCaseService {
     private static final String RESOURCE = "FraudCase";
     private static final String ENTITY = "fraud_cases";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("caseNumber", String.class),
+            Map.entry("subjectType", FraudCase.SubjectType.class),
+            Map.entry("subjectId", UUID.class),
+            Map.entry("farmId", UUID.class),
+            Map.entry("typology", String.class),
+            Map.entry("severity", FraudCase.Severity.class),
+            Map.entry("status", FraudCase.Status.class),
+            Map.entry("assignedTo", UUID.class),
+            Map.entry("payoutHeld", Boolean.class),
+            Map.entry("appealOutcome", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("caseNumber", "typology", "appealOutcome");
+
     private final FraudCaseRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +52,15 @@ public class FraudCaseService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<FraudCaseResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<FraudCase>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(FraudCaseResponse::from));
     }
 
     public PageResponse<FraudCaseResponse> list(Pageable pageable) {

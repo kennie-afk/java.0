@@ -13,6 +13,9 @@ import com.smartseason.order.repo.CartRepository;
 import com.smartseason.order.web.dto.CartCreateRequest;
 import com.smartseason.order.web.dto.CartResponse;
 import com.smartseason.order.web.dto.CartUpdateRequest;
+import com.smartseason.order.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,14 @@ public class CartService {
     private static final String RESOURCE = "Cart";
     private static final String ENTITY = "carts";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("buyerOrgId", UUID.class),
+            Map.entry("buyerUserId", UUID.class),
+            Map.entry("currency", String.class),
+            Map.entry("status", Cart.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of("currency");
+
     private final CartRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +46,15 @@ public class CartService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<CartResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<Cart>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(CartResponse::from));
     }
 
     public PageResponse<CartResponse> list(Pageable pageable) {

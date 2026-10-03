@@ -39,8 +39,9 @@ public class MarketIndexController {
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'BUYER')")
     @Operation(summary = "List market-indices for the caller's tenant")
-    public PageResponse<MarketIndexResponse> list(@PageableDefault(size = 20) Pageable pageable) {
-        return service.list(pageable);
+    public PageResponse<MarketIndexResponse> list(@PageableDefault(size = 20) Pageable pageable,
+                                             @RequestParam java.util.Map<String, String> params) {
+        return service.list(pageable, params);
     }
 
     @GetMapping("/cursor")

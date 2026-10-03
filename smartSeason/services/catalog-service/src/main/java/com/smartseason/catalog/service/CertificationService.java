@@ -13,6 +13,9 @@ import com.smartseason.catalog.repo.CertificationRepository;
 import com.smartseason.catalog.web.dto.CertificationCreateRequest;
 import com.smartseason.catalog.web.dto.CertificationResponse;
 import com.smartseason.catalog.web.dto.CertificationUpdateRequest;
+import com.smartseason.catalog.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,13 @@ public class CertificationService {
     private static final String RESOURCE = "Certification";
     private static final String ENTITY = "certifications";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("code", String.class),
+            Map.entry("name", String.class),
+            Map.entry("issuingBody", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("code", "name", "issuingBody");
+
     private final CertificationRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +45,15 @@ public class CertificationService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<CertificationResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<Certification>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(CertificationResponse::from));
     }
 
     public PageResponse<CertificationResponse> list(Pageable pageable) {

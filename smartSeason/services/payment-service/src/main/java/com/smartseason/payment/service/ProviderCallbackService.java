@@ -13,6 +13,9 @@ import com.smartseason.payment.repo.ProviderCallbackRepository;
 import com.smartseason.payment.web.dto.ProviderCallbackCreateRequest;
 import com.smartseason.payment.web.dto.ProviderCallbackResponse;
 import com.smartseason.payment.web.dto.ProviderCallbackUpdateRequest;
+import com.smartseason.payment.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,15 @@ public class ProviderCallbackService {
     private static final String RESOURCE = "ProviderCallback";
     private static final String ENTITY = "provider_callbacks";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("provider", String.class),
+            Map.entry("callbackType", String.class),
+            Map.entry("externalRef", String.class),
+            Map.entry("signature", String.class),
+            Map.entry("status", ProviderCallback.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of("provider", "callbackType", "externalRef", "signature");
+
     private final ProviderCallbackRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +47,15 @@ public class ProviderCallbackService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<ProviderCallbackResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<ProviderCallback>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(ProviderCallbackResponse::from));
     }
 
     public PageResponse<ProviderCallbackResponse> list(Pageable pageable) {

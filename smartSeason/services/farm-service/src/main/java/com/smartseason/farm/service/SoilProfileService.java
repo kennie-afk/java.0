@@ -13,6 +13,9 @@ import com.smartseason.farm.repo.SoilProfileRepository;
 import com.smartseason.farm.web.dto.SoilProfileCreateRequest;
 import com.smartseason.farm.web.dto.SoilProfileResponse;
 import com.smartseason.farm.web.dto.SoilProfileUpdateRequest;
+import com.smartseason.farm.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,14 @@ public class SoilProfileService {
     private static final String RESOURCE = "SoilProfile";
     private static final String ENTITY = "soil_profiles";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("plotId", UUID.class),
+            Map.entry("texture", String.class),
+            Map.entry("labName", String.class),
+            Map.entry("reportUrl", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("texture", "labName", "reportUrl");
+
     private final SoilProfileRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +46,15 @@ public class SoilProfileService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<SoilProfileResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<SoilProfile>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(SoilProfileResponse::from));
     }
 
     public PageResponse<SoilProfileResponse> list(Pageable pageable) {

@@ -39,8 +39,9 @@ public class ColdChainReadingController {
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'STOREKEEPER', 'BUYER')")
     @Operation(summary = "List cold-chain-readings for the caller's tenant")
-    public PageResponse<ColdChainReadingResponse> list(@PageableDefault(size = 20) Pageable pageable) {
-        return service.list(pageable);
+    public PageResponse<ColdChainReadingResponse> list(@PageableDefault(size = 20) Pageable pageable,
+                                             @RequestParam java.util.Map<String, String> params) {
+        return service.list(pageable, params);
     }
 
     @GetMapping("/cursor")

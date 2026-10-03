@@ -151,6 +151,11 @@ def generate_service(spec):
                          trl.FILTER.format(pkg=pkg, service=service)))
     written.append(write(os.path.join(res, "scripts/token-bucket.lua"), trl.TOKEN_BUCKET_LUA))
 
+    written.append(write(os.path.join(plat, "ListFilter.java"),
+                         tc.LIST_FILTER.format(pkg=pkg)))
+    written.append(write(os.path.join(test, "platform", "ListFilterTest.java"),
+                         tc.LIST_FILTER_TEST.format(pkg=pkg)))
+
     written.append(write(os.path.join(plat, "CountCache.java"),
                          tca.COUNT_CACHE.format(pkg=pkg, service=service)))
 

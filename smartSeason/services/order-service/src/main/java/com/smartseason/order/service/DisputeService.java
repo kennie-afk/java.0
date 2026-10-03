@@ -13,6 +13,9 @@ import com.smartseason.order.repo.DisputeRepository;
 import com.smartseason.order.web.dto.DisputeCreateRequest;
 import com.smartseason.order.web.dto.DisputeResponse;
 import com.smartseason.order.web.dto.DisputeUpdateRequest;
+import com.smartseason.order.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,15 @@ public class DisputeService {
     private static final String RESOURCE = "Dispute";
     private static final String ENTITY = "disputes";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("orderId", UUID.class),
+            Map.entry("raisedByOrgId", UUID.class),
+            Map.entry("category", Dispute.Category.class),
+            Map.entry("status", Dispute.Status.class),
+            Map.entry("resolvedBy", UUID.class));
+
+    private static final List<String> SEARCHABLE = List.of();
+
     private final DisputeRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +47,15 @@ public class DisputeService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<DisputeResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<Dispute>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(DisputeResponse::from));
     }
 
     public PageResponse<DisputeResponse> list(Pageable pageable) {

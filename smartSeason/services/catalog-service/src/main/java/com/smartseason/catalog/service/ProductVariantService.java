@@ -13,6 +13,9 @@ import com.smartseason.catalog.repo.ProductVariantRepository;
 import com.smartseason.catalog.web.dto.ProductVariantCreateRequest;
 import com.smartseason.catalog.web.dto.ProductVariantResponse;
 import com.smartseason.catalog.web.dto.ProductVariantUpdateRequest;
+import com.smartseason.catalog.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,16 @@ public class ProductVariantService {
     private static final String RESOURCE = "ProductVariant";
     private static final String ENTITY = "product_variants";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("productId", UUID.class),
+            Map.entry("sku", String.class),
+            Map.entry("variantName", String.class),
+            Map.entry("packUnit", String.class),
+            Map.entry("grade", String.class),
+            Map.entry("active", Boolean.class));
+
+    private static final List<String> SEARCHABLE = List.of("sku", "variantName", "packUnit", "grade");
+
     private final ProductVariantRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +48,15 @@ public class ProductVariantService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<ProductVariantResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<ProductVariant>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(ProductVariantResponse::from));
     }
 
     public PageResponse<ProductVariantResponse> list(Pageable pageable) {

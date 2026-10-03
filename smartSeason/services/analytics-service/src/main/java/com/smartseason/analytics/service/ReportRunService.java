@@ -13,6 +13,9 @@ import com.smartseason.analytics.repo.ReportRunRepository;
 import com.smartseason.analytics.web.dto.ReportRunCreateRequest;
 import com.smartseason.analytics.web.dto.ReportRunResponse;
 import com.smartseason.analytics.web.dto.ReportRunUpdateRequest;
+import com.smartseason.analytics.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,15 @@ public class ReportRunService {
     private static final String RESOURCE = "ReportRun";
     private static final String ENTITY = "report_runs";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("reportId", UUID.class),
+            Map.entry("reportCode", String.class),
+            Map.entry("triggeredBy", UUID.class),
+            Map.entry("outputUrl", String.class),
+            Map.entry("status", ReportRun.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of("reportCode", "outputUrl");
+
     private final ReportRunRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +47,15 @@ public class ReportRunService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<ReportRunResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<ReportRun>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(ReportRunResponse::from));
     }
 
     public PageResponse<ReportRunResponse> list(Pageable pageable) {

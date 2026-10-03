@@ -39,8 +39,9 @@ public class CropPlaybookController {
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'AGRONOMIST')")
     @Operation(summary = "List crop-playbooks for the caller's tenant")
-    public PageResponse<CropPlaybookResponse> list(@PageableDefault(size = 20) Pageable pageable) {
-        return service.list(pageable);
+    public PageResponse<CropPlaybookResponse> list(@PageableDefault(size = 20) Pageable pageable,
+                                             @RequestParam java.util.Map<String, String> params) {
+        return service.list(pageable, params);
     }
 
     @GetMapping("/cursor")

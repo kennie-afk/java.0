@@ -13,6 +13,9 @@ import com.smartseason.payment.repo.EscrowHoldRepository;
 import com.smartseason.payment.web.dto.EscrowHoldCreateRequest;
 import com.smartseason.payment.web.dto.EscrowHoldResponse;
 import com.smartseason.payment.web.dto.EscrowHoldUpdateRequest;
+import com.smartseason.payment.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,16 @@ public class EscrowHoldService {
     private static final String RESOURCE = "EscrowHold";
     private static final String ENTITY = "escrow_holds";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("paymentIntentId", UUID.class),
+            Map.entry("orderId", UUID.class),
+            Map.entry("currency", String.class),
+            Map.entry("releasedTo", UUID.class),
+            Map.entry("status", EscrowHold.Status.class),
+            Map.entry("releaseCondition", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("currency", "releaseCondition");
+
     private final EscrowHoldRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +48,15 @@ public class EscrowHoldService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<EscrowHoldResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<EscrowHold>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(EscrowHoldResponse::from));
     }
 
     public PageResponse<EscrowHoldResponse> list(Pageable pageable) {

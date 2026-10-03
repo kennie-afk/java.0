@@ -13,6 +13,9 @@ import com.smartseason.media.repo.MediaAssetRepository;
 import com.smartseason.media.web.dto.MediaAssetCreateRequest;
 import com.smartseason.media.web.dto.MediaAssetResponse;
 import com.smartseason.media.web.dto.MediaAssetUpdateRequest;
+import com.smartseason.media.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,21 @@ public class MediaAssetService {
     private static final String RESOURCE = "MediaAsset";
     private static final String ENTITY = "media_assets";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("storageKey", String.class),
+            Map.entry("originalFilename", String.class),
+            Map.entry("contentType", String.class),
+            Map.entry("checksum", String.class),
+            Map.entry("ownerUserId", UUID.class),
+            Map.entry("context", String.class),
+            Map.entry("contextRef", String.class),
+            Map.entry("publicUrl", String.class),
+            Map.entry("virusScanned", Boolean.class),
+            Map.entry("virusClean", Boolean.class),
+            Map.entry("status", MediaAsset.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of("storageKey", "originalFilename", "contentType", "checksum", "context", "contextRef", "publicUrl");
+
     private final MediaAssetRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +53,15 @@ public class MediaAssetService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<MediaAssetResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<MediaAsset>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(MediaAssetResponse::from));
     }
 
     public PageResponse<MediaAssetResponse> list(Pageable pageable) {

@@ -39,8 +39,9 @@ public class TaskAssignmentController {
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'WORKER')")
     @Operation(summary = "List task-assignments for the caller's tenant")
-    public PageResponse<TaskAssignmentResponse> list(@PageableDefault(size = 20) Pageable pageable) {
-        return service.list(pageable);
+    public PageResponse<TaskAssignmentResponse> list(@PageableDefault(size = 20) Pageable pageable,
+                                             @RequestParam java.util.Map<String, String> params) {
+        return service.list(pageable, params);
     }
 
     @GetMapping("/cursor")

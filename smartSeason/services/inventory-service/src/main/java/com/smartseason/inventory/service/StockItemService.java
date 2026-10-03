@@ -13,6 +13,9 @@ import com.smartseason.inventory.repo.StockItemRepository;
 import com.smartseason.inventory.web.dto.StockItemCreateRequest;
 import com.smartseason.inventory.web.dto.StockItemResponse;
 import com.smartseason.inventory.web.dto.StockItemUpdateRequest;
+import com.smartseason.inventory.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,15 @@ public class StockItemService {
     private static final String RESOURCE = "StockItem";
     private static final String ENTITY = "stock_items";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("warehouseId", UUID.class),
+            Map.entry("commodityCode", String.class),
+            Map.entry("grade", String.class),
+            Map.entry("batchId", UUID.class),
+            Map.entry("unit", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("commodityCode", "grade", "unit");
+
     private final StockItemRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +47,15 @@ public class StockItemService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<StockItemResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<StockItem>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(StockItemResponse::from));
     }
 
     public PageResponse<StockItemResponse> list(Pageable pageable) {

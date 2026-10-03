@@ -39,8 +39,9 @@ public class OrderReturnController {
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'STOREKEEPER', 'FINANCE', 'BUYER')")
     @Operation(summary = "List order-returns for the caller's tenant")
-    public PageResponse<OrderReturnResponse> list(@PageableDefault(size = 20) Pageable pageable) {
-        return service.list(pageable);
+    public PageResponse<OrderReturnResponse> list(@PageableDefault(size = 20) Pageable pageable,
+                                             @RequestParam java.util.Map<String, String> params) {
+        return service.list(pageable, params);
     }
 
     @GetMapping("/cursor")

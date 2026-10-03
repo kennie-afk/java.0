@@ -10,7 +10,8 @@ export function Pager({
   page,
   totalElements,
   totalPages,
-  sort
+  sort,
+  extra
 }: {
   basePath: string;
   page: number;
@@ -18,6 +19,8 @@ export function Pager({
   totalPages: number;
   /** Carried across pages so paging does not silently reset the sort. */
   sort?: string | null;
+  /** Active search and filters, carried for the same reason as the sort. */
+  extra?: Record<string, string>;
 }) {
   if (totalPages <= 1) {
     return null;
@@ -29,6 +32,7 @@ export function Pager({
     const params = new URLSearchParams();
     if (target > 0) params.set("page", String(target));
     if (sort) params.set("sort", sort);
+    for (const [key, value] of Object.entries(extra ?? {})) params.set(key, value);
     const query = params.toString();
     return query ? `${basePath}?${query}` : basePath;
   };

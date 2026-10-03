@@ -39,8 +39,9 @@ public class PaymentIntentController {
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE', 'BUYER')")
     @Operation(summary = "List payment-intents for the caller's tenant")
-    public PageResponse<PaymentIntentResponse> list(@PageableDefault(size = 20) Pageable pageable) {
-        return service.list(pageable);
+    public PageResponse<PaymentIntentResponse> list(@PageableDefault(size = 20) Pageable pageable,
+                                             @RequestParam java.util.Map<String, String> params) {
+        return service.list(pageable, params);
     }
 
     @GetMapping("/cursor")

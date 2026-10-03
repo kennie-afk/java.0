@@ -13,6 +13,9 @@ import com.smartseason.fraud.repo.WorkerRiskScoreRepository;
 import com.smartseason.fraud.web.dto.WorkerRiskScoreCreateRequest;
 import com.smartseason.fraud.web.dto.WorkerRiskScoreResponse;
 import com.smartseason.fraud.web.dto.WorkerRiskScoreUpdateRequest;
+import com.smartseason.fraud.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,13 @@ public class WorkerRiskScoreService {
     private static final String RESOURCE = "WorkerRiskScore";
     private static final String ENTITY = "worker_risk_scores";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("workerId", UUID.class),
+            Map.entry("farmId", UUID.class),
+            Map.entry("band", WorkerRiskScore.Band.class));
+
+    private static final List<String> SEARCHABLE = List.of();
+
     private final WorkerRiskScoreRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +45,15 @@ public class WorkerRiskScoreService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<WorkerRiskScoreResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<WorkerRiskScore>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(WorkerRiskScoreResponse::from));
     }
 
     public PageResponse<WorkerRiskScoreResponse> list(Pageable pageable) {

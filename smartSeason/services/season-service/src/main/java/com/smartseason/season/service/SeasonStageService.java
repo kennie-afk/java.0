@@ -13,6 +13,9 @@ import com.smartseason.season.repo.SeasonStageRepository;
 import com.smartseason.season.web.dto.SeasonStageCreateRequest;
 import com.smartseason.season.web.dto.SeasonStageResponse;
 import com.smartseason.season.web.dto.SeasonStageUpdateRequest;
+import com.smartseason.season.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,13 @@ public class SeasonStageService {
     private static final String RESOURCE = "SeasonStage";
     private static final String ENTITY = "season_stages";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("seasonId", UUID.class),
+            Map.entry("stageName", String.class),
+            Map.entry("status", SeasonStage.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of("stageName");
+
     private final SeasonStageRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +45,15 @@ public class SeasonStageService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<SeasonStageResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<SeasonStage>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(SeasonStageResponse::from));
     }
 
     public PageResponse<SeasonStageResponse> list(Pageable pageable) {

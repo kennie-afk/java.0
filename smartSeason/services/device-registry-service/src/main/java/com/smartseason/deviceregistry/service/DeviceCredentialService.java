@@ -13,6 +13,9 @@ import com.smartseason.deviceregistry.repo.DeviceCredentialRepository;
 import com.smartseason.deviceregistry.web.dto.DeviceCredentialCreateRequest;
 import com.smartseason.deviceregistry.web.dto.DeviceCredentialResponse;
 import com.smartseason.deviceregistry.web.dto.DeviceCredentialUpdateRequest;
+import com.smartseason.deviceregistry.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,13 @@ public class DeviceCredentialService {
     private static final String RESOURCE = "DeviceCredential";
     private static final String ENTITY = "device_credentials";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("deviceId", UUID.class),
+            Map.entry("credentialType", DeviceCredential.CredentialType.class),
+            Map.entry("fingerprint", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("fingerprint");
+
     private final DeviceCredentialRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +45,15 @@ public class DeviceCredentialService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<DeviceCredentialResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<DeviceCredential>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(DeviceCredentialResponse::from));
     }
 
     public PageResponse<DeviceCredentialResponse> list(Pageable pageable) {

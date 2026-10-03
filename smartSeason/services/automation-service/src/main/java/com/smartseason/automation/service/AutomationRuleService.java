@@ -13,6 +13,9 @@ import com.smartseason.automation.repo.AutomationRuleRepository;
 import com.smartseason.automation.web.dto.AutomationRuleCreateRequest;
 import com.smartseason.automation.web.dto.AutomationRuleResponse;
 import com.smartseason.automation.web.dto.AutomationRuleUpdateRequest;
+import com.smartseason.automation.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,17 @@ public class AutomationRuleService {
     private static final String RESOURCE = "AutomationRule";
     private static final String ENTITY = "automation_rules";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("name", String.class),
+            Map.entry("plotId", UUID.class),
+            Map.entry("triggerMetric", String.class),
+            Map.entry("operator", AutomationRule.Operator.class),
+            Map.entry("actionType", AutomationRule.ActionType.class),
+            Map.entry("actionTargetDeviceId", UUID.class),
+            Map.entry("enabled", Boolean.class));
+
+    private static final List<String> SEARCHABLE = List.of("name", "triggerMetric");
+
     private final AutomationRuleRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +49,15 @@ public class AutomationRuleService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<AutomationRuleResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<AutomationRule>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(AutomationRuleResponse::from));
     }
 
     public PageResponse<AutomationRuleResponse> list(Pageable pageable) {

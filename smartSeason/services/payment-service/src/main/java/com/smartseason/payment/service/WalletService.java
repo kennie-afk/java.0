@@ -13,6 +13,9 @@ import com.smartseason.payment.repo.WalletRepository;
 import com.smartseason.payment.web.dto.WalletCreateRequest;
 import com.smartseason.payment.web.dto.WalletResponse;
 import com.smartseason.payment.web.dto.WalletUpdateRequest;
+import com.smartseason.payment.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,14 @@ public class WalletService {
     private static final String RESOURCE = "Wallet";
     private static final String ENTITY = "wallets";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("ownerOrgId", UUID.class),
+            Map.entry("ownerUserId", UUID.class),
+            Map.entry("currency", String.class),
+            Map.entry("status", Wallet.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of("currency");
+
     private final WalletRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +46,15 @@ public class WalletService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<WalletResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<Wallet>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(WalletResponse::from));
     }
 
     public PageResponse<WalletResponse> list(Pageable pageable) {

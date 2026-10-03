@@ -39,8 +39,9 @@ public class InputConsumptionController {
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'MANAGER', 'STOREKEEPER')")
     @Operation(summary = "List input-consumptions for the caller's tenant")
-    public PageResponse<InputConsumptionResponse> list(@PageableDefault(size = 20) Pageable pageable) {
-        return service.list(pageable);
+    public PageResponse<InputConsumptionResponse> list(@PageableDefault(size = 20) Pageable pageable,
+                                             @RequestParam java.util.Map<String, String> params) {
+        return service.list(pageable, params);
     }
 
     @GetMapping("/cursor")

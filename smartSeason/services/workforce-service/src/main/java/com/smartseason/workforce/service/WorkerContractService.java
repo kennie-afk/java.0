@@ -13,6 +13,9 @@ import com.smartseason.workforce.repo.WorkerContractRepository;
 import com.smartseason.workforce.web.dto.WorkerContractCreateRequest;
 import com.smartseason.workforce.web.dto.WorkerContractResponse;
 import com.smartseason.workforce.web.dto.WorkerContractUpdateRequest;
+import com.smartseason.workforce.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,16 @@ public class WorkerContractService {
     private static final String RESOURCE = "WorkerContract";
     private static final String ENTITY = "worker_contracts";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("workerId", UUID.class),
+            Map.entry("farmId", UUID.class),
+            Map.entry("contractType", WorkerContract.ContractType.class),
+            Map.entry("pieceUnit", String.class),
+            Map.entry("supervisorId", UUID.class),
+            Map.entry("status", WorkerContract.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of("pieceUnit");
+
     private final WorkerContractRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +48,15 @@ public class WorkerContractService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<WorkerContractResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<WorkerContract>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(WorkerContractResponse::from));
     }
 
     public PageResponse<WorkerContractResponse> list(Pageable pageable) {

@@ -13,6 +13,9 @@ import com.smartseason.automation.repo.SafetyInterlockRepository;
 import com.smartseason.automation.web.dto.SafetyInterlockCreateRequest;
 import com.smartseason.automation.web.dto.SafetyInterlockResponse;
 import com.smartseason.automation.web.dto.SafetyInterlockUpdateRequest;
+import com.smartseason.automation.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,15 @@ public class SafetyInterlockService {
     private static final String RESOURCE = "SafetyInterlock";
     private static final String ENTITY = "safety_interlocks";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("deviceId", UUID.class),
+            Map.entry("interlockType", SafetyInterlock.InterlockType.class),
+            Map.entry("conflictingDeviceId", UUID.class),
+            Map.entry("engaged", Boolean.class),
+            Map.entry("reason", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("reason");
+
     private final SafetyInterlockRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +47,15 @@ public class SafetyInterlockService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<SafetyInterlockResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<SafetyInterlock>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(SafetyInterlockResponse::from));
     }
 
     public PageResponse<SafetyInterlockResponse> list(Pageable pageable) {

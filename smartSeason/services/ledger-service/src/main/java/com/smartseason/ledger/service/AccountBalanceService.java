@@ -13,6 +13,9 @@ import com.smartseason.ledger.repo.AccountBalanceRepository;
 import com.smartseason.ledger.web.dto.AccountBalanceCreateRequest;
 import com.smartseason.ledger.web.dto.AccountBalanceResponse;
 import com.smartseason.ledger.web.dto.AccountBalanceUpdateRequest;
+import com.smartseason.ledger.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,13 @@ public class AccountBalanceService {
     private static final String RESOURCE = "AccountBalance";
     private static final String ENTITY = "account_balances";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("accountId", UUID.class),
+            Map.entry("accountCode", String.class),
+            Map.entry("currency", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("accountCode", "currency");
+
     private final AccountBalanceRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +45,15 @@ public class AccountBalanceService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<AccountBalanceResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<AccountBalance>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(AccountBalanceResponse::from));
     }
 
     public PageResponse<AccountBalanceResponse> list(Pageable pageable) {

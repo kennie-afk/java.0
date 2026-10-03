@@ -13,6 +13,9 @@ import com.smartseason.ledger.repo.JournalEntryRepository;
 import com.smartseason.ledger.web.dto.JournalEntryCreateRequest;
 import com.smartseason.ledger.web.dto.JournalEntryResponse;
 import com.smartseason.ledger.web.dto.JournalEntryUpdateRequest;
+import com.smartseason.ledger.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,18 @@ public class JournalEntryService {
     private static final String RESOURCE = "JournalEntry";
     private static final String ENTITY = "journal_entries";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("entryNumber", String.class),
+            Map.entry("description", String.class),
+            Map.entry("sourceEvent", String.class),
+            Map.entry("sourceRef", String.class),
+            Map.entry("currency", String.class),
+            Map.entry("balanced", Boolean.class),
+            Map.entry("reversalOfId", UUID.class),
+            Map.entry("idempotencyKey", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("entryNumber", "description", "sourceEvent", "sourceRef", "currency", "idempotencyKey");
+
     private final JournalEntryRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +50,15 @@ public class JournalEntryService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<JournalEntryResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<JournalEntry>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(JournalEntryResponse::from));
     }
 
     public PageResponse<JournalEntryResponse> list(Pageable pageable) {

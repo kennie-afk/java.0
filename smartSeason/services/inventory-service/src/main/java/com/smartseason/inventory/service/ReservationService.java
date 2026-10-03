@@ -13,6 +13,9 @@ import com.smartseason.inventory.repo.ReservationRepository;
 import com.smartseason.inventory.web.dto.ReservationCreateRequest;
 import com.smartseason.inventory.web.dto.ReservationResponse;
 import com.smartseason.inventory.web.dto.ReservationUpdateRequest;
+import com.smartseason.inventory.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,13 @@ public class ReservationService {
     private static final String RESOURCE = "Reservation";
     private static final String ENTITY = "reservations";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("stockItemId", UUID.class),
+            Map.entry("orderId", UUID.class),
+            Map.entry("status", Reservation.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of();
+
     private final ReservationRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +45,15 @@ public class ReservationService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<ReservationResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<Reservation>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(ReservationResponse::from));
     }
 
     public PageResponse<ReservationResponse> list(Pageable pageable) {

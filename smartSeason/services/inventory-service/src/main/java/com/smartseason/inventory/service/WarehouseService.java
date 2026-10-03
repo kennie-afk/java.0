@@ -13,6 +13,9 @@ import com.smartseason.inventory.repo.WarehouseRepository;
 import com.smartseason.inventory.web.dto.WarehouseCreateRequest;
 import com.smartseason.inventory.web.dto.WarehouseResponse;
 import com.smartseason.inventory.web.dto.WarehouseUpdateRequest;
+import com.smartseason.inventory.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,15 @@ public class WarehouseService {
     private static final String RESOURCE = "Warehouse";
     private static final String ENTITY = "warehouses";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("name", String.class),
+            Map.entry("county", String.class),
+            Map.entry("coldChain", Boolean.class),
+            Map.entry("managerUserId", UUID.class),
+            Map.entry("status", Warehouse.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of("name", "county");
+
     private final WarehouseRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +47,15 @@ public class WarehouseService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<WarehouseResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<Warehouse>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(WarehouseResponse::from));
     }
 
     public PageResponse<WarehouseResponse> list(Pageable pageable) {

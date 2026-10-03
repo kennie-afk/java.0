@@ -13,6 +13,9 @@ import com.smartseason.media.repo.MediaVariantRepository;
 import com.smartseason.media.web.dto.MediaVariantCreateRequest;
 import com.smartseason.media.web.dto.MediaVariantResponse;
 import com.smartseason.media.web.dto.MediaVariantUpdateRequest;
+import com.smartseason.media.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,15 @@ public class MediaVariantService {
     private static final String RESOURCE = "MediaVariant";
     private static final String ENTITY = "media_variants";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("assetId", UUID.class),
+            Map.entry("variantName", String.class),
+            Map.entry("storageKey", String.class),
+            Map.entry("contentType", String.class),
+            Map.entry("publicUrl", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("variantName", "storageKey", "contentType", "publicUrl");
+
     private final MediaVariantRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +47,15 @@ public class MediaVariantService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<MediaVariantResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<MediaVariant>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(MediaVariantResponse::from));
     }
 
     public PageResponse<MediaVariantResponse> list(Pageable pageable) {

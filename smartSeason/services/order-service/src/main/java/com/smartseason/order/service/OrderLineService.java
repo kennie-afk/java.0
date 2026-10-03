@@ -13,6 +13,9 @@ import com.smartseason.order.repo.OrderLineRepository;
 import com.smartseason.order.web.dto.OrderLineCreateRequest;
 import com.smartseason.order.web.dto.OrderLineResponse;
 import com.smartseason.order.web.dto.OrderLineUpdateRequest;
+import com.smartseason.order.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,16 @@ public class OrderLineService {
     private static final String RESOURCE = "OrderLine";
     private static final String ENTITY = "order_lines";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("orderId", UUID.class),
+            Map.entry("listingId", UUID.class),
+            Map.entry("commodityCode", String.class),
+            Map.entry("grade", String.class),
+            Map.entry("unit", String.class),
+            Map.entry("batchId", UUID.class));
+
+    private static final List<String> SEARCHABLE = List.of("commodityCode", "grade", "unit");
+
     private final OrderLineRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +48,15 @@ public class OrderLineService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<OrderLineResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<OrderLine>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(OrderLineResponse::from));
     }
 
     public PageResponse<OrderLineResponse> list(Pageable pageable) {

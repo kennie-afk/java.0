@@ -13,6 +13,9 @@ import com.smartseason.catalog.repo.CommodityRepository;
 import com.smartseason.catalog.web.dto.CommodityCreateRequest;
 import com.smartseason.catalog.web.dto.CommodityResponse;
 import com.smartseason.catalog.web.dto.CommodityUpdateRequest;
+import com.smartseason.catalog.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,16 @@ public class CommodityService {
     private static final String RESOURCE = "Commodity";
     private static final String ENTITY = "commodities";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("code", String.class),
+            Map.entry("name", String.class),
+            Map.entry("category", String.class),
+            Map.entry("defaultUnit", String.class),
+            Map.entry("perishable", Boolean.class),
+            Map.entry("imageUrl", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("code", "name", "category", "defaultUnit", "imageUrl");
+
     private final CommodityRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +48,15 @@ public class CommodityService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<CommodityResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<Commodity>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(CommodityResponse::from));
     }
 
     public PageResponse<CommodityResponse> list(Pageable pageable) {

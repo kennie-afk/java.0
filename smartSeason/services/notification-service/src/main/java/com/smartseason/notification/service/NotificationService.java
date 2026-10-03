@@ -13,6 +13,9 @@ import com.smartseason.notification.repo.NotificationRepository;
 import com.smartseason.notification.web.dto.NotificationCreateRequest;
 import com.smartseason.notification.web.dto.NotificationResponse;
 import com.smartseason.notification.web.dto.NotificationUpdateRequest;
+import com.smartseason.notification.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,22 @@ public class NotificationService {
     private static final String RESOURCE = "Notification";
     private static final String ENTITY = "notifications";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("recipientUserId", UUID.class),
+            Map.entry("recipientPhone", String.class),
+            Map.entry("recipientEmail", String.class),
+            Map.entry("channel", Notification.Channel.class),
+            Map.entry("templateCode", String.class),
+            Map.entry("locale", String.class),
+            Map.entry("subject", String.class),
+            Map.entry("priority", Notification.Priority.class),
+            Map.entry("failureReason", String.class),
+            Map.entry("providerRef", String.class),
+            Map.entry("status", Notification.Status.class),
+            Map.entry("idempotencyKey", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("recipientPhone", "recipientEmail", "templateCode", "locale", "subject", "failureReason", "providerRef", "idempotencyKey");
+
     private final NotificationRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +54,15 @@ public class NotificationService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<NotificationResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<Notification>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(NotificationResponse::from));
     }
 
     public PageResponse<NotificationResponse> list(Pageable pageable) {

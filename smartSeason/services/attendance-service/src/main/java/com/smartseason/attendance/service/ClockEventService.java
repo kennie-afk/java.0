@@ -13,6 +13,9 @@ import com.smartseason.attendance.repo.ClockEventRepository;
 import com.smartseason.attendance.web.dto.ClockEventCreateRequest;
 import com.smartseason.attendance.web.dto.ClockEventResponse;
 import com.smartseason.attendance.web.dto.ClockEventUpdateRequest;
+import com.smartseason.attendance.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,22 @@ public class ClockEventService {
     private static final String RESOURCE = "ClockEvent";
     private static final String ENTITY = "clock_events";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("workerId", UUID.class),
+            Map.entry("farmId", UUID.class),
+            Map.entry("shiftId", UUID.class),
+            Map.entry("eventType", ClockEvent.EventType.class),
+            Map.entry("geofenceId", UUID.class),
+            Map.entry("insideGeofence", Boolean.class),
+            Map.entry("deviceId", String.class),
+            Map.entry("mockLocation", Boolean.class),
+            Map.entry("offlineSynced", Boolean.class),
+            Map.entry("clientEventId", String.class),
+            Map.entry("verdict", ClockEvent.Verdict.class),
+            Map.entry("flagReason", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("deviceId", "clientEventId", "flagReason");
+
     private final ClockEventRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +54,15 @@ public class ClockEventService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<ClockEventResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<ClockEvent>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(ClockEventResponse::from));
     }
 
     public PageResponse<ClockEventResponse> list(Pageable pageable) {

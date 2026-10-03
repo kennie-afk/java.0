@@ -13,6 +13,9 @@ import com.smartseason.automation.repo.ActuatorCommandRepository;
 import com.smartseason.automation.web.dto.ActuatorCommandCreateRequest;
 import com.smartseason.automation.web.dto.ActuatorCommandResponse;
 import com.smartseason.automation.web.dto.ActuatorCommandUpdateRequest;
+import com.smartseason.automation.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,16 @@ public class ActuatorCommandService {
     private static final String RESOURCE = "ActuatorCommand";
     private static final String ENTITY = "actuator_commands";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("deviceId", UUID.class),
+            Map.entry("ruleId", UUID.class),
+            Map.entry("commandKey", String.class),
+            Map.entry("action", String.class),
+            Map.entry("status", ActuatorCommand.Status.class),
+            Map.entry("failureReason", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("commandKey", "action", "failureReason");
+
     private final ActuatorCommandRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +48,15 @@ public class ActuatorCommandService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<ActuatorCommandResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<ActuatorCommand>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(ActuatorCommandResponse::from));
     }
 
     public PageResponse<ActuatorCommandResponse> list(Pageable pageable) {

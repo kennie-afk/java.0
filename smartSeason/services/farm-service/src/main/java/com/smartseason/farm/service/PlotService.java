@@ -13,6 +13,9 @@ import com.smartseason.farm.repo.PlotRepository;
 import com.smartseason.farm.web.dto.PlotCreateRequest;
 import com.smartseason.farm.web.dto.PlotResponse;
 import com.smartseason.farm.web.dto.PlotUpdateRequest;
+import com.smartseason.farm.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,15 @@ public class PlotService {
     private static final String RESOURCE = "Plot";
     private static final String ENTITY = "plots";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("farmId", UUID.class),
+            Map.entry("name", String.class),
+            Map.entry("irrigated", Boolean.class),
+            Map.entry("currentCrop", String.class),
+            Map.entry("status", Plot.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of("name", "currentCrop");
+
     private final PlotRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +47,15 @@ public class PlotService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<PlotResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<Plot>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(PlotResponse::from));
     }
 
     public PageResponse<PlotResponse> list(Pageable pageable) {

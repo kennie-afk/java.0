@@ -13,6 +13,9 @@ import com.smartseason.logistics.repo.DriverRepository;
 import com.smartseason.logistics.web.dto.DriverCreateRequest;
 import com.smartseason.logistics.web.dto.DriverResponse;
 import com.smartseason.logistics.web.dto.DriverUpdateRequest;
+import com.smartseason.logistics.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,16 @@ public class DriverService {
     private static final String RESOURCE = "Driver";
     private static final String ENTITY = "drivers";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("userId", UUID.class),
+            Map.entry("fullName", String.class),
+            Map.entry("phone", String.class),
+            Map.entry("licenceNumber", String.class),
+            Map.entry("assignedVehicleId", UUID.class),
+            Map.entry("status", Driver.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of("fullName", "phone", "licenceNumber");
+
     private final DriverRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +48,15 @@ public class DriverService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<DriverResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<Driver>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(DriverResponse::from));
     }
 
     public PageResponse<DriverResponse> list(Pageable pageable) {

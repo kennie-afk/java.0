@@ -13,6 +13,9 @@ import com.smartseason.notification.repo.NotificationTemplateRepository;
 import com.smartseason.notification.web.dto.NotificationTemplateCreateRequest;
 import com.smartseason.notification.web.dto.NotificationTemplateResponse;
 import com.smartseason.notification.web.dto.NotificationTemplateUpdateRequest;
+import com.smartseason.notification.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,16 @@ public class NotificationTemplateService {
     private static final String RESOURCE = "NotificationTemplate";
     private static final String ENTITY = "notification_templates";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("code", String.class),
+            Map.entry("channel", NotificationTemplate.Channel.class),
+            Map.entry("locale", String.class),
+            Map.entry("subject", String.class),
+            Map.entry("variables", String.class),
+            Map.entry("active", Boolean.class));
+
+    private static final List<String> SEARCHABLE = List.of("code", "locale", "subject", "variables");
+
     private final NotificationTemplateRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +48,15 @@ public class NotificationTemplateService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<NotificationTemplateResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<NotificationTemplate>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(NotificationTemplateResponse::from));
     }
 
     public PageResponse<NotificationTemplateResponse> list(Pageable pageable) {

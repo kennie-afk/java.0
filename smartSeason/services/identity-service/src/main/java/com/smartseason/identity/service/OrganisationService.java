@@ -13,6 +13,9 @@ import com.smartseason.identity.repo.OrganisationRepository;
 import com.smartseason.identity.web.dto.OrganisationCreateRequest;
 import com.smartseason.identity.web.dto.OrganisationResponse;
 import com.smartseason.identity.web.dto.OrganisationUpdateRequest;
+import com.smartseason.identity.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,18 @@ public class OrganisationService {
     private static final String RESOURCE = "Organisation";
     private static final String ENTITY = "organisations";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("name", String.class),
+            Map.entry("orgType", Organisation.OrgType.class),
+            Map.entry("county", String.class),
+            Map.entry("registrationNo", String.class),
+            Map.entry("phone", String.class),
+            Map.entry("email", String.class),
+            Map.entry("status", Organisation.Status.class),
+            Map.entry("kycStatus", Organisation.KycStatus.class));
+
+    private static final List<String> SEARCHABLE = List.of("name", "county", "registrationNo", "phone", "email");
+
     private final OrganisationRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +50,15 @@ public class OrganisationService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<OrganisationResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<Organisation>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(OrganisationResponse::from));
     }
 
     public PageResponse<OrganisationResponse> list(Pageable pageable) {

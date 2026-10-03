@@ -13,6 +13,9 @@ import com.smartseason.traceability.repo.TraceLinkRepository;
 import com.smartseason.traceability.web.dto.TraceLinkCreateRequest;
 import com.smartseason.traceability.web.dto.TraceLinkResponse;
 import com.smartseason.traceability.web.dto.TraceLinkUpdateRequest;
+import com.smartseason.traceability.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,16 @@ public class TraceLinkService {
     private static final String RESOURCE = "TraceLink";
     private static final String ENTITY = "trace_links";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("batchCode", String.class),
+            Map.entry("nodeType", TraceLink.NodeType.class),
+            Map.entry("nodeRef", String.class),
+            Map.entry("actorOrgId", UUID.class),
+            Map.entry("location", String.class),
+            Map.entry("evidenceUrl", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("batchCode", "nodeRef", "location", "evidenceUrl");
+
     private final TraceLinkRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +48,15 @@ public class TraceLinkService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<TraceLinkResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<TraceLink>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(TraceLinkResponse::from));
     }
 
     public PageResponse<TraceLinkResponse> list(Pageable pageable) {

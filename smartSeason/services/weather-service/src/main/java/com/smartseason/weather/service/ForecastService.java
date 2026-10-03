@@ -13,6 +13,9 @@ import com.smartseason.weather.repo.ForecastRepository;
 import com.smartseason.weather.web.dto.ForecastCreateRequest;
 import com.smartseason.weather.web.dto.ForecastResponse;
 import com.smartseason.weather.web.dto.ForecastUpdateRequest;
+import com.smartseason.weather.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,13 @@ public class ForecastService {
     private static final String RESOURCE = "Forecast";
     private static final String ENTITY = "forecasts";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("geoCell", String.class),
+            Map.entry("conditions", String.class),
+            Map.entry("provider", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("geoCell", "conditions", "provider");
+
     private final ForecastRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +45,15 @@ public class ForecastService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<ForecastResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<Forecast>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(ForecastResponse::from));
     }
 
     public PageResponse<ForecastResponse> list(Pageable pageable) {

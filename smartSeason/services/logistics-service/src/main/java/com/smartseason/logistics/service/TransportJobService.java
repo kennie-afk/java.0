@@ -13,6 +13,9 @@ import com.smartseason.logistics.repo.TransportJobRepository;
 import com.smartseason.logistics.web.dto.TransportJobCreateRequest;
 import com.smartseason.logistics.web.dto.TransportJobResponse;
 import com.smartseason.logistics.web.dto.TransportJobUpdateRequest;
+import com.smartseason.logistics.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,20 @@ public class TransportJobService {
     private static final String RESOURCE = "TransportJob";
     private static final String ENTITY = "transport_jobs";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("jobNumber", String.class),
+            Map.entry("orderId", UUID.class),
+            Map.entry("batchId", UUID.class),
+            Map.entry("vehicleId", UUID.class),
+            Map.entry("driverId", UUID.class),
+            Map.entry("pickupCounty", String.class),
+            Map.entry("dropoffCounty", String.class),
+            Map.entry("currency", String.class),
+            Map.entry("requiresColdChain", Boolean.class),
+            Map.entry("status", TransportJob.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of("jobNumber", "pickupCounty", "dropoffCounty", "currency");
+
     private final TransportJobRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +52,15 @@ public class TransportJobService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<TransportJobResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<TransportJob>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(TransportJobResponse::from));
     }
 
     public PageResponse<TransportJobResponse> list(Pageable pageable) {

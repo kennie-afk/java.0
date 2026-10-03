@@ -13,6 +13,9 @@ import com.smartseason.attendance.repo.ShiftRepository;
 import com.smartseason.attendance.web.dto.ShiftCreateRequest;
 import com.smartseason.attendance.web.dto.ShiftResponse;
 import com.smartseason.attendance.web.dto.ShiftUpdateRequest;
+import com.smartseason.attendance.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,16 @@ public class ShiftService {
     private static final String RESOURCE = "Shift";
     private static final String ENTITY = "shifts";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("workerId", UUID.class),
+            Map.entry("farmId", UUID.class),
+            Map.entry("gangId", UUID.class),
+            Map.entry("supervisorId", UUID.class),
+            Map.entry("status", Shift.Status.class),
+            Map.entry("anomalyFlags", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("anomalyFlags");
+
     private final ShiftRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +48,15 @@ public class ShiftService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<ShiftResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<Shift>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(ShiftResponse::from));
     }
 
     public PageResponse<ShiftResponse> list(Pageable pageable) {

@@ -13,6 +13,9 @@ import com.smartseason.payment.repo.PaymentIntentRepository;
 import com.smartseason.payment.web.dto.PaymentIntentCreateRequest;
 import com.smartseason.payment.web.dto.PaymentIntentResponse;
 import com.smartseason.payment.web.dto.PaymentIntentUpdateRequest;
+import com.smartseason.payment.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,23 @@ public class PaymentIntentService {
     private static final String RESOURCE = "PaymentIntent";
     private static final String ENTITY = "payment_intents";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("reference", String.class),
+            Map.entry("orderId", UUID.class),
+            Map.entry("payerOrgId", UUID.class),
+            Map.entry("payeeOrgId", UUID.class),
+            Map.entry("currency", String.class),
+            Map.entry("method", PaymentIntent.Method.class),
+            Map.entry("purpose", PaymentIntent.Purpose.class),
+            Map.entry("payerPhone", String.class),
+            Map.entry("status", PaymentIntent.Status.class),
+            Map.entry("idempotencyKey", String.class),
+            Map.entry("failureReason", String.class),
+            Map.entry("providerRef", String.class),
+            Map.entry("escrow", Boolean.class));
+
+    private static final List<String> SEARCHABLE = List.of("reference", "currency", "payerPhone", "idempotencyKey", "failureReason", "providerRef");
+
     private final PaymentIntentRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +55,15 @@ public class PaymentIntentService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<PaymentIntentResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<PaymentIntent>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(PaymentIntentResponse::from));
     }
 
     public PageResponse<PaymentIntentResponse> list(Pageable pageable) {

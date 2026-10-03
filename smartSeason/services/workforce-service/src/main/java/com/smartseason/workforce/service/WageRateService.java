@@ -13,6 +13,9 @@ import com.smartseason.workforce.repo.WageRateRepository;
 import com.smartseason.workforce.web.dto.WageRateCreateRequest;
 import com.smartseason.workforce.web.dto.WageRateResponse;
 import com.smartseason.workforce.web.dto.WageRateUpdateRequest;
+import com.smartseason.workforce.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,15 @@ public class WageRateService {
     private static final String RESOURCE = "WageRate";
     private static final String ENTITY = "wage_rates";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("farmId", UUID.class),
+            Map.entry("taskCode", String.class),
+            Map.entry("rateType", WageRate.RateType.class),
+            Map.entry("currency", String.class),
+            Map.entry("unit", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("taskCode", "currency", "unit");
+
     private final WageRateRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +47,15 @@ public class WageRateService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<WageRateResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<WageRate>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(WageRateResponse::from));
     }
 
     public PageResponse<WageRateResponse> list(Pageable pageable) {

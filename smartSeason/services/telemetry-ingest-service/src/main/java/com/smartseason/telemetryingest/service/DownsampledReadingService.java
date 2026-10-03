@@ -13,6 +13,9 @@ import com.smartseason.telemetryingest.repo.DownsampledReadingRepository;
 import com.smartseason.telemetryingest.web.dto.DownsampledReadingCreateRequest;
 import com.smartseason.telemetryingest.web.dto.DownsampledReadingResponse;
 import com.smartseason.telemetryingest.web.dto.DownsampledReadingUpdateRequest;
+import com.smartseason.telemetryingest.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,12 @@ public class DownsampledReadingService {
     private static final String RESOURCE = "DownsampledReading";
     private static final String ENTITY = "downsampled_readings";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("deviceId", UUID.class),
+            Map.entry("metric", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("metric");
+
     private final DownsampledReadingRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +44,15 @@ public class DownsampledReadingService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<DownsampledReadingResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<DownsampledReading>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(DownsampledReadingResponse::from));
     }
 
     public PageResponse<DownsampledReadingResponse> list(Pageable pageable) {

@@ -13,6 +13,9 @@ import com.smartseason.search.repo.SearchDocumentRepository;
 import com.smartseason.search.web.dto.SearchDocumentCreateRequest;
 import com.smartseason.search.web.dto.SearchDocumentResponse;
 import com.smartseason.search.web.dto.SearchDocumentUpdateRequest;
+import com.smartseason.search.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,17 @@ public class SearchDocumentService {
     private static final String RESOURCE = "SearchDocument";
     private static final String ENTITY = "search_documents";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("indexName", String.class),
+            Map.entry("docId", String.class),
+            Map.entry("docType", String.class),
+            Map.entry("title", String.class),
+            Map.entry("county", String.class),
+            Map.entry("commodityCode", String.class),
+            Map.entry("status", SearchDocument.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of("indexName", "docId", "docType", "title", "county", "commodityCode");
+
     private final SearchDocumentRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +49,15 @@ public class SearchDocumentService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<SearchDocumentResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<SearchDocument>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(SearchDocumentResponse::from));
     }
 
     public PageResponse<SearchDocumentResponse> list(Pageable pageable) {

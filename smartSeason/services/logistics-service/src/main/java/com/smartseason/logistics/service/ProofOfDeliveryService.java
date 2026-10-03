@@ -13,6 +13,9 @@ import com.smartseason.logistics.repo.ProofOfDeliveryRepository;
 import com.smartseason.logistics.web.dto.ProofOfDeliveryCreateRequest;
 import com.smartseason.logistics.web.dto.ProofOfDeliveryResponse;
 import com.smartseason.logistics.web.dto.ProofOfDeliveryUpdateRequest;
+import com.smartseason.logistics.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,15 @@ public class ProofOfDeliveryService {
     private static final String RESOURCE = "ProofOfDelivery";
     private static final String ENTITY = "proofs_of_delivery";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("transportJobId", UUID.class),
+            Map.entry("receivedBy", String.class),
+            Map.entry("signatureUrl", String.class),
+            Map.entry("photoUrl", String.class),
+            Map.entry("disputed", Boolean.class));
+
+    private static final List<String> SEARCHABLE = List.of("receivedBy", "signatureUrl", "photoUrl");
+
     private final ProofOfDeliveryRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +47,15 @@ public class ProofOfDeliveryService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<ProofOfDeliveryResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<ProofOfDelivery>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(ProofOfDeliveryResponse::from));
     }
 
     public PageResponse<ProofOfDeliveryResponse> list(Pageable pageable) {

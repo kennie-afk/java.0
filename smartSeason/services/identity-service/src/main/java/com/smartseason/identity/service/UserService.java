@@ -13,6 +13,9 @@ import com.smartseason.identity.repo.UserRepository;
 import com.smartseason.identity.web.dto.UserCreateRequest;
 import com.smartseason.identity.web.dto.UserResponse;
 import com.smartseason.identity.web.dto.UserUpdateRequest;
+import com.smartseason.identity.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,18 @@ public class UserService {
     private static final String RESOURCE = "User";
     private static final String ENTITY = "users";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("email", String.class),
+            Map.entry("phone", String.class),
+            Map.entry("fullName", String.class),
+            Map.entry("organisationId", UUID.class),
+            Map.entry("roles", String.class),
+            Map.entry("status", User.Status.class),
+            Map.entry("mfaEnabled", Boolean.class),
+            Map.entry("locale", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("email", "phone", "fullName", "roles", "locale");
+
     private final UserRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +50,15 @@ public class UserService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<UserResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<User>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(UserResponse::from));
     }
 
     public PageResponse<UserResponse> list(Pageable pageable) {

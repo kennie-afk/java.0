@@ -13,6 +13,9 @@ import com.smartseason.analytics.repo.DashboardWidgetRepository;
 import com.smartseason.analytics.web.dto.DashboardWidgetCreateRequest;
 import com.smartseason.analytics.web.dto.DashboardWidgetResponse;
 import com.smartseason.analytics.web.dto.DashboardWidgetUpdateRequest;
+import com.smartseason.analytics.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,14 @@ public class DashboardWidgetService {
     private static final String RESOURCE = "DashboardWidget";
     private static final String ENTITY = "dashboard_widgets";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("dashboardCode", String.class),
+            Map.entry("title", String.class),
+            Map.entry("widgetType", DashboardWidget.WidgetType.class),
+            Map.entry("metricKey", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("dashboardCode", "title", "metricKey");
+
     private final DashboardWidgetRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +46,15 @@ public class DashboardWidgetService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<DashboardWidgetResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<DashboardWidget>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(DashboardWidgetResponse::from));
     }
 
     public PageResponse<DashboardWidgetResponse> list(Pageable pageable) {

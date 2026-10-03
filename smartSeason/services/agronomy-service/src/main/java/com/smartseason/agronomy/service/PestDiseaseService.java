@@ -13,6 +13,9 @@ import com.smartseason.agronomy.repo.PestDiseaseRepository;
 import com.smartseason.agronomy.web.dto.PestDiseaseCreateRequest;
 import com.smartseason.agronomy.web.dto.PestDiseaseResponse;
 import com.smartseason.agronomy.web.dto.PestDiseaseUpdateRequest;
+import com.smartseason.agronomy.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,16 @@ public class PestDiseaseService {
     private static final String RESOURCE = "PestDisease";
     private static final String ENTITY = "pest_diseases";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("code", String.class),
+            Map.entry("commonName", String.class),
+            Map.entry("scientificName", String.class),
+            Map.entry("type", PestDisease.Type.class),
+            Map.entry("affectedCrops", String.class),
+            Map.entry("imageUrl", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("code", "commonName", "scientificName", "affectedCrops", "imageUrl");
+
     private final PestDiseaseRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +48,15 @@ public class PestDiseaseService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<PestDiseaseResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<PestDisease>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(PestDiseaseResponse::from));
     }
 
     public PageResponse<PestDiseaseResponse> list(Pageable pageable) {

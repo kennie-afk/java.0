@@ -13,6 +13,9 @@ import com.smartseason.notification.repo.DeliveryReceiptRepository;
 import com.smartseason.notification.web.dto.DeliveryReceiptCreateRequest;
 import com.smartseason.notification.web.dto.DeliveryReceiptResponse;
 import com.smartseason.notification.web.dto.DeliveryReceiptUpdateRequest;
+import com.smartseason.notification.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,15 @@ public class DeliveryReceiptService {
     private static final String RESOURCE = "DeliveryReceipt";
     private static final String ENTITY = "delivery_receipts";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("notificationId", UUID.class),
+            Map.entry("provider", String.class),
+            Map.entry("providerRef", String.class),
+            Map.entry("statusCode", String.class),
+            Map.entry("statusText", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("provider", "providerRef", "statusCode", "statusText");
+
     private final DeliveryReceiptRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +47,15 @@ public class DeliveryReceiptService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<DeliveryReceiptResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<DeliveryReceipt>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(DeliveryReceiptResponse::from));
     }
 
     public PageResponse<DeliveryReceiptResponse> list(Pageable pageable) {

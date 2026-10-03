@@ -13,6 +13,9 @@ import com.smartseason.task.repo.TaskAssignmentRepository;
 import com.smartseason.task.web.dto.TaskAssignmentCreateRequest;
 import com.smartseason.task.web.dto.TaskAssignmentResponse;
 import com.smartseason.task.web.dto.TaskAssignmentUpdateRequest;
+import com.smartseason.task.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,16 @@ public class TaskAssignmentService {
     private static final String RESOURCE = "TaskAssignment";
     private static final String ENTITY = "task_assignments";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("workOrderId", UUID.class),
+            Map.entry("workerId", UUID.class),
+            Map.entry("workerUserId", UUID.class),
+            Map.entry("gangId", UUID.class),
+            Map.entry("assignedBy", UUID.class),
+            Map.entry("status", TaskAssignment.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of();
+
     private final TaskAssignmentRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +48,15 @@ public class TaskAssignmentService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<TaskAssignmentResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<TaskAssignment>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(TaskAssignmentResponse::from));
     }
 
     public PageResponse<TaskAssignmentResponse> list(Pageable pageable) {

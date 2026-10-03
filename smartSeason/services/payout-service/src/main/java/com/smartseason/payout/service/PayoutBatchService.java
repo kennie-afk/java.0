@@ -13,6 +13,9 @@ import com.smartseason.payout.repo.PayoutBatchRepository;
 import com.smartseason.payout.web.dto.PayoutBatchCreateRequest;
 import com.smartseason.payout.web.dto.PayoutBatchResponse;
 import com.smartseason.payout.web.dto.PayoutBatchUpdateRequest;
+import com.smartseason.payout.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,16 @@ public class PayoutBatchService {
     private static final String RESOURCE = "PayoutBatch";
     private static final String ENTITY = "payout_batches";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("batchNumber", String.class),
+            Map.entry("farmId", UUID.class),
+            Map.entry("payoutType", PayoutBatch.PayoutType.class),
+            Map.entry("currency", String.class),
+            Map.entry("createdBy", UUID.class),
+            Map.entry("status", PayoutBatch.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of("batchNumber", "currency");
+
     private final PayoutBatchRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +48,15 @@ public class PayoutBatchService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<PayoutBatchResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<PayoutBatch>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(PayoutBatchResponse::from));
     }
 
     public PageResponse<PayoutBatchResponse> list(Pageable pageable) {

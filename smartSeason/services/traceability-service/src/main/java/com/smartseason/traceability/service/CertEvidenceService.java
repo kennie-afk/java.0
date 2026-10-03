@@ -13,6 +13,9 @@ import com.smartseason.traceability.repo.CertEvidenceRepository;
 import com.smartseason.traceability.web.dto.CertEvidenceCreateRequest;
 import com.smartseason.traceability.web.dto.CertEvidenceResponse;
 import com.smartseason.traceability.web.dto.CertEvidenceUpdateRequest;
+import com.smartseason.traceability.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,17 @@ public class CertEvidenceService {
     private static final String RESOURCE = "CertEvidence";
     private static final String ENTITY = "cert_evidence";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("batchCode", String.class),
+            Map.entry("farmId", UUID.class),
+            Map.entry("certificationCode", String.class),
+            Map.entry("certificateNo", String.class),
+            Map.entry("issuedBy", String.class),
+            Map.entry("documentUrl", String.class),
+            Map.entry("verified", Boolean.class));
+
+    private static final List<String> SEARCHABLE = List.of("batchCode", "certificationCode", "certificateNo", "issuedBy", "documentUrl");
+
     private final CertEvidenceRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +49,15 @@ public class CertEvidenceService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<CertEvidenceResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<CertEvidence>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(CertEvidenceResponse::from));
     }
 
     public PageResponse<CertEvidenceResponse> list(Pageable pageable) {

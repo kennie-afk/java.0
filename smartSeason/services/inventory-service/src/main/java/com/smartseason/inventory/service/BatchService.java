@@ -13,6 +13,9 @@ import com.smartseason.inventory.repo.BatchRepository;
 import com.smartseason.inventory.web.dto.BatchCreateRequest;
 import com.smartseason.inventory.web.dto.BatchResponse;
 import com.smartseason.inventory.web.dto.BatchUpdateRequest;
+import com.smartseason.inventory.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,18 @@ public class BatchService {
     private static final String RESOURCE = "Batch";
     private static final String ENTITY = "batches";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("batchCode", String.class),
+            Map.entry("commodityCode", String.class),
+            Map.entry("farmId", UUID.class),
+            Map.entry("plotId", UUID.class),
+            Map.entry("seasonId", UUID.class),
+            Map.entry("warehouseId", UUID.class),
+            Map.entry("grade", String.class),
+            Map.entry("status", Batch.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of("batchCode", "commodityCode", "grade");
+
     private final BatchRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +50,15 @@ public class BatchService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<BatchResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<Batch>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(BatchResponse::from));
     }
 
     public PageResponse<BatchResponse> list(Pageable pageable) {

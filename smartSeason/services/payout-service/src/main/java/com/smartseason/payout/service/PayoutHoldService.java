@@ -13,6 +13,9 @@ import com.smartseason.payout.repo.PayoutHoldRepository;
 import com.smartseason.payout.web.dto.PayoutHoldCreateRequest;
 import com.smartseason.payout.web.dto.PayoutHoldResponse;
 import com.smartseason.payout.web.dto.PayoutHoldUpdateRequest;
+import com.smartseason.payout.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,17 @@ public class PayoutHoldService {
     private static final String RESOURCE = "PayoutHold";
     private static final String ENTITY = "payout_holds";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("payoutItemId", UUID.class),
+            Map.entry("payeeId", UUID.class),
+            Map.entry("reason", PayoutHold.Reason.class),
+            Map.entry("fraudCaseId", UUID.class),
+            Map.entry("heldBy", UUID.class),
+            Map.entry("releasedBy", UUID.class),
+            Map.entry("status", PayoutHold.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of();
+
     private final PayoutHoldRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +49,15 @@ public class PayoutHoldService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<PayoutHoldResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<PayoutHold>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(PayoutHoldResponse::from));
     }
 
     public PageResponse<PayoutHoldResponse> list(Pageable pageable) {

@@ -13,6 +13,9 @@ import com.smartseason.attendance.repo.PieceRateEntryRepository;
 import com.smartseason.attendance.web.dto.PieceRateEntryCreateRequest;
 import com.smartseason.attendance.web.dto.PieceRateEntryResponse;
 import com.smartseason.attendance.web.dto.PieceRateEntryUpdateRequest;
+import com.smartseason.attendance.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,20 @@ public class PieceRateEntryService {
     private static final String RESOURCE = "PieceRateEntry";
     private static final String ENTITY = "piece_rate_entries";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("workerId", UUID.class),
+            Map.entry("shiftId", UUID.class),
+            Map.entry("farmId", UUID.class),
+            Map.entry("plotId", UUID.class),
+            Map.entry("taskCode", String.class),
+            Map.entry("unit", String.class),
+            Map.entry("recordedBy", UUID.class),
+            Map.entry("weighStationId", String.class),
+            Map.entry("verifiedBy", UUID.class),
+            Map.entry("status", PieceRateEntry.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of("taskCode", "unit", "weighStationId");
+
     private final PieceRateEntryRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +52,15 @@ public class PieceRateEntryService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<PieceRateEntryResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<PieceRateEntry>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(PieceRateEntryResponse::from));
     }
 
     public PageResponse<PieceRateEntryResponse> list(Pageable pageable) {

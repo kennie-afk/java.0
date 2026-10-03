@@ -13,6 +13,9 @@ import com.smartseason.catalog.repo.GradeStandardRepository;
 import com.smartseason.catalog.web.dto.GradeStandardCreateRequest;
 import com.smartseason.catalog.web.dto.GradeStandardResponse;
 import com.smartseason.catalog.web.dto.GradeStandardUpdateRequest;
+import com.smartseason.catalog.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,12 @@ public class GradeStandardService {
     private static final String RESOURCE = "GradeStandard";
     private static final String ENTITY = "grade_standards";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("commodityCode", String.class),
+            Map.entry("grade", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("commodityCode", "grade");
+
     private final GradeStandardRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +44,15 @@ public class GradeStandardService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<GradeStandardResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<GradeStandard>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(GradeStandardResponse::from));
     }
 
     public PageResponse<GradeStandardResponse> list(Pageable pageable) {

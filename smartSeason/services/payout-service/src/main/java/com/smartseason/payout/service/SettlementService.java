@@ -13,6 +13,9 @@ import com.smartseason.payout.repo.SettlementRepository;
 import com.smartseason.payout.web.dto.SettlementCreateRequest;
 import com.smartseason.payout.web.dto.SettlementResponse;
 import com.smartseason.payout.web.dto.SettlementUpdateRequest;
+import com.smartseason.payout.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,17 @@ public class SettlementService {
     private static final String RESOURCE = "Settlement";
     private static final String ENTITY = "settlements";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("settlementNumber", String.class),
+            Map.entry("payeeOrgId", UUID.class),
+            Map.entry("payeeUserId", UUID.class),
+            Map.entry("orderId", UUID.class),
+            Map.entry("currency", String.class),
+            Map.entry("status", Settlement.Status.class),
+            Map.entry("approvedBy", UUID.class));
+
+    private static final List<String> SEARCHABLE = List.of("settlementNumber", "currency");
+
     private final SettlementRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +49,15 @@ public class SettlementService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<SettlementResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<Settlement>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(SettlementResponse::from));
     }
 
     public PageResponse<SettlementResponse> list(Pageable pageable) {

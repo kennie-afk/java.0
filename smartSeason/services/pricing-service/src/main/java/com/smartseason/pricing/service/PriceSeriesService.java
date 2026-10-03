@@ -13,6 +13,9 @@ import com.smartseason.pricing.repo.PriceSeriesRepository;
 import com.smartseason.pricing.web.dto.PriceSeriesCreateRequest;
 import com.smartseason.pricing.web.dto.PriceSeriesResponse;
 import com.smartseason.pricing.web.dto.PriceSeriesUpdateRequest;
+import com.smartseason.pricing.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,17 @@ public class PriceSeriesService {
     private static final String RESOURCE = "PriceSeries";
     private static final String ENTITY = "price_series";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("commodityCode", String.class),
+            Map.entry("county", String.class),
+            Map.entry("marketName", String.class),
+            Map.entry("grade", String.class),
+            Map.entry("unit", String.class),
+            Map.entry("currency", String.class),
+            Map.entry("source", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("commodityCode", "county", "marketName", "grade", "unit", "currency", "source");
+
     private final PriceSeriesRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +49,15 @@ public class PriceSeriesService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<PriceSeriesResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<PriceSeries>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(PriceSeriesResponse::from));
     }
 
     public PageResponse<PriceSeriesResponse> list(Pageable pageable) {

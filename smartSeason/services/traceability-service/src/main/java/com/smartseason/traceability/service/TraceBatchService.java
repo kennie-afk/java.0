@@ -13,6 +13,9 @@ import com.smartseason.traceability.repo.TraceBatchRepository;
 import com.smartseason.traceability.web.dto.TraceBatchCreateRequest;
 import com.smartseason.traceability.web.dto.TraceBatchResponse;
 import com.smartseason.traceability.web.dto.TraceBatchUpdateRequest;
+import com.smartseason.traceability.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,18 @@ public class TraceBatchService {
     private static final String RESOURCE = "TraceBatch";
     private static final String ENTITY = "trace_batches";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("batchCode", String.class),
+            Map.entry("commodityCode", String.class),
+            Map.entry("farmId", UUID.class),
+            Map.entry("plotId", UUID.class),
+            Map.entry("seasonId", UUID.class),
+            Map.entry("originCounty", String.class),
+            Map.entry("currentHolderOrgId", UUID.class),
+            Map.entry("status", TraceBatch.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of("batchCode", "commodityCode", "originCounty");
+
     private final TraceBatchRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +50,15 @@ public class TraceBatchService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<TraceBatchResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<TraceBatch>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(TraceBatchResponse::from));
     }
 
     public PageResponse<TraceBatchResponse> list(Pageable pageable) {

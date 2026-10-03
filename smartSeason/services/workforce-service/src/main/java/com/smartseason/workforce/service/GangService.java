@@ -13,6 +13,9 @@ import com.smartseason.workforce.repo.GangRepository;
 import com.smartseason.workforce.web.dto.GangCreateRequest;
 import com.smartseason.workforce.web.dto.GangResponse;
 import com.smartseason.workforce.web.dto.GangUpdateRequest;
+import com.smartseason.workforce.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,14 @@ public class GangService {
     private static final String RESOURCE = "Gang";
     private static final String ENTITY = "gangs";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("name", String.class),
+            Map.entry("farmId", UUID.class),
+            Map.entry("supervisorId", UUID.class),
+            Map.entry("status", Gang.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of("name");
+
     private final GangRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +46,15 @@ public class GangService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<GangResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<Gang>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(GangResponse::from));
     }
 
     public PageResponse<GangResponse> list(Pageable pageable) {

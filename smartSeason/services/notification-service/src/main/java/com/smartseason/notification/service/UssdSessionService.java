@@ -13,6 +13,9 @@ import com.smartseason.notification.repo.UssdSessionRepository;
 import com.smartseason.notification.web.dto.UssdSessionCreateRequest;
 import com.smartseason.notification.web.dto.UssdSessionResponse;
 import com.smartseason.notification.web.dto.UssdSessionUpdateRequest;
+import com.smartseason.notification.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,16 @@ public class UssdSessionService {
     private static final String RESOURCE = "UssdSession";
     private static final String ENTITY = "ussd_sessions";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("sessionId", String.class),
+            Map.entry("phoneNumber", String.class),
+            Map.entry("serviceCode", String.class),
+            Map.entry("currentMenu", String.class),
+            Map.entry("menuStack", String.class),
+            Map.entry("status", UssdSession.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of("sessionId", "phoneNumber", "serviceCode", "currentMenu", "menuStack");
+
     private final UssdSessionRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +48,15 @@ public class UssdSessionService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<UssdSessionResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<UssdSession>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(UssdSessionResponse::from));
     }
 
     public PageResponse<UssdSessionResponse> list(Pageable pageable) {

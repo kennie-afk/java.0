@@ -13,6 +13,9 @@ import com.smartseason.audit.repo.AuditRecordRepository;
 import com.smartseason.audit.web.dto.AuditRecordCreateRequest;
 import com.smartseason.audit.web.dto.AuditRecordResponse;
 import com.smartseason.audit.web.dto.AuditRecordUpdateRequest;
+import com.smartseason.audit.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,19 @@ public class AuditRecordService {
     private static final String RESOURCE = "AuditRecord";
     private static final String ENTITY = "audit_records";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("serviceName", String.class),
+            Map.entry("actorUserId", UUID.class),
+            Map.entry("actorRole", String.class),
+            Map.entry("action", String.class),
+            Map.entry("resourceType", String.class),
+            Map.entry("resourceId", String.class),
+            Map.entry("outcome", AuditRecord.Outcome.class),
+            Map.entry("ipAddress", String.class),
+            Map.entry("userAgent", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("serviceName", "actorRole", "action", "resourceType", "resourceId", "ipAddress", "userAgent");
+
     private final AuditRecordRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +51,15 @@ public class AuditRecordService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<AuditRecordResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<AuditRecord>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(AuditRecordResponse::from));
     }
 
     public PageResponse<AuditRecordResponse> list(Pageable pageable) {

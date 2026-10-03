@@ -13,6 +13,9 @@ import com.smartseason.task.repo.TaskEvidenceRepository;
 import com.smartseason.task.web.dto.TaskEvidenceCreateRequest;
 import com.smartseason.task.web.dto.TaskEvidenceResponse;
 import com.smartseason.task.web.dto.TaskEvidenceUpdateRequest;
+import com.smartseason.task.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,16 @@ public class TaskEvidenceService {
     private static final String RESOURCE = "TaskEvidence";
     private static final String ENTITY = "task_evidence";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("assignmentId", UUID.class),
+            Map.entry("workOrderId", UUID.class),
+            Map.entry("evidenceType", TaskEvidence.EvidenceType.class),
+            Map.entry("mediaUrl", String.class),
+            Map.entry("mockLocation", Boolean.class),
+            Map.entry("verdict", TaskEvidence.Verdict.class));
+
+    private static final List<String> SEARCHABLE = List.of("mediaUrl");
+
     private final TaskEvidenceRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +48,15 @@ public class TaskEvidenceService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<TaskEvidenceResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<TaskEvidence>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(TaskEvidenceResponse::from));
     }
 
     public PageResponse<TaskEvidenceResponse> list(Pageable pageable) {

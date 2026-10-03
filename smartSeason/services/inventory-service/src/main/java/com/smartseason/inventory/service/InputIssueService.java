@@ -13,6 +13,9 @@ import com.smartseason.inventory.repo.InputIssueRepository;
 import com.smartseason.inventory.web.dto.InputIssueCreateRequest;
 import com.smartseason.inventory.web.dto.InputIssueResponse;
 import com.smartseason.inventory.web.dto.InputIssueUpdateRequest;
+import com.smartseason.inventory.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,19 @@ public class InputIssueService {
     private static final String RESOURCE = "InputIssue";
     private static final String ENTITY = "input_issues";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("farmId", UUID.class),
+            Map.entry("plotId", UUID.class),
+            Map.entry("seasonId", UUID.class),
+            Map.entry("inputCode", String.class),
+            Map.entry("inputName", String.class),
+            Map.entry("unit", String.class),
+            Map.entry("issuedTo", UUID.class),
+            Map.entry("issuedBy", UUID.class),
+            Map.entry("status", InputIssue.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of("inputCode", "inputName", "unit");
+
     private final InputIssueRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +51,15 @@ public class InputIssueService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<InputIssueResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<InputIssue>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(InputIssueResponse::from));
     }
 
     public PageResponse<InputIssueResponse> list(Pageable pageable) {

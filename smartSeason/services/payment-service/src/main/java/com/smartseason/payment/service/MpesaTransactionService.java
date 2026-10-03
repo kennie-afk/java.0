@@ -13,6 +13,9 @@ import com.smartseason.payment.repo.MpesaTransactionRepository;
 import com.smartseason.payment.web.dto.MpesaTransactionCreateRequest;
 import com.smartseason.payment.web.dto.MpesaTransactionResponse;
 import com.smartseason.payment.web.dto.MpesaTransactionUpdateRequest;
+import com.smartseason.payment.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,19 @@ public class MpesaTransactionService {
     private static final String RESOURCE = "MpesaTransaction";
     private static final String ENTITY = "mpesa_transactions";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("paymentIntentId", UUID.class),
+            Map.entry("merchantRequestId", String.class),
+            Map.entry("checkoutRequestId", String.class),
+            Map.entry("mpesaReceiptNumber", String.class),
+            Map.entry("phoneNumber", String.class),
+            Map.entry("transactionType", MpesaTransaction.TransactionType.class),
+            Map.entry("resultDesc", String.class),
+            Map.entry("accountReference", String.class),
+            Map.entry("status", MpesaTransaction.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of("merchantRequestId", "checkoutRequestId", "mpesaReceiptNumber", "phoneNumber", "resultDesc", "accountReference");
+
     private final MpesaTransactionRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +51,15 @@ public class MpesaTransactionService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<MpesaTransactionResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<MpesaTransaction>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(MpesaTransactionResponse::from));
     }
 
     public PageResponse<MpesaTransactionResponse> list(Pageable pageable) {

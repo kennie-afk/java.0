@@ -13,6 +13,9 @@ import com.smartseason.inventory.repo.InputConsumptionRepository;
 import com.smartseason.inventory.web.dto.InputConsumptionCreateRequest;
 import com.smartseason.inventory.web.dto.InputConsumptionResponse;
 import com.smartseason.inventory.web.dto.InputConsumptionUpdateRequest;
+import com.smartseason.inventory.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,18 @@ public class InputConsumptionService {
     private static final String RESOURCE = "InputConsumption";
     private static final String ENTITY = "input_consumptions";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("inputIssueId", UUID.class),
+            Map.entry("farmId", UUID.class),
+            Map.entry("plotId", UUID.class),
+            Map.entry("seasonId", UUID.class),
+            Map.entry("inputCode", String.class),
+            Map.entry("unit", String.class),
+            Map.entry("appliedBy", UUID.class),
+            Map.entry("evidenceUrl", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("inputCode", "unit", "evidenceUrl");
+
     private final InputConsumptionRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +50,15 @@ public class InputConsumptionService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<InputConsumptionResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<InputConsumption>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(InputConsumptionResponse::from));
     }
 
     public PageResponse<InputConsumptionResponse> list(Pageable pageable) {

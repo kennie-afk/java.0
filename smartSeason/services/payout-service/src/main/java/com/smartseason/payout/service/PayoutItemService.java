@@ -13,6 +13,9 @@ import com.smartseason.payout.repo.PayoutItemRepository;
 import com.smartseason.payout.web.dto.PayoutItemCreateRequest;
 import com.smartseason.payout.web.dto.PayoutItemResponse;
 import com.smartseason.payout.web.dto.PayoutItemUpdateRequest;
+import com.smartseason.payout.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,21 @@ public class PayoutItemService {
     private static final String RESOURCE = "PayoutItem";
     private static final String ENTITY = "payout_items";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("batchId", UUID.class),
+            Map.entry("settlementId", UUID.class),
+            Map.entry("payeeType", PayoutItem.PayeeType.class),
+            Map.entry("payeeId", UUID.class),
+            Map.entry("payeeName", String.class),
+            Map.entry("payeePhone", String.class),
+            Map.entry("currency", String.class),
+            Map.entry("paymentIntentId", UUID.class),
+            Map.entry("status", PayoutItem.Status.class),
+            Map.entry("failureReason", String.class),
+            Map.entry("idempotencyKey", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("payeeName", "payeePhone", "currency", "failureReason", "idempotencyKey");
+
     private final PayoutItemRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +53,15 @@ public class PayoutItemService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<PayoutItemResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<PayoutItem>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(PayoutItemResponse::from));
     }
 
     public PageResponse<PayoutItemResponse> list(Pageable pageable) {

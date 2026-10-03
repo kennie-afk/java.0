@@ -13,6 +13,9 @@ import com.smartseason.deviceregistry.repo.DeviceRepository;
 import com.smartseason.deviceregistry.web.dto.DeviceCreateRequest;
 import com.smartseason.deviceregistry.web.dto.DeviceResponse;
 import com.smartseason.deviceregistry.web.dto.DeviceUpdateRequest;
+import com.smartseason.deviceregistry.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,17 @@ public class DeviceService {
     private static final String RESOURCE = "Device";
     private static final String ENTITY = "devices";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("serialNumber", String.class),
+            Map.entry("deviceType", Device.DeviceType.class),
+            Map.entry("plotId", UUID.class),
+            Map.entry("farmId", UUID.class),
+            Map.entry("model", String.class),
+            Map.entry("firmwareVersion", String.class),
+            Map.entry("status", Device.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of("serialNumber", "model", "firmwareVersion");
+
     private final DeviceRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +49,15 @@ public class DeviceService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<DeviceResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<Device>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(DeviceResponse::from));
     }
 
     public PageResponse<DeviceResponse> list(Pageable pageable) {

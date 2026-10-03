@@ -13,6 +13,9 @@ import com.smartseason.agronomy.repo.ScoutingReportRepository;
 import com.smartseason.agronomy.web.dto.ScoutingReportCreateRequest;
 import com.smartseason.agronomy.web.dto.ScoutingReportResponse;
 import com.smartseason.agronomy.web.dto.ScoutingReportUpdateRequest;
+import com.smartseason.agronomy.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,16 @@ public class ScoutingReportService {
     private static final String RESOURCE = "ScoutingReport";
     private static final String ENTITY = "scouting_reports";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("plotId", UUID.class),
+            Map.entry("seasonId", UUID.class),
+            Map.entry("scoutedBy", UUID.class),
+            Map.entry("pestDiseaseCode", String.class),
+            Map.entry("photoUrl", String.class),
+            Map.entry("status", ScoutingReport.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of("pestDiseaseCode", "photoUrl");
+
     private final ScoutingReportRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +48,15 @@ public class ScoutingReportService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<ScoutingReportResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<ScoutingReport>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(ScoutingReportResponse::from));
     }
 
     public PageResponse<ScoutingReportResponse> list(Pageable pageable) {

@@ -13,6 +13,9 @@ import com.smartseason.weather.repo.NdviReadingRepository;
 import com.smartseason.weather.web.dto.NdviReadingCreateRequest;
 import com.smartseason.weather.web.dto.NdviReadingResponse;
 import com.smartseason.weather.web.dto.NdviReadingUpdateRequest;
+import com.smartseason.weather.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,14 @@ public class NdviReadingService {
     private static final String RESOURCE = "NdviReading";
     private static final String ENTITY = "ndvi_readings";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("plotId", UUID.class),
+            Map.entry("geoCell", String.class),
+            Map.entry("satellite", String.class),
+            Map.entry("tileUrl", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("geoCell", "satellite", "tileUrl");
+
     private final NdviReadingRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +46,15 @@ public class NdviReadingService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<NdviReadingResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<NdviReading>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(NdviReadingResponse::from));
     }
 
     public PageResponse<NdviReadingResponse> list(Pageable pageable) {

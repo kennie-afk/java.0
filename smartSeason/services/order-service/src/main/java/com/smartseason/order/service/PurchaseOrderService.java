@@ -13,6 +13,9 @@ import com.smartseason.order.repo.PurchaseOrderRepository;
 import com.smartseason.order.web.dto.PurchaseOrderCreateRequest;
 import com.smartseason.order.web.dto.PurchaseOrderResponse;
 import com.smartseason.order.web.dto.PurchaseOrderUpdateRequest;
+import com.smartseason.order.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,20 @@ public class PurchaseOrderService {
     private static final String RESOURCE = "PurchaseOrder";
     private static final String ENTITY = "orders";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("orderNumber", String.class),
+            Map.entry("buyerOrgId", UUID.class),
+            Map.entry("sellerOrgId", UUID.class),
+            Map.entry("currency", String.class),
+            Map.entry("cancellationReason", String.class),
+            Map.entry("deliveryCounty", String.class),
+            Map.entry("paymentIntentId", UUID.class),
+            Map.entry("transportJobId", UUID.class),
+            Map.entry("status", PurchaseOrder.Status.class),
+            Map.entry("idempotencyKey", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("orderNumber", "currency", "cancellationReason", "deliveryCounty", "idempotencyKey");
+
     private final PurchaseOrderRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +52,15 @@ public class PurchaseOrderService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<PurchaseOrderResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<PurchaseOrder>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(PurchaseOrderResponse::from));
     }
 
     public PageResponse<PurchaseOrderResponse> list(Pageable pageable) {

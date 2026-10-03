@@ -205,12 +205,12 @@ def main_body():
     if plot1:
         seed("/api/season/v1/seasons", "plotId", {
             "plotId": plot1, "farmId": farm, "cropCode": "MAIZE", "variety": "H614D",
-            "startDate": day(176), "expectedHarvestDate": day(18), "expectedYieldKg": 16200,
+            "startDate": day(72), "expectedHarvestDate": day(-68), "expectedYieldKg": 16200,
             "currentStage": "TASSELING", "status": "ACTIVE"}, "maize on Plot A1")
     if plot2:
         seed("/api/season/v1/seasons", "plotId", {
             "plotId": plot2, "farmId": farm, "cropCode": "POTATO", "variety": "Shangi",
-            "startDate": day(159), "expectedHarvestDate": day(42), "expectedYieldKg": 9000,
+            "startDate": day(55), "expectedHarvestDate": day(-40), "expectedYieldKg": 9000,
             "currentStage": "TUBER_BULKING", "status": "ACTIVE"}, "potato on Plot A2")
     seed("/api/season/v1/stage-templates", "stageName", {
         "cropCode": "MAIZE", "stageName": "Tasseling", "sequence": 4, "durationDays": 21,

@@ -7,6 +7,9 @@ def resource_path(table):
     return table.replace("_", "-")
 
 
+from gen_entity import ref_type
+
+
 def service_source(pkg, name, table, fields, domain):
     var = lower_first(name)
     setters_create = "\n".join(
@@ -15,6 +18,15 @@ def service_source(pkg, name, table, fields, domain):
         f"""        if (request.{f.name}() != null) {{
             entity.{f.setter}(request.{f.name}());
         }}""" for f in fields)
+
+    secret = ("hash", "secret", "token", "password")
+    safe = [f for f in fields if not any(w in f.name.lower() for w in secret)]
+    filterable = ",\n".join(
+        f'            Map.entry("{f.name}", {ref_type(f, name)}.class)'
+        for f in safe if f.kind in ("uuid", "string", "bool", "enum")) or ""
+    if not filterable:
+        filterable = '            Map.entry("id", UUID.class)'
+    searchable = ", ".join(f'"{f.name}"' for f in safe if f.kind == "string")
 
     return f"""package com.smartseason.{pkg}.service;
 
@@ -31,6 +43,9 @@ import com.smartseason.{pkg}.repo.{name}Repository;
 import com.smartseason.{pkg}.web.dto.{name}CreateRequest;
 import com.smartseason.{pkg}.web.dto.{name}Response;
 import com.smartseason.{pkg}.web.dto.{name}UpdateRequest;
+import com.smartseason.{pkg}.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -52,6 +67,13 @@ public class {name}Service {{
     private static final String RESOURCE = "{name}";
     private static final String ENTITY = "{table}";
 
+    /** Fields {{@code ?field=value}} may match exactly; anything else is rejected, not ignored. */
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+{filterable});
+
+    /** Short text columns {{@code ?q=}} searches (case-insensitive contains). */
+    private static final List<String> SEARCHABLE = List.of({searchable});
+
     private final {name}Repository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -60,6 +82,19 @@ public class {name}Service {{
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }}
+
+    /**
+     * Filtered listing. With no filter and no search this is the cached fast path; with either,
+     * the total is counted for that filter, since a cached tenant-wide total would be wrong.
+     */
+    public PageResponse<{name}Response> list(Pageable pageable, Map<String, String> params) {{
+        if (ListFilter.isEmpty(params)) {{
+            return list(pageable);
+        }}
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<{name}>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map({name}Response::from));
     }}
 
     public PageResponse<{name}Response> list(Pageable pageable) {{
@@ -191,8 +226,9 @@ public class {name}Controller {{
     @GetMapping
     @PreAuthorize("{read_roles}")
     @Operation(summary = "List {path} for the caller's tenant")
-    public PageResponse<{name}Response> list(@PageableDefault(size = 20) Pageable pageable) {{
-        return service.list(pageable);
+    public PageResponse<{name}Response> list(@PageableDefault(size = 20) Pageable pageable,
+                                             @RequestParam java.util.Map<String, String> params) {{
+        return service.list(pageable, params);
     }}
 
     /**

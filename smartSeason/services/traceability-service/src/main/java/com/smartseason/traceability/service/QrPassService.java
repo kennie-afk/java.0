@@ -13,6 +13,9 @@ import com.smartseason.traceability.repo.QrPassRepository;
 import com.smartseason.traceability.web.dto.QrPassCreateRequest;
 import com.smartseason.traceability.web.dto.QrPassResponse;
 import com.smartseason.traceability.web.dto.QrPassUpdateRequest;
+import com.smartseason.traceability.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,14 @@ public class QrPassService {
     private static final String RESOURCE = "QrPass";
     private static final String ENTITY = "qr_passes";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("batchCode", String.class),
+            Map.entry("passCode", String.class),
+            Map.entry("qrUrl", String.class),
+            Map.entry("status", QrPass.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of("batchCode", "passCode", "qrUrl");
+
     private final QrPassRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +46,15 @@ public class QrPassService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<QrPassResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<QrPass>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(QrPassResponse::from));
     }
 
     public PageResponse<QrPassResponse> list(Pageable pageable) {

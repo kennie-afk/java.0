@@ -13,6 +13,9 @@ import com.smartseason.weather.repo.WeatherAlertRecordRepository;
 import com.smartseason.weather.web.dto.WeatherAlertRecordCreateRequest;
 import com.smartseason.weather.web.dto.WeatherAlertRecordResponse;
 import com.smartseason.weather.web.dto.WeatherAlertRecordUpdateRequest;
+import com.smartseason.weather.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,15 @@ public class WeatherAlertRecordService {
     private static final String RESOURCE = "WeatherAlertRecord";
     private static final String ENTITY = "weather_alerts";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("geoCell", String.class),
+            Map.entry("alertType", WeatherAlertRecord.AlertType.class),
+            Map.entry("severity", WeatherAlertRecord.Severity.class),
+            Map.entry("headline", String.class),
+            Map.entry("source", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("geoCell", "headline", "source");
+
     private final WeatherAlertRecordRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +47,15 @@ public class WeatherAlertRecordService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<WeatherAlertRecordResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<WeatherAlertRecord>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(WeatherAlertRecordResponse::from));
     }
 
     public PageResponse<WeatherAlertRecordResponse> list(Pageable pageable) {

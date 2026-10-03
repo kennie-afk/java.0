@@ -13,6 +13,9 @@ import com.smartseason.telemetryingest.repo.TelemetryAnomalyRecordRepository;
 import com.smartseason.telemetryingest.web.dto.TelemetryAnomalyRecordCreateRequest;
 import com.smartseason.telemetryingest.web.dto.TelemetryAnomalyRecordResponse;
 import com.smartseason.telemetryingest.web.dto.TelemetryAnomalyRecordUpdateRequest;
+import com.smartseason.telemetryingest.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,15 @@ public class TelemetryAnomalyRecordService {
     private static final String RESOURCE = "TelemetryAnomalyRecord";
     private static final String ENTITY = "telemetry_anomalies";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("deviceId", UUID.class),
+            Map.entry("plotId", UUID.class),
+            Map.entry("metric", String.class),
+            Map.entry("severity", TelemetryAnomalyRecord.Severity.class),
+            Map.entry("resolved", Boolean.class));
+
+    private static final List<String> SEARCHABLE = List.of("metric");
+
     private final TelemetryAnomalyRecordRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +47,15 @@ public class TelemetryAnomalyRecordService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<TelemetryAnomalyRecordResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<TelemetryAnomalyRecord>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(TelemetryAnomalyRecordResponse::from));
     }
 
     public PageResponse<TelemetryAnomalyRecordResponse> list(Pageable pageable) {

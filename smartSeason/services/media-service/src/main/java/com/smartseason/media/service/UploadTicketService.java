@@ -13,6 +13,9 @@ import com.smartseason.media.repo.UploadTicketRepository;
 import com.smartseason.media.web.dto.UploadTicketCreateRequest;
 import com.smartseason.media.web.dto.UploadTicketResponse;
 import com.smartseason.media.web.dto.UploadTicketUpdateRequest;
+import com.smartseason.media.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,15 @@ public class UploadTicketService {
     private static final String RESOURCE = "UploadTicket";
     private static final String ENTITY = "upload_tickets";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("storageKey", String.class),
+            Map.entry("method", String.class),
+            Map.entry("requestedBy", UUID.class),
+            Map.entry("contentType", String.class),
+            Map.entry("status", UploadTicket.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of("storageKey", "method", "contentType");
+
     private final UploadTicketRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +47,15 @@ public class UploadTicketService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<UploadTicketResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<UploadTicket>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(UploadTicketResponse::from));
     }
 
     public PageResponse<UploadTicketResponse> list(Pageable pageable) {

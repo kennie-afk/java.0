@@ -13,6 +13,9 @@ import com.smartseason.attendance.repo.GeofenceRepository;
 import com.smartseason.attendance.web.dto.GeofenceCreateRequest;
 import com.smartseason.attendance.web.dto.GeofenceResponse;
 import com.smartseason.attendance.web.dto.GeofenceUpdateRequest;
+import com.smartseason.attendance.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,14 @@ public class GeofenceService {
     private static final String RESOURCE = "Geofence";
     private static final String ENTITY = "geofences";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("farmId", UUID.class),
+            Map.entry("plotId", UUID.class),
+            Map.entry("name", String.class),
+            Map.entry("active", Boolean.class));
+
+    private static final List<String> SEARCHABLE = List.of("name");
+
     private final GeofenceRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +46,15 @@ public class GeofenceService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<GeofenceResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<Geofence>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(GeofenceResponse::from));
     }
 
     public PageResponse<GeofenceResponse> list(Pageable pageable) {

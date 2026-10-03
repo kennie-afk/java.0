@@ -13,6 +13,9 @@ import com.smartseason.deviceregistry.repo.FirmwareReleaseRepository;
 import com.smartseason.deviceregistry.web.dto.FirmwareReleaseCreateRequest;
 import com.smartseason.deviceregistry.web.dto.FirmwareReleaseResponse;
 import com.smartseason.deviceregistry.web.dto.FirmwareReleaseUpdateRequest;
+import com.smartseason.deviceregistry.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,15 @@ public class FirmwareReleaseService {
     private static final String RESOURCE = "FirmwareRelease";
     private static final String ENTITY = "firmware_releases";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("deviceType", String.class),
+            Map.entry("releaseVersion", String.class),
+            Map.entry("artifactUrl", String.class),
+            Map.entry("checksum", String.class),
+            Map.entry("mandatory", Boolean.class));
+
+    private static final List<String> SEARCHABLE = List.of("deviceType", "releaseVersion", "artifactUrl", "checksum");
+
     private final FirmwareReleaseRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +47,15 @@ public class FirmwareReleaseService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<FirmwareReleaseResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<FirmwareRelease>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(FirmwareReleaseResponse::from));
     }
 
     public PageResponse<FirmwareReleaseResponse> list(Pageable pageable) {

@@ -13,6 +13,9 @@ import com.smartseason.logistics.repo.RouteStopRepository;
 import com.smartseason.logistics.web.dto.RouteStopCreateRequest;
 import com.smartseason.logistics.web.dto.RouteStopResponse;
 import com.smartseason.logistics.web.dto.RouteStopUpdateRequest;
+import com.smartseason.logistics.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,13 @@ public class RouteStopService {
     private static final String RESOURCE = "RouteStop";
     private static final String ENTITY = "route_stops";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("transportJobId", UUID.class),
+            Map.entry("stopType", RouteStop.StopType.class),
+            Map.entry("offRoute", Boolean.class));
+
+    private static final List<String> SEARCHABLE = List.of();
+
     private final RouteStopRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +45,15 @@ public class RouteStopService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<RouteStopResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<RouteStop>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(RouteStopResponse::from));
     }
 
     public PageResponse<RouteStopResponse> list(Pageable pageable) {

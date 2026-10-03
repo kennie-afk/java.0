@@ -39,8 +39,9 @@ public class NotificationController {
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'FARMER')")
     @Operation(summary = "List notifications for the caller's tenant")
-    public PageResponse<NotificationResponse> list(@PageableDefault(size = 20) Pageable pageable) {
-        return service.list(pageable);
+    public PageResponse<NotificationResponse> list(@PageableDefault(size = 20) Pageable pageable,
+                                             @RequestParam java.util.Map<String, String> params) {
+        return service.list(pageable, params);
     }
 
     @GetMapping("/cursor")

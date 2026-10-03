@@ -8,12 +8,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface ChecklistItemRepository extends JpaRepository<ChecklistItem, UUID> {
+public interface ChecklistItemRepository extends JpaRepository<ChecklistItem, UUID>, JpaSpecificationExecutor<ChecklistItem> {
 
     Optional<ChecklistItem> findByIdAndTenantId(UUID id, UUID tenantId);
 

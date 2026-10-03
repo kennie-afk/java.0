@@ -39,8 +39,9 @@ public class PayoutHoldController {
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE')")
     @Operation(summary = "List payout-holds for the caller's tenant")
-    public PageResponse<PayoutHoldResponse> list(@PageableDefault(size = 20) Pageable pageable) {
-        return service.list(pageable);
+    public PageResponse<PayoutHoldResponse> list(@PageableDefault(size = 20) Pageable pageable,
+                                             @RequestParam java.util.Map<String, String> params) {
+        return service.list(pageable, params);
     }
 
     @GetMapping("/cursor")

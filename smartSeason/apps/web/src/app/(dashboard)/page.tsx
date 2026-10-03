@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Badge, Card, PageHeader, Stat } from "@/components/ui";
+import { Badge, Card, Meter, PageHeader, Stat } from "@/components/ui";
 import { Icon, type IconName } from "@/components/icons";
 import { api, type PageResponse } from "@/lib/api";
 import { GROUPS } from "@/lib/catalogue.generated";
@@ -7,6 +7,9 @@ import { canSeeGroup, canSeeLiveBoard, canSeeService, primaryRole, ROLE_LABELS, 
 import { clockTime, formatDuration, loadMyWork, loadTaskBoard } from "@/lib/tasks";
 import { enabledServices, serviceOfPath } from "@/lib/deployment";
 import { readRoles, readToken } from "@/lib/session";
+import { loadCollection } from "@/lib/load";
+import { loadRecord } from "@/lib/record";
+import { crop, kg, progressOf, type Season } from "@/lib/season";
 
 async function count(path: string, token: string | null): Promise<number | null> {
   try {
@@ -125,6 +128,24 @@ export default async function OverviewPage() {
   const inProgress = [...board]
     .sort((x, y) => Number(y.running) - Number(x.running) || (y.assignment.assignedAt ?? "").localeCompare(x.assignment.assignedAt ?? ""))
     .slice(0, 6);
+  // Crops in the ground, soonest harvest first. Only for roles that can read seasons, and
+  // only when the season service is actually running.
+  const showCrops = canSeeService(roles, "season") && (!enabled || enabled.includes("season"));
+  const crops = showCrops
+    ? await loadCollection<Season>("/api/season/v1/seasons?status=ACTIVE", 0, "expectedHarvestDate,asc")
+    : null;
+  const shownCrops = (crops?.rows ?? []).slice(0, 8);
+  const farmNames = new Map<string, string>();
+  if (shownCrops.length > 0 && canSeeService(roles, "farm") && (!enabled || enabled.includes("farm"))) {
+    const farmIds = [...new Set(shownCrops.map((season) => season.farmId))];
+    const farms = await Promise.all(farmIds.map((farmId) => loadRecord("/api/farm/v1/farms", farmId)));
+    farms.forEach((farm, index) => farm && farmNames.set(farmIds[index], String(farm.name)));
+  }
+  const now = new Date();
+  const expectedByCrop = new Map<string, number>();
+  for (const season of crops?.rows ?? []) {
+    expectedByCrop.set(season.cropCode, (expectedByCrop.get(season.cropCode) ?? 0) + (season.expectedYieldKg ?? 0));
+  }
   const today = new Date().toLocaleDateString("en-KE", { weekday: "long", day: "numeric", month: "long" });
 
   return (
@@ -148,6 +169,66 @@ export default async function OverviewPage() {
           </Link>
         ))}
       </section>
+
+      {crops && !crops.failed && shownCrops.length > 0 ? (
+        <section className="mt-6">
+          <Card
+            title="Crops in the ground"
+            description={`${crops.totalElements} active season${crops.totalElements === 1 ? "" : "s"}, soonest harvest first. Progress is calendar time against the expected harvest date.`}
+            actions={
+              <Link href="/season/seasons?status=ACTIVE" className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--color-accent)] hover:underline">
+                All seasons <Icon name="arrow" className="h-4 w-4" />
+              </Link>
+            }
+            flush
+          >
+            <ul className="divide-y divide-[var(--color-line)]">
+              {shownCrops.map((season) => {
+                const progress = progressOf(season, now);
+                return (
+                  <li key={season.id}>
+                    <Link
+                      href={`/farm/farms/${season.farmId}`}
+                      className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 hover:bg-[var(--color-raised)]"
+                    >
+                      <span className="min-w-[180px] flex-1">
+                        <span className="block text-sm font-semibold leading-snug">
+                          {crop(season.cropCode)}
+                          {season.variety ? <span className="font-normal text-[var(--color-muted)]"> · {season.variety}</span> : null}
+                        </span>
+                        <span className="block text-sm text-[var(--color-muted)]">
+                          {farmNames.get(season.farmId) ?? "Farm"}
+                        </span>
+                      </span>
+                      <span className="w-28">{season.currentStage ? <Badge value={season.currentStage} dot={false} /> : null}</span>
+                      <span className="w-48">
+                        {progress ? (
+                          <>
+                            <Meter value={progress.fraction} tone={progress.tone} />
+                            <span className={`mt-1 block text-xs ${progress.tone === "danger" ? "font-semibold text-[var(--color-danger)]" : "text-[var(--color-muted)]"}`}>
+                              {progress.label}
+                            </span>
+                          </>
+                        ) : null}
+                      </span>
+                      <span className="w-24 text-right text-sm font-semibold tabular-nums">{kg(season.expectedYieldKg)}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+            {expectedByCrop.size > 1 && crops && crops.totalElements <= crops.rows.length ? (
+              <p className="border-t border-[var(--color-line)] px-4 py-2 text-sm text-[var(--color-muted)]">
+                Expected across active seasons:{" "}
+                {[...expectedByCrop.entries()]
+                  .sort((x, y) => y[1] - x[1])
+                  .map(([code, total]) => `${crop(code)} ${kg(total)}`)
+                  .join(" · ")}
+              </p>
+            ) : null}
+          </Card>
+        </section>
+      ) : null}
 
       {inProgress.length > 0 ? (
         <section className="mt-6">

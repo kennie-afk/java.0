@@ -13,6 +13,9 @@ import com.smartseason.identity.repo.RefreshTokenRepository;
 import com.smartseason.identity.web.dto.RefreshTokenCreateRequest;
 import com.smartseason.identity.web.dto.RefreshTokenResponse;
 import com.smartseason.identity.web.dto.RefreshTokenUpdateRequest;
+import com.smartseason.identity.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,13 @@ public class RefreshTokenService {
     private static final String RESOURCE = "RefreshToken";
     private static final String ENTITY = "refresh_tokens";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("userId", UUID.class),
+            Map.entry("userAgent", String.class),
+            Map.entry("ip", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("userAgent", "ip");
+
     private final RefreshTokenRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +45,15 @@ public class RefreshTokenService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<RefreshTokenResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<RefreshToken>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(RefreshTokenResponse::from));
     }
 
     public PageResponse<RefreshTokenResponse> list(Pageable pageable) {

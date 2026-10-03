@@ -8,12 +8,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface ClockEventRepository extends JpaRepository<ClockEvent, UUID> {
+public interface ClockEventRepository extends JpaRepository<ClockEvent, UUID>, JpaSpecificationExecutor<ClockEvent> {
 
     Optional<ClockEvent> findByIdAndTenantId(UUID id, UUID tenantId);
 

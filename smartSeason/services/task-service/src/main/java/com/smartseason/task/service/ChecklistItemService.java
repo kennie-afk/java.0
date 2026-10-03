@@ -13,6 +13,9 @@ import com.smartseason.task.repo.ChecklistItemRepository;
 import com.smartseason.task.web.dto.ChecklistItemCreateRequest;
 import com.smartseason.task.web.dto.ChecklistItemResponse;
 import com.smartseason.task.web.dto.ChecklistItemUpdateRequest;
+import com.smartseason.task.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,15 @@ public class ChecklistItemService {
     private static final String RESOURCE = "ChecklistItem";
     private static final String ENTITY = "checklist_items";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("workOrderId", UUID.class),
+            Map.entry("label", String.class),
+            Map.entry("required", Boolean.class),
+            Map.entry("completed", Boolean.class),
+            Map.entry("completedBy", UUID.class));
+
+    private static final List<String> SEARCHABLE = List.of("label");
+
     private final ChecklistItemRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +47,15 @@ public class ChecklistItemService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<ChecklistItemResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<ChecklistItem>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(ChecklistItemResponse::from));
     }
 
     public PageResponse<ChecklistItemResponse> list(Pageable pageable) {

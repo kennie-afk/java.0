@@ -13,6 +13,9 @@ import com.smartseason.agronomy.repo.AdvisoryRepository;
 import com.smartseason.agronomy.web.dto.AdvisoryCreateRequest;
 import com.smartseason.agronomy.web.dto.AdvisoryResponse;
 import com.smartseason.agronomy.web.dto.AdvisoryUpdateRequest;
+import com.smartseason.agronomy.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,17 @@ public class AdvisoryService {
     private static final String RESOURCE = "Advisory";
     private static final String ENTITY = "advisories";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("seasonId", UUID.class),
+            Map.entry("plotId", UUID.class),
+            Map.entry("cropCode", String.class),
+            Map.entry("title", String.class),
+            Map.entry("severity", Advisory.Severity.class),
+            Map.entry("source", Advisory.Source.class),
+            Map.entry("acknowledgedBy", UUID.class));
+
+    private static final List<String> SEARCHABLE = List.of("cropCode", "title");
+
     private final AdvisoryRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +49,15 @@ public class AdvisoryService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<AdvisoryResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<Advisory>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(AdvisoryResponse::from));
     }
 
     public PageResponse<AdvisoryResponse> list(Pageable pageable) {

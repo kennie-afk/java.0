@@ -13,6 +13,9 @@ import com.smartseason.audit.repo.AuditAnchorRepository;
 import com.smartseason.audit.web.dto.AuditAnchorCreateRequest;
 import com.smartseason.audit.web.dto.AuditAnchorResponse;
 import com.smartseason.audit.web.dto.AuditAnchorUpdateRequest;
+import com.smartseason.audit.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,11 @@ public class AuditAnchorService {
     private static final String RESOURCE = "AuditAnchor";
     private static final String ENTITY = "audit_anchors";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("externalRef", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("externalRef");
+
     private final AuditAnchorRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +43,15 @@ public class AuditAnchorService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<AuditAnchorResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<AuditAnchor>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(AuditAnchorResponse::from));
     }
 
     public PageResponse<AuditAnchorResponse> list(Pageable pageable) {

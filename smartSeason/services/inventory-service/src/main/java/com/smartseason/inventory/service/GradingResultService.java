@@ -13,6 +13,9 @@ import com.smartseason.inventory.repo.GradingResultRepository;
 import com.smartseason.inventory.web.dto.GradingResultCreateRequest;
 import com.smartseason.inventory.web.dto.GradingResultResponse;
 import com.smartseason.inventory.web.dto.GradingResultUpdateRequest;
+import com.smartseason.inventory.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,13 @@ public class GradingResultService {
     private static final String RESOURCE = "GradingResult";
     private static final String ENTITY = "grading_results";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("batchId", UUID.class),
+            Map.entry("gradedBy", UUID.class),
+            Map.entry("assignedGrade", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("assignedGrade");
+
     private final GradingResultRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +45,15 @@ public class GradingResultService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<GradingResultResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<GradingResult>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(GradingResultResponse::from));
     }
 
     public PageResponse<GradingResultResponse> list(Pageable pageable) {

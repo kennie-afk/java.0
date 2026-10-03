@@ -13,6 +13,9 @@ import com.smartseason.analytics.repo.MetricSnapshotRepository;
 import com.smartseason.analytics.web.dto.MetricSnapshotCreateRequest;
 import com.smartseason.analytics.web.dto.MetricSnapshotResponse;
 import com.smartseason.analytics.web.dto.MetricSnapshotUpdateRequest;
+import com.smartseason.analytics.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,15 @@ public class MetricSnapshotService {
     private static final String RESOURCE = "MetricSnapshot";
     private static final String ENTITY = "metric_snapshots";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("metricKey", String.class),
+            Map.entry("dimension", String.class),
+            Map.entry("dimensionValue", String.class),
+            Map.entry("granularity", MetricSnapshot.Granularity.class),
+            Map.entry("unit", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("metricKey", "dimension", "dimensionValue", "unit");
+
     private final MetricSnapshotRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +47,15 @@ public class MetricSnapshotService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<MetricSnapshotResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<MetricSnapshot>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(MetricSnapshotResponse::from));
     }
 
     public PageResponse<MetricSnapshotResponse> list(Pageable pageable) {

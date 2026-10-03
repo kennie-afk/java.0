@@ -39,8 +39,9 @@ public class EscrowHoldController {
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'FARMER', 'FINANCE', 'BUYER')")
     @Operation(summary = "List escrow-holds for the caller's tenant")
-    public PageResponse<EscrowHoldResponse> list(@PageableDefault(size = 20) Pageable pageable) {
-        return service.list(pageable);
+    public PageResponse<EscrowHoldResponse> list(@PageableDefault(size = 20) Pageable pageable,
+                                             @RequestParam java.util.Map<String, String> params) {
+        return service.list(pageable, params);
     }
 
     @GetMapping("/cursor")

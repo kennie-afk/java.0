@@ -13,6 +13,9 @@ import com.smartseason.ledger.repo.PostingRepository;
 import com.smartseason.ledger.web.dto.PostingCreateRequest;
 import com.smartseason.ledger.web.dto.PostingResponse;
 import com.smartseason.ledger.web.dto.PostingUpdateRequest;
+import com.smartseason.ledger.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,16 @@ public class PostingService {
     private static final String RESOURCE = "Posting";
     private static final String ENTITY = "postings";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("journalEntryId", UUID.class),
+            Map.entry("accountId", UUID.class),
+            Map.entry("accountCode", String.class),
+            Map.entry("direction", Posting.Direction.class),
+            Map.entry("currency", String.class),
+            Map.entry("memo", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("accountCode", "currency", "memo");
+
     private final PostingRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +48,15 @@ public class PostingService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<PostingResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<Posting>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(PostingResponse::from));
     }
 
     public PageResponse<PostingResponse> list(Pageable pageable) {

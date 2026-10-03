@@ -13,6 +13,9 @@ import com.smartseason.search.repo.IndexJobRepository;
 import com.smartseason.search.web.dto.IndexJobCreateRequest;
 import com.smartseason.search.web.dto.IndexJobResponse;
 import com.smartseason.search.web.dto.IndexJobUpdateRequest;
+import com.smartseason.search.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,14 @@ public class IndexJobService {
     private static final String RESOURCE = "IndexJob";
     private static final String ENTITY = "index_jobs";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("indexName", String.class),
+            Map.entry("jobType", IndexJob.JobType.class),
+            Map.entry("sourceEvent", String.class),
+            Map.entry("status", IndexJob.Status.class));
+
+    private static final List<String> SEARCHABLE = List.of("indexName", "sourceEvent");
+
     private final IndexJobRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +46,15 @@ public class IndexJobService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<IndexJobResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<IndexJob>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(IndexJobResponse::from));
     }
 
     public PageResponse<IndexJobResponse> list(Pageable pageable) {

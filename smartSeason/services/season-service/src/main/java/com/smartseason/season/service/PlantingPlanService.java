@@ -13,6 +13,9 @@ import com.smartseason.season.repo.PlantingPlanRepository;
 import com.smartseason.season.web.dto.PlantingPlanCreateRequest;
 import com.smartseason.season.web.dto.PlantingPlanResponse;
 import com.smartseason.season.web.dto.PlantingPlanUpdateRequest;
+import com.smartseason.season.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,13 @@ public class PlantingPlanService {
     private static final String RESOURCE = "PlantingPlan";
     private static final String ENTITY = "planting_plans";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("seasonId", UUID.class),
+            Map.entry("spacingCm", String.class),
+            Map.entry("approvedBy", UUID.class));
+
+    private static final List<String> SEARCHABLE = List.of("spacingCm");
+
     private final PlantingPlanRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +45,15 @@ public class PlantingPlanService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<PlantingPlanResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<PlantingPlan>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(PlantingPlanResponse::from));
     }
 
     public PageResponse<PlantingPlanResponse> list(Pageable pageable) {

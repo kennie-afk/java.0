@@ -13,6 +13,9 @@ import com.smartseason.farm.repo.FarmRepository;
 import com.smartseason.farm.web.dto.FarmCreateRequest;
 import com.smartseason.farm.web.dto.FarmResponse;
 import com.smartseason.farm.web.dto.FarmUpdateRequest;
+import com.smartseason.farm.platform.ListFilter;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +30,18 @@ public class FarmService {
     private static final String RESOURCE = "Farm";
     private static final String ENTITY = "farms";
 
+    private static final Map<String, Class<?>> FILTERABLE = Map.ofEntries(
+            Map.entry("name", String.class),
+            Map.entry("ownerUserId", UUID.class),
+            Map.entry("county", String.class),
+            Map.entry("subCounty", String.class),
+            Map.entry("ward", String.class),
+            Map.entry("status", Farm.Status.class),
+            Map.entry("cooperativeId", UUID.class),
+            Map.entry("registrationNo", String.class));
+
+    private static final List<String> SEARCHABLE = List.of("name", "county", "subCounty", "ward", "registrationNo");
+
     private final FarmRepository repository;
     private final EventPublisher events;
     private final CountCache counts;
@@ -35,6 +50,15 @@ public class FarmService {
         this.repository = repository;
         this.events = events;
         this.counts = counts;
+    }
+
+    public PageResponse<FarmResponse> list(Pageable pageable, Map<String, String> params) {
+        if (ListFilter.isEmpty(params)) {
+            return list(pageable);
+        }
+        UUID tenantId = TenantContext.requireTenantId();
+        var spec = ListFilter.<Farm>of(tenantId, params, FILTERABLE, SEARCHABLE);
+        return PageResponse.from(repository.findAll(spec, pageable).map(FarmResponse::from));
     }
 
     public PageResponse<FarmResponse> list(Pageable pageable) {

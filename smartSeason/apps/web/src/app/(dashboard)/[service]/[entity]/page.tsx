@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Badge, EmptyState, PageHeader, Table, buttonClass, rowClass } from "@/components/ui";
+import { Badge, EmptyState, PageHeader, Table, buttonClass, inputClass, rowClass, secondaryButtonClass } from "@/components/ui";
 import { SortLink } from "@/components/sortable-header";
 import { Pager } from "@/components/pager";
 import { findEntity } from "@/lib/catalogue.generated";
@@ -14,7 +14,7 @@ export default async function EntityListPage({
   searchParams
 }: {
   params: Promise<{ service: string; entity: string }>;
-  searchParams: Promise<{ page?: string; sort?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { service: serviceSlug, entity: entitySlug } = await params;
   const found = findEntity(serviceSlug, entitySlug);
@@ -31,8 +31,20 @@ export default async function EntityListPage({
     entity.columns.map((column) => column.name)
   );
 
+  // Search text plus exact-match filters on the entity's own fields. Anything else in the
+  // URL is dropped rather than forwarded: the service rejects a field it does not know.
+  const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) ?? "";
+  const filterable = new Set(entity.formFields.map((field) => field.name));
+  const active: Record<string, string> = {};
+  const q = first(query.q).trim().slice(0, 100);
+  if (q) active.q = q;
+  for (const [key, raw] of Object.entries(query)) {
+    if (filterable.has(key) && first(raw)) active[key] = first(raw);
+  }
+  const filterQuery = new URLSearchParams(active).toString();
+
   const [{ rows, failed, totalElements, totalPages }, roles] = await Promise.all([
-    loadCollection<Record_>(entity.path, page, sort),
+    loadCollection<Record_>(filterQuery ? `${entity.path}?${filterQuery}` : entity.path, page, sort),
     readRoles()
   ]);
   const mayCreate = canWrite(roles, service.slug);
@@ -51,6 +63,30 @@ export default async function EntityListPage({
         }
       />
 
+      <form action={base} className="mb-3 flex flex-wrap items-center gap-2">
+        {Object.entries(active)
+          .filter(([key]) => key !== "q")
+          .map(([key, value]) => (
+            <input key={key} type="hidden" name={key} value={value} />
+          ))}
+        {sort ? <input type="hidden" name="sort" value={sort} /> : null}
+        <input
+          name="q"
+          defaultValue={q}
+          placeholder={`Search ${entity.label.toLowerCase()}`}
+          aria-label={`Search ${entity.label.toLowerCase()}`}
+          className={`${inputClass} max-w-xs`}
+        />
+        <button type="submit" className={secondaryButtonClass}>
+          Search
+        </button>
+        {Object.keys(active).length > 0 ? (
+          <Link href={base} className="text-sm font-semibold text-[var(--color-accent)] hover:underline">
+            Clear {Object.keys(active).length === 1 ? "filter" : "filters"}
+          </Link>
+        ) : null}
+      </form>
+
       {failed ? (
         <EmptyState
           message={`${service.slug}-service is not reachable.`}
@@ -58,9 +94,11 @@ export default async function EntityListPage({
         />
       ) : rows.length === 0 ? (
         <EmptyState
-          message={`No ${entity.label.toLowerCase()} yet.`}
+          message={Object.keys(active).length > 0 ? `No ${entity.label.toLowerCase()} match.` : `No ${entity.label.toLowerCase()} yet.`}
           detail={
-            mayCreate
+            Object.keys(active).length > 0
+              ? "Try a different search, or clear the filters."
+              : mayCreate
               ? `Create the first ${entity.singular.toLowerCase()} to see it here.`
               : "Nothing has been recorded here yet."
           }
@@ -78,6 +116,7 @@ export default async function EntityListPage({
                   label={column.label}
                   activeSort={sort}
                   numeric={column.numeric}
+                  extra={active}
                 />
               )
             }))}
@@ -122,6 +161,7 @@ export default async function EntityListPage({
         totalElements={totalElements}
         totalPages={totalPages}
         sort={sort}
+        extra={active}
       />
     </>
   );
