@@ -58,7 +58,8 @@ def dockerfile_user(rel):
 image_uid = {"identity-service": dockerfile_user("services/identity-service/Dockerfile"),
              "sync-service": dockerfile_user("services/sync-service/Dockerfile"),
              "core-service": dockerfile_user("services/core-service/Dockerfile"),
-             "terminal": dockerfile_user("apps/terminal/Dockerfile")}
+             "terminal": dockerfile_user("apps/terminal/Dockerfile"),
+             "office": dockerfile_user("apps/office/Dockerfile")}
 for k, v in image_uid.items():
     if v is None:
         fail(f"{k}: the Dockerfile's last USER is not numeric, so Kubernetes cannot verify it is non-root")
@@ -142,7 +143,8 @@ for svc in ("identity-service", "sync-service", "core-service"):
 # credential isolation: each service reads only its own credential
 allowed = {"MARA_SVC_SYNC_CREDENTIAL": {"identity-service", "sync-service"},
            "MARA_SVC_CORE_CREDENTIAL": {"identity-service", "core-service"},
-           "MARA_BOOTSTRAP_CREDENTIAL": {"identity-service"}}
+           "MARA_BOOTSTRAP_CREDENTIAL": {"identity-service"},
+           "OFFICE_SESSION_SECRET": {"office"}}
 for key, who in allowed.items():
     extra = secret_users.get(key, set()) - who
     if extra:
@@ -192,8 +194,8 @@ for ing in by_kind("Ingress"):
     for rule in ing["spec"]["rules"]:
         for path in rule["http"]["paths"]:
             svc = path["backend"]["service"]
-            if svc["name"] != "terminal":
-                fail(f"{name(ing)}: routes to {svc['name']}; only the terminal may be public")
+            if svc["name"] not in ("terminal", "office"):
+                fail(f"{name(ing)}: routes to {svc['name']}; only the terminal and the office may be public")
             if svc["name"] not in services:
                 fail(f"{name(ing)}: backend service {svc['name']} does not exist")
             elif svc["port"]["number"] not in [p["port"] for p in services[svc["name"]]["spec"]["ports"]]:
@@ -221,11 +223,12 @@ for p in policies:
                 fail(f"{name(p)}: peer {ml} matches no workload")
 # the rate limits trust the ingress-appended address only if nothing else can reach the terminal pods
 trust = config["data"].get("MARA_RATELIMIT_TRUST_FORWARDED_FOR") == "true"
-term_pol = next((p for p in policies if p["metadata"]["name"] == "terminal"), None)
-if trust:
-    froms = [peer for rule in (term_pol or {"spec": {}})["spec"].get("ingress", []) for peer in rule.get("from", [])]
-    if not froms or any("namespaceSelector" not in peer or "podSelector" in peer for peer in froms):
-        fail("MARA_RATELIMIT_TRUST_FORWARDED_FOR is true but the terminal NetworkPolicy admits more than the ingress controller")
+for web in ("terminal", "office"):
+    pol = next((p for p in policies if p["metadata"]["name"] == web), None)
+    if trust or web == "office":
+        froms = [peer for rule in (pol or {"spec": {}})["spec"].get("ingress", []) for peer in rule.get("from", [])]
+        if not froms or any("namespaceSelector" not in peer or "podSelector" in peer for peer in froms):
+            fail(f"the {web} NetworkPolicy admits more than the ingress controller, but the address it counts is the one the ingress appended")
 # the services themselves must not be reachable from outside the namespace
 for p in policies:
     if p["metadata"]["name"] in ("identity-service", "sync-service", "core-service"):

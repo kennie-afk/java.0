@@ -150,5 +150,28 @@ services:
       timeout: 3s
       retries: 10
 
+  # The owners' back office: sales, tills, staff, exceptions. A browser app whose server side holds the credential in an
+  # encrypted cookie and may call only the fixed list of operations in apps/office/src/lib/routes.ts.
+  office:
+    build:
+      context: ./apps/office
+    depends_on:
+      identity-service:
+        condition: service_healthy
+    environment:
+      IDENTITY_BASE_URL: http://identity-service:8081
+      SYNC_BASE_URL: http://sync-service:8082
+      CORE_BASE_URL: http://core-service:8083
+      OFFICE_SESSION_SECRET: ${OFFICE_SESSION_SECRET:?set in .env (32+ random characters, e.g. openssl rand -hex 32)}
+      # true behind HTTPS; false only for http://localhost
+      OFFICE_COOKIE_SECURE: ${OFFICE_COOKIE_SECURE:-false}
+    ports:
+      - "${MARA_OFFICE_PORT:-3200}:3200"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3200/signin').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
 volumes:
   mara-postgres-data:

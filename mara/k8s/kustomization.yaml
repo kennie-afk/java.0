@@ -10,5 +10,6 @@ resources:
   - 21-sync.yaml
   - 22-core.yaml
   - 30-terminal.yaml
+  - 31-office.yaml
   - 40-ingress.yaml
   - 50-network-policy.yaml

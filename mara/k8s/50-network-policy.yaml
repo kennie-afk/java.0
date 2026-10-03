@@ -1,5 +1,5 @@
 # Default deny, then exactly the calls the system makes. Written so that nothing but the ingress controller can reach
-# the terminal pods: the rate limits trust the address the ingress appended (MARA_RATELIMIT_TRUST_FORWARDED_FOR), which is
+# the terminal and office pods: the rate limits trust the address the ingress appended (MARA_RATELIMIT_TRUST_FORWARDED_FOR), which is
 # only sound under that condition. If you change this file, keep it true.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -55,6 +55,33 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
+  name: office
+  namespace: mara
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: office}}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: ingress-nginx}}
+      ports:
+        - {protocol: TCP, port: 3200}
+  egress:
+    - to:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: identity-service}}
+      ports:
+        - {protocol: TCP, port: 8081}
+    - to:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: sync-service}}
+      ports:
+        - {protocol: TCP, port: 8082}
+    - to:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: core-service}}
+      ports:
+        - {protocol: TCP, port: 8083}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
   name: identity-service
   namespace: mara
 spec:
@@ -63,6 +90,10 @@ spec:
   ingress:
     - from:
         - podSelector: {matchLabels: {app.kubernetes.io/name: terminal}}
+      ports:
+        - {protocol: TCP, port: 8081}
+    - from:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: office}}
       ports:
         - {protocol: TCP, port: 8081}
     - from:
@@ -97,6 +128,10 @@ spec:
       ports:
         - {protocol: TCP, port: 8082}
     - from:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: office}}
+      ports:
+        - {protocol: TCP, port: 8082}
+    - from:
         - podSelector: {matchLabels: {app.kubernetes.io/name: core-service}}
       ports:
         - {protocol: TCP, port: 8082}
@@ -125,6 +160,10 @@ spec:
   ingress:
     - from:
         - podSelector: {matchLabels: {app.kubernetes.io/name: terminal}}
+      ports:
+        - {protocol: TCP, port: 8083}
+    - from:
+        - podSelector: {matchLabels: {app.kubernetes.io/name: office}}
       ports:
         - {protocol: TCP, port: 8083}
   egress:

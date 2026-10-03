@@ -19,6 +19,7 @@ stringData:
   MARA_DB_APP_PASSWORD: $(openssl rand -hex 24)
   MARA_SVC_SYNC_CREDENTIAL: $(mint)
   MARA_SVC_CORE_CREDENTIAL: $(mint)
+  OFFICE_SESSION_SECRET: $(openssl rand -hex 32)
 YAML
 if [ "${MARA_WITH_BOOTSTRAP:-0}" = "1" ]; then
   echo "  MARA_BOOTSTRAP_CREDENTIAL: $(mint)"

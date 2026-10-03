@@ -35,7 +35,7 @@ JVM = {
                                     ("MARA_FISCAL_LEASE_SIZE", "cfg", "MARA_FISCAL_LEASE_SIZE")]),
 }
 IMAGE = {"identity-service": "mara-identity-service", "sync-service": "mara-sync-service", "core-service": "mara-core-service",
-         "terminal": "mara-terminal"}
+         "terminal": "mara-terminal", "office": "mara-office"}
 
 
 def cfg_env(name, key):
@@ -195,8 +195,7 @@ spec:
 """ + common_tail(name, d["hpa"][0], d["hpa"][1])
 
 
-def terminal_workload():
-    name = "terminal"
+def web_workload(name, port, uid, env, cpu_req="100m", mem_req="192Mi", cpu_lim="1", mem_lim="384Mi", hpa=(2, 10)):
     return f"""apiVersion: v1
 kind: Service
 metadata:
@@ -206,7 +205,7 @@ metadata:
 spec:
   selector: {{app.kubernetes.io/name: {name}}}
   ports:
-    - {{name: http, port: 3100, targetPort: 3100}}
+    - {{name: http, port: {port}, targetPort: {port}}}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -230,8 +229,8 @@ spec:
       terminationGracePeriodSeconds: 30
       securityContext:
         runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
+        runAsUser: {uid}
+        runAsGroup: {uid}
         seccompProfile: {{type: RuntimeDefault}}
       topologySpreadConstraints:
         - maxSkew: 1
@@ -244,9 +243,9 @@ spec:
           image: {IMAGE[name]}:{TAG}
           imagePullPolicy: IfNotPresent
           ports:
-            - {{name: http, containerPort: 3100}}
+            - {{name: http, containerPort: {port}}}
           env:
-{cfg_env("IDENTITY_BASE_URL", "MARA_IDENTITY_URL")}{cfg_env("SYNC_BASE_URL", "MARA_SYNC_URL")}{cfg_env("CORE_BASE_URL", "MARA_CORE_URL")}{cfg_env("MPESA_MODE", "MARA_MPESA_MODE")}          securityContext:
+{env}          securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities: {{drop: [ALL]}}
@@ -264,14 +263,28 @@ spec:
             timeoutSeconds: 3
             failureThreshold: 3
           resources:
-            requests: {{cpu: 100m, memory: 192Mi}}
-            limits: {{cpu: "1", memory: 384Mi}}
+            requests: {{cpu: {cpu_req}, memory: {mem_req}}}
+            limits: {{cpu: "{cpu_lim}", memory: {mem_lim}}}
           volumeMounts:
             - {{name: tmp, mountPath: /tmp}}
       volumes:
         - name: tmp
           emptyDir: {{}}
-""" + common_tail(name, 2, 10)
+""" + common_tail(name, hpa[0], hpa[1])
+
+
+def terminal_workload():
+    env = (cfg_env("IDENTITY_BASE_URL", "MARA_IDENTITY_URL") + cfg_env("SYNC_BASE_URL", "MARA_SYNC_URL")
+           + cfg_env("CORE_BASE_URL", "MARA_CORE_URL") + cfg_env("MPESA_MODE", "MARA_MPESA_MODE"))
+    return web_workload("terminal", 3100, 1000, env)
+
+
+def office_workload():
+    env = (cfg_env("IDENTITY_BASE_URL", "MARA_IDENTITY_URL") + cfg_env("SYNC_BASE_URL", "MARA_SYNC_URL")
+           + cfg_env("CORE_BASE_URL", "MARA_CORE_URL") + secret_env("OFFICE_SESSION_SECRET", "OFFICE_SESSION_SECRET")
+           + "            - {name: OFFICE_COOKIE_SECURE, value: \"true\"}\n")
+    # the owners' console: light traffic, never needs many replicas
+    return web_workload("office", 3200, 1000, env, hpa=(2, 4))
 
 
 FILES = {}
@@ -330,6 +343,8 @@ stringData:
   MARA_DB_APP_PASSWORD: CHANGE-ME
   MARA_SVC_SYNC_CREDENTIAL: mop_CHANGE-ME
   MARA_SVC_CORE_CREDENTIAL: mop_CHANGE-ME
+  # Seals the back office's sign-in cookie (32+ random characters); read only by the office pods.
+  OFFICE_SESSION_SECRET: CHANGE-ME-32-OR-MORE-RANDOM-CHARACTERS
   # Optional (24 h, can only manage credentials): mint the first platform operator, then remove it and restart identity.
   MARA_BOOTSTRAP_CREDENTIAL: mop_CHANGE-ME
 """
@@ -491,8 +506,9 @@ FILES["20-identity.yaml"] = jvm_workload("identity-service", JVM["identity-servi
 FILES["21-sync.yaml"] = jvm_workload("sync-service", JVM["sync-service"])
 FILES["22-core.yaml"] = jvm_workload("core-service", JVM["core-service"])
 FILES["30-terminal.yaml"] = terminal_workload()
+FILES["31-office.yaml"] = office_workload()
 
-FILES["40-ingress.yaml"] = f"""# Only the till is public. The three services are reachable inside the namespace only (and by `kubectl port-forward` for an
+FILES["40-ingress.yaml"] = f"""# Only the till and the owners' back office are public. The three services are reachable inside the namespace only (and by `kubectl port-forward` for an
 # operator's back-office calls); the actuator is never routed. TLS terminates here: set the real host and the TLS Secret.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -507,7 +523,7 @@ metadata:
 spec:
   ingressClassName: nginx
   tls:
-    - hosts: [mara.example.org]
+    - hosts: [mara.example.org, office.mara.example.org]
       secretName: mara-tls
   rules:
     - host: mara.example.org
@@ -517,6 +533,13 @@ spec:
             pathType: Prefix
             backend:
               service: {{name: terminal, port: {{number: 3100}}}}
+    - host: office.mara.example.org
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: {{name: office, port: {{number: 3200}}}}
 """
 
 
@@ -554,24 +577,26 @@ dns = """    - to:
         - {protocol: UDP, port: 53}
         - {protocol: TCP, port: 53}
 """
-ingress_ctl = """    - from:
-        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: ingress-nginx}}
+def ingress_ctl(port):
+    return f"""    - from:
+        - namespaceSelector: {{matchLabels: {{kubernetes.io/metadata.name: ingress-nginx}}}}
       ports:
-        - {protocol: TCP, port: 3100}
+        - {{protocol: TCP, port: {port}}}
 """
 FILES["50-network-policy.yaml"] = (
     "# Default deny, then exactly the calls the system makes. Written so that nothing but the ingress controller can reach\n"
-    "# the terminal pods: the rate limits trust the address the ingress appended (MARA_RATELIMIT_TRUST_FORWARDED_FOR), which is\n"
+    "# the terminal and office pods: the rate limits trust the address the ingress appended (MARA_RATELIMIT_TRUST_FORWARDED_FOR), which is\n"
     "# only sound under that condition. If you change this file, keep it true.\n"
     + np("default-deny", None, ingress=[], egress=[]).replace("  ingress:\n", "").replace("  egress:\n", "").replace("---\n", "", 1)
     + np("allow-dns", None, egress=[dns])
-    + np("terminal", "terminal", ingress=[ingress_ctl], egress=[to("identity-service", 8081), to("sync-service", 8082), to("core-service", 8083)])
+    + np("terminal", "terminal", ingress=[ingress_ctl(3100)], egress=[to("identity-service", 8081), to("sync-service", 8082), to("core-service", 8083)])
+    + np("office", "office", ingress=[ingress_ctl(3200)], egress=[to("identity-service", 8081), to("sync-service", 8082), to("core-service", 8083)])
     + np("identity-service", "identity-service",
-         ingress=[peer("terminal", 8081), peer("sync-service", 8081), peer("core-service", 8081)],
+         ingress=[peer("terminal", 8081), peer("office", 8081), peer("sync-service", 8081), peer("core-service", 8081)],
          egress=[to("postgres", 5432), to("redis", 6379)])
-    + np("sync-service", "sync-service", ingress=[peer("terminal", 8082), peer("core-service", 8082)],
+    + np("sync-service", "sync-service", ingress=[peer("terminal", 8082), peer("office", 8082), peer("core-service", 8082)],
          egress=[to("postgres", 5432), to("redis", 6379), to("identity-service", 8081)])
-    + np("core-service", "core-service", ingress=[peer("terminal", 8083)],
+    + np("core-service", "core-service", ingress=[peer("terminal", 8083), peer("office", 8083)],
          egress=[to("postgres", 5432), to("redis", 6379), to("identity-service", 8081), to("sync-service", 8082)])
     + np("postgres", "postgres", ingress=[peer("identity-service", 5432), peer("sync-service", 5432), peer("core-service", 5432)])
     + np("redis", "redis", ingress=[peer("identity-service", 6379), peer("sync-service", 6379), peer("core-service", 6379)])

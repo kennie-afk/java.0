@@ -1,4 +1,4 @@
-# Only the till is public. The three services are reachable inside the namespace only (and by `kubectl port-forward` for an
+# Only the till and the owners' back office are public. The three services are reachable inside the namespace only (and by `kubectl port-forward` for an
 # operator's back-office calls); the actuator is never routed. TLS terminates here: set the real host and the TLS Secret.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -13,7 +13,7 @@ metadata:
 spec:
   ingressClassName: nginx
   tls:
-    - hosts: [mara.example.org]
+    - hosts: [mara.example.org, office.mara.example.org]
       secretName: mara-tls
   rules:
     - host: mara.example.org
@@ -23,3 +23,10 @@ spec:
             pathType: Prefix
             backend:
               service: {name: terminal, port: {number: 3100}}
+    - host: office.mara.example.org
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: {name: office, port: {number: 3200}}
