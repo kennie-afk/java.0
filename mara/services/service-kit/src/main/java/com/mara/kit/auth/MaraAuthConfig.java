@@ -54,9 +54,10 @@ public class MaraAuthConfig {
     @Bean
     public FilterRegistrationBean<TerminalRateLimitFilter> terminalRateLimitFilter(
             @Value("${mara.ratelimit.terminal-per-minute:1200}") int perMinute,
-            @Value("${mara.redis.url:}") String redisUrl, Clock maraClock) {
+            @Value("${mara.redis.url:}") String redisUrl,
+            @Value("${mara.ratelimit.trust-forwarded-for:false}") boolean trustForwardedFor, Clock maraClock) {
         FilterRegistrationBean<TerminalRateLimitFilter> bean = new FilterRegistrationBean<>(new TerminalRateLimitFilter(
-                RateLimiters.create("terminal", redisUrl, perMinute, Duration.ofMinutes(1)), maraClock));
+                RateLimiters.create("terminal", redisUrl, perMinute, Duration.ofMinutes(1)), maraClock, trustForwardedFor));
         bean.setOrder(Ordered.HIGHEST_PRECEDENCE + 5);
         return bean;
     }

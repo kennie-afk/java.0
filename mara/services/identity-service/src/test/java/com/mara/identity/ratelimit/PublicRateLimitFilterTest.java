@@ -19,7 +19,7 @@ class PublicRateLimitFilterTest {
 
     @Test
     void enrolmentIsCappedPerAddress() throws Exception {
-        var f = new PublicRateLimitFilter(2, 100, "");
+        var f = new PublicRateLimitFilter(2, 100, "", false);
         var reached = new AtomicInteger();
         assertThat(hit(f, "/v1/enrolment", "10.0.0.1", reached)).isEqualTo(200);
         assertThat(hit(f, "/v1/enrolment", "10.0.0.1", reached)).isEqualTo(200);
@@ -30,7 +30,7 @@ class PublicRateLimitFilterTest {
 
     @Test
     void staffSignInIsCappedAcrossTerminalsFromOneAddress() throws Exception {
-        var f = new PublicRateLimitFilter(100, 2, "");
+        var f = new PublicRateLimitFilter(100, 2, "", false);
         var reached = new AtomicInteger();
         assertThat(hit(f, "/v1/terminals/TERM-AAAAAAAAAAAAAAAAAAAA/staff-signin", "10.0.0.1", reached)).isEqualTo(200);
         assertThat(hit(f, "/v1/terminals/TERM-BBBBBBBBBBBBBBBBBBBB/staff-signin", "10.0.0.1", reached)).isEqualTo(200);
@@ -39,7 +39,7 @@ class PublicRateLimitFilterTest {
 
     @Test
     void enrolmentAndSignInHaveSeparateBudgets() throws Exception {
-        var f = new PublicRateLimitFilter(1, 1, "");
+        var f = new PublicRateLimitFilter(1, 1, "", false);
         var reached = new AtomicInteger();
         assertThat(hit(f, "/v1/enrolment", "10.0.0.1", reached)).isEqualTo(200);
         assertThat(hit(f, "/v1/terminals/TERM-AAAAAAAAAAAAAAAAAAAA/staff-signin", "10.0.0.1", reached)).isEqualTo(200);
@@ -47,7 +47,7 @@ class PublicRateLimitFilterTest {
 
     @Test
     void otherPathsAreNeverCounted() throws Exception {
-        var f = new PublicRateLimitFilter(1, 1, "");
+        var f = new PublicRateLimitFilter(1, 1, "", false);
         var reached = new AtomicInteger();
         for (int i = 0; i < 5; i++) {
             assertThat(hit(f, "/actuator/health", "10.0.0.1", reached)).isEqualTo(200);

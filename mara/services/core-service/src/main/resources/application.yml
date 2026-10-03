@@ -38,7 +38,7 @@ mara:
       username: ${MARA_DB_APP_USER}
       password: ${MARA_DB_APP_PASSWORD}
       hikari:
-        maximum-pool-size: 20
+        maximum-pool-size: ${MARA_DB_POOL_SIZE:20}
         pool-name: mara-core-app
 
 management:
@@ -49,3 +49,11 @@ management:
   endpoint:
     health:
       show-details: never
+      # /actuator/health/liveness (is the process alive) and /readiness (can it take traffic: the
+      # database answers). Kubernetes probes use these, so a database blip takes a pod out of the
+      # rotation instead of restarting it.
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db

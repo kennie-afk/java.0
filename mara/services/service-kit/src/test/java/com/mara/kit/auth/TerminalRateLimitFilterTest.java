@@ -69,4 +69,17 @@ class TerminalRateLimitFilterTest {
         }
         assertThat(reached).hasValue(5);
     }
+
+    @Test
+    void behindATrustedProxyEachClientAddressHasItsOwnBucketNotTheProxys() throws Exception {
+        var f = new TerminalRateLimitFilter(
+                new com.mara.platform.ratelimit.FixedWindowLimiter(1, java.time.Duration.ofMinutes(1), 100), clock, true);
+        var reached = new AtomicInteger();
+        // two shops, one proxy peer: each gets its own allowance
+        assertThat(hit(f, "/v1/terminal/x", "10.0.0.7", "203.0.113.1", reached)).isEqualTo(200);
+        assertThat(hit(f, "/v1/terminal/x", "10.0.0.7", "203.0.113.2", reached)).isEqualTo(200);
+        assertThat(hit(f, "/v1/terminal/x", "10.0.0.7", "203.0.113.1", reached)).isEqualTo(429);
+        // a forged prefix does not buy a fresh bucket: the last entry is what counts
+        assertThat(hit(f, "/v1/terminal/x", "10.0.0.7", "6.6.6.6, 203.0.113.1", reached)).isEqualTo(429);
+    }
 }

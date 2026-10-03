@@ -1,5 +1,6 @@
 package com.mara.identity.ratelimit;
 
+import com.mara.kit.net.ClientAddress;
 import com.mara.kit.ratelimit.RateLimiters;
 import com.mara.platform.ratelimit.RateLimiter;
 import jakarta.servlet.FilterChain;
@@ -22,7 +23,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * the PIN lockout only protects one staff member at a time, so without a cap one address could
  * still sweep every staff number in a shop.
  *
- * <p>Keyed on the socket address, never on {@code X-Forwarded-For}, which a client can set.
+ * <p>Keyed on the socket address by default, not {@code X-Forwarded-For}, which a client can set.
+ * Behind the ingress {@code mara.ratelimit.trust-forwarded-for} uses the entry the ingress appended
+ * (see {@link ClientAddress}); only enable it when nothing else can reach this service.
  * Runs before the tenant filter so a refused flood never reaches the database.
  */
 @Component
@@ -34,11 +37,14 @@ public class PublicRateLimitFilter extends OncePerRequestFilter {
     private final RateLimiter enrolment;
     private final RateLimiter signIn;
     private final Clock clock = Clock.systemUTC();
+    private final boolean trustForwardedFor;
 
     public PublicRateLimitFilter(
             @Value("${mara.ratelimit.enrolment-per-minute:20}") int enrolmentPerMinute,
             @Value("${mara.ratelimit.signin-per-minute:120}") int signInPerMinute,
-            @Value("${mara.redis.url:}") String redisUrl) {
+            @Value("${mara.redis.url:}") String redisUrl,
+            @Value("${mara.ratelimit.trust-forwarded-for:false}") boolean trustForwardedFor) {
+        this.trustForwardedFor = trustForwardedFor;
         this.enrolment = RateLimiters.create("enrolment", redisUrl, enrolmentPerMinute, Duration.ofMinutes(1));
         this.signIn = RateLimiters.create("signin", redisUrl, signInPerMinute, Duration.ofMinutes(1));
     }
@@ -53,7 +59,7 @@ public class PublicRateLimitFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         RateLimiter limiter = request.getRequestURI().equals("/v1/enrolment") ? enrolment : signIn;
-        String key = request.getRemoteAddr();
+        String key = ClientAddress.of(request, trustForwardedFor);
         RateLimiter.Decision decision = limiter.acquire(key, clock.instant());
         if (!decision.allowed()) {
             response.setStatus(429);

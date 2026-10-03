@@ -26,6 +26,10 @@ export async function forward(
     if (!v || v.length > 300) return NextResponse.json({ error: "bad_request", message: "Missing request signature." }, { status: 400 });
     headers[h] = v;
   }
+  // The ingress appends the real client address on the right; the services use it for per-address
+  // rate limits (only when told to trust it). Without this every till would share this pod's address.
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded && forwarded.length <= 300) headers["x-forwarded-for"] = forwarded;
   const body = method === "POST" ? await request.text() : undefined;
   if (body !== undefined && body.length > 4 * 1024 * 1024) {
     return NextResponse.json({ error: "too_large" }, { status: 413 });
