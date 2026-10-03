@@ -44,7 +44,9 @@ permission vocabulary in code (`patients:read`, `clinical:write`, `pharmacy:disp
 | `lab` | test catalogue, orders, specimens, results, critical values, quality control |
 | `imaging` | radiology orders, reports signed by a second person, critical findings |
 | `inpatient` | wards, beds, admission/transfer/discharge, nursing, theatre |
-| `mch` | ANC, delivery, immunisation schedule, programme summary (postnatal and family planning not built) |
+| `mch` | ANC, delivery, postnatal care, family planning, immunisation schedule, programme summary |
+| `notify` | outbox of e-mail and SMS, dispatcher, provider interface (mock or not-implemented live) |
+| `platform/storage` | object store interface (local disk only), signed expiring links; imaging attachments use it |
 | `programmes` | HIV, TB and NCD registers, follow-up, outcomes, defaulter tracing |
 | `billing` | price lists, charges, invoices, payers (cash, M-Pesa, SHA, insurers), receipts, eTIMS |
 | `claims` | SHA claim builder and validator against the DHA eClaims FHIR guide, tracking, appeals |
@@ -57,8 +59,7 @@ permission vocabulary in code (`patients:read`, `clinical:write`, `pharmacy:disp
 - Clinical facts (`observation`, `audit_event`) are range-partitioned by month; patient and encounter
   tables are hash-partitioned by `org_id` once an org passes a size threshold.
 - Reads that tolerate lag (reports, history) go to a replica; the write path uses the primary.
-- Anything slow or external (claims submission, SMS, FHIR export) goes through a transactional
-  outbox and a worker, never the request thread.
+- Notifications (SMS, e-mail) go through a transactional outbox and a dispatcher, never the request thread: built (`notify`). Claims submission and bulk FHIR export are not built.
 - Search uses `pg_trgm` and keyset paging; no list loads more than one page.
 
 ## Offline

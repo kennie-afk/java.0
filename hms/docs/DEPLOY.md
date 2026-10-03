@@ -30,6 +30,11 @@ Steps:
 
 For a real hospital, replace `10-postgres.yaml` with a managed or replicated Postgres and point `HMS_DB_URL` at it. The API needs an owner role (migrations) and creates the least-privilege application role itself.
 
+### Files and messages
+
+- **Imaging images** are stored by the API on local disk (`HMS_STORAGE_PATH`; Compose mounts a named volume at `/data/objects`; back it up with the database). That is fine for one node. The Kubernetes config switches uploads **off** (`HMS_STORAGE_UPLOADS: "false"`) because pod disks are neither durable nor shared between replicas, and an S3-compatible store is not built. Turn them on only for a single API replica with a PersistentVolume at `HMS_STORAGE_PATH`.
+- **E-mail and SMS** (`HMS_NOTIFICATIONS_MODE`): `mock` logs a masked line and sends nothing; `live` is not implemented and fails each message loudly. Set `HMS_NOTIFICATIONS_DISPATCHER=false` on any replica that should not deliver.
+
 ### Checks
 
 ```bash

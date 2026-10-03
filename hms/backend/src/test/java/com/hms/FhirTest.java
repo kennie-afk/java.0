@@ -72,6 +72,8 @@ class FhirTest extends IntegrationTest {
         assertThat(fhir("/Encounter/" + enc, client).get("subject").get("reference").asText()).isEqualTo("Patient/" + pid);
         // Observation: vitals (retracted one absent), blood pressure as a panel with components
         JsonNode vs = fhir("/Observation?patient=" + pid + "&category=vital-signs", client);
+        // The HL7 validator requires LOINC 2708-6 in an oxygen-saturation observation; the pulse-oximetry code stays beside it.
+        assertThat(vs.toString()).contains("\"2708-6\"").contains("\"59408-5\"");
         List<String> ids = vs.findValuesAsText("id");
         assertThat(ids).anyMatch(i -> i.equals("vit-" + vitals + "-temp")).noneMatch(i -> i.contains(retracted));
         JsonNode bp = null;

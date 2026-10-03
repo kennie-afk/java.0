@@ -385,7 +385,14 @@ public class FhirService {
                 continue;
             }
             Map<String, Object> o = vitalBase("vit-" + vid + "-" + d.key(), rs, at);
-            o.put("code", codeable(d.loinc(), d.display()));
+            Map<String, Object> code = codeable(d.loinc(), d.display());
+            if (d.key().equals("spo2")) {
+                // The FHIR oxygen-saturation vital-signs profile requires LOINC 2708-6 in the code; the pulse-oximetry code stays beside it.
+                List<Object> codings = new ArrayList<>((List<?>) code.get("coding"));
+                codings.add(obj("system", "http://loinc.org", "code", "2708-6", "display", "Oxygen saturation in Arterial blood"));
+                code.put("coding", codings);
+            }
+            o.put("code", code);
             o.put("valueQuantity", quantity(v, d.unit(), d.ucum()));
             out.add(o);
         }

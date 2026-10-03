@@ -63,9 +63,9 @@ def delivered(given, family, born_years, phone, delivered_days_ago, visits):
 delivered('Mercy', 'Wanjiku', 28, '0722000707', 8, [
     (6, {'systolic': 118, 'diastolic': 76, 'temperatureC': 36.9, 'lochia': 'NORMAL', 'breastfeeding': 'EXCLUSIVE', 'babyWeightG': 3050, 'babyTemperatureC': 36.8, 'cord': 'CLEAN', 'feedingWell': True}),
     (0, {'systolic': 126, 'diastolic': 82, 'temperatureC': 38.5, 'lochia': 'OFFENSIVE', 'uterus': 'SUBINVOLUTED', 'breastfeeding': 'EXCLUSIVE', 'babyWeightG': 3150, 'babyTemperatureC': 36.9, 'cord': 'INFECTED', 'feedingWell': True, 'nextVisitOn': iso(today + datetime.timedelta(days=2))})])
-delivered('Grace', 'Njoroge', 24, '0733000808', 40, [
-    (38, {'systolic': 110, 'diastolic': 70, 'temperatureC': 36.7, 'lochia': 'NORMAL', 'breastfeeding': 'EXCLUSIVE', 'babyWeightG': 3200, 'cord': 'SEPARATED', 'feedingWell': True}),
-    (26, {'systolic': 112, 'diastolic': 72, 'breastfeeding': 'EXCLUSIVE', 'babyWeightG': 3900, 'feedingWell': True, 'fpCounselled': True}),
+delivered('Grace', 'Njoroge', 24, '0733000808', 30, [
+    (28, {'systolic': 110, 'diastolic': 70, 'temperatureC': 36.7, 'lochia': 'NORMAL', 'breastfeeding': 'EXCLUSIVE', 'babyWeightG': 3200, 'cord': 'SEPARATED', 'feedingWell': True}),
+    (16, {'systolic': 112, 'diastolic': 72, 'breastfeeding': 'EXCLUSIVE', 'babyWeightG': 3900, 'feedingWell': True, 'fpCounselled': True}),
     (0, {'systolic': 114, 'diastolic': 72, 'breastfeeding': 'MIXED', 'babyWeightG': 4900, 'feedingWell': True, 'fpCounselled': True})])
 
 # Family planning: an injectable that is overdue, an implant, and a pill started with raised pressure.
