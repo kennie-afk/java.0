@@ -15,7 +15,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /**
- * V3 turns three populated tables into hash partitions. This proves it does so on existing data,
+ * The opt-in partitioning script turns three populated tables into hash partitions. This proves it does so on existing data,
  * as a NON-superuser owner (which FORCE ROW LEVEL SECURITY would have blinded to its own rows,
  * silently dropping them), and that every guarantee survives: append-only on the parent and on a
  * partition named directly, balanced ledger, one fiscal number per sale per tenant, tenant
@@ -72,6 +72,24 @@ class PartitionMigrationTest {
                 .load().migrate();
     }
 
+    /** The opt-in script, run the way an operator would: one transaction, as the owner. */
+    private static void applyPartitioning() throws Exception {
+        String sql;
+        try (var in = PartitionMigrationTest.class.getResourceAsStream("/db/optional/partition-ledger-and-sales.sql")) {
+            sql = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        }
+        try (Connection c = connect(DB, OWNER, "pw")) {
+            if (one(c, "SELECT count(*) FROM pg_class WHERE relkind = 'p' AND relname = 'ledger_txn'") == 1) {
+                return;   // another test in this class already did it to the shared scratch database
+            }
+            c.setAutoCommit(false);
+            try (Statement s = c.createStatement()) {
+                s.execute(sql);
+            }
+            c.commit();
+        }
+    }
+
     private static void insertSale(Statement s, String tenant, String terminal, long seq, Long fiscal, boolean accepted)
             throws SQLException {
         s.execute("INSERT INTO ledger_txn (tenant_id, kind, currency, occurred_at, source_terminal, source_sequence) "
@@ -110,7 +128,7 @@ class PartitionMigrationTest {
 
     @Test
     void existingRowsSurviveAndEveryGuaranteeStillHolds() throws Exception {
-        migrate("2");
+        migrate("latest");
         // Populate at the OLD schema, as the (non-superuser) owner, one tenant at a time: the
         // owner is bound by FORCE ROW LEVEL SECURITY exactly as production's would be.
         try (Connection c = connect(DB, OWNER, "pw"); Statement s = c.createStatement()) {
@@ -131,7 +149,7 @@ class PartitionMigrationTest {
             assertThat(one(c, "SELECT count(*) FROM sale")).isEqualTo(21);
         }
 
-        migrate("latest");
+        applyPartitioning();
 
         try (Connection c = connect(DB, OWNER, "pw"); Statement s = c.createStatement()) {
             assertThat(one(c, "SELECT count(*) FROM pg_class WHERE relkind = 'p' AND relname IN ('sale','posting','ledger_txn')"))
@@ -159,6 +177,7 @@ class PartitionMigrationTest {
     @Test
     void theGuaranteesAreStillEnforcedByTheDatabase() throws Exception {
         migrate("latest");
+        applyPartitioning();
         try (Connection c = connect(DB, OWNER, "pw"); Statement s = c.createStatement()) {
             c.setAutoCommit(true);
             s.execute("SELECT set_config('mara.tenant_id', 'TEN-G', false)");

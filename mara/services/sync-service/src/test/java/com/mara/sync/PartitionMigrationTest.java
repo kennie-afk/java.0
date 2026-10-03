@@ -15,7 +15,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /**
- * V2 hash-partitions journal_entry. Proves it on existing rows as a NON-superuser owner (whom
+ * The opt-in script hash-partitions journal_entry. Proves it on existing rows as a NON-superuser owner (whom
  * FORCE ROW LEVEL SECURITY would blind to the table, so a naive copy-and-drop loses everything),
  * and that the append-only guarantee holds on the parent and on a partition named directly.
  * Needs {@code -Dmara.test.jdbc.url} to a superuser connection; builds its own scratch database.
@@ -67,6 +67,24 @@ class PartitionMigrationTest {
                 .load().migrate();
     }
 
+    /** The opt-in script, run the way an operator would: one transaction, as the owner. */
+    private static void applyPartitioning() throws Exception {
+        String sql;
+        try (var in = PartitionMigrationTest.class.getResourceAsStream("/db/optional/partition-journal.sql")) {
+            sql = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        }
+        try (Connection c = connect(DB, OWNER, "pw")) {
+            if (one(c, "SELECT count(*) FROM pg_class WHERE relkind = 'p' AND relname = 'journal_entry'") == 1) {
+                return;   // another test in this class already did it to the shared scratch database
+            }
+            c.setAutoCommit(false);
+            try (Statement s = c.createStatement()) {
+                s.execute(sql);
+            }
+            c.commit();
+        }
+    }
+
     private static void insertEntry(Statement s, String tenant, String terminal, int seq) throws SQLException {
         String d = "decode(repeat('0" + (seq % 10) + "', 32), 'hex')";
         s.execute("INSERT INTO journal_entry (terminal_id, sequence, tenant_id, epoch_second, nano, sale, body_digest, "
@@ -83,7 +101,7 @@ class PartitionMigrationTest {
 
     @Test
     void existingEntriesSurviveAndStayAppendOnlyAndTenantScoped() throws Exception {
-        migrate("1");
+        migrate("latest");
         try (Connection c = connect(DB, OWNER, "pw"); Statement s = c.createStatement()) {
             for (String tenant : new String[] {"TEN-A", "TEN-B"}) {
                 c.setAutoCommit(false);
@@ -96,7 +114,7 @@ class PartitionMigrationTest {
                 c.commit();
             }
         }
-        migrate("latest");
+        applyPartitioning();
 
         try (Connection c = connect(DB, OWNER, "pw"); Statement s = c.createStatement()) {
             c.setAutoCommit(true);

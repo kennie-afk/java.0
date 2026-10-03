@@ -1,3 +1,8 @@
+-- OPT-IN, NOT A FLYWAY MIGRATION. Apply deliberately, as the database owner, with the
+-- sync-service stopped:  psql "$OWNER_URL" -v ON_ERROR_STOP=1 -1 -f partition-journal.sql
+-- Not automatic for the reason given in core-service's partition-ledger-and-sales.sql: measured,
+-- partitioning costs write throughput and buys nothing until the table is vastly larger.
+--
 -- Hash-partition journal_entry, the table that gets one wide row (the whole signed sale) for
 -- every sale every terminal makes.
 --
@@ -9,7 +14,16 @@
 -- one, and lets a terminal's whole chain live in one partition. A month key would have needed
 -- received_at inside the primary key, and (terminal_id, sequence) would stop being unique in
 -- the database. Tenant-wide reads (the back-office listing) visit every partition's tenant
--- index: measured in docs/CAPACITY-RESULTS.md.
+-- index: see docs/CAPACITY-RESULTS.md.
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'journal_entry' AND relkind = 'p') THEN
+        RAISE EXCEPTION 'journal_entry is already partitioned; nothing to do'
+            USING ERRCODE = 'invalid_object_definition';
+    END IF;
+END
+$$;
 
 ALTER TABLE journal_entry NO FORCE ROW LEVEL SECURITY;   -- see core V3: a non-superuser owner would copy 0 rows
 

@@ -1,3 +1,16 @@
+-- OPT-IN, NOT A FLYWAY MIGRATION. Apply deliberately, as the database owner:
+--     psql "$OWNER_URL" -v ON_ERROR_STOP=1 -1 -f partition-ledger-and-sales.sql
+-- (-1 = one transaction, so a failure leaves the old tables untouched). Stop the core-service
+-- first: the script takes ACCESS EXCLUSIVE locks and drops the old tables. See docs/OPERATIONS.md.
+--
+-- WHY IT IS NOT AUTOMATIC: measured on 1.5M sales / 1.5M ledger transactions / 4.5M postings
+-- (docs/CAPACITY-RESULTS.md), partitioning gave NO speed-up and cost something: sale write
+-- throughput fell about 15-35% and point lookups went from ~0.12 ms to ~0.28 ms. Its case is
+-- operational and starts at far larger tables (vacuum and index size, moving or archiving a
+-- partition), so a first customer should not pay for it. Do it when a ledger is heading
+-- towards hundreds of millions of rows. The script is tested on existing data as a
+-- non-superuser owner (PartitionMigrationTest).
+--
 -- Hash-partition the three tables that grow with every sale: ledger_txn, posting and sale.
 --
 -- WHY HASH ON tenant_id, AND NOT MONTH
@@ -17,6 +30,15 @@
 --
 -- Applies on existing data: the rows are copied into the new tables, the old ones dropped, and
 -- sequences keep counting from where they were.
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'ledger_txn' AND relkind = 'p') THEN
+        RAISE EXCEPTION 'ledger_txn is already partitioned; nothing to do'
+            USING ERRCODE = 'invalid_object_definition';
+    END IF;
+END
+$$;
 
 -- A non-superuser owner is subject to FORCE ROW LEVEL SECURITY and would copy zero rows (and
 -- then the DROP below would lose them). The old tables are about to be dropped, so un-force them.
