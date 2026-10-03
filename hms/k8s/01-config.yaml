@@ -12,5 +12,10 @@ data:
   # Simulated M-Pesa. "live" is not implemented and refuses to start.
   HMS_MPESA_MODE: mock
   HMS_NOTIFICATIONS_MODE: mock
+  # Imaging attachments are stored on the pod's own disk, which is neither durable nor shared between replicas. Until an S3-compatible
+  # store exists, uploads are switched off here rather than losing images on the first restart. Set true only for a single replica
+  # with a PersistentVolume mounted at HMS_STORAGE_PATH.
+  HMS_STORAGE_UPLOADS: "false"
+  HMS_STORAGE_PATH: /tmp/objects
   # The ingress controller sets X-Forwarded-For, so per-address rate limits use the real client address.
   HMS_TRUST_FORWARDED_FOR: "true"

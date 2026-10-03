@@ -4,7 +4,7 @@
  * connection, and keeps a short-lived copy of the point-of-care records a person has read (queue, patient, encounter,
  * maternal, programme, ward screens) so they can be looked at again offline.
  *
- * What it will not do: cache anything that was sent with an access reason, anything about billing, claims, staff,
+ * What it will not do: cache anything that was sent with an access reason, any imaging study or image (patient pictures stay off the device), anything about billing, claims, staff,
  * reports or audit, or anything of the patient portal; serve a saved record older than 12 hours; or send a write. Writes
  * are queued by the page (lib/offline.ts), never here. Saved records are deleted on sign-out.
  */

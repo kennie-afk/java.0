@@ -11,6 +11,8 @@ FROM eclipse-temurin:21-jre
 RUN groupadd --system --gid 10001 hms && useradd --system --uid 10001 --gid hms --no-create-home hms
 WORKDIR /app
 COPY --from=build /build/target/hms-backend-*.jar app.jar
+# The object store folder, owned by the runtime user so a mounted volume inherits that ownership.
+RUN mkdir -p /data/objects && chown -R 10001:10001 /data
 USER 10001:10001
 EXPOSE 8100
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError"

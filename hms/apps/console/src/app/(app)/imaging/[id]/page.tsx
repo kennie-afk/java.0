@@ -4,6 +4,7 @@ import { use, useState } from "react";
 import { post, useFetch } from "@/lib/api";
 import { stamp } from "@/lib/format";
 import { useSession } from "@/lib/session";
+import { ImagingImages } from "@/components/ImagingImages";
 import { Badge, Button, Card, Confirm, ErrorNote, Field, Grid, Input, KV, Loading, Page, Status, Textarea, useAction } from "@/components/ui";
 
 type Order = {
@@ -38,6 +39,7 @@ export default function ImagingOrder({ params }: { params: Promise<{ id: string 
         </Card>
       )}
       {(d.performedAt || d.techniqueNote) && <Card title="Study"><Grid cols={2}><KV k="Performed" v={d.performedAt ? stamp(d.performedAt) : "-"} /><KV k="Technique" v={d.techniqueNote ?? "-"} /></Grid></Card>}
+      {d.status !== "ORDERED" && d.status !== "CANCELLED" && <ImagingImages orderId={id} status={d.status} canAttach={can("imaging:perform")} />}
       {editing && can("imaging:perform") && (
         <Card title="Report">
           <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); void go(() => post(`/v1/imaging/orders/${id}/report`, { findings: rep.findings || undefined, impression: rep.impression, critical: rep.critical, criticalNote: rep.critical ? rep.criticalNote : undefined })); }}>

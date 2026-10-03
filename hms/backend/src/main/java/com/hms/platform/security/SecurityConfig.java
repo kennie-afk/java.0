@@ -53,6 +53,7 @@ public class SecurityConfig {
                 }))
                 .authorizeHttpRequests(a -> a
                         .requestMatchers("/actuator/health/**", "/actuator/info").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/v1/objects/*/*").permitAll()
                         .requestMatchers(HttpMethod.POST, "/v1/auth/login", "/v1/organisations", "/portal/auth/login", "/portal/auth/activate").permitAll()
                         .requestMatchers("/portal/**").hasAuthority("portal:self")
                         .anyRequest().authenticated())

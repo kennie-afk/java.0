@@ -19,13 +19,20 @@ async function forward(request: NextRequest, context: { params: Promise<{ path: 
   const idem = request.headers.get("idempotency-key");
   if (idem) headers["Idempotency-Key"] = idem;
   const hasBody = request.method !== "GET" && request.method !== "HEAD";
-  if (hasBody) headers["Content-Type"] = "application/json";
-  const res = await fetch(url, { method: request.method, headers, body: hasBody ? await request.text() : undefined, cache: "no-store" });
-  const text = await res.text();
-  return new NextResponse(text.length ? text : null, {
-    status: res.status,
-    headers: { "Content-Type": res.headers.get("content-type") ?? "application/json", ...(res.headers.get("idempotent-replay") ? { "Idempotent-Replay": "true" } : {}) }
-  });
+  // A file upload is passed through byte for byte with its own boundary; everything else is JSON text.
+  const upload = (request.headers.get("content-type") ?? "").startsWith("multipart/form-data");
+  if (hasBody) headers["Content-Type"] = upload ? request.headers.get("content-type")! : "application/json";
+  const res = await fetch(url, { method: request.method, headers, body: hasBody ? (upload ? await request.arrayBuffer() : await request.text()) : undefined, cache: "no-store" });
+  // Read as bytes, not text, so an image comes back intact.
+  const bytes = await res.arrayBuffer();
+  const out: Record<string, string> = { "Content-Type": res.headers.get("content-type") ?? "application/json" };
+  if (res.headers.get("idempotent-replay")) out["Idempotent-Replay"] = "true";
+  // Patient images stay private and cannot be re-interpreted as anything but the image they are.
+  for (const h of ["cache-control", "x-content-type-options", "content-security-policy", "content-disposition"]) {
+    const v = res.headers.get(h);
+    if (v && path[0] === "objects") out[h] = v;
+  }
+  return new NextResponse(bytes.byteLength ? bytes : null, { status: res.status, headers: out });
 }
 
 export { forward as GET, forward as POST, forward as PUT, forward as DELETE };

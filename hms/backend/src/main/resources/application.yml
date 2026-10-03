@@ -19,6 +19,11 @@ spring:
     placeholders:
       appUser: ${HMS_DB_APP_USER:hms_app}
       appPassword: ${HMS_DB_APP_PASSWORD}
+  servlet:
+    multipart:
+      # An image is at most 8 MB; the limits sit just above so the service, not the container, explains a refusal.
+      max-file-size: 9MB
+      max-request-size: 10MB
   jackson:
     default-property-inclusion: non_null
     deserialization:
@@ -42,6 +47,12 @@ hms:
   mpesa:
     # mock (default) simulates M-Pesa. live is NOT implemented and fails loudly.
     mode: ${HMS_MPESA_MODE:mock}
+  storage:
+    # local is the only store built: files on this machine's disk. Fine for one node; a cluster needs shared storage.
+    mode: ${HMS_STORAGE_MODE:local}
+    local-path: ${HMS_STORAGE_PATH:./data/objects}
+    # Off where the disk is not durable or shared (see k8s/01-config.yaml).
+    uploads: ${HMS_STORAGE_UPLOADS:true}
   notifications:
     # mock (default) logs a masked line and sends nothing. live is NOT implemented and fails loudly.
     mode: ${HMS_NOTIFICATIONS_MODE:mock}

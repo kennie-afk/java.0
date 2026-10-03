@@ -32,8 +32,12 @@ services:
       # Simulated M-Pesa. "live" is not implemented and refuses.
       HMS_MPESA_MODE: ${HMS_MPESA_MODE:-mock}
       HMS_NOTIFICATIONS_MODE: ${HMS_NOTIFICATIONS_MODE:-mock}
+      # Imaging attachments are files on this volume (single node). Back it up with the database.
+      HMS_STORAGE_PATH: /data/objects
       # Only trust X-Forwarded-For when a proxy you control sets it.
       HMS_TRUST_FORWARDED_FOR: ${HMS_TRUST_FORWARDED_FOR:-false}
+    volumes:
+      - object_data:/data/objects
     ports:
       - "${HMS_API_PORT:-8100}:8100"
     depends_on:
@@ -56,3 +60,4 @@ services:
 
 volumes:
   db_data:
+  object_data:

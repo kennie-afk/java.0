@@ -38,6 +38,18 @@ export async function api<T = unknown>(path: string, init?: { method?: string; b
   return data as T;
 }
 
+/** Sends a file (multipart). The browser sets the boundary, so no Content-Type is given here. */
+export async function upload<T = unknown>(path: string, form: FormData): Promise<T> {
+  const res = await fetch(`/api${path}`, { method: "POST", body: form });
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : null;
+  if (res.status === 401 && typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+    window.location.href = "/login";
+  }
+  if (!res.ok) throw new ApiError(res.status, data ?? {});
+  return data as T;
+}
+
 export const post = <T = unknown>(path: string, body?: unknown) => api<T>(path, { method: "POST", body: body ?? {} });
 export const put = <T = unknown>(path: string, body?: unknown) => api<T>(path, { method: "PUT", body: body ?? {} });
 export const del = <T = unknown>(path: string) => api<T>(path, { method: "DELETE" });
