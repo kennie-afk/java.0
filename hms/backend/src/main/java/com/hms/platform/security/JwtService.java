@@ -19,6 +19,9 @@ public class JwtService {
 
     public record Claims(UUID practitionerId, UUID orgId) {}
 
+    /** A patient portal session: the account, its organisation and the one patient it belongs to. */
+    public record PortalClaims(UUID accountId, UUID orgId, UUID patientId) {}
+
     private final SecretKey key;
     private final Duration ttl;
 
@@ -42,9 +45,38 @@ public class JwtService {
                 .compact();
     }
 
+    /** Portal tokens are short-lived and carry typ=portal, so one can never be mistaken for a staff token or the reverse. */
+    public String issuePortal(UUID accountId, UUID orgId, UUID patientId) {
+        Instant now = Instant.now();
+        return Jwts.builder()
+                .subject(accountId.toString())
+                .claim("typ", "portal")
+                .claim("org", orgId.toString())
+                .claim("pat", patientId.toString())
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(now.plus(Duration.ofMinutes(Math.min(ttl.toMinutes(), 30)))))
+                .signWith(key)
+                .compact();
+    }
+
+    public Optional<PortalClaims> parsePortal(String token) {
+        try {
+            var body = Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
+            if (!"portal".equals(body.get("typ", String.class))) {
+                return Optional.empty();
+            }
+            return Optional.of(new PortalClaims(UUID.fromString(body.getSubject()), UUID.fromString(body.get("org", String.class)), UUID.fromString(body.get("pat", String.class))));
+        } catch (JwtException | IllegalArgumentException e) {
+            return Optional.empty();
+        }
+    }
+
     public Optional<Claims> parse(String token) {
         try {
             var body = Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
+            if (body.get("typ") != null) {
+                return Optional.empty();
+            }
             return Optional.of(new Claims(UUID.fromString(body.getSubject()), UUID.fromString(body.get("org", String.class))));
         } catch (JwtException | IllegalArgumentException e) {
             return Optional.empty();

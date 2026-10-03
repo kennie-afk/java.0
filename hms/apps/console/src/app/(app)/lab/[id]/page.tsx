@@ -6,7 +6,7 @@ import { stamp } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import { Badge, Button, Card, Confirm, ErrorNote, Input, Loading, Page, Status, Table, Td, Tr, useAction } from "@/components/ui";
 
-type Item = { id: string; testName: string; resultType: string; unit?: string; refLow?: number; refHigh?: number; status: string; specimenBarcode?: string; resultNumeric?: number; resultText?: string; flag?: string; critical: boolean; criticalAckAt?: string; resultHidden: boolean };
+type Item = { id: string; testName: string; resultType: string; unit?: string; refLow?: number; refHigh?: number; status: string; specimenBarcode?: string; resultNumeric?: number; resultText?: string; flag?: string; critical: boolean; criticalAckAt?: string; resultHidden: boolean; releasedAt?: string };
 type Order = { id: string; orderNumber: string; patientId: string; patientName: string; priority: string; status: string; clinicalInfo?: string; createdAt: string; items: Item[] };
 
 export default function LabOrder({ params }: { params: Promise<{ id: string }> }) {
@@ -42,6 +42,7 @@ export default function LabOrder({ params }: { params: Promise<{ id: string }> }
               <Td><Status value={i.status} /></Td>
               <Td>
                 {i.status === "RESULTED" && can("lab:validate") && <Button busy={act.busy} onClick={() => void go(() => post(`/v1/lab/items/${i.id}/validate`))}>Validate</Button>}
+                {i.status === "VALIDATED" && can("portal:release") && <Button variant="secondary" busy={act.busy} onClick={() => void go(() => post(`/v1/portal/lab-items/${i.id}/${i.releasedAt ? "withdraw" : "release"}`))}>{i.releasedAt ? "Withdraw from portal" : "Release to patient"}</Button>}
                 {i.critical && !i.criticalAckAt && !i.resultHidden && <Confirm label="Acknowledge" variant="secondary" prompt="Record who was told and what was done." needsReason minReason={5} onConfirm={(note) => go(() => post(`/v1/lab/items/${i.id}/acknowledge`, { note }))} />}
               </Td>
             </Tr>

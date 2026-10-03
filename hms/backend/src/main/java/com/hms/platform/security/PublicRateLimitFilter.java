@@ -18,10 +18,12 @@ class PublicRateLimitFilter extends OncePerRequestFilter {
 
     private final FixedWindowLimiter login;
     private final FixedWindowLimiter onboarding;
+    private final FixedWindowLimiter portal;
     private final boolean trustForwarded;
 
     PublicRateLimitFilter(HmsProperties props) {
         this.login = new FixedWindowLimiter(props.security().loginPerMinute(), 60_000L);
+        this.portal = new FixedWindowLimiter(props.security().loginPerMinute(), 60_000L);
         this.onboarding = new FixedWindowLimiter(props.security().onboardingPerHour(), 3_600_000L);
         this.trustForwarded = props.security().trustForwardedFor();
     }
@@ -30,6 +32,7 @@ class PublicRateLimitFilter extends OncePerRequestFilter {
         return switch (path) {
             case "/v1/auth/login" -> login;
             case "/v1/organisations" -> onboarding;
+            case "/portal/auth/login", "/portal/auth/activate" -> portal;
             default -> null;
         };
     }

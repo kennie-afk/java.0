@@ -9,7 +9,7 @@ import { Badge, Button, Card, Confirm, ErrorNote, Field, Grid, Input, KV, Loadin
 type Order = {
   id: string; orderNumber: string; patientName: string; priority: string; status: string; procedureName: string; modality: string; bodyRegion?: string; clinicalInfo?: string;
   createdAt: string; performedAt?: string; techniqueNote?: string; findings?: string; impression?: string; critical: boolean; criticalNote?: string; criticalAckAt?: string;
-  criticalAckNote?: string; reportedAt?: string; signedAt?: string; reportHidden: boolean;
+  criticalAckNote?: string; reportedAt?: string; signedAt?: string; reportHidden: boolean; releasedAt?: string;
 };
 
 export default function ImagingOrder({ params }: { params: Promise<{ id: string }> }) {
@@ -28,6 +28,7 @@ export default function ImagingOrder({ params }: { params: Promise<{ id: string 
       actions={<>
         <Status value={d.status} />
         {d.status === "ORDERED" && (can("orders:write") || can("imaging:perform")) && <Confirm label="Cancel order" prompt="Cancel this order?" needsReason minReason={3} onConfirm={(reason) => go(() => post(`/v1/imaging/orders/${id}/cancel`, { reason }))} />}
+        {d.status === "SIGNED" && can("portal:release") && <Button variant="secondary" busy={act.busy} onClick={() => void go(() => post(`/v1/portal/imaging-orders/${id}/${d.releasedAt ? "withdraw" : "release"}`))}>{d.releasedAt ? "Withdraw from portal" : "Release to patient"}</Button>}
         {d.status === "REPORTED" && can("imaging:sign") && <Button busy={act.busy} onClick={() => void go(() => post(`/v1/imaging/orders/${id}/sign`))}>Sign report</Button>}
       </>}>
       <ErrorNote error={act.error} />

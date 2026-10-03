@@ -12,7 +12,8 @@ const NAV: { group: string; items: Item[] }[] = [
     { href: "/", label: "Overview", perm: "", icon: "home" },
     { href: "/patients", label: "Patients", perm: "patients:read", icon: "patients" },
     { href: "/queue", label: "Queue", perm: "scheduling:read", icon: "queue" },
-    { href: "/appointments", label: "Appointments", perm: "scheduling:read", icon: "calendar" }] },
+    { href: "/appointments", label: "Appointments", perm: "scheduling:read", icon: "calendar" },
+    { href: "/portal-requests", label: "Portal requests", perm: "portal:manage", icon: "inbox" }] },
   { group: "Care", items: [
     { href: "/wards", label: "Wards and beds", perm: "inpatient:read", icon: "bed" },
     { href: "/maternal", label: "Maternal and child", perm: "mch:read", icon: "pulse" },

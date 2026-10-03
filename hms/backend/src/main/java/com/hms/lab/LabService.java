@@ -201,7 +201,7 @@ public class LabService {
         if (!"VALIDATED".equals(c.status)) {
             throw ApiException.conflict("not_validated", "Only a validated result is amended; an unvalidated one can be re-entered by cancelling the order and reordering.");
         }
-        jdbc.sql("UPDATE lab_order_items SET validated_by = NULL, validated_at = NULL WHERE org_id = ? AND id = ?").params(t.orgId(), itemId).update();
+        jdbc.sql("UPDATE lab_order_items SET validated_by = NULL, validated_at = NULL, released_at = NULL, released_by = NULL WHERE org_id = ? AND id = ?").params(t.orgId(), itemId).update();
         record(t, c, in.numeric(), in.text(), in.reason().trim());
         audit.record("lab.amend", "patient", c.patientId, c.facilityId, in.reason().trim(), Map.of("item", itemId.toString()));
         return item(itemId, true);
@@ -429,7 +429,7 @@ public class LabService {
 
     private static final String ITEM_SQL = """
             SELECT i.id, i.test_id, lt.code, lt.name, lt.result_type, lt.unit, lt.ref_low, lt.ref_high, i.status, i.specimen_barcode, i.collected_at, i.result_numeric, i.result_text, i.flag,
-                   i.critical, i.entered_by, i.entered_at, i.validated_by, i.validated_at, i.critical_ack_at, i.critical_ack_note, i.version
+                   i.critical, i.entered_by, i.entered_at, i.validated_by, i.validated_at, i.critical_ack_at, i.critical_ack_note, i.version, i.released_at
               FROM lab_order_items i JOIN lab_tests lt ON lt.org_id = i.org_id AND lt.id = i.test_id""";
 
     /** Clinicians (no enter/validate right) never see a result that has not been validated: it may still be wrong. */
@@ -440,7 +440,7 @@ public class LabService {
                 rs.getBigDecimal("ref_low"), rs.getBigDecimal("ref_high"), status, rs.getString("specimen_barcode"), instant(rs, "collected_at"),
                 hide ? null : rs.getBigDecimal("result_numeric"), hide ? null : rs.getString("result_text"), hide ? null : rs.getString("flag"), !hide && rs.getBoolean("critical"),
                 rs.getObject("entered_by", UUID.class), instant(rs, "entered_at"), rs.getObject("validated_by", UUID.class), instant(rs, "validated_at"), instant(rs, "critical_ack_at"),
-                rs.getString("critical_ack_note"), rs.getInt("version"), hide);
+                rs.getString("critical_ack_note"), rs.getInt("version"), hide, instant(rs, "released_at"));
     }
 
     private static Instant instant(ResultSet rs, String col) throws SQLException {

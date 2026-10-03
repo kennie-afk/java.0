@@ -39,7 +39,7 @@ public final class ImagingModels {
                         UUID procedureId, String procedureCode, String procedureName, String modality, String bodyRegion, String clinicalInfo, UUID orderedBy,
                         Instant createdAt, Instant performedAt, String techniqueNote, String findings, String impression, boolean critical, String criticalNote,
                         UUID reportedBy, Instant reportedAt, UUID signedBy, Instant signedAt, Instant criticalAckAt, String criticalAckNote, int version,
-                        boolean reportHidden) {}
+                        boolean reportHidden, Instant releasedAt) {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record OrderRow(UUID id, String orderNumber, UUID patientId, String patientName, String procedureName, String modality, String priority, String status,

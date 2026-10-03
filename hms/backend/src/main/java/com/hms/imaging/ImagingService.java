@@ -175,7 +175,7 @@ public class ImagingService {
         if (!"SIGNED".equals(c.status)) {
             throw ApiException.conflict("not_signed", "Only a signed report is amended.");
         }
-        jdbc.sql("UPDATE imaging_orders SET signed_by = NULL, signed_at = NULL WHERE org_id = ? AND id = ?").params(t.orgId(), id).update();
+        jdbc.sql("UPDATE imaging_orders SET signed_by = NULL, signed_at = NULL, released_at = NULL, released_by = NULL WHERE org_id = ? AND id = ?").params(t.orgId(), id).update();
         writeReport(t, c, in.findings(), in.impression(), in.critical(), in.criticalNote(), in.reason().trim());
         audit.record("imaging.amend", "patient", c.patientId, c.facilityId, in.reason().trim(), Map.of("order", c.number));
         return load(id);
@@ -334,7 +334,7 @@ public class ImagingService {
                 SELECT o.id, o.facility_id, o.patient_id, p.given_name || ' ' || p.family_name AS patient_name, o.encounter_id, o.order_number, o.priority, o.status,
                        o.procedure_id, ip.code, ip.name AS procedure_name, ip.modality, ip.body_region, o.clinical_info, o.ordered_by, o.created_at, o.performed_at,
                        o.technique_note, o.findings, o.impression, o.critical, o.critical_note, o.reported_by, o.reported_at, o.signed_by, o.signed_at,
-                       o.critical_ack_at, o.critical_ack_note, o.version
+                       o.critical_ack_at, o.critical_ack_note, o.version, o.released_at
                   FROM imaging_orders o JOIN patients p ON p.org_id = o.org_id AND p.id = o.patient_id
                   JOIN imaging_procedures ip ON ip.org_id = o.org_id AND ip.id = o.procedure_id WHERE o.org_id = ? AND o.id = ?""").params(t.orgId(), id)
                 .query((rs, n) -> map(rs, sees)).optional().orElseThrow(() -> ApiException.notFound("Imaging order"));
@@ -350,7 +350,7 @@ public class ImagingService {
                 rs.getObject("ordered_by", UUID.class), instant(rs, "created_at"), instant(rs, "performed_at"), rs.getString("technique_note"),
                 hide ? null : rs.getString("findings"), hide ? null : rs.getString("impression"), !hide && rs.getBoolean("critical"), hide ? null : rs.getString("critical_note"),
                 rs.getObject("reported_by", UUID.class), instant(rs, "reported_at"), rs.getObject("signed_by", UUID.class), instant(rs, "signed_at"),
-                instant(rs, "critical_ack_at"), rs.getString("critical_ack_note"), rs.getInt("version"), hide);
+                instant(rs, "critical_ack_at"), rs.getString("critical_ack_note"), rs.getInt("version"), hide, instant(rs, "released_at"));
     }
 
     private static Instant instant(ResultSet rs, String col) throws SQLException {

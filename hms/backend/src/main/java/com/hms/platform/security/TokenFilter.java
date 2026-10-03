@@ -23,6 +23,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Component
 class TokenFilter extends OncePerRequestFilter {
 
+    static final String PORTAL_SELF = "portal:self";
+
     private final JwtService jwt;
     private final AccessService access;
 
@@ -35,7 +37,16 @@ class TokenFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         String header = request.getHeader("Authorization");
-        if (header != null && header.startsWith("Bearer ")) {
+        boolean portalPath = request.getRequestURI().startsWith("/portal/");
+        if (header != null && header.startsWith("Bearer ") && portalPath) {
+            // The portal accepts only portal tokens, and nothing else accepts them: staff paths never see a patient session.
+            jwt.parsePortal(header.substring(7).trim()).ifPresent(c -> {
+                TenantContext.set(new TenantContext.Tenant(c.orgId(), c.accountId(), java.util.Set.of(), java.util.Set.of(PORTAL_SELF)));
+                PortalSession.set(c.patientId());
+                SecurityContextHolder.getContext().setAuthentication(
+                        new UsernamePasswordAuthenticationToken(c.accountId(), null, List.of(new SimpleGrantedAuthority(PORTAL_SELF))));
+            });
+        } else if (header != null && header.startsWith("Bearer ")) {
             var claims = jwt.parse(header.substring(7).trim());
             if (claims.isPresent()) {
                 var granted = access.resolve(claims.get().orgId(), claims.get().practitionerId());
@@ -52,6 +63,7 @@ class TokenFilter extends OncePerRequestFilter {
         try {
             chain.doFilter(request, response);
         } finally {
+            PortalSession.clear();
             TenantContext.clear();
             SecurityContextHolder.clearContext();
         }

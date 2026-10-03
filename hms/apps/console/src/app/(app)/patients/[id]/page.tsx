@@ -6,6 +6,7 @@ import { age, date, kes, stamp } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import { Badge, Button, Card, ErrorNote, Grid, Input, KV, Loading, More, Page, Status, Table, Td, Tr, useAction } from "@/components/ui";
 import { useRouter } from "next/navigation";
+import { PortalAccess } from "@/components/PortalAccess";
 
 type Patient = {
   id: string; givenName: string; otherNames?: string; familyName: string; sex: string; birthDate: string; phone?: string; county?: string; restricted: boolean; deceasedAt?: string;
@@ -74,6 +75,7 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
           </Card>
         )}
       </Grid>
+      {can("portal:manage") && <PortalAccess patientId={id} />}
       {can("clinical:read") && (
         <Card title="Visits" pad={false}>
           <Table head={["Started", "Type", "Status", "Complaint"]} empty="No visits yet.">
