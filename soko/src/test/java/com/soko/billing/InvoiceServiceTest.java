@@ -88,6 +88,10 @@ class InvoiceServiceTest {
                 (proxy, method, args) -> {
                     switch (method.getName()) {
                         case "save": case "saveAndFlush": return fake.save((Invoice) args[0]);
+                        case "tryLockPeriod": return true;
+                        case "existsByTenantIdAndPeriodStartAndPeriodEnd":
+                            return fake.all.stream().anyMatch(i -> java.util.Objects.equals(i.getTenantId(), args[0])
+                                    && i.getPeriodStart().equals(args[1]) && i.getPeriodEnd().equals(args[2]));
                         default: throw new UnsupportedOperationException(method.getName());
                     }
                 });
@@ -152,6 +156,15 @@ class InvoiceServiceTest {
         InvoiceService service = new InvoiceService(
                 adapt(invoices), adapt(commissions), new SubscriptionService(adapt(subs)),
                 new LedgerService(adapt(ledger)), adapt(tenants));
+        // Stands in for the database's transactions: the monthly run opens one per tenant.
+        service.setTransactionManager(new org.springframework.transaction.PlatformTransactionManager() {
+            public org.springframework.transaction.TransactionStatus getTransaction(
+                    org.springframework.transaction.TransactionDefinition d) {
+                return new org.springframework.transaction.support.SimpleTransactionStatus();
+            }
+            public void commit(org.springframework.transaction.TransactionStatus status) { }
+            public void rollback(org.springframework.transaction.TransactionStatus status) { }
+        });
         return new Rig(service, commissions, ledger, tenants, invoices);
     }
 
@@ -207,7 +220,7 @@ class InvoiceServiceTest {
     }
 
     @Test
-    void generatingTwiceForTheSamePeriodNeverBillsTheSameCommissionTwice() {
+    void invoicingTheSamePeriodTwiceIsRefusedSoNeitherTheFeeNorACommissionIsBilledTwice() {
         Rig rig = rig();
         UUID tenantId = UUID.randomUUID();
         Instant periodStart = Instant.parse("2026-09-01T00:00:00Z");
@@ -215,11 +228,30 @@ class InvoiceServiceTest {
         rig.commissions().all.add(accrued(tenantId, 5000, periodStart.plus(1, ChronoUnit.DAYS)));
 
         Invoice firstInvoice = rig.service().generate(tenantId, periodStart, periodEnd);
-        Invoice secondInvoice = rig.service().generate(tenantId, periodStart, periodEnd);
-
         assertThat(firstInvoice.getCommissionCents()).isEqualTo(5000L);
-        // Already INVOICED by the first call, so the second finds nothing left to bill.
-        assertThat(secondInvoice.getCommissionCents()).isEqualTo(0L);
+
+        org.junit.jupiter.api.Assertions.assertThrows(com.soko.platform.Errors.BadRequest.class,
+                () -> rig.service().generate(tenantId, periodStart, periodEnd));
+        assertThat(rig.invoices().all).hasSize(1);
+
+        // A different period is a different invoice.
+        Invoice next = rig.service().generate(tenantId, periodEnd, periodEnd.plus(30, ChronoUnit.DAYS));
+        assertThat(next.getId()).isNotEqualTo(firstInvoice.getId());
+    }
+
+    @Test
+    void theMonthlyRunIsSafeToRepeatSoARestartOrASecondReplicaCannotDoubleBill() {
+        Rig rig = rig();
+        Tenant tenant = new Tenant();
+        tenant.setId(UUID.randomUUID());
+        tenant.setName("Repeat Distributor");
+        tenant.setSlug("repeat");
+        rig.tenants().all.add(tenant);
+
+        rig.service().runMonthlyBilling();
+        rig.service().runMonthlyBilling();
+
+        assertThat(rig.invoices().all).hasSize(1);
     }
 
     @Test
