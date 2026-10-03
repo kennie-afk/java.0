@@ -181,7 +181,20 @@ export const notificationApi = {
   adminRetry:  (id:string) => po<AdminNotificationResponse>(`/api/notifications/admin/${id}/retry`),
 }
 
+export interface MriSummary {
+  month: string; grossRentReceived: number; ratePercent: number; rateIsLandlordOverride: boolean
+  taxEstimate: number; dueDate: string; daysUntilDue: number; annualisedWithinConfiguredBand: boolean
+  receipts: number; byProperty: { propertyId: string; gross: number; receipts: number }[]; notice: string
+}
+
 export const pmsApi = {
+  /** Monthly rental income tax readiness: preparation only, nothing is filed with KRA from here. */
+  mri: {
+    summary:  (month?: string) => g<MriSummary>('/api/mri/summary', month ? { month } : undefined),
+    setRate:  (ratePercent: number | null) => pu<{ ratePercent: number }>('/api/mri/rate', { ratePercent }),
+    exportCsv: (month: string) =>
+      api.get<Blob>('/api/mri/export', { params: { month }, responseType: 'blob' }).then(r => r.data),
+  },
   units: {
     create:      (d:object) => po<UnitResponse>('/api/units', d),
     // propertyId and q are filtered in the database, not in the browser. A landlord with

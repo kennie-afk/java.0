@@ -44,6 +44,7 @@ const nav: NavItem[] = [
       { label:'Tenants',     href:'/portfolio?tab=tenants',     icon:Users },
       { label:'Leases',      href:'/portfolio?tab=leases',      icon:FileText },
       { label:'Rent',        href:'/portfolio?tab=rent',        icon:Receipt },
+      { label:'Rental tax',  href:'/portfolio/tax',             icon:FileText },
       { label:'Maintenance', href:'/portfolio?tab=maintenance', icon:Wrench },
     ] },
   // A landlord could not previously reach this at all: property creation sat under
