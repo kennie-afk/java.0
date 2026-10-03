@@ -24,12 +24,26 @@ services:
     ports:
       - "${MARA_POSTGRES_PORT:-5433}:5432" # non-default host port: avoids colliding with another local Postgres
 
+  # Shared rate-limit counters, so N replicas enforce one limit. Optional: without MARA_REDIS_URL each
+  # replica limits on its own, and if Redis goes down the services fall back to that (they neither
+  # open up nor refuse the tills). Holds nothing durable: no volume on purpose.
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "64mb", "--maxmemory-policy", "volatile-ttl"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
   identity-service:
     build:
       context: .
       dockerfile: services/identity-service/Dockerfile
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     environment:
       MARA_DB_URL: jdbc:postgresql://postgres:5432/mara_identity
@@ -42,6 +56,7 @@ services:
       # What sync-service and core-service present to /v1/internal/**. A different credential
       # from the admin token on purpose. No default.
       MARA_INTERNAL_TOKEN: ${MARA_INTERNAL_TOKEN:?set in .env (24+ characters)}
+      MARA_REDIS_URL: redis://redis:6379
       MARA_RATELIMIT_ENROLMENT_PER_MINUTE: ${MARA_RATELIMIT_ENROLMENT_PER_MINUTE:-20}
       MARA_RATELIMIT_SIGNIN_PER_MINUTE: ${MARA_RATELIMIT_SIGNIN_PER_MINUTE:-120}
     ports:
@@ -72,6 +87,7 @@ services:
       MARA_ADMIN_TOKEN: ${MARA_ADMIN_TOKEN:?set in .env (24+ characters)}
       MARA_INTERNAL_TOKEN: ${MARA_INTERNAL_TOKEN:?set in .env (24+ characters)}
       MARA_IDENTITY_URL: http://identity-service:8081
+      MARA_REDIS_URL: redis://redis:6379
       MARA_RATELIMIT_TERMINAL_PER_MINUTE: ${MARA_RATELIMIT_TERMINAL_PER_MINUTE:-1200}
       MARA_DB_URL: jdbc:postgresql://postgres:5432/mara_sync
     ports:

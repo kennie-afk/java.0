@@ -35,6 +35,11 @@
       <artifactId>mara-platform</artifactId>
       <version>1.0.0</version>
     </dependency>
+    <dependency>
+      <groupId>com.mara</groupId>
+      <artifactId>service-kit</artifactId>
+      <version>1.0.0</version>
+    </dependency>
 
     <dependency>
       <groupId>org.springframework.boot</groupId>

@@ -2,6 +2,7 @@ package com.mara.kit.auth;
 
 import java.time.Clock;
 import java.time.Duration;
+import com.mara.kit.ratelimit.RateLimiters;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -15,7 +16,7 @@ import org.springframework.core.Ordered;
  *
  * <p>Properties: {@code mara.identity.base-url}, {@code mara.internal.token},
  * {@code mara.admin.token}, and optionally {@code mara.ratelimit.terminal-per-minute}
- * (default 1200 per source address).
+ * (default 1200 per source address) and {@code mara.redis.url} (share that limit across replicas).
  */
 @Configuration
 public class MaraAuthConfig {
@@ -44,9 +45,10 @@ public class MaraAuthConfig {
 
     @Bean
     public FilterRegistrationBean<TerminalRateLimitFilter> terminalRateLimitFilter(
-            @Value("${mara.ratelimit.terminal-per-minute:1200}") int perMinute, Clock maraClock) {
-        FilterRegistrationBean<TerminalRateLimitFilter> bean =
-                new FilterRegistrationBean<>(new TerminalRateLimitFilter(perMinute, maraClock));
+            @Value("${mara.ratelimit.terminal-per-minute:1200}") int perMinute,
+            @Value("${mara.redis.url:}") String redisUrl, Clock maraClock) {
+        FilterRegistrationBean<TerminalRateLimitFilter> bean = new FilterRegistrationBean<>(new TerminalRateLimitFilter(
+                RateLimiters.create("terminal", redisUrl, perMinute, Duration.ofMinutes(1)), maraClock));
         bean.setOrder(Ordered.HIGHEST_PRECEDENCE + 5);
         return bean;
     }

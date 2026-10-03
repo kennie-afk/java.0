@@ -10,15 +10,15 @@ import java.util.concurrent.ConcurrentHashMap;
  * A fixed-window request counter per key. Pure: the clock is an argument, so behaviour at a
  * window boundary can be tested without sleeping.
  *
- * <p>Per process, not shared: with N replicas the effective ceiling is N times the limit. That
- * is the honest trade for having no gateway or Redis in the path of the till; it still turns an
- * unbounded flood into a bounded one on every replica.
+ * <p>Per process, not shared: with N replicas the effective ceiling is N times the limit. It is
+ * the default, and the fallback when the shared limiter's Redis is unreachable; it still turns
+ * an unbounded flood into a bounded one on every replica.
  *
  * <p>Memory is bounded. Expired windows are dropped when the table is full; if it is still full
  * (a flood of distinct keys) new keys share one overflow bucket, so an attacker rotating
  * addresses degrades into one noisy bucket instead of exhausting the heap.
  */
-public final class FixedWindowLimiter {
+public final class FixedWindowLimiter implements RateLimiter {
 
     private static final String OVERFLOW = "\u0000overflow";
 
@@ -56,6 +56,11 @@ public final class FixedWindowLimiter {
             return new Window(w.startMillis(), w.count() + 1);
         });
         return allowed[0];
+    }
+
+    @Override
+    public Decision acquire(String key, Instant now) {
+        return tryAcquire(key, now) ? Decision.ALLOWED : new Decision(false, retryAfterSeconds(key, now));
     }
 
     /** Seconds until the window for {@code key} reopens (at least 1), for a Retry-After header. */

@@ -1,6 +1,7 @@
 package com.mara.identity.ratelimit;
 
-import com.mara.platform.ratelimit.FixedWindowLimiter;
+import com.mara.kit.ratelimit.RateLimiters;
+import com.mara.platform.ratelimit.RateLimiter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,15 +31,16 @@ public class PublicRateLimitFilter extends OncePerRequestFilter {
 
     private static final Pattern STAFF_SIGNIN = Pattern.compile("^/v1/terminals/[^/]+/staff-signin$");
 
-    private final FixedWindowLimiter enrolment;
-    private final FixedWindowLimiter signIn;
+    private final RateLimiter enrolment;
+    private final RateLimiter signIn;
     private final Clock clock = Clock.systemUTC();
 
     public PublicRateLimitFilter(
             @Value("${mara.ratelimit.enrolment-per-minute:20}") int enrolmentPerMinute,
-            @Value("${mara.ratelimit.signin-per-minute:120}") int signInPerMinute) {
-        this.enrolment = new FixedWindowLimiter(enrolmentPerMinute, Duration.ofMinutes(1), 20_000);
-        this.signIn = new FixedWindowLimiter(signInPerMinute, Duration.ofMinutes(1), 20_000);
+            @Value("${mara.ratelimit.signin-per-minute:120}") int signInPerMinute,
+            @Value("${mara.redis.url:}") String redisUrl) {
+        this.enrolment = RateLimiters.create("enrolment", redisUrl, enrolmentPerMinute, Duration.ofMinutes(1));
+        this.signIn = RateLimiters.create("signin", redisUrl, signInPerMinute, Duration.ofMinutes(1));
     }
 
     @Override
@@ -50,11 +52,12 @@ public class PublicRateLimitFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
-        FixedWindowLimiter limiter = request.getRequestURI().equals("/v1/enrolment") ? enrolment : signIn;
+        RateLimiter limiter = request.getRequestURI().equals("/v1/enrolment") ? enrolment : signIn;
         String key = request.getRemoteAddr();
-        if (!limiter.tryAcquire(key, clock.instant())) {
+        RateLimiter.Decision decision = limiter.acquire(key, clock.instant());
+        if (!decision.allowed()) {
             response.setStatus(429);
-            response.setHeader("Retry-After", Long.toString(limiter.retryAfterSeconds(key, clock.instant())));
+            response.setHeader("Retry-After", Long.toString(decision.retryAfterSeconds()));
             response.setContentType("application/json");
             response.getWriter().write("{\"error\":\"rate_limited\"}");
             return;

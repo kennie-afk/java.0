@@ -1,6 +1,6 @@
 package com.mara.kit.auth;
 
-import com.mara.platform.ratelimit.FixedWindowLimiter;
+import com.mara.platform.ratelimit.RateLimiter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,11 +21,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
  */
 public class TerminalRateLimitFilter extends OncePerRequestFilter {
 
-    private final FixedWindowLimiter limiter;
+    private final RateLimiter limiter;
     private final Clock clock;
 
-    public TerminalRateLimitFilter(int perMinute, Clock clock) {
-        this.limiter = new FixedWindowLimiter(perMinute, Duration.ofMinutes(1), 20_000);
+    public TerminalRateLimitFilter(RateLimiter limiter, Clock clock) {
+        this.limiter = limiter;
         this.clock = clock;
     }
 
@@ -38,9 +38,10 @@ public class TerminalRateLimitFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         String key = request.getRemoteAddr();
-        if (!limiter.tryAcquire(key, clock.instant())) {
+        RateLimiter.Decision decision = limiter.acquire(key, clock.instant());
+        if (!decision.allowed()) {
             response.setStatus(429);
-            response.setHeader("Retry-After", Long.toString(limiter.retryAfterSeconds(key, clock.instant())));
+            response.setHeader("Retry-After", Long.toString(decision.retryAfterSeconds()));
             response.setContentType("application/json");
             response.getWriter().write("{\"error\":\"rate_limited\"}");
             return;

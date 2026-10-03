@@ -28,7 +28,7 @@ class TerminalRateLimitFilterTest {
 
     @Test
     void refusesAnAddressOverTheLimitWithRetryAfter() throws Exception {
-        var f = new TerminalRateLimitFilter(3, clock);
+        var f = new TerminalRateLimitFilter(new com.mara.platform.ratelimit.FixedWindowLimiter(3, java.time.Duration.ofMinutes(1), 100), clock);
         var reached = new AtomicInteger();
         for (int i = 0; i < 3; i++) {
             assertThat(hit(f, "/v1/terminal/sync/journal", "10.0.0.1", null, reached)).isEqualTo(200);
@@ -44,7 +44,7 @@ class TerminalRateLimitFilterTest {
 
     @Test
     void aClientCannotPickItsOwnBucketWithXForwardedFor() throws Exception {
-        var f = new TerminalRateLimitFilter(2, clock);
+        var f = new TerminalRateLimitFilter(new com.mara.platform.ratelimit.FixedWindowLimiter(2, java.time.Duration.ofMinutes(1), 100), clock);
         var reached = new AtomicInteger();
         assertThat(hit(f, "/v1/terminal/fiscal/leases", "10.0.0.9", "1.1.1.1", reached)).isEqualTo(200);
         assertThat(hit(f, "/v1/terminal/fiscal/leases", "10.0.0.9", "2.2.2.2", reached)).isEqualTo(200);
@@ -53,7 +53,7 @@ class TerminalRateLimitFilterTest {
 
     @Test
     void otherAddressesAreUnaffected() throws Exception {
-        var f = new TerminalRateLimitFilter(1, clock);
+        var f = new TerminalRateLimitFilter(new com.mara.platform.ratelimit.FixedWindowLimiter(1, java.time.Duration.ofMinutes(1), 100), clock);
         var reached = new AtomicInteger();
         assertThat(hit(f, "/v1/terminal/sync/status", "10.0.0.1", null, reached)).isEqualTo(200);
         assertThat(hit(f, "/v1/terminal/sync/status", "10.0.0.1", null, reached)).isEqualTo(429);
@@ -62,7 +62,7 @@ class TerminalRateLimitFilterTest {
 
     @Test
     void onlyTerminalPathsAreCounted() throws Exception {
-        var f = new TerminalRateLimitFilter(1, clock);
+        var f = new TerminalRateLimitFilter(new com.mara.platform.ratelimit.FixedWindowLimiter(1, java.time.Duration.ofMinutes(1), 100), clock);
         var reached = new AtomicInteger();
         for (int i = 0; i < 5; i++) {
             assertThat(hit(f, "/actuator/health", "10.0.0.1", null, reached)).isEqualTo(200);
