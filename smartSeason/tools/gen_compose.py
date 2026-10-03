@@ -22,8 +22,13 @@ x-logging: &default-logging
     max-file: "3"
 
 x-service-env: &service-env
-  SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
-  SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+  # The application connects as an UNPRIVILEGED role so Postgres row-level security applies to
+  # it. Flyway alone uses the owner credentials, to migrate and to (re)apply the policies.
+  SPRING_DATASOURCE_USERNAME: ${APP_DB_USER:-smartseason_app}
+  SPRING_DATASOURCE_PASSWORD: ${APP_DB_PASSWORD:?APP_DB_PASSWORD must be set}
+  SPRING_FLYWAY_USER: ${POSTGRES_USER:-postgres}
+  SPRING_FLYWAY_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+  APP_DB_USER: ${APP_DB_USER:-smartseason_app}
   KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
   # Rate-limit counters. Shared, so every replica of a service spends one
   # allowance per caller instead of one each.
@@ -58,6 +63,8 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      APP_DB_USER: ${APP_DB_USER:-smartseason_app}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?APP_DB_PASSWORD must be set}
     # 27 services each hold a small pool; the 100-connection default is not enough.
     command: ["postgres", "-c", "max_connections=200"]
     volumes:
@@ -80,6 +87,8 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      APP_DB_USER: ${APP_DB_USER:-smartseason_app}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?APP_DB_PASSWORD must be set}
     entrypoint: ["/bin/sh", "/entrypoint.sh"]
     volumes:
       - ./infra/docker/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
@@ -297,7 +306,17 @@ def compose():
     return "".join(parts)
 
 def init_script():
-    lines = ["#!/bin/sh", "set -e", ""]
+    lines = ["#!/bin/sh", "set -e", "",
+             "# The unprivileged role the services run as. It owns nothing, so row-level security",
+             "# applies to it; the owner (POSTGRES_USER) is used by Flyway only.",
+             ': "${APP_DB_USER:=smartseason_app}"',
+             ': "${APP_DB_PASSWORD:?APP_DB_PASSWORD must be set}"',
+             'psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" -v app_user="$APP_DB_USER" '
+             '-v app_pw="$APP_DB_PASSWORD" <<\'SQL\'',
+             "SELECT format('CREATE ROLE %I LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE "
+             "NOBYPASSRLS NOREPLICATION', :'app_user', :'app_pw')",
+             "WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'app_user') \\gexec",
+             "SQL", ""]
     for spec in SERVICES:
         lines.append(f'psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" '
                      f'-c "CREATE DATABASE {spec["db"]};"')
@@ -323,6 +342,9 @@ def env_example():
     return """POSTGRES_USER=postgres
 POSTGRES_PASSWORD=change-me-locally
 POSTGRES_PORT=5432
+# Unprivileged role the services connect as (row-level security applies to it).
+APP_DB_USER=smartseason_app
+APP_DB_PASSWORD=change-me-too-and-differently
 
 JWT_SECRET=replace-with-a-64-character-minimum-random-string-before-any-deploy
 JWT_ISSUER=smartseason-identity

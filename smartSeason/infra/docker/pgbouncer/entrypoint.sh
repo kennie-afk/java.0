@@ -10,8 +10,12 @@ set -eu
 
 : "${POSTGRES_USER:?POSTGRES_USER must be set}"
 : "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}"
+: "${APP_DB_USER:=smartseason_app}"
+: "${APP_DB_PASSWORD:?APP_DB_PASSWORD must be set}"
 
-printf '"%s" "%s"\n' "$POSTGRES_USER" "$POSTGRES_PASSWORD" > /etc/pgbouncer/userlist.txt
+# Two logins pass through the pooler: the owner (Flyway) and the unprivileged application role.
+printf '"%s" "%s"\n"%s" "%s"\n' "$POSTGRES_USER" "$POSTGRES_PASSWORD" \
+    "$APP_DB_USER" "$APP_DB_PASSWORD" > /etc/pgbouncer/userlist.txt
 chmod 600 /etc/pgbouncer/userlist.txt
 
 exec pgbouncer /etc/pgbouncer/pgbouncer.ini

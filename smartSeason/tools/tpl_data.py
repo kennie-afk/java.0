@@ -114,6 +114,17 @@ spec:
                 secretKeyRef:
                   name: smartseason-secrets
                   key: DB_PASSWORD
+            # The unprivileged role the services run as; row-level security applies to it.
+            - name: APP_DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: smartseason-config
+                  key: APP_DB_USERNAME
+            - name: APP_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smartseason-secrets
+                  key: APP_DB_PASSWORD
             # A mounted volume always contains lost+found, and Postgres refuses to
             # initialise into a directory that is not empty. Putting the cluster in a
             # subdirectory is the standard way round it.
@@ -235,6 +246,17 @@ spec:
                 secretKeyRef:
                   name: smartseason-secrets
                   key: DB_PASSWORD
+            # The unprivileged role the services run as; row-level security applies to it.
+            - name: APP_DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: smartseason-config
+                  key: APP_DB_USERNAME
+            - name: APP_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smartseason-secrets
+                  key: APP_DB_PASSWORD
           volumeMounts:
             - name: config
               mountPath: /config
@@ -507,7 +529,14 @@ def build(namespace, services, pgbouncer_ini, pgbouncer_entrypoint):
     `services` are catalogue entries; their `db` key is used directly rather than
     derived from the service name, because two of the twenty-seven do not match.
     """
-    lines = []
+    lines = [
+        '    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" -v app_user="$APP_DB_USER" '
+        '-v app_pw="$APP_DB_PASSWORD" <<\'SQL\'',
+        "    SELECT format('CREATE ROLE %I LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE "
+        "NOBYPASSRLS NOREPLICATION', :'app_user', :'app_pw')",
+        "    WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'app_user') \\gexec",
+        "    SQL",
+    ]
     for spec in services:
         db = spec["db"]
         lines.append(

@@ -34,6 +34,9 @@ make_env() {
 # laptop demo: delete this file to get new ones, and never reuse any of them anywhere else.
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=$(openssl rand -hex 16)
+# The role the services run as; row-level security applies to it. POSTGRES_* is Flyway-only.
+APP_DB_USER=smartseason_app
+APP_DB_PASSWORD=$(openssl rand -hex 16)
 JWT_SECRET=$(openssl rand -hex 48)
 JWT_ISSUER=smartseason-identity
 S3_ACCESS_KEY=smartseason
@@ -57,6 +60,11 @@ EOF
   echo "wrote $ENV_FILE with fresh throwaway secrets"
 }
 [ -f "$ENV_FILE" ] || make_env
+# An .env.demo written before row-level security existed has no application-role password.
+if ! grep -q '^APP_DB_PASSWORD=' "$ENV_FILE"; then
+  printf 'APP_DB_USER=smartseason_app\nAPP_DB_PASSWORD=%s\n' "$(openssl rand -hex 16)" >> "$ENV_FILE"
+  echo "added an application database role password to $ENV_FILE"
+fi
 
 set -a; . "./$ENV_FILE"; set +a
 DEMO_SERVICES="$(IFS=,; echo "${SERVICES[*]}")"
@@ -116,7 +124,21 @@ build_missing
 say "Starting the stack (about 7.5 GiB, 5-6 minutes from empty)"
 # Started in two waves: Spring Boot services starting together with the broker and database
 # all compete for the same few cores and the slowest start times out its health check.
-$DC up -d --no-build postgres pgbouncer redis redpanda objectstore
+$DC up -d --no-build postgres redis redpanda objectstore
+# The init script creates the application role only on an empty volume. Make sure it exists (and
+# has this env file's password) on a volume that predates it, before PgBouncer and the services
+# try to log in as it.
+for i in $(seq 1 60); do
+  $DC exec -T postgres pg_isready -U "$POSTGRES_USER" >/dev/null 2>&1 && break
+  sleep 1
+done
+$DC exec -T postgres psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" \
+    -v app_user="${APP_DB_USER:-smartseason_app}" -v app_pw="$APP_DB_PASSWORD" >/dev/null <<'SQL'
+SELECT format('CREATE ROLE %I LOGIN PASSWORD %L NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS NOREPLICATION', :'app_user', :'app_pw')
+WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'app_user') \gexec
+SELECT format('ALTER ROLE %I PASSWORD %L', :'app_user', :'app_pw') \gexec
+SQL
+$DC up -d --no-build pgbouncer
 $DC up -d --no-build $(up_services)
 
 say "Waiting for everything to report healthy"

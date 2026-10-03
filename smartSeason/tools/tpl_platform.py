@@ -137,6 +137,15 @@ APPLICATION_YAML = '''spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
+    # Migrations and the tenant-isolation callback run as the schema OWNER; the application
+    # itself connects as a different, unprivileged role (spring.datasource.*). If only one
+    # pair of credentials is supplied both fall back to it, which the RLS guard then refuses
+    # unless that role is genuinely unprivileged.
+    user: ${{SPRING_FLYWAY_USER:${{SPRING_DATASOURCE_USERNAME:postgres}}}}
+    password: ${{SPRING_FLYWAY_PASSWORD:${{SPRING_DATASOURCE_PASSWORD:postgres}}}}
+    locations: classpath:db/migration,classpath:db/callbacks
+    placeholders:
+      app_role: ${{APP_DB_USER:smartseason_app}}
   kafka:
     bootstrap-servers: ${{KAFKA_BOOTSTRAP_SERVERS:localhost:29092}}
     producer:
@@ -183,6 +192,10 @@ springdoc:
     path: /v3/api-docs
 
 smartseason:
+  tenancy:
+    # Row-level security is the backstop behind every tenant filter in the code. Leave this
+    # on; it exists to be switched off only in the H2 unit tests, which have no RLS.
+    rls: ${{SMARTSEASON_RLS:true}}
   jwt:
     secret: ${{JWT_SECRET}}
     issuer: ${{JWT_ISSUER:smartseason-identity}}
@@ -240,6 +253,8 @@ APPLICATION_TEST_YAML = '''spring:
       auto-startup: false
 
 smartseason:
+  tenancy:
+    rls: false
   jwt:
     secret: test-signing-key-that-is-at-least-sixty-four-characters-long-for-hs256!!
     issuer: smartseason-identity

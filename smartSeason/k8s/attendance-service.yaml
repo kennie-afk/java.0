@@ -70,12 +70,30 @@ spec:
                   name: smartseason-config
                   key: REDIS_PORT
 
+            # The service runs as the unprivileged application role, so Postgres row-level
+            # security applies to it. Flyway alone gets the owner credentials, to migrate and
+            # to (re)apply the policies. The service refuses to start if this is a superuser.
             - name: SPRING_DATASOURCE_USERNAME
               valueFrom:
                 configMapKeyRef:
                   name: smartseason-config
-                  key: DB_USERNAME
+                  key: APP_DB_USERNAME
             - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smartseason-secrets
+                  key: APP_DB_PASSWORD
+            - name: APP_DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: smartseason-config
+                  key: APP_DB_USERNAME
+            - name: SPRING_FLYWAY_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: smartseason-config
+                  key: DB_USERNAME
+            - name: SPRING_FLYWAY_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: smartseason-secrets

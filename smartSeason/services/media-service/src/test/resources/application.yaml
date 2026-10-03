@@ -23,6 +23,8 @@ spring:
       auto-startup: false
 
 smartseason:
+  tenancy:
+    rls: false
   jwt:
     secret: test-signing-key-that-is-at-least-sixty-four-characters-long-for-hs256!!
     issuer: smartseason-identity

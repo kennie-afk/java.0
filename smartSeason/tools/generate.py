@@ -20,6 +20,7 @@ import tpl_security as ts
 import tpl_ratelimit as trl
 import tpl_cache as tca
 import tpl_keyset as tk
+import tpl_tenancy as tt
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -139,6 +140,22 @@ def generate_service(spec):
     ]:
         written.append(write(os.path.join(plat, filename), template.format(pkg=pkg)))
 
+    # Tenant isolation backstop (row-level security). These templates use __PKG__ rather than
+    # str.format so Java and SQL braces stay literal.
+    for filename, template in [
+        ("TenantSession.java", tt.TENANT_SESSION),
+        ("TenantTransactionManager.java", tt.TENANT_TX),
+        ("RlsGuard.java", tt.RLS_GUARD),
+        ("ReferenceChecker.java", tt.REFERENCE_CHECKER),
+    ]:
+        written.append(write(os.path.join(plat, filename), template.replace("__PKG__", pkg)))
+    # A callback, not a migration: it must be re-applied on every start so a table added by a
+    # future migration is protected automatically, and it is therefore regenerated freely.
+    written.append(write(os.path.join(test, "platform", "ReferenceCheckerTest.java"),
+                         tt.REFERENCE_CHECKER_TEST.replace("__PKG__", pkg)))
+    written.append(write(os.path.join(res, "db/callbacks/afterMigrate__tenant_isolation.sql"),
+                         tt.AFTER_MIGRATE))
+
     # Rate limiting: one shared allowance per caller per service, held in Redis.
     rl = os.path.join(src, "ratelimit")
     for filename, template in [
@@ -165,6 +182,7 @@ def generate_service(spec):
     written.append(write(os.path.join(plat, "OpenApiConfig.java"),
                          ts.OPENAPI_CONFIG.format(pkg=pkg, service=service, desc=desc)))
 
+    sibling_names = [e[0] for e in entities]
     for name, table, fields in entities:
         written.append(write(os.path.join(src, "domain", name + ".java"),
                              ge.entity_source(pkg, name, table, fields)))
@@ -177,11 +195,11 @@ def generate_service(spec):
         written.append(write(os.path.join(src, "web/dto", name + "UpdateRequest.java"),
                              ge.request_dto_source(pkg, name, fields, "Update")))
         written.append(write(os.path.join(src, "service", name + "Service.java"),
-                             gl.service_source(pkg, name, table, fields, domain)))
+                             gl.service_source(pkg, name, table, fields, domain, sibling_names)))
         written.append(write(os.path.join(src, "web", name + "Controller.java"),
                              gl.controller_source(pkg, name, table, slug, desc)))
         written.append(write(os.path.join(test, "service", name + "ServiceTest.java"),
-                             gl.service_test_source(pkg, name, fields)))
+                             gl.service_test_source(pkg, name, fields, sibling_names)))
 
     return written
 

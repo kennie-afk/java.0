@@ -107,12 +107,30 @@ spec:
                   name: smartseason-config
                   key: REDIS_PORT
 {extra_env}
+            # The service runs as the unprivileged application role, so Postgres row-level
+            # security applies to it. Flyway alone gets the owner credentials, to migrate and
+            # to (re)apply the policies. The service refuses to start if this is a superuser.
             - name: SPRING_DATASOURCE_USERNAME
               valueFrom:
                 configMapKeyRef:
                   name: smartseason-config
-                  key: DB_USERNAME
+                  key: APP_DB_USERNAME
             - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smartseason-secrets
+                  key: APP_DB_PASSWORD
+            - name: APP_DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: smartseason-config
+                  key: APP_DB_USERNAME
+            - name: SPRING_FLYWAY_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: smartseason-config
+                  key: DB_USERNAME
+            - name: SPRING_FLYWAY_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: smartseason-secrets
@@ -264,7 +282,10 @@ data:
   # The pooler, not the database. See the datasource URL in each Deployment.
   DB_HOST: pgbouncer.{ns}.svc.cluster.local
   DB_PORT: "6432"
+  # DB_USERNAME is the schema OWNER (Flyway, and the database server itself). The services run
+  # as APP_DB_USERNAME, which owns nothing, so row-level security applies to it.
   DB_USERNAME: postgres
+  APP_DB_USERNAME: smartseason_app
   # Absent until 2026-09-11, with no error anywhere: the rate limiter and the count
   # cache both fail open, so a cluster deploy would have run with neither and looked
   # healthy doing it.
@@ -303,6 +324,7 @@ stringData:
   # a dev profile, so this fails loudly rather than running insecurely.
   JWT_SECRET: "placeholder"
   DB_PASSWORD: "placeholder"
+  APP_DB_PASSWORD: "placeholder"
   S3_ACCESS_KEY: "placeholder"
   S3_SECRET_KEY: "placeholder"
 """
