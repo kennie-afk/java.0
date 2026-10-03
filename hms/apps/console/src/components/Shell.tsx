@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { useSession } from "@/lib/session";
+import { SyncStatus } from "@/components/SyncStatus";
+import { clearOfflineCaches, listQueued } from "@/lib/offline";
 
 type Item = { href: string; label: string; perm: string; icon: IconName };
 const NAV: { group: string; items: Item[] }[] = [
@@ -49,6 +51,10 @@ function Brand() {
 function SidebarBody({ path }: { path: string }) {
   const { me, can, facilityId, setFacility } = useSession();
   const signOut = async () => {
+    const waiting = (await listQueued()).length;
+    // Entries that were never sent stay on this device; say so rather than silently keep or lose them.
+    if (waiting > 0 && !window.confirm(`${waiting} entries have not been sent yet and will stay on this device until you sign in again and they send. Sign out anyway?`)) return;
+    await clearOfflineCaches();
     await fetch("/api/session", { method: "DELETE" });
     window.location.href = "/login";
   };
@@ -79,6 +85,7 @@ function SidebarBody({ path }: { path: string }) {
           );
         })}
       </nav>
+      <SyncStatus />
       <div className="space-y-2 border-t border-line p-2.5">
         <label className="block">
           

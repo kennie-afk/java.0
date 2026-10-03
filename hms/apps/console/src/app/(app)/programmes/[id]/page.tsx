@@ -2,8 +2,9 @@
 
 import { use, useState } from "react";
 import { post, useFetch } from "@/lib/api";
+import { postQueued } from "@/lib/offline";
 import { useSession } from "@/lib/session";
-import { Button, Card, Confirm, ErrorNote, Field, Grid, Input, KV, Loading, Page, Select, Status, Table, Td, Textarea, Tr, useAction } from "@/components/ui";
+import { Button, Card, Confirm, ErrorNote, Field, Grid, Input, KV, Loading, Page, Select, Status, Table, Td, Textarea, Tr, useAction , Notice } from "@/components/ui";
 
 type Visit = { id: string; visitedOn: string; weightKg?: number; systolic?: number; diastolic?: number; glucoseMmol?: number; adherence?: string; regimen?: string; nextVisitOn?: string; notes?: string };
 type Enrolment = { id: string; patientName: string; programme: string; registerNo: string; enrolledOn: string; status: string; regimen?: string; nextVisitOn?: string; outcomeOn?: string; outcomeNote?: string; daysOverdue?: number; visits: Visit[] };
@@ -18,6 +19,7 @@ export default function EnrolmentPage({ params }: { params: Promise<{ id: string
   const [v, setV] = useState(blank);
   const [out, setOut] = useState({ status: "TRANSFERRED_OUT", note: "" });
   const act = useAction();
+  const [queued, setQueued] = useState(false);
   const num = (s: string) => (s === "" ? undefined : Number(s));
   const set = (k: keyof typeof blank) => (ev: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setV({ ...v, [k]: ev.target.value });
   if (e.loading || !e.data) return <Page title="Enrolment">{e.error ? <ErrorNote error={e.error} /> : <Loading />}</Page>;
@@ -32,7 +34,7 @@ export default function EnrolmentPage({ params }: { params: Promise<{ id: string
       </Grid></Card>
       {active && can("programmes:write") && (
         <Card title="Record a visit">
-          <form className="space-y-3" onSubmit={(ev) => { ev.preventDefault(); void act.run(async () => { await post(`/v1/programmes/enrolments/${id}/visits`, { visitedOn: v.visitedOn, weightKg: num(v.weightKg), systolic: num(v.systolic), diastolic: num(v.diastolic), glucoseMmol: num(v.glucoseMmol), adherence: v.adherence || undefined, regimen: v.regimen || undefined, nextVisitOn: v.nextVisitOn || undefined, notes: v.notes || undefined }); setV(blank); await e.reload(); }); }}>
+          <form className="space-y-3" onSubmit={(ev) => { ev.preventDefault(); void act.run(async () => { const r = await postQueued(`/v1/programmes/enrolments/${id}/visits`, { visitedOn: v.visitedOn, weightKg: num(v.weightKg), systolic: num(v.systolic), diastolic: num(v.diastolic), glucoseMmol: num(v.glucoseMmol), adherence: v.adherence || undefined, regimen: v.regimen || undefined, nextVisitOn: v.nextVisitOn || undefined, notes: v.notes || undefined }, "Programme visit"); setV(blank); if (r.queued) { setQueued(true); return; } await e.reload(); }); }}>
             <Grid cols={4}>
               <Field label="Visit date"><Input type="date" required value={v.visitedOn} onChange={set("visitedOn")} /></Field>
               <Field label="Weight (kg)"><Input type="number" step="0.1" value={v.weightKg} onChange={set("weightKg")} /></Field>
@@ -44,7 +46,8 @@ export default function EnrolmentPage({ params }: { params: Promise<{ id: string
               <Field label="Next visit"><Input type="date" value={v.nextVisitOn} onChange={set("nextVisitOn")} /></Field>
             </Grid>
             <Field label="Notes"><Textarea rows={2} value={v.notes} onChange={set("notes")} /></Field>
-            <ErrorNote error={act.error} />
+            {queued && <Notice tone="warn" title="Saved on this device">There is no connection. This entry will be sent by itself when it returns; see Waiting to send.</Notice>}
+      <ErrorNote error={act.error} />
             <Button type="submit" busy={act.busy}>Save visit</Button>
           </form>
         </Card>

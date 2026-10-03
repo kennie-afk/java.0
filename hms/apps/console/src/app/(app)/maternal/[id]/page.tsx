@@ -2,9 +2,10 @@
 
 import { use, useState } from "react";
 import { post, useFetch } from "@/lib/api";
+import { postQueued } from "@/lib/offline";
 import { date, today } from "@/lib/format";
 import { useSession } from "@/lib/session";
-import { Badge, Button, Card, ErrorNote, Field, Grid, Input, KV, Loading, Page, Select, Status, Table, Td, Textarea, Tr, useAction } from "@/components/ui";
+import { Badge, Button, Card, ErrorNote, Field, Grid, Input, KV, Loading, Page, Select, Status, Table, Td, Textarea, Tr, useAction , Notice } from "@/components/ui";
 
 type Flag = { code: string; level: string; message: string };
 type Visit = { id: string; visitNumber: number; visitedOn: string; gestationWeeks: number; weightKg?: number; systolic?: number; diastolic?: number; fundalHeightCm?: number; fetalHeartRate?: number; presentation?: string; haemoglobin?: number; hivStatus?: string; syphilis?: string; urineProtein?: string; flags: Flag[]; nextVisitOn?: string };
@@ -21,12 +22,14 @@ export default function Pregnancy({ params }: { params: Promise<{ id: string }> 
   const [v, setV] = useState({ weightKg: "", systolic: "", diastolic: "", fundalHeightCm: "", fetalHeartRate: "", presentation: "NOT_ASSESSED", haemoglobin: "", hivStatus: "NOT_TESTED", syphilis: "NOT_TESTED", urineProtein: "NOT_TESTED", iptpGiven: false, tetanusGiven: false, ironFolateGiven: false, notes: "", nextVisitOn: "" });
   const [d, setD] = useState({ deliveredOn: today(), mode: "SVD", outcome: "LIVE_BIRTH", babies: "1", birthWeightG: "", apgar5: "", bloodLossMl: "", complications: "" });
   const act = useAction();
+  const [queued, setQueued] = useState(false);
   const go = (fn: () => Promise<unknown>) => act.run(async () => { await fn(); await p.reload(); });
   if (p.loading || !p.data) return <Page title="Pregnancy">{p.error ? <ErrorNote error={p.error} /> : <Loading />}</Page>;
   const x = p.data;
   const active = x.status === "ACTIVE";
   return (
     <Page title={x.patientName} sub={`${x.gestationWeeks}w ${x.gestationDays}d · G${x.gravida} P${x.parity}`} actions={<><Status value={x.status} /><Button variant="secondary" href={`/patients/${x.patientId}`}>Patient record</Button></>}>
+      {queued && <Notice tone="warn" title="Saved on this device">There is no connection. This entry will be sent by itself when it returns; see Waiting to send.</Notice>}
       <ErrorNote error={act.error} />
       <Grid cols={4}><KV k="LMP" v={date(x.lmp)} /><KV k="Expected delivery" v={date(x.edd)} /><KV k="Next visit" v={<>{date(x.nextVisitOn)}{x.overdue && <> <Badge tone="warn">Overdue</Badge></>}</>} /><KV k="Visits" v={x.visits.length} /></Grid>
       {x.flags.length > 0 && <Card title="Needs attention">{x.flags.map((f) => <p key={f.code} className="flex items-center gap-2 py-0.5 text-sm"><Badge tone={tone(f.level)}>{f.level}</Badge>{f.message}</p>)}</Card>}
@@ -39,7 +42,7 @@ export default function Pregnancy({ params }: { params: Promise<{ id: string }> 
       {active && can("mch:write") && (
         <Grid cols={2}>
           <Card title="Record antenatal visit">
-            <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); void go(() => post(`/v1/mch/pregnancies/${id}/visits`, { weightKg: num(v.weightKg), systolic: num(v.systolic), diastolic: num(v.diastolic), fundalHeightCm: num(v.fundalHeightCm), fetalHeartRate: num(v.fetalHeartRate), presentation: v.presentation, haemoglobin: num(v.haemoglobin), hivStatus: v.hivStatus, syphilis: v.syphilis, urineProtein: v.urineProtein, iptpGiven: v.iptpGiven, tetanusGiven: v.tetanusGiven, ironFolateGiven: v.ironFolateGiven, notes: v.notes || undefined, nextVisitOn: v.nextVisitOn || undefined })); }}>
+            <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); void act.run(async () => { const r = await postQueued(`/v1/mch/pregnancies/${id}/visits`, { weightKg: num(v.weightKg), systolic: num(v.systolic), diastolic: num(v.diastolic), fundalHeightCm: num(v.fundalHeightCm), fetalHeartRate: num(v.fetalHeartRate), presentation: v.presentation, haemoglobin: num(v.haemoglobin), hivStatus: v.hivStatus, syphilis: v.syphilis, urineProtein: v.urineProtein, iptpGiven: v.iptpGiven, tetanusGiven: v.tetanusGiven, ironFolateGiven: v.ironFolateGiven, notes: v.notes || undefined, nextVisitOn: v.nextVisitOn || undefined }, "Antenatal visit"); if (r.queued) { setQueued(true); return; } await p.reload(); }); }}>
               <Grid cols={2}>
                 <Field label="Weight (kg)"><Input type="number" step="0.1" value={v.weightKg} onChange={(e) => setV({ ...v, weightKg: e.target.value })} /></Field>
                 <Field label="Haemoglobin (g/dL)"><Input type="number" step="0.1" value={v.haemoglobin} onChange={(e) => setV({ ...v, haemoglobin: e.target.value })} /></Field>

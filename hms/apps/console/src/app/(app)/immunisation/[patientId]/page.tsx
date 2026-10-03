@@ -2,9 +2,10 @@
 
 import { use, useState } from "react";
 import { post, useFetch } from "@/lib/api";
+import { postQueued } from "@/lib/offline";
 import { date, today } from "@/lib/format";
 import { useSession } from "@/lib/session";
-import { Button, Card, ErrorNote, Field, Grid, Input, KV, Loading, Notice, Page, Select, Status, Table, Td, Tr, useAction } from "@/components/ui";
+import { Button, Card, ErrorNote, Field, Grid, Input, KV, Loading, Notice, Page, Select, Status, Table, Td, Tr, useAction  } from "@/components/ui";
 
 type Dose = { vaccine: string; label: string; antigen: string; dueAge: string; dueOn: string; status: string; givenOn?: string; batchNo?: string; site?: string };
 type Card_ = { patientName: string; birthDate: string; ageLabel: string; given: number; total: number; doses: Dose[]; scheduleNote?: string };
@@ -15,6 +16,7 @@ export default function ImmunisationCard({ params }: { params: Promise<{ patient
   const c = useFetch<Card_>(`/v1/mch/immunisation/patients/${patientId}`);
   const [f, setF] = useState({ vaccine: "", givenOn: today(), batchNo: "", site: "" });
   const act = useAction();
+  const [queued, setQueued] = useState(false);
   if (c.loading || !c.data) return <Page title="Immunisation card">{c.error ? <ErrorNote error={c.error} /> : <Loading />}</Page>;
   const x = c.data;
   const pending = x.doses.filter((d) => d.status !== "GIVEN");
@@ -30,14 +32,15 @@ export default function ImmunisationCard({ params }: { params: Promise<{ patient
       </Card>
       {can("mch:write") && pending.length > 0 && (
         <Card title="Record a dose">
-          <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); void act.run(async () => { await post(`/v1/mch/immunisation/patients/${patientId}/doses`, { facilityId, vaccine, givenOn: f.givenOn, batchNo: f.batchNo || undefined, site: f.site || undefined }); await c.reload(); }); }}>
+          <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); void act.run(async () => { const r = await postQueued(`/v1/mch/immunisation/patients/${patientId}/doses`, { facilityId, vaccine, givenOn: f.givenOn, batchNo: f.batchNo || undefined, site: f.site || undefined }, "Immunisation dose"); if (r.queued) { setQueued(true); return; } await c.reload(); }); }}>
             <Grid cols={4}>
               <Field label="Dose"><Select value={vaccine} onChange={(e) => setF({ ...f, vaccine: e.target.value })}>{pending.map((d) => <option key={d.vaccine} value={d.vaccine}>{d.label}</option>)}</Select></Field>
               <Field label="Date given"><Input type="date" required max={today()} value={f.givenOn} onChange={(e) => setF({ ...f, givenOn: e.target.value })} /></Field>
               <Field label="Batch number"><Input value={f.batchNo} onChange={(e) => setF({ ...f, batchNo: e.target.value })} /></Field>
               <Field label="Site"><Select value={f.site} onChange={(e) => setF({ ...f, site: e.target.value })}><option value="">Not recorded</option>{["LEFT_THIGH", "RIGHT_THIGH", "LEFT_ARM", "RIGHT_ARM", "ORAL"].map((k) => <option key={k}>{k}</option>)}</Select></Field>
             </Grid>
-            <ErrorNote error={act.error} /><Button type="submit" busy={act.busy}>Record dose</Button>
+            {queued && <Notice tone="warn" title="Saved on this device">There is no connection. This entry will be sent by itself when it returns; see Waiting to send.</Notice>}
+      <ErrorNote error={act.error} /><Button type="submit" busy={act.busy}>Record dose</Button>
           </form>
         </Card>
       )}

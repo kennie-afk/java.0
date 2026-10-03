@@ -16,13 +16,15 @@ async function forward(request: NextRequest, context: { params: Promise<{ path: 
   const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
   const reason = request.headers.get("x-access-reason");
   if (reason) headers["X-Access-Reason"] = reason;
+  const idem = request.headers.get("idempotency-key");
+  if (idem) headers["Idempotency-Key"] = idem;
   const hasBody = request.method !== "GET" && request.method !== "HEAD";
   if (hasBody) headers["Content-Type"] = "application/json";
   const res = await fetch(url, { method: request.method, headers, body: hasBody ? await request.text() : undefined, cache: "no-store" });
   const text = await res.text();
   return new NextResponse(text.length ? text : null, {
     status: res.status,
-    headers: { "Content-Type": res.headers.get("content-type") ?? "application/json" }
+    headers: { "Content-Type": res.headers.get("content-type") ?? "application/json", ...(res.headers.get("idempotent-replay") ? { "Idempotent-Replay": "true" } : {}) }
   });
 }
 

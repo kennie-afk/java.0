@@ -40,7 +40,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, TokenFilter tokenFilter) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, TokenFilter tokenFilter, IdempotencyFilter idempotencyFilter) throws Exception {
         http.csrf(csrf -> csrf.disable())
                 .cors(cors -> {})
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -56,7 +56,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/v1/auth/login", "/v1/organisations", "/portal/auth/login", "/portal/auth/activate").permitAll()
                         .requestMatchers("/portal/**").hasAuthority("portal:self")
                         .anyRequest().authenticated())
-                .addFilterBefore(tokenFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(tokenFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(idempotencyFilter, TokenFilter.class);
         return http.build();
     }
 }

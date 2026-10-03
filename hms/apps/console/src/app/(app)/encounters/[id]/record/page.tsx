@@ -3,7 +3,8 @@
 import { use, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ApiError, post } from "@/lib/api";
-import { Button, Card, ErrorNote, Field, Grid, Input, Page, Select, Textarea, useAction } from "@/components/ui";
+import { postQueued } from "@/lib/offline";
+import { Button, Card, ErrorNote, Field, Grid, Input, Notice, Page, Select, Textarea, useAction } from "@/components/ui";
 
 const num = (s: string) => (s === "" ? undefined : Number(s));
 
@@ -14,6 +15,8 @@ export default function Record({ params }: { params: Promise<{ id: string }> }) 
   const router = useRouter();
   const [f, setF] = useState<Record<string, string>>({});
   const [override, setOverride] = useState<string | null>(null);
+  const [queued, setQueued] = useState(false);
+  const stampLabel = (what: string) => `${what}, ${new Date().toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit" })}`;
   const { busy, error, run } = useAction();
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
   const v = (k: string) => f[k] ?? "";
@@ -24,12 +27,14 @@ export default function Record({ params }: { params: Promise<{ id: string }> }) 
     void run(async () => {
       try {
         if (kind === "vitals") {
-          await post(`/v1/clinical/encounters/${id}/vitals`, { tempC: num(v("tempC")), pulse: num(v("pulse")), respRate: num(v("respRate")), systolic: num(v("systolic")), diastolic: num(v("diastolic")), spo2: num(v("spo2")),
-            weightKg: num(v("weightKg")), heightCm: num(v("heightCm")), muacCm: num(v("muacCm")), glucoseMmol: num(v("glucose")), painScore: num(v("painScore")) });
+          const r = await postQueued(`/v1/clinical/encounters/${id}/vitals`, { tempC: num(v("tempC")), pulse: num(v("pulse")), respRate: num(v("respRate")), systolic: num(v("systolic")), diastolic: num(v("diastolic")), spo2: num(v("spo2")),
+            weightKg: num(v("weightKg")), heightCm: num(v("heightCm")), muacCm: num(v("muacCm")), glucoseMmol: num(v("glucose")), painScore: num(v("painScore")) }, stampLabel("Vital signs"));
+          if (r.queued) { setQueued(true); return; }
         } else if (kind === "triage") {
           await post(`/v1/clinical/encounters/${id}/triage`, { category: v("category") || "ROUTINE", chiefComplaint: v("complaint") });
         } else if (kind === "note") {
-          await post(`/v1/clinical/encounters/${id}/notes`, { kind: v("noteKind") || "SOAP", body: v("body") });
+          const r = await postQueued(`/v1/clinical/encounters/${id}/notes`, { kind: v("noteKind") || "SOAP", body: v("body") }, stampLabel("Clinical note"));
+          if (r.queued) { setQueued(true); return; }
         } else if (kind === "amend") {
           await post(`/v1/clinical/notes/${thread}/amend`, { body: v("body"), reason: v("reason") });
         } else if (kind === "diagnosis") {
@@ -52,6 +57,7 @@ export default function Record({ params }: { params: Promise<{ id: string }> }) 
   const titles: Record<string, string> = { vitals: "Record vitals", triage: "Triage", note: "Write note", amend: "Amend note", diagnosis: "Add diagnosis", order: "New order" };
   return (
     <Page title={titles[kind] ?? "Record"}>
+      {queued && <Notice tone="warn" title="Saved on this device">There is no connection. This entry will be sent by itself when it returns; see Waiting to send. <a className="underline" href={`/encounters/${id}`}>Back to the visit</a></Notice>}
       <form onSubmit={submit} className="space-y-4">
         <Card>
           {kind === "vitals" && (

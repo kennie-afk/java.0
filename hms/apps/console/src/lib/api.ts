@@ -26,6 +26,11 @@ export async function api<T = unknown>(path: string, init?: { method?: string; b
   });
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;
+  if (typeof window !== "undefined" && (init?.method ?? "GET") === "GET") {
+    // The service worker marks a record it served from its saved copy; say so, so nobody mistakes it for live data.
+    const copy = res.headers.get("x-offline-copy");
+    window.dispatchEvent(new CustomEvent("hms-offline-copy", { detail: copy ? Number(copy) : null }));
+  }
   if (res.status === 401 && typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
     window.location.href = "/login";
   }
