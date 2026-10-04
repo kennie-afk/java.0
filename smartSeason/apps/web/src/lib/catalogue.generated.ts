@@ -102,6 +102,12 @@ export const FEATURE_ROLES: Record<string, Role[]> = {
     "FARMER",
     "MANAGER"
   ],
+  "dairy": [
+    "ADMIN",
+    "FARMER",
+    "MANAGER",
+    "AGRONOMIST"
+  ],
   "account": [
     "ADMIN",
     "FARMER",
@@ -525,6 +531,555 @@ export const GROUPS: GroupSpec[] = [
                 "name": "acceptedAt",
                 "label": "Accepted at",
                 "kind": "ts",
+                "required": false
+              }
+            ]
+          },
+          {
+            "slug": "cows",
+            "label": "Cows",
+            "singular": "Cow",
+            "path": "/api/farm/v1/cows",
+            "columns": [
+              {
+                "name": "name",
+                "label": "Name",
+                "kind": "string"
+              },
+              {
+                "name": "tagNo",
+                "label": "Tag no",
+                "kind": "string"
+              },
+              {
+                "name": "breed",
+                "label": "Breed",
+                "kind": "string"
+              },
+              {
+                "name": "sex",
+                "label": "Sex",
+                "kind": "enum",
+                "badge": true
+              },
+              {
+                "name": "birthDate",
+                "label": "Birth date",
+                "kind": "date"
+              },
+              {
+                "name": "status",
+                "label": "Status",
+                "kind": "enum",
+                "badge": true
+              }
+            ],
+            "formFields": [
+              {
+                "name": "farmId",
+                "label": "Farm id",
+                "kind": "uuid",
+                "required": true
+              },
+              {
+                "name": "tagNo",
+                "label": "Tag no",
+                "kind": "string",
+                "required": true
+              },
+              {
+                "name": "sex",
+                "label": "Sex",
+                "kind": "enum",
+                "required": true,
+                "options": [
+                  "FEMALE",
+                  "MALE"
+                ]
+              },
+              {
+                "name": "status",
+                "label": "Status",
+                "kind": "enum",
+                "required": true,
+                "options": [
+                  "MILKING",
+                  "DRY",
+                  "HEIFER",
+                  "CALF",
+                  "BULL",
+                  "SOLD",
+                  "DEAD"
+                ]
+              },
+              {
+                "name": "name",
+                "label": "Name",
+                "kind": "string",
+                "required": false
+              },
+              {
+                "name": "breed",
+                "label": "Breed",
+                "kind": "string",
+                "required": false
+              },
+              {
+                "name": "birthDate",
+                "label": "Birth date",
+                "kind": "date",
+                "required": false
+              },
+              {
+                "name": "damId",
+                "label": "Dam id",
+                "kind": "uuid",
+                "required": false
+              },
+              {
+                "name": "sireRef",
+                "label": "Sire ref",
+                "kind": "string",
+                "required": false
+              },
+              {
+                "name": "acquiredOn",
+                "label": "Acquired on",
+                "kind": "date",
+                "required": false
+              },
+              {
+                "name": "exitedOn",
+                "label": "Exited on",
+                "kind": "date",
+                "required": false
+              },
+              {
+                "name": "notes",
+                "label": "Notes",
+                "kind": "text",
+                "required": false
+              }
+            ]
+          },
+          {
+            "slug": "milk-yields",
+            "label": "Milk yields",
+            "singular": "Milk yield",
+            "path": "/api/farm/v1/milk-yields",
+            "columns": [
+              {
+                "name": "notes",
+                "label": "Notes",
+                "kind": "string"
+              },
+              {
+                "name": "recordedOn",
+                "label": "Recorded on",
+                "kind": "date"
+              },
+              {
+                "name": "session",
+                "label": "Session",
+                "kind": "enum",
+                "badge": true
+              },
+              {
+                "name": "litres",
+                "label": "Litres",
+                "kind": "decimal",
+                "numeric": true
+              }
+            ],
+            "formFields": [
+              {
+                "name": "cowId",
+                "label": "Cow id",
+                "kind": "uuid",
+                "required": true
+              },
+              {
+                "name": "farmId",
+                "label": "Farm id",
+                "kind": "uuid",
+                "required": true
+              },
+              {
+                "name": "recordedOn",
+                "label": "Recorded on",
+                "kind": "date",
+                "required": true
+              },
+              {
+                "name": "session",
+                "label": "Session",
+                "kind": "enum",
+                "required": true,
+                "options": [
+                  "MORNING",
+                  "MIDDAY",
+                  "EVENING"
+                ]
+              },
+              {
+                "name": "litres",
+                "label": "Litres",
+                "kind": "decimal",
+                "required": true
+              },
+              {
+                "name": "recordedBy",
+                "label": "Recorded by",
+                "kind": "uuid",
+                "required": false
+              },
+              {
+                "name": "notes",
+                "label": "Notes",
+                "kind": "string",
+                "required": false
+              }
+            ]
+          },
+          {
+            "slug": "milk-deliveries",
+            "label": "Milk deliveries",
+            "singular": "Milk delivery",
+            "path": "/api/farm/v1/milk-deliveries",
+            "columns": [
+              {
+                "name": "buyerName",
+                "label": "Buyer name",
+                "kind": "string"
+              },
+              {
+                "name": "deliveredOn",
+                "label": "Delivered on",
+                "kind": "date"
+              },
+              {
+                "name": "receiptNo",
+                "label": "Receipt no",
+                "kind": "string"
+              },
+              {
+                "name": "litresDelivered",
+                "label": "Litres delivered",
+                "kind": "decimal",
+                "numeric": true
+              },
+              {
+                "name": "litresRejected",
+                "label": "Litres rejected",
+                "kind": "decimal",
+                "numeric": true
+              },
+              {
+                "name": "status",
+                "label": "Status",
+                "kind": "enum",
+                "badge": true
+              }
+            ],
+            "formFields": [
+              {
+                "name": "farmId",
+                "label": "Farm id",
+                "kind": "uuid",
+                "required": true
+              },
+              {
+                "name": "deliveredOn",
+                "label": "Delivered on",
+                "kind": "date",
+                "required": true
+              },
+              {
+                "name": "buyerName",
+                "label": "Buyer name",
+                "kind": "string",
+                "required": true
+              },
+              {
+                "name": "litresDelivered",
+                "label": "Litres delivered",
+                "kind": "decimal",
+                "required": true
+              },
+              {
+                "name": "litresRejected",
+                "label": "Litres rejected",
+                "kind": "decimal",
+                "required": true
+              },
+              {
+                "name": "status",
+                "label": "Status",
+                "kind": "enum",
+                "required": true,
+                "options": [
+                  "DELIVERED",
+                  "PARTIAL",
+                  "REJECTED"
+                ]
+              },
+              {
+                "name": "receiptNo",
+                "label": "Receipt no",
+                "kind": "string",
+                "required": false
+              },
+              {
+                "name": "fatPct",
+                "label": "Fat pct",
+                "kind": "decimal",
+                "required": false
+              },
+              {
+                "name": "snfPct",
+                "label": "Snf pct",
+                "kind": "decimal",
+                "required": false
+              },
+              {
+                "name": "temperatureC",
+                "label": "Temperature c",
+                "kind": "decimal",
+                "required": false
+              },
+              {
+                "name": "alcoholTestPassed",
+                "label": "Alcohol test passed",
+                "kind": "bool",
+                "required": false
+              },
+              {
+                "name": "pricePerLitre",
+                "label": "Price per litre",
+                "kind": "decimal",
+                "required": false
+              },
+              {
+                "name": "currency",
+                "label": "Currency",
+                "kind": "string",
+                "required": false
+              },
+              {
+                "name": "notes",
+                "label": "Notes",
+                "kind": "text",
+                "required": false
+              }
+            ]
+          },
+          {
+            "slug": "cow-health-events",
+            "label": "Cow health events",
+            "singular": "Cow health event",
+            "path": "/api/farm/v1/cow-health-events",
+            "columns": [
+              {
+                "name": "medicine",
+                "label": "Medicine",
+                "kind": "string"
+              },
+              {
+                "name": "eventDate",
+                "label": "Event date",
+                "kind": "date"
+              },
+              {
+                "name": "eventType",
+                "label": "Event type",
+                "kind": "enum",
+                "badge": true
+              },
+              {
+                "name": "withdrawalEndsOn",
+                "label": "Withdrawal ends on",
+                "kind": "date"
+              },
+              {
+                "name": "vetName",
+                "label": "Vet name",
+                "kind": "string"
+              },
+              {
+                "name": "costAmount",
+                "label": "Cost amount",
+                "kind": "decimal",
+                "numeric": true
+              }
+            ],
+            "formFields": [
+              {
+                "name": "cowId",
+                "label": "Cow id",
+                "kind": "uuid",
+                "required": true
+              },
+              {
+                "name": "farmId",
+                "label": "Farm id",
+                "kind": "uuid",
+                "required": true
+              },
+              {
+                "name": "eventDate",
+                "label": "Event date",
+                "kind": "date",
+                "required": true
+              },
+              {
+                "name": "eventType",
+                "label": "Event type",
+                "kind": "enum",
+                "required": true,
+                "options": [
+                  "VACCINATION",
+                  "TREATMENT",
+                  "DEWORMING",
+                  "MASTITIS",
+                  "VET_VISIT",
+                  "OTHER"
+                ]
+              },
+              {
+                "name": "description",
+                "label": "Description",
+                "kind": "text",
+                "required": false
+              },
+              {
+                "name": "medicine",
+                "label": "Medicine",
+                "kind": "string",
+                "required": false
+              },
+              {
+                "name": "withdrawalEndsOn",
+                "label": "Withdrawal ends on",
+                "kind": "date",
+                "required": false
+              },
+              {
+                "name": "vetName",
+                "label": "Vet name",
+                "kind": "string",
+                "required": false
+              },
+              {
+                "name": "costAmount",
+                "label": "Cost amount",
+                "kind": "decimal",
+                "required": false
+              }
+            ]
+          },
+          {
+            "slug": "breeding-events",
+            "label": "Breeding events",
+            "singular": "Breeding event",
+            "path": "/api/farm/v1/breeding-events",
+            "columns": [
+              {
+                "name": "sireRef",
+                "label": "Sire ref",
+                "kind": "string"
+              },
+              {
+                "name": "eventDate",
+                "label": "Event date",
+                "kind": "date"
+              },
+              {
+                "name": "eventType",
+                "label": "Event type",
+                "kind": "enum",
+                "badge": true
+              },
+              {
+                "name": "method",
+                "label": "Method",
+                "kind": "enum",
+                "badge": true
+              },
+              {
+                "name": "outcome",
+                "label": "Outcome",
+                "kind": "string"
+              },
+              {
+                "name": "expectedCalvingOn",
+                "label": "Expected calving on",
+                "kind": "date"
+              }
+            ],
+            "formFields": [
+              {
+                "name": "cowId",
+                "label": "Cow id",
+                "kind": "uuid",
+                "required": true
+              },
+              {
+                "name": "farmId",
+                "label": "Farm id",
+                "kind": "uuid",
+                "required": true
+              },
+              {
+                "name": "eventDate",
+                "label": "Event date",
+                "kind": "date",
+                "required": true
+              },
+              {
+                "name": "eventType",
+                "label": "Event type",
+                "kind": "enum",
+                "required": true,
+                "options": [
+                  "HEAT",
+                  "SERVICE",
+                  "PREGNANCY_CHECK",
+                  "CALVING",
+                  "DRY_OFF"
+                ]
+              },
+              {
+                "name": "method",
+                "label": "Method",
+                "kind": "enum",
+                "required": false,
+                "options": [
+                  "AI",
+                  "NATURAL"
+                ]
+              },
+              {
+                "name": "sireRef",
+                "label": "Sire ref",
+                "kind": "string",
+                "required": false
+              },
+              {
+                "name": "outcome",
+                "label": "Outcome",
+                "kind": "string",
+                "required": false
+              },
+              {
+                "name": "expectedCalvingOn",
+                "label": "Expected calving on",
+                "kind": "date",
+                "required": false
+              },
+              {
+                "name": "notes",
+                "label": "Notes",
+                "kind": "text",
                 "required": false
               }
             ]

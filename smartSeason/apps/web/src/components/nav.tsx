@@ -10,6 +10,7 @@ import {
   canUse,
   canSeeAdvisor,
   canSeeGroup,
+  canSeeDairy,
   canSeeLiveBoard,
   canSeeMyWork,
   canSeeService,
@@ -156,6 +157,9 @@ function SidebarBody({
           ) : null}
           {canSeeLiveBoard(roles) ? (
             <NavLink href="/live" icon="pulse" label="Live work" active={pathname === "/live"} />
+          ) : null}
+          {canSeeDairy(roles) ? (
+            <NavLink href="/dairy" icon="farms" label="Dairy" active={pathname === "/dairy"} />
           ) : null}
           {canUse(roles, "team") ? (
             <NavLink href="/team" icon="workforce" label="Team" active={pathname === "/team"} />

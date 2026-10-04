@@ -58,5 +58,6 @@ export function canUse(roles: string[], feature: string): boolean {
 /** Named wrappers for the features the rail links to. */
 export const canSeeAdvisor = (roles: string[]) => canUse(roles, "advisor");
 export const canSeeMyWork = (roles: string[]) => canUse(roles, "my-work");
+export const canSeeDairy = (roles: string[]) => canUse(roles, "dairy");
 export const canSeeLiveBoard = (roles: string[]) => canUse(roles, "live-board");
 export const canReportObservation = (roles: string[]) => canUse(roles, "report-observation");

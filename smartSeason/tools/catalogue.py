@@ -50,6 +50,28 @@ SERVICES = [
         ("FarmMembership","farm_memberships",[
           "farmId:uuid:ix,nn","userId:uuid:ix,nn","role:enum(OWNER|MANAGER|AGRONOMIST|VIEWER):nn",
           "invitedBy:uuid","acceptedAt:ts","status:enum(PENDING|ACTIVE|REVOKED):nn"]),
+        # Dairy module. Prices and quality thresholds are entered by the user; nothing is
+        # defaulted from an outside source.
+        ("Cow","cows",[
+          "farmId:uuid:ix,nn","tagNo:string:ix,nn","name:string","breed:string","sex:enum(FEMALE|MALE):nn",
+          "birthDate:date","damId:uuid:ix","sireRef:string",
+          "status:enum(MILKING|DRY|HEIFER|CALF|BULL|SOLD|DEAD):nn","acquiredOn:date","exitedOn:date","notes:text"]),
+        ("MilkYield","milk_yields",[
+          "cowId:uuid:ix,nn","farmId:uuid:ix,nn","recordedOn:date:ix,nn",
+          "session:enum(MORNING|MIDDAY|EVENING):nn","litres:decimal:nn","recordedBy:uuid","notes:string"]),
+        ("MilkDelivery","milk_deliveries",[
+          "farmId:uuid:ix,nn","deliveredOn:date:ix,nn","buyerName:string:nn","receiptNo:string:ix",
+          "litresDelivered:decimal:nn","litresRejected:decimal:nn","fatPct:decimal","snfPct:decimal",
+          "temperatureC:decimal","alcoholTestPassed:bool","pricePerLitre:decimal","currency:string",
+          "status:enum(DELIVERED|PARTIAL|REJECTED):nn","notes:text"]),
+        ("CowHealthEvent","cow_health_events",[
+          "cowId:uuid:ix,nn","farmId:uuid:ix,nn","eventDate:date:ix,nn",
+          "eventType:enum(VACCINATION|TREATMENT|DEWORMING|MASTITIS|VET_VISIT|OTHER):nn",
+          "description:text","medicine:string","withdrawalEndsOn:date:ix","vetName:string","costAmount:decimal"]),
+        ("BreedingEvent","breeding_events",[
+          "cowId:uuid:ix,nn","farmId:uuid:ix,nn","eventDate:date:ix,nn",
+          "eventType:enum(HEAT|SERVICE|PREGNANCY_CHECK|CALVING|DRY_OFF):nn","method:enum(AI|NATURAL)",
+          "sireRef:string","outcome:string","expectedCalvingOn:date","notes:text"]),
       ]),
 
  dict(name="season-service", port=8083, db="season_db", group="farm",

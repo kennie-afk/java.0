@@ -111,6 +111,8 @@ FEATURES = {
     "report-observation": ["ADMIN", "FARMER", "MANAGER", "AGRONOMIST", "WORKER"],
     "my-work":           ["ADMIN", "MANAGER", "WORKER"],
     "live-board":        ["ADMIN", "FARMER", "MANAGER"],
+    # Herd production and milk-withdrawal warnings; the same roles that may read farm-service.
+    "dairy":             ["ADMIN", "FARMER", "MANAGER", "AGRONOMIST"],
     "account":           ROLES,
     # Managing people and what they may do. A farmer can see who is on the
     # team; only an administrator can change anyone's roles.
