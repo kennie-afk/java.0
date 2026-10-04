@@ -23,7 +23,7 @@ export default function Overview() {
   const claims = useFetch<{ byStatus: Record<string, number> }>(can("claims:read") ? `/v1/claims/summary?facilityId=${facilityId}` : null);
   const r = report.data;
   return (
-    <Page title={facility.name} sub="Today at a glance. Reports cover the last 7 days.">
+    <Page gradient glow title={facility.name} sub="Today at a glance. Reports cover the last 7 days.">
       <Grid cols={4}>
         {queue.data && <Stat icon="queue" label="Waiting now" value={queue.data.length} hint="Checked in, not yet seen" />}
         {pharmacy.data && <Stat icon="pill" label="Prescriptions waiting" value={pharmacy.data.data.length + (pharmacy.data.nextCursor ? "+" : "")} hint="Awaiting dispensing" />}

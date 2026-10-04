@@ -5,13 +5,13 @@ import { useState } from "react";
 import { ApiError } from "@/lib/api";
 import { Icon, type IconName } from "@/components/icons";
 
-export function Page({ title, actions, children, sub, eyebrow }: { title: string; actions?: React.ReactNode; sub?: string; eyebrow?: string; children: React.ReactNode }) {
+export function Page({ title, actions, children, sub, eyebrow, gradient, glow }: { title: string; actions?: React.ReactNode; sub?: string; eyebrow?: string; gradient?: boolean; glow?: boolean; children: React.ReactNode }) {
   return (
-    <div className="mx-auto w-full max-w-[1680px] space-y-5 px-4 pb-16 pt-5 sm:px-6 lg:px-8 lg:pt-7">
+    <div className={`mx-auto w-full max-w-[1680px] space-y-5 px-4 pb-16 pt-5 sm:px-6 lg:px-8 lg:pt-7${glow ? " glow" : ""}`}>
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0 max-w-3xl">
           {eyebrow && <p className="mb-0.5 text-xs font-semibold uppercase tracking-[0.07em] text-accent">{eyebrow}</p>}
-          <h1 className="text-xl font-semibold leading-tight tracking-[-0.01em] sm:text-2xl">{title}</h1>
+          <h1 className={`text-xl font-bold leading-tight tracking-[-0.01em] sm:text-2xl${gradient ? " gradient-text" : ""}`}>{title}</h1>
           {sub && <p className="mt-1 text-sm leading-relaxed text-muted">{sub}</p>}
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
@@ -27,7 +27,7 @@ export function Card({ title, actions, children, pad = true, description }: { ti
       {title && (
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
           <div>
-            <h2 className="text-[15px] font-semibold leading-snug">{title}</h2>
+            <h2 className="text-[15px] font-bold leading-snug">{title}</h2>
             {description && <p className="mt-0.5 text-sm text-muted">{description}</p>}
           </div>
           {actions && <div className="flex items-center gap-2">{actions}</div>}
@@ -139,9 +139,9 @@ const STATUS_TONE: Record<string, keyof typeof tones> = {
 
 export const Status = ({ value }: { value: string }) => <Badge tone={STATUS_TONE[value] ?? "neutral"}>{value}</Badge>;
 
-const BTN = "inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap min-h-9 rounded-lg px-3.5 py-1.5 text-sm font-semibold disabled:pointer-events-none disabled:opacity-50";
+const BTN = "inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap min-h-9 rounded-lg px-3.5 py-1.5 text-sm font-medium tracking-[0.01em] disabled:pointer-events-none disabled:opacity-50";
 export const buttonCls = {
-  primary: `${BTN} bg-accent text-white shadow-sm hover:bg-accent-deep`,
+  primary: `${BTN} bg-[linear-gradient(135deg,#0053a3,#02386e)] text-white shadow-[0_8px_14px_-6px_rgba(0,83,163,0.25),0_3px_5px_-3px_rgba(0,83,163,0.25)] hover:bg-none hover:bg-accent-hover`,
   secondary: `${BTN} border border-line-strong bg-surface text-ink hover:bg-raised`,
   danger: `${BTN} border border-[#f5cdcb] bg-surface text-danger hover:bg-danger-soft`
 };
@@ -168,7 +168,7 @@ export function Field({ label, children, hint }: { label: string; children: Reac
   );
 }
 
-const control = "w-full rounded-lg border border-line-strong bg-surface min-h-9 px-3 py-1.5 text-base text-ink outline-none placeholder:text-faint hover:border-faint focus:border-accent focus:ring-4 focus:ring-accent-soft disabled:bg-raised disabled:opacity-70";
+const control = "w-full rounded-lg border border-line-strong bg-surface min-h-9 px-3 py-1.5 text-base text-ink outline-none placeholder:text-placeholder hover:border-faint focus:border-accent focus:ring-4 focus:ring-accent-soft disabled:bg-raised disabled:opacity-70";
 const chevron = "appearance-none bg-[length:16px] bg-[right_0.875rem_center] bg-no-repeat pr-9 bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.75%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M6%208l4%204%204-4%22%2F%3E%3C%2Fsvg%3E')]";
 export const Input = (p: React.InputHTMLAttributes<HTMLInputElement>) => <input {...p} className={`${control} ${p.className ?? ""}`} />;
 export const Select = (p: React.SelectHTMLAttributes<HTMLSelectElement>) => <select {...p} className={`${control} ${chevron} cursor-pointer ${p.className ?? ""}`} />;

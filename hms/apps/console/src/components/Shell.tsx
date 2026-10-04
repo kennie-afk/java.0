@@ -42,7 +42,7 @@ function Brand() {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/logo-icon.flat.svg" alt="" className="h-8 w-8" />
       <span className="leading-tight">
-        <span className="block font-[family-name:var(--font-display)] text-base font-semibold tracking-[-0.01em]">HMS</span>
+        <span className="block font-[family-name:var(--font-display)] text-base font-bold tracking-[-0.01em]">HMS</span>
         <span className="block text-xs text-muted">Health management</span>
       </span>
     </Link>
@@ -128,7 +128,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </header>
         {drawer && (
           <div className="fixed inset-0 z-[70] lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
-            <button type="button" aria-label="Close menu" className="absolute inset-0 cursor-default bg-[rgba(15,32,39,0.45)]" onClick={() => setDrawer(false)} />
+            <button type="button" aria-label="Close menu" className="absolute inset-0 cursor-default bg-[rgba(9,27,48,0.45)]" onClick={() => setDrawer(false)} />
             <aside className="absolute inset-y-0 left-0 flex w-[280px] max-w-[86vw] flex-col bg-surface shadow-[var(--shadow-lift)]">
               <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
                 <Brand />

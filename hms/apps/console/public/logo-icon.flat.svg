@@ -4,15 +4,15 @@
   A TechMara child: the broken ring and the three circuit traces entering from the left are
   the parent's construction. Inside the ring sits a medical cross in place of the monogram,
   and the middle trace runs into its arm, so the technology and the care read as one line.
-  Colour is the console's own clinical azure (#0369a1).
+  Colour is the console's own blue (#0053a3, the blue of sovrano.ai).
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="HMS">
   <title>HMS</title>
-  <path d="M 96 372 A 196 196 0 1 1 404 372" fill="none" stroke="#0369a1" stroke-width="34" stroke-linecap="round"/>
-  <g fill="none" stroke="#0369a1" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M 96 372 A 196 196 0 1 1 404 372" fill="none" stroke="#0053a3" stroke-width="34" stroke-linecap="round"/>
+  <g fill="none" stroke="#0053a3" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
     <path d="M 40 206 H 92 L 116 230 H 156"/>
     <path d="M 40 256 H 170"/>
     <path d="M 40 306 H 92 L 116 282 H 156"/>
   </g>
-  <path d="M 262 168 H 330 V 226 H 388 V 294 H 330 V 352 H 262 V 294 H 204 V 226 H 262 Z" fill="#0369a1"/>
+  <path d="M 262 168 H 330 V 226 H 388 V 294 H 330 V 352 H 262 V 294 H 204 V 226 H 262 Z" fill="#0053a3"/>
 </svg>

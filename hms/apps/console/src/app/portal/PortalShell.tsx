@@ -15,7 +15,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="mx-auto min-h-screen max-w-3xl px-4 pb-10">
       <header className="flex items-center justify-between border-b border-line py-3">
-        <div className="font-display text-lg font-semibold">Patient portal</div>
+        <div className="font-display text-lg font-bold">Patient portal</div>
         {!open && name !== null && (
           <div className="flex items-center gap-3 text-sm">
             <span className="text-muted">{name}</span>

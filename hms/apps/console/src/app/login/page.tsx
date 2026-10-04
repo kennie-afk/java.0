@@ -27,17 +27,17 @@ export default function Login() {
   };
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-      <aside className="hidden bg-accent-deep p-12 text-white lg:flex lg:flex-col lg:justify-between">
+    <div className="glow grid min-h-screen lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+      <aside className="hidden bg-[linear-gradient(135deg,#0053a3,#02386e)] p-12 text-white lg:flex lg:flex-col lg:justify-between">
         <div className="flex items-center gap-3">
           <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo-icon.flat.svg" alt="" className="h-8 w-8" />
           </span>
-          <span className="font-[family-name:var(--font-display)] text-2xl font-semibold">HMS</span>
+          <span className="font-[family-name:var(--font-display)] text-2xl font-bold">HMS</span>
         </div>
         <div className="max-w-xl">
-          <h1 className="text-4xl font-semibold leading-tight">Run the whole facility, from the front desk to the claim.</h1>
+          <h1 className="text-4xl font-bold leading-tight text-white">Run the whole facility, from the front desk to the claim.</h1>
           <ul className="mt-10 space-y-6">
             {POINTS.map((p) => (
               <li key={p.title} className="flex gap-4">
@@ -50,13 +50,13 @@ export default function Login() {
             ))}
           </ul>
         </div>
-        <p className="text-sm text-white/60">Health management console</p>
+        <p className="text-sm text-white/75">Health management console</p>
       </aside>
       <main className="flex items-center justify-center px-4 py-12 sm:px-8">
         <div className="w-full max-w-md">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-icon.flat.svg" alt="" className="mb-4 h-12 w-12 lg:hidden" />
-          <h2 className="text-3xl font-semibold">Welcome back</h2>
+          <h2 className="text-3xl font-bold">Welcome back</h2>
           <p className="mb-6 mt-1.5 text-base text-muted">Sign in to your facility.</p>
           <form onSubmit={submit} className="space-y-4 rounded-xl border border-line bg-surface p-6 shadow-[var(--shadow-card)]">
             <Field label="Email"><Input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
