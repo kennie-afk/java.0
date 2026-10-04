@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Logo } from "./logo";
 import { useTerminalStatus } from "./use-status";
 import { useStaffSession } from "./use-session";
+import { useSyncState } from "./use-sync";
 
 const LINKS = [
   { href: "/", label: "Status" },
@@ -25,6 +26,7 @@ export function Nav() {
   const path = usePathname();
   const s = useTerminalStatus();
   const { session } = useStaffSession();
+  const sync = useSyncState();
   return (
     <aside className="no-print flex shrink-0 flex-col gap-3 border-b border-line bg-surface p-3 md:w-48 md:border-b-0 md:border-r">
       <Link href="/" aria-label="Mara terminal home">
@@ -41,7 +43,7 @@ export function Nav() {
         <div>{session ? `${session.displayName} (${session.role.toLowerCase()})` : "Nobody signed in"}</div>
         <div>{s.identity ? `Terminal ${s.identity.terminalId}` : "Not enrolled"}</div>
         <div>{s.online ? "Network: online" : "Network: offline"}</div>
-        <div>Sync: not built</div>
+        <div>{!sync || sync.syncedThrough === 0 ? "Sync: nothing uploaded yet" : `Sync: verified through #${sync.syncedThrough}`}</div>
       </div>
     </aside>
   );

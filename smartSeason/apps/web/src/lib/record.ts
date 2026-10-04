@@ -29,5 +29,15 @@ export function display(value: unknown, kind: string): string {
     return Number.isNaN(parsed.getTime()) ? value : parsed.toISOString().slice(0, 16).replace("T", " ");
   }
   if (typeof value === "number") return value.toLocaleString();
-  return String(value);
+  const text = String(value);
+  // GHOST_ATTENDANCE, POTATO, ACTIVE: codes read as words ("Ghost attendance"). Short codes (KES) and ids are left alone.
+  if (/^[A-Z]{4,}(?:_[A-Z]+)*$/.test(text)) {
+    const words = text.toLowerCase().replaceAll("_", " ");
+    return words.charAt(0).toUpperCase() + words.slice(1);
+  }
+  return text;
 }
+
+/** A raw database id: meaningful to a join, noise to a person reading a record. */
+export const isUuid = (value: unknown): boolean =>
+  typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);

@@ -105,9 +105,9 @@ def history_for(email, label, upgrade_to):
         from orders o where l.order_id = o.id and o.tenant_id = '{tenant}' and l.status = 'ROUTED'
          and o.placed_at between now() - interval '7 days' and now() - interval '2 days';
       update orders set status = 'PAID' where tenant_id = '{tenant}' and status = 'ROUTED' and placed_at < now() - interval '5 days';
-      insert into mpesa_payments (tenant_id, purpose, reference_id, msisdn, amount_cents, merchant_request_id, checkout_request_id,
+      insert into mpesa_payments (tenant_id, purpose, reference_id, msisdn, amount_cents, due_cents, merchant_request_id, checkout_request_id,
                                   mpesa_receipt_number, status, result_desc, initiated_at, completed_at)
-        select tenant_id, 'ORDER', id, '254712345678', revenue_cents, 'demo-' || substr(md5(id::text), 1, 10),
+        select tenant_id, 'ORDER', id, '254712345678', revenue_cents, revenue_cents, 'demo-' || substr(md5(id::text), 1, 10),
                'demo-co-' || substr(md5(id::text), 1, 10), 'DEMO' || upper(substr(md5(id::text), 1, 8)), 'SUCCESS',
                'The service request is processed successfully.', placed_at + interval '9 minutes', placed_at + interval '10 minutes'
           from orders where tenant_id = '{tenant}' and status = 'PAID';

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Badge, EmptyState, PageHeader, buttonClass, secondaryButtonClass } from "@/components/ui";
 import { DeleteRecordButton } from "@/components/delete-record-button";
 import { findEntity } from "@/lib/catalogue.generated";
-import { display, loadRecord } from "@/lib/record";
+import { display, isUuid, loadRecord } from "@/lib/record";
 import { canDelete, canWrite } from "@/lib/roles";
 import { readRoles } from "@/lib/session";
 
@@ -71,7 +71,7 @@ export default async function RecordPage({
       />
 
       <dl className="grid gap-x-8 gap-y-3 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-4 sm:grid-cols-2">
-        {entity.formFields.map((field) => {
+        {entity.formFields.filter((field) => !isUuid(record[field.name])).map((field) => {
           const value = record[field.name];
           return (
             <div key={field.name}>

@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useStaffSession } from "@/components/use-session";
 import { Badge, Card, KeyValue, LinkButton, Loading, Notice, PageHeader, SectionTitle } from "@/components/ui";
 import { useTerminalStatus } from "@/components/use-status";
+import { useSyncState } from "@/components/use-sync";
 
 export default function StatusPage() {
   const s = useTerminalStatus();
   const { session } = useStaffSession();
+  const sync = useSyncState();
   if (!s.loaded) return <Loading />;
 
   return (
@@ -85,10 +87,20 @@ export default function StatusPage() {
 
         <Card>
           <SectionTitle>Sync</SectionTitle>
-          <Notice tone="warn" title="Sync service not built">
-            Nothing has left this device. Sales live only in this browser&apos;s local journal until a sync-service exists to
-            receive them. Clearing this browser&apos;s site data would destroy them, and no server holds a copy.
-          </Notice>
+          {sync && sync.syncedThrough > 0 ? (
+            <KeyValue
+              rows={[
+                ["Verified by the server through", `#${sync.syncedThrough}`],
+                ["Last success", sync.lastSuccessMs ? new Date(sync.lastSuccessMs).toLocaleString() : "never"],
+                ["Server exceptions open", sync.openExceptions === 0 ? "none" : String(sync.openExceptions)]
+              ]}
+            />
+          ) : (
+            <Notice tone="warn" title="Nothing uploaded yet">
+              No sale has been copied to the server yet. Until one is, sales live only in this browser&apos;s local journal, and
+              clearing this browser&apos;s site data would destroy them. Open the Journal to sync.
+            </Notice>
+          )}
         </Card>
 
         <Card>
@@ -103,8 +115,8 @@ export default function StatusPage() {
             />
           ) : (
             <Notice tone="warn" title="No fiscal lease held">
-              Fiscal numbers are leased to a terminal by the server, and the service that leases them is not built. Every
-              sale is therefore recorded <strong>FISCAL_PENDING</strong>: the sale is real and signed, but it carries no tax
+              Fiscal numbers are leased to a terminal by the server, and none has been leased to this terminal yet. Until it
+              is, a sale is recorded <strong>fiscal pending</strong>: the sale is real and signed, but it carries no tax
               invoice number yet.
             </Notice>
           )}

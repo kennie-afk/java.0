@@ -133,9 +133,9 @@ function Tender() {
       </Notice>
 
       {s.lease ? null : (
-        <Notice tone="warn" title="This sale will be FISCAL_PENDING">
-          No fiscal lease is held and the service that issues them is not built, so this sale is recorded and signed but carries
-          no fiscal invoice number. The receipt will say so.
+        <Notice tone="warn" title="This sale will be fiscal pending">
+          No fiscal lease is held yet, so this sale is recorded and signed but carries no fiscal invoice number. The receipt will
+          say so.
         </Notice>
       )}
 
