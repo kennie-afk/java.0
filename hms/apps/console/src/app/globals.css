@@ -3,7 +3,7 @@
 /*
  * HMS design tokens. See ../../DESIGN.md for the reasoning.
  * Surfaces are tinted a barely-there blue-grey so white cards have something to sit on;
- * the accent is clinical teal and is the only saturated colour on the page chrome.
+ * the accent is clinical azure and is the only saturated colour on the page chrome.
  */
 @theme {
   --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
@@ -18,17 +18,17 @@
   --color-faint: #62757c;
   --color-line: #dde6e9;
   --color-line-strong: #c7d4d8;
-  --color-accent: #0e7490;
-  --color-accent-deep: #134e5e;
-  --color-accent-soft: #e2f2f6;
+  --color-accent: #0369a1;
+  --color-accent-deep: #0c4a6e;
+  --color-accent-soft: #e3f0f8;
   --color-good: #166534;
   --color-good-soft: #e4f3e8;
   --color-warn: #a34a06;
   --color-warn-soft: #fdf1e1;
   --color-danger: #c42626;
   --color-danger-soft: #fdecec;
-  --color-info: #1d5fa8;
-  --color-info-soft: #e8f0fa;
+  --color-info: #5b4bb5;
+  --color-info-soft: #eeebf8;
 
   /* Radius: 8px for cards and controls, 6px for chips. Overriding the theme tokens means
      rounded-lg/xl can never drift above 8px. */
@@ -78,7 +78,7 @@ h3 {
 }
 
 ::selection {
-  background: rgba(14, 116, 144, 0.2);
+  background: rgba(3, 105, 161, 0.2);
 }
 
 ::-webkit-scrollbar {

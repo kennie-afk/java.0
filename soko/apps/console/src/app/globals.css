@@ -8,16 +8,16 @@
   --color-muted: #6b6f66;
   --color-faint: #9aa094;
   --color-line: #e6e2d6;
-  --color-accent: #1f6f4a;
-  --color-accent-soft: #e4efe7;
+  --color-accent: #9f1239;
+  --color-accent-soft: #fbe9ee;
   --color-amber: #a8620a;
   --color-amber-soft: #fbf0df;
   --color-good: #1f6f4a;
   --color-good-soft: #e4efe7;
   --color-warn: #a8620a;
   --color-warn-soft: #fbf0df;
-  --color-danger: #b3261e;
-  --color-danger-soft: #fbe9e7;
+  --color-danger: #dc2626;
+  --color-danger-soft: #fdeded;
 }
 
 @theme {
