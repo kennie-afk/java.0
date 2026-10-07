@@ -63,6 +63,13 @@ public class PaymentCallbackHandler {
                             + " was cancelled before the payment arrived");
                     return;
                 }
+                if ("PAID".equals(order.getStatus())) {
+                    // A second payment for an order that is already settled (two prompts both answered):
+                    // recording it as another receipt would hide that the customer paid twice.
+                    orphan(payment, "ORDER", order.getId(), "order " + order.getReference()
+                            + " was already paid; this is a duplicate payment to refund");
+                    return;
+                }
                 order.setStatus("PAID");
                 orders.save(order);
                 ledger.append(order.getTenantId(), "PAYMENT_RECEIVED", "ORDER", order.getId(),
@@ -72,6 +79,11 @@ public class PaymentCallbackHandler {
                     "order " + payment.getReferenceId() + " was not found for this tenant"));
         } else {
             invoices.findByIdAndTenantId(payment.getReferenceId(), payment.getTenantId()).ifPresentOrElse(invoice -> {
+                if (invoice.getStatus() != Invoice.Status.ISSUED) {
+                    orphan(payment, "INVOICE", invoice.getId(), "invoice " + invoice.getReference()
+                            + " is " + invoice.getStatus() + ", not payable; this payment is to refund");
+                    return;
+                }
                 invoice.setStatus(Invoice.Status.PAID);
                 invoice.setPaidAt(Instant.now());
                 invoices.save(invoice);

@@ -111,4 +111,37 @@ class PaymentCallbackHandlerTest {
                 eq(25_000L), any());
     }
 
+    @Test
+    void aSecondPaymentForAnAlreadyPaidOrderIsHeldAsADuplicate() {
+        payment.setPurpose(MpesaPayment.Purpose.ORDER);
+        SalesOrder order = new SalesOrder();
+        order.setId(reference);
+        order.setTenantId(tenant);
+        order.setReference("SO-2");
+        order.setStatus("PAID");
+        when(orders.findByIdAndTenantId(reference, tenant)).thenReturn(Optional.of(order));
+
+        handler.handle(null, "{}", "s");
+
+        assertThat(payment.getStatus()).isEqualTo(MpesaPayment.Status.ORPHANED);
+        assertThat(payment.getOrphanReason()).contains("already paid");
+        verify(ledger, never()).append(eq(tenant), eq("PAYMENT_RECEIVED"), any(), any(), eq(25_000L), any());
+        verify(ledger).append(eq(tenant), eq("PAYMENT_ORPHANED"), eq("ORDER"), eq(reference), eq(25_000L), any());
+    }
+
+    @Test
+    void aPaymentForAnInvoiceThatIsNoLongerIssuedIsHeld() {
+        payment.setPurpose(MpesaPayment.Purpose.INVOICE);
+        com.soko.domain.Invoice invoice = new com.soko.domain.Invoice();
+        invoice.setId(reference);
+        invoice.setTenantId(tenant);
+        invoice.setReference("INV-1");
+        invoice.setStatus(com.soko.domain.Invoice.Status.PAID);
+        when(invoices.findByIdAndTenantId(reference, tenant)).thenReturn(Optional.of(invoice));
+
+        handler.handle(null, "{}", "s");
+
+        assertThat(payment.getStatus()).isEqualTo(MpesaPayment.Status.ORPHANED);
+        verify(ledger).append(eq(tenant), eq("PAYMENT_ORPHANED"), eq("INVOICE"), eq(reference), eq(25_000L), any());
+    }
 }
