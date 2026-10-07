@@ -6,14 +6,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.LongSupplier;
 
 /**
- * Counts hits per key in fixed windows. In memory and per replica: enough to stop one client
- * hammering a login form, not a global quota. A shared limiter (Redis) would be the next step if
- * the API is scaled out and an attacker spreads requests across replicas.
+ * Counts hits per key in fixed windows, in memory and per replica (the fallback behind
+ * {@link SharedWindowLimiter}): enough to stop one client
+ * hammering a login form, not a global quota across replicas.
  */
-public final class FixedWindowLimiter {
-
-    /** The answer to one {@link #hit}: whether it is allowed, and how long until the window resets. */
-    public record Decision(boolean allowed, long retryAfterSeconds) {}
+public final class FixedWindowLimiter implements RateLimiter {
 
     private record Window(long startedAt, int count) {}
 
@@ -37,6 +34,7 @@ public final class FixedWindowLimiter {
         this(limit, windowMillis, System::currentTimeMillis);
     }
 
+    @Override
     public Decision hit(String key) {
         long now = clock.getAsLong();
         sweep(now);

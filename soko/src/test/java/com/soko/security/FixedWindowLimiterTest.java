@@ -20,7 +20,7 @@ class FixedWindowLimiterTest {
         assertThat(l.hit("a").allowed()).isTrue();
         assertThat(l.hit("a").allowed()).isTrue();
         assertThat(l.hit("a").allowed()).isTrue();
-        FixedWindowLimiter.Decision refused = l.hit("a");
+        RateLimiter.Decision refused = l.hit("a");
         assertThat(refused.allowed()).isFalse();
         assertThat(refused.retryAfterSeconds()).isBetween(1L, 60L);
     }
