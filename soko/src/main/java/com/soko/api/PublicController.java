@@ -183,7 +183,8 @@ public class PublicController {
                         user.getEmail(),
                         user.getRole(),
                         user.getSupplierId(),
-                        user.getCustomerId());
+                        user.getCustomerId(),
+                        user.getTokenVersion());
         return new ApiController.Session(
                 tokens.issue(principal),
                 user.getTenantId().toString(),

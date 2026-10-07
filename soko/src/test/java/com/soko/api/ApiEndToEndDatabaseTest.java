@@ -364,11 +364,16 @@ class ApiEndToEndDatabaseTest {
         // An unknown address gets the same answer and no e-mail.
         call(post("/v1/auth/forgot"), null, java.util.Map.of("email", "nobody-" + UUID.randomUUID() + "@e2e.test"), 202);
 
+        call(get("/v1/products"), reg[0], null, 200);
         call(post("/v1/auth/reset"), null, java.util.Map.of("token", token, "password", "short"), 400);
         call(post("/v1/auth/reset"), null, java.util.Map.of("token", token, "password", "a-brand-new-password"), 200);
 
+        // The session opened before the reset no longer works; a fresh sign-in does.
+        call(get("/v1/products"), reg[0], null, 401);
         call(post("/v1/auth/login"), null, java.util.Map.of("email", address, "password", "a-long-password-1"), 401);
-        call(post("/v1/auth/login"), null, java.util.Map.of("email", address, "password", "a-brand-new-password"), 200);
+        String fresh = call(post("/v1/auth/login"), null, java.util.Map.of("email", address, "password", "a-brand-new-password"), 200)
+                .get("accessToken").asText();
+        call(get("/v1/products"), fresh, null, 200);
 
         // Single use.
         call(post("/v1/auth/reset"), null, java.util.Map.of("token", token, "password", "yet-another-password"), 400);

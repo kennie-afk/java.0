@@ -23,6 +23,7 @@ public class AppUser {
     @Column(nullable = false) private String status = "ACTIVE";
     @Column(name = "supplier_id") private UUID supplierId;
     @Column(name = "customer_id") private UUID customerId;
+    @Column(name = "token_version", nullable = false) private int tokenVersion = 0;
     @Column(name = "created_at", nullable = false) private Instant createdAt = Instant.now();
 
     public UUID getSupplierId() { return supplierId; }
@@ -42,6 +43,9 @@ public class AppUser {
     public void setRole(String v) { this.role = v; }
     public String getStatus() { return status; }
     public void setStatus(String v) { this.status = v; }
+
+    public int getTokenVersion() { return tokenVersion; }
+    public void setTokenVersion(int v) { this.tokenVersion = v; }
 
     public UUID getId() { return id; }
     public void setId(UUID v) { this.id = v; }

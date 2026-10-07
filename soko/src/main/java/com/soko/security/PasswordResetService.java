@@ -128,6 +128,7 @@ public class PasswordResetService {
                 .filter(found -> "ACTIVE".equals(found.getStatus()))
                 .orElseThrow(PasswordResetService::invalid);
         user.setPasswordHash(encoder.encode(newPassword));
+        user.setTokenVersion(user.getTokenVersion() + 1);
         users.save(user);
         resets.voidOutstanding(user.getId(), now);
         statusGate.forget(user.getId());

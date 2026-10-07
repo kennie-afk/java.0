@@ -34,6 +34,7 @@ public class Tokens {
                 .claim("role", principal.role())
                 .claim("sid", principal.supplierId() == null ? null : principal.supplierId().toString())
                 .claim("cid", principal.customerId() == null ? null : principal.customerId().toString())
+                .claim("tv", principal.tokenVersion())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plus(ttl)))
                 .signWith(key)
@@ -44,13 +45,15 @@ public class Tokens {
         Claims claims = Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
         String supplier = claims.get("sid", String.class);
         String customer = claims.get("cid", String.class);
+        Number version = claims.get("tv", Number.class);
         return new Principal(
                 UUID.fromString(claims.getSubject()),
                 UUID.fromString(claims.get("tid", String.class)),
                 claims.get("email", String.class),
                 claims.get("role", String.class),
                 supplier == null ? null : UUID.fromString(supplier),
-                customer == null ? null : UUID.fromString(customer));
+                customer == null ? null : UUID.fromString(customer),
+                version == null ? 0 : version.intValue());
     }
 
     public long ttlSeconds() {

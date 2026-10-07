@@ -121,7 +121,7 @@ public class ApiController {
         Principal principal =
                 new Principal(
                         user.getId(), user.getTenantId(), user.getEmail(), user.getRole(),
-                        user.getSupplierId(), user.getCustomerId());
+                        user.getSupplierId(), user.getCustomerId(), user.getTokenVersion());
         String organisation = tenants.findById(user.getTenantId()).map(Tenant::getName).orElse("");
         return new Session(tokens.issue(principal), user.getTenantId().toString(),
                 user.getFullName(), user.getRole(), organisation, tokens.ttlSeconds());

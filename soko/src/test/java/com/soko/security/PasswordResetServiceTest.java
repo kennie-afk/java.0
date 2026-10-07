@@ -90,6 +90,7 @@ class PasswordResetServiceTest {
         service.reset("tok", "a-brand-new-password");
 
         assertThat(encoder.matches("a-brand-new-password", user.getPasswordHash())).isTrue();
+        assertThat(user.getTokenVersion()).isEqualTo(1);
         verify(users).save(user);
         verify(gate).forget(user.getId());
     }

@@ -16,12 +16,13 @@ import org.springframework.stereotype.Component;
  * the token expires (12 hours by default). The filter asks this gate on every request instead. The
  * answer is cached for a few seconds so the database is not hit per request: a suspension made on
  * this replica takes effect at once ({@link #forget}), on another replica within the cache window.
- * An account that no longer exists counts as inactive.
+ * An account that no longer exists counts as inactive. A token issued under an older token version
+ * (the version is bumped by a password reset) is refused too, so a stolen token dies with the old password.
  */
 @Component
 public class UserStatusGate {
 
-    private record Entry(boolean active, long expiresAtNanos) {
+    private record Entry(boolean active, int tokenVersion, long expiresAtNanos) {
     }
 
     private final UserRepository users;
@@ -38,16 +39,15 @@ public class UserStatusGate {
         long now = System.nanoTime();
         Entry cached = cache.get(principal.userId());
         if (cached != null && now < cached.expiresAtNanos()) {
-            return cached.active();
+            return cached.active() && cached.tokenVersion() == principal.tokenVersion();
         }
-        boolean active = TenantBinding.runAs(principal.tenantId(), () ->
+        Entry fresh = TenantBinding.runAs(principal.tenantId(), () ->
                 users.findById(principal.userId())
                         .filter(user -> user.getTenantId().equals(principal.tenantId()))
-                        .map(AppUser::getStatus)
-                        .map("ACTIVE"::equals)
-                        .orElse(false));
-        cache.put(principal.userId(), new Entry(active, now + ttlNanos));
-        return active;
+                        .map(user -> new Entry("ACTIVE".equals(user.getStatus()), user.getTokenVersion(), now + ttlNanos))
+                        .orElse(new Entry(false, 0, now + ttlNanos)));
+        cache.put(principal.userId(), fresh);
+        return fresh.active() && fresh.tokenVersion() == principal.tokenVersion();
     }
 
     /** Called right after a status change so this replica never serves a stale answer. */

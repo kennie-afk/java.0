@@ -60,6 +60,21 @@ class UserStatusGateTest {
     }
 
     @Test
+    void aTokenIssuedBeforeAPasswordResetIsRefused() {
+        UserRepository users = mock(UserRepository.class);
+        AppUser stored = user("ACTIVE", tenant);
+        when(users.findById(userId)).thenReturn(Optional.of(stored));
+        UserStatusGate gate = new UserStatusGate(users, 60);
+        assertThat(gate.isActive(principal)).isTrue();
+
+        stored.setTokenVersion(1);
+        gate.forget(userId);
+
+        assertThat(gate.isActive(principal)).isFalse();
+        assertThat(gate.isActive(new Principal(userId, tenant, "a@b.test", "OPERATOR", null, null, 1))).isTrue();
+    }
+
+    @Test
     void anAccountThatNoLongerExistsOrBelongsToAnotherTenantIsRefused() {
         UserRepository users = mock(UserRepository.class);
         when(users.findById(userId)).thenReturn(Optional.empty());
