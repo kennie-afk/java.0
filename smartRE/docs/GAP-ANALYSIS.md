@@ -18,6 +18,63 @@ None of them is architectural; all are finishable.
 
 ---
 
+## 0. Update, 2026-10-06
+
+A second pass, each item checked in code before it was changed. What follows in sections 1-8 is the
+2026-09-07 text; where it is stale the entries below win.
+
+**Closed**
+
+- **Unbounded lists.** Units on a property, a unit's lease history, an invoice's payments, a seller's
+  own ownership filings and the raw M-Pesa callbacks are now bounded pages (default 200, max 200;
+  filings default 100). The body is still a plain array so existing callers keep working; the total and
+  whether more follow travel in `X-Total-Count` / `X-Has-More`, which the gateway now exposes to the
+  browser. The admin ownership queue caps its page at 500 and whitelists its sort columns (it used to
+  accept any size and any property name). The raw-callbacks route paged only its "latest" form to one
+  page of at most 500; both forms now page. Units on a property are filtered to the landlord in SQL;
+  they were loaded for every landlord and filtered in Java.
+- **Backend routes with no UI.** `PUT /api/properties/{id}/publish` (a Publish button beside "Managed
+  only" properties in the portfolio), `PUT /api/viewings/{id}/no-show` ("Report no-show" on a confirmed
+  viewing whose time has passed, buyer or seller) and `POST /api/verification/ownership/{id}/documents/bulk`
+  (a "we will sort it" folder upload on the ownership page that reports what was filed, what needs the
+  seller, and what is still missing) are in `lib/api.ts` and on screen. Not a defect: there is no
+  `/api/documents` list endpoint (only upload and file download), so there was nothing to call. An admin
+  cannot report a no-show from the UI because no admin viewings list exists; the endpoint accepts it.
+- **Thin tests where trust lives.** property-service 49 to 78 (controller contract, who may see a hidden
+  listing on the database and cached paths, publish rules, and a real-Postgres test of the native search
+  query: filters, totals, ordering, paging through rows that tie on the sort key). review-service 24 to
+  45 (hide and its audit, cache eviction and statistics; the routes behind the real security config, where
+  a role header without the gateway's signature is not believed). The search test found that
+  `bedrooms DESC` put listings with no bedroom count (land) first; fixed with `NULLS LAST`.
+- **Providers that silently do nothing in production.** `ProductionGuard` in notification-service
+  (SMS, mail), verification-service (Smile Identity, Ardhisasa, document analysis) and payment-service
+  (mock mode, placeholder keys, sandbox shortcode and URLs, placeholder callback URL) refuses to start
+  when `SMARTRE_ENVIRONMENT=production` and a provider is unset or a placeholder. A provider that is
+  deliberately off must be acknowledged with `SMARTRE_ALLOW_UNCONFIGURED_PROVIDERS=true`, which is logged
+  on every start. The k8s manifests could not supply the Smile and Ardhisasa keys at all; they now can.
+  The environment defaults to development in every committed config, so nothing changes until it is set.
+- **Committed Secret manifest.** `k8s/secret.yaml` (placeholder values shaped like real keys) is replaced
+  by `k8s/secret.example.yaml` plus `scripts/k8s-secret.sh`, which generates random values for what the
+  platform owns and takes provider credentials from the environment. The generated file is git-ignored,
+  a `kustomization.yaml` keeps `kubectl apply` from applying the example over the real Secret, and
+  `scripts/check-k8s-env.py` fails if the generator and the example list different keys.
+- **`ddl-auto: update`** was in `application-local.yaml` of six services, not four (payment, property,
+  review, user, verification, viewing). Each now says it is development-only and carries a
+  `LocalProfileGuard` that refuses to start with the local profile when `SMARTRE_ENVIRONMENT=production`.
+  The default profiles all use `validate`; a test asserts it.
+
+**Still open**
+
+- **Row-level security.** Not attempted. `docs/RLS-DESIGN.md` records what it would take and why it is
+  not Soko's job copied over. Ownership checks remain application code only.
+- **Card payments.** Unchanged: needs a provider chosen, a merchant account, keys, a webhook and a stated
+  PCI position. Nothing here can supply those.
+- **Object storage** for uploaded documents (section 8, item 9) is still the open decision.
+- A stray empty directory `smartRE/smartRE/` (three empty subfolders, untracked, unreferenced) should be
+  removed by hand; the removal was blocked in the environment that did this pass.
+
+---
+
 ## 2. Test coverage — the largest single gap
 
 Executed, not counted from `@Test` annotations:
@@ -26,13 +83,13 @@ Executed, not counted from `@Test` annotations:
 | --- | ---: | ---: | ---: | --- |
 | api-gateway | 7 | 4 | 20 | adequate |
 | user-service | 52 | 6 | 77 | good |
-| property-service | 39 | **1** | 30 | thin for 39 files |
+| property-service | 39 | 4 | 78 | controller, visibility and Postgres search covered (2026-10-06) |
 | property-management-service | 81 | 6 | 90 | good |
 | verification-service | 85 | 8 | 87 | good |
 | payment-service | 65 | 4 | 52 | thin for money |
 | notification-service | 46 | 5 | 24 | thin |
 | viewing-service | 30 | 1 | **18** | fixed 2026-09-07 |
-| review-service | 23 | 1 | **14** | fixed 2026-09-07 |
+| review-service | 23 | 3 | 45 | moderation and security covered (2026-10-06) |
 
 **Resolved.** Both services had no test of any kind — 53 source files between them, on
 the two paths where a buyer meets a stranger and where trust is published. They now carry

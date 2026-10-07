@@ -72,6 +72,18 @@ mvn -T 1C package          # build every service
 mvn -pl user-service test  # or just one
 ```
 
+## Running in production
+
+Set `SMARTRE_ENVIRONMENT=production`. Notification, verification and payment-service then refuse to
+start while SMS, mail, Smile Identity, Ardhisasa, document analysis or M-Pesa is unset, still a
+placeholder, or (for M-Pesa) in mock or sandbox mode, and the `local` profile (`ddl-auto: update`)
+refuses to start at all. Outside production every one keeps its log-instead-of-send or manual-review
+fallback, which is what local development relies on. A provider you really do not want yet can be
+acknowledged with `SMARTRE_ALLOW_UNCONFIGURED_PROVIDERS=true`; that is logged on every start.
+
+On Kubernetes the Secret is generated, not committed: `./scripts/k8s-secret.sh | kubectl apply -f -`
+(see `k8s/README.md`). `docs/RLS-DESIGN.md` records the one isolation gap that is still open.
+
 ---
 
 ## Testing — via the Gateway (recommended)

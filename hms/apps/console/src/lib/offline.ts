@@ -103,8 +103,12 @@ export async function postQueued<T = unknown>(path: string, body: unknown, label
   }
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;
-  if (res.status === 401 && typeof window !== "undefined") {
-    window.location.href = "/login";
+  if (res.status === 401) {
+    // The session could not be renewed (it was ended, or the person was signed out elsewhere). The entry is not lost: it waits on this
+    // device and is sent, in order, after the next sign-in.
+    const kept = await keep();
+    if (typeof window !== "undefined") window.location.href = "/login";
+    return kept;
   }
   if (!res.ok) throw new ApiError(res.status, data ?? {});
   return { queued: false, data: data as T };

@@ -5,6 +5,9 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
   jpa:
     hibernate:
+      # Development only. Hibernate reshapes the schema to match the entities, outside Flyway. The
+      # service refuses to start with this profile when SMARTRE_ENVIRONMENT=production (LocalProfileGuard),
+      # and the default profile uses "validate".
       ddl-auto: update
     show-sql: false
     properties:

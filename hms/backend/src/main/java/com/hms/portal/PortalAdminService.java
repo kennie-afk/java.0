@@ -4,6 +4,7 @@ import static com.hms.portal.PortalModels.*;
 
 import com.hms.notify.NotificationService;
 import com.hms.platform.audit.AuditService;
+import com.hms.platform.rbac.PortalAccessGate;
 import com.hms.platform.tenancy.TenantContext;
 import com.hms.platform.web.ApiException;
 import com.hms.registry.PatientAccess;
@@ -31,8 +32,10 @@ public class PortalAdminService {
     private final AuditService audit;
     private final PatientAccess patients;
     private final NotificationService notifications;
+    private final PortalAccessGate gate;
 
-    public PortalAdminService(JdbcClient jdbc, AuditService audit, PatientAccess patients, NotificationService notifications) {
+    public PortalAdminService(JdbcClient jdbc, AuditService audit, PatientAccess patients, NotificationService notifications, PortalAccessGate gate) {
+        this.gate = gate;
         this.jdbc = jdbc;
         this.audit = audit;
         this.patients = patients;
@@ -90,6 +93,7 @@ public class PortalAdminService {
         if (n == 0) {
             throw ApiException.notFound("Portal account");
         }
+        gate.invalidateAll();
         audit.record(enabled ? "portal.account.enable" : "portal.account.disable", "patient", patientId, null, null, Map.of());
         return account(patientId);
     }

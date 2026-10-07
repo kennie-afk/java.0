@@ -189,7 +189,7 @@ class NotificationOutboxTest extends IntegrationTest {
         var ex = org.junit.jupiter.api.Assertions.assertThrows(NotificationProvider.DeliveryException.class,
                 () -> live.send(new NotificationProvider.Outbound(UUID.randomUUID(), "SMS", "0700000000", "s", "b")));
         assertThat(ex.permanent()).isTrue();
-        assertThat(ex.getMessage()).contains("not implemented");
+        assertThat(ex.getMessage()).contains("not configured");
         assertThat(live.isMock()).isFalse();
     }
 

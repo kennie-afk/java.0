@@ -142,6 +142,24 @@ export default function PortfolioPage() {
 
   useEffect(() => { if (ready) reload() }, [ready, reload])
 
+  // Puts a managed-only property on the marketplace. It does not go live: it enters the same
+  // identity and ownership verification every listing goes through.
+  const [publishing, setPublishing] = useState<string | null>(null)
+  const publish = async (propertyId: string) => {
+    setPublishing(propertyId)
+    try {
+      const result = await propertyApi.publish(propertyId)
+      toast.success(result.status === 'PENDING_VERIFICATION'
+        ? 'Sent for verification. It goes live once your title is verified.'
+        : 'Saved as a draft. Verify your identity to send it for review.')
+      reload()
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || 'Could not publish that property.')
+    } finally {
+      setPublishing(null)
+    }
+  }
+
   const propertyTitle = useMemo(() => {
     const map: Record<string,string> = {}
     for (const p of properties) map[p.id] = p.title
@@ -536,9 +554,9 @@ export default function PortfolioPage() {
             <Card padding="none">
             <ul className="divide-y divide-[color:var(--border)]">
               {managedProperties.map(m => (
-                <li key={m.property.id}>
+                <li key={m.property.id} className="flex items-center">
                   <button onClick={() => { setLoc(m.property.id); go('units') }}
-                    className="w-full text-left px-3 py-2 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                    className="flex-1 min-w-0 text-left px-3 py-2 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <p className="text-base font-medium text-gray-900 dark:text-white truncate">{m.property.title}</p>
@@ -588,6 +606,14 @@ export default function PortfolioPage() {
 
                     <ChevronRight size={13} className="text-gray-300 dark:text-gray-600 shrink-0"/>
                   </button>
+                  {/* A sibling of the row button, not inside it: a button cannot contain a button. */}
+                  {m.property.status === 'UNLISTED' && (
+                    <Button size="sm" variant="secondary" className="mr-3 shrink-0"
+                      loading={publishing === m.property.id}
+                      onClick={() => publish(m.property.id)}>
+                      Publish
+                    </Button>
+                  )}
                 </li>
               ))}
             </ul>

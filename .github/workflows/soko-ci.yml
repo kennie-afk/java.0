@@ -1,0 +1,62 @@
+name: soko
+
+on:
+  push:
+    paths: ['soko/**', '.github/workflows/soko-ci.yml']
+  pull_request:
+    paths: ['soko/**']
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: soko
+    # The tenant-isolation tests run against a real Postgres as the restricted application role and
+    # skip themselves when none answers; with a database here they must run, so a broken tenant boundary
+    # fails the build instead of passing silently.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['55437:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+      - run: python3 scripts/check-migrations-frozen.py
+      - run: mvn -B verify
+        env:
+          # The database-gated tests default to a different superuser password than this service's.
+          SOKO_TEST_ADMIN_PASSWORD: postgres
+      - name: The database-gated tests ran and did not skip
+        run: |
+          set -e
+          for t in TenantIsolationDatabaseTest RepositoryQueriesDatabaseTest IdempotencyConcurrencyDatabaseTest; do
+            grep -h "$t" target/surefire-reports/*.txt
+            ! grep -h "Skipped: [1-9]" target/surefire-reports/*$t.txt
+          done
+      - run: python3 scripts/check-k8s.py
+
+  console:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: soko/apps/console
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: soko/apps/console/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run build

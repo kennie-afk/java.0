@@ -9,6 +9,7 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import BulkFileUpload from '@/components/ui/BulkFileUpload'
+import SmartIntakeUpload from '@/components/ui/SmartIntakeUpload'
 import { DocumentThumbnailGrid } from '@/components/ui/DocumentThumbnailGrid'
 import { PageLoader, ConfirmModal } from '@/components/ui/Modal'
 import { StatusBadge } from '@/components/ui/Badge'
@@ -254,6 +255,11 @@ export default function OwnershipPage() {
                     ))}
                   </div>
                 )}
+                <SmartIntakeUpload
+                  verificationId={v.id}
+                  categoryLabels={DOC_CATEGORY_LABELS}
+                  onFiled={list => { setVerifications(list); const fresh = list.find(x => x.id === v.id); if (fresh) setActiveVerification(fresh) }}
+                />
                 <BulkFileUpload
                   requiredCategories={v.allRequiredDocuments || []}
                   categoryLabels={DOC_CATEGORY_LABELS}

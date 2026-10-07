@@ -31,4 +31,12 @@ class ProductionGuardTest {
     void aCorrectProductionConfigurationPasses() {
         assertThat(ProductionGuard.violations("production", "live", LONG_SECRET, 0)).isEmpty();
     }
+
+    @Test
+    void productionWithoutMailIsRefusedBecauseResetLinksWouldOnlyBeLogged() {
+        assertThat(ProductionGuard.violations("production", "live", LONG_SECRET, 0, false))
+                .singleElement().asString().contains("SOKO_MAIL_ENABLED");
+        assertThat(ProductionGuard.violations("production", "live", LONG_SECRET, 0, true)).isEmpty();
+        assertThat(ProductionGuard.violations("development", "mock", "short", 3, false)).isEmpty();
+    }
 }

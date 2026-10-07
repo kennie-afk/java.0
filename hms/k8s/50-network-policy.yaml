@@ -1,5 +1,6 @@
-# Default deny, then only what each workload needs. The API has no outbound rule other than the database: live M-Pesa is not
-# built, so there is nothing for it to call. Add a narrow egress rule when it is.
+# Default deny, then only what each workload needs. The API may reach the database and the in-cluster object store. Live M-Pesa
+# (Daraja), SMS (Africa's Talking) and e-mail (SMTP) need outbound HTTPS/SMTP to the provider: add a narrow egress rule for that
+# only when you switch the corresponding mode on (see docs/DEPLOY.md), because the addresses are provider-specific.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -70,6 +71,11 @@ spec:
             matchLabels: {app.kubernetes.io/name: postgres}
       ports:
         - {protocol: TCP, port: 5432}
+    - to:
+        - podSelector:
+            matchLabels: {app.kubernetes.io/name: minio}
+      ports:
+        - {protocol: TCP, port: 9000}
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -86,3 +92,19 @@ spec:
             matchLabels: {app.kubernetes.io/name: api}
       ports:
         - {protocol: TCP, port: 5432}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: minio
+  namespace: hms
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/name: minio}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: {app.kubernetes.io/name: api}
+      ports:
+        - {protocol: TCP, port: 9000}

@@ -219,9 +219,25 @@ public class PropertyService {
         }
     }
 
+    /** Fields a caller may sort a listing page by. Anything else is refused rather than passed to the query. */
+    public static final java.util.Set<String> SORTABLE = java.util.Set.of(
+            "createdAt", "updatedAt", "price", "bedrooms", "bathrooms", "areaSqm", "viewCount", "title");
+
+    /** The sort for a paged listing, validated against {@link #SORTABLE} so a typo is a 400 that names the choices. */
+    public static Sort sortFor(String sortBy, String direction) {
+        if (!SORTABLE.contains(sortBy)) {
+            throw new IllegalArgumentException("Cannot sort by '" + sortBy + "'. Choose one of: "
+                    + String.join(", ", new java.util.TreeSet<>(SORTABLE)) + ".");
+        }
+        Sort.Direction dir = "ASC".equalsIgnoreCase(direction) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        // The id breaks ties so two requests for consecutive pages can never overlap or skip a row.
+        return Sort.by(dir, sortBy).and(Sort.by(Sort.Direction.DESC, "id"));
+    }
+
     @Transactional(readOnly = true)
-    public List<PropertyResponse> getActiveBySeller(UUID sellerId) {
-        return repo.findBySellerIdAndStatus(sellerId, ListingStatus.ACTIVE).stream()
+    public List<PropertyResponse> getActiveBySeller(UUID sellerId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, sortFor("createdAt", "DESC"));
+        return repo.findBySellerIdAndStatus(sellerId, ListingStatus.ACTIVE, pageable).stream()
                 .map(this::toResponse).collect(java.util.stream.Collectors.toList());
     }
 
@@ -243,6 +259,14 @@ public class PropertyService {
         String listingType = (req.getListingType() != null && !req.getListingType().isBlank())
                 ? req.getListingType().toUpperCase() : null;
 
+        // Only the public-search sorts the query implements; the others on SORTABLE belong to owner and admin lists.
+        String sortKey = req.getSortBy() == null ? "createdAt" : req.getSortBy();
+        if (!java.util.Set.of("createdAt", "price", "bedrooms", "viewCount").contains(sortKey)) {
+            throw new IllegalArgumentException("Cannot sort search results by '" + sortKey
+                    + "'. Choose one of: bedrooms, createdAt, price, viewCount.");
+        }
+        boolean ascending = "ASC".equalsIgnoreCase(req.getDirection());
+
         Pageable pageable = PageRequest.of(req.getPage(), req.getSize());
 
         Page<Property> page = repo.search(
@@ -251,6 +275,7 @@ public class PropertyService {
                 req.getMinPrice(), req.getMaxPrice(),
                 req.getMinBedrooms(), req.getKeyword(),
                 req.isVerifiedOnly(),
+                sortKey, ascending,
                 pageable);
 
         Page<PropertyResponse> result = page.map(this::toResponse);

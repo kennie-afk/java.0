@@ -27,16 +27,19 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
     private final FixedWindowLimiter login;
     private final FixedWindowLimiter register;
     private final FixedWindowLimiter forgot;
+    private final FixedWindowLimiter reset;
     private final boolean trustForwarded;
 
     public AuthRateLimitFilter(
             @Value("${soko.ratelimit.login-per-minute:10}") int loginPerMinute,
             @Value("${soko.ratelimit.register-per-hour:10}") int registerPerHour,
             @Value("${soko.ratelimit.forgot-per-hour:5}") int forgotPerHour,
+            @Value("${soko.ratelimit.reset-per-hour:20}") int resetPerHour,
             @Value("${soko.ratelimit.trust-forwarded:false}") boolean trustForwarded) {
         this.login = new FixedWindowLimiter(loginPerMinute, 60_000L);
         this.register = new FixedWindowLimiter(registerPerHour, 3_600_000L);
         this.forgot = new FixedWindowLimiter(forgotPerHour, 3_600_000L);
+        this.reset = new FixedWindowLimiter(resetPerHour, 3_600_000L);
         this.trustForwarded = trustForwarded;
     }
 
@@ -50,6 +53,7 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
             case "/v1/auth/login" -> login;
             case "/v1/auth/register" -> register;
             case "/v1/auth/forgot" -> forgot;
+            case "/v1/auth/reset" -> reset;
             default -> null;
         };
     }

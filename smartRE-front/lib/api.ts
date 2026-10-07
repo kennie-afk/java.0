@@ -38,6 +38,22 @@ const pu = <T>(url: string, d?: object) => api.put<T>(url, d).then(r => r.data)
 const puParams = <T>(url: string, p?: object) => api.put<T>(url, undefined, { params: p }).then(r => r.data)
 const de = <T>(url: string) => api.delete<T>(url).then(r => r.data)
 
+/**
+ * A list the server bounds. The body is a plain array; the total and whether more follow come in
+ * X-Total-Count / X-Has-More (exposed by the gateway), so a caller can tell a complete list from one
+ * that was cut off instead of rendering a prefix as if it were everything.
+ */
+export interface Paged<T> { items: T[]; total: number; hasMore: boolean }
+const gPaged = <T>(url: string, p?: object): Promise<Paged<T>> =>
+  api.get<T[]>(url, { params: p }).then(r => {
+    const header = Number(r.headers?.['x-total-count'])
+    return {
+      items: r.data,
+      total: Number.isFinite(header) ? header : r.data.length,
+      hasMore: r.headers?.['x-has-more'] === 'true',
+    }
+  })
+
 import type {
   AuthResponse, UserResponse, PropertyResponse, PageResponse,
   IdentityVerificationResponse, TrustStatusResponse,
@@ -50,6 +66,7 @@ import type {
   AdminNotificationResponse, NotificationStatus,
   UnitResponse, TenantRecord, LeaseResponse, PortfolioSummaryResponse,
   InvoiceResponse, RentPaymentResponse, MaintenanceResponse,
+  BulkIntakeItem, BulkIntakeResponse,
 } from '@/types'
 
 export const authApi = {
@@ -79,6 +96,9 @@ export const propertyApi = {
   create:   (d:object) => po<PropertyResponse>('/api/properties', d),
   update:   (id:string, d:object) => pu<PropertyResponse>(`/api/properties/${id}`, d),
   delete:   (id:string) => de(`/api/properties/${id}`),
+  // Moves a management-only (UNLISTED) property onto the marketplace. It enters the ordinary
+  // verification path; the server refuses a property that is not unlisted or has no photo.
+  publish:  (id:string) => pu<PropertyResponse>(`/api/properties/${id}/publish`),
   getById:  (id:string) => g<PropertyResponse>(`/api/properties/${id}`),
   search:   (p:object) => g<PageResponse<PropertyResponse>>('/api/properties/search', p),
   my:       (page = 0, size = 20) => g<PageResponse<PropertyResponse>>('/api/properties/my', { page, size }),
@@ -110,6 +130,9 @@ export const verifApi = {
   submitOwner:  (id:string) => po<OwnershipVerificationResponse>(`/api/verification/ownership/${id}/submit`),
   myOwner:      () => g<OwnershipVerificationResponse[]>('/api/verification/ownership/me'),
   ownerByProp:  (pid:string) => g<OwnershipVerificationResponse>(`/api/verification/ownership/property/${pid}`),
+  // Files a folder of documents with no category declared for any of them; the server works out
+  // where each belongs and returns what it filed and what still needs a person. At most 30 a call.
+  bulkOwnerDocs:(id:string, documents:BulkIntakeItem[]) => po<BulkIntakeResponse>(`/api/verification/ownership/${id}/documents/bulk`, { documents }),
   ownerAdminQueue: (status = 'MINISTRY_LANDS_CHECK', size = 500) => g<PageResponse<OwnershipVerificationResponse>>('/api/verification/ownership/admin/queue', { status, size }),
   ownerAdminMinistry:(id:string,ministryConfirmed:boolean,notes?:string) => puParams<OwnershipVerificationResponse>(`/api/verification/ownership/admin/${id}/ministry-check`,{ministryConfirmed,notes}),
   ownerAdminEncumb:(id:string,encumbranceClear:boolean,notes?:string)   => puParams<OwnershipVerificationResponse>(`/api/verification/ownership/admin/${id}/encumbrance-check`,{encumbranceClear,notes}),
@@ -125,6 +148,8 @@ export const viewingApi = {
   confirmBuyer:  (id:string) => pu<ViewingResponse>(`/api/viewings/${id}/confirm-buyer`),
   complete:      (id:string) => pu<ViewingResponse>(`/api/viewings/${id}/complete`),
   cancel:        (id:string, reason?:string) => puParams<ViewingResponse>(`/api/viewings/${id}/cancel`, { reason }),
+  // Buyer, seller or admin; the server allows it only for a CONFIRMED viewing whose time has passed.
+  noShow:        (id:string, reason?:string) => puParams<ViewingResponse>(`/api/viewings/${id}/no-show`, { reason }),
 }
 
 export const paymentApi = {
@@ -146,6 +171,8 @@ export const revenueApi = {
   refund:       (id:string, reason:string) => pu<void>(`/api/revenue/payments/${id}/refund`, { reason }),
   audit:        (id:string) => g(`/api/revenue/payments/${id}/audit`),
   byReceipt:    (num:string) => g(`/api/revenue/receipts/${num}`),
+  // Raw M-Pesa callbacks, newest first (or one payment's, oldest first). Bounded and pageable.
+  rawCallbacks: (p?: { paymentId?:string; page?:number; limit?:number }) => gPaged<Record<string, unknown>>('/api/revenue/callbacks/raw', p),
   paymentReceipt:(id:string) => g(`/api/revenue/payments/${id}/receipt`),
 }
 
@@ -203,8 +230,11 @@ export const pmsApi = {
                    g<PageResponse<UnitResponse>>('/api/units/my', p),
     summary:     () => g<PortfolioSummaryResponse>('/api/units/my/summary'),
     byProperty:  (propertyId:string) => g<UnitResponse[]>(`/api/units/property/${propertyId}`),
+    // The same list with its total: use this where the answer must not silently stop at the cap.
+    byPropertyPage: (propertyId:string, p?: { page?:number; size?:number }) => gPaged<UnitResponse>(`/api/units/property/${propertyId}`, p),
     get:         (id:string) => g<UnitResponse>(`/api/units/${id}`),
     leases:      (id:string) => g<LeaseResponse[]>(`/api/units/${id}/leases`),
+    leasesPage:  (id:string, p?: { page?:number; size?:number }) => gPaged<LeaseResponse>(`/api/units/${id}/leases`, p),
     update:      (id:string, d:object) => pu<UnitResponse>(`/api/units/${id}`, d),
     remove:      (id:string) => de(`/api/units/${id}`),
   },
@@ -241,6 +271,7 @@ export const pmsApi = {
     mine:        (p?: { status?:string; page?:number; size?:number }) => g<PageResponse<InvoiceResponse>>('/api/invoices/my', p),
     myTenancy:   (p?: { page?:number; size?:number }) => g<PageResponse<InvoiceResponse>>('/api/invoices/my-tenancy', p),
     payments:    (id:string) => g<RentPaymentResponse[]>(`/api/invoices/${id}/payments`),
+    paymentsPage:(id:string, p?: { page?:number; size?:number }) => gPaged<RentPaymentResponse>(`/api/invoices/${id}/payments`, p),
     pay:         (id:string, d?:object) => po<RentPaymentResponse>(`/api/invoices/${id}/pay`, d ?? {}),
     record:      (id:string, d:object) => po<RentPaymentResponse>(`/api/invoices/${id}/record-payment`, d),
     writeOff:    (id:string) => pu<InvoiceResponse>(`/api/invoices/${id}/write-off`),

@@ -12,6 +12,7 @@ import com.kenyarealestate.verification.repository.*;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -604,9 +605,11 @@ public class PropertyOwnershipVerificationService {
     }
 
     @Transactional(readOnly = true)
-    public List<OwnershipVerificationResponse> getByUserId(UUID userId) {
-        return ownershipRepo.findBySellerIdentityVerificationUserId(userId)
-                .stream().map(this::toResponse).collect(Collectors.toList());
+    public Page<OwnershipVerificationResponse> getByUserId(UUID userId, Pageable pageable) {
+        return ownershipRepo.findBySellerIdentityVerificationUserId(userId,
+                org.springframework.data.domain.PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(),
+                        Sort.by(Sort.Order.desc("createdAt"), Sort.Order.asc("id"))))
+                .map(this::toResponse);
     }
 
     @Transactional(readOnly = true)

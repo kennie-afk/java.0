@@ -33,6 +33,7 @@ export default async function DairyPage({
 
   const farm = farms.find((f) => f.id === params.farm) ?? farms[0];
   const summary = await loadDairySummary(farm.id, params.from, params.to);
+  const affected = new Set((summary?.milkedDuringWithdrawal ?? []).map((c) => c.cowId)).size;
 
   return (
     <>
@@ -69,8 +70,8 @@ export default async function DairyPage({
 
           {summary.milkedDuringWithdrawal.length > 0 ? (
             <Notice tone="danger">
-              Milk was recorded from {new Set(summary.milkedDuringWithdrawal.map((c) => c.cowId)).size} cow(s) during a
-              medicine withdrawal period. That milk should not have been sold. Details below.
+              Milk was recorded from {affected} {affected === 1 ? "cow" : "cows"} during a medicine withdrawal
+              period. That milk should not have been sold. Details below.
             </Notice>
           ) : null}
 

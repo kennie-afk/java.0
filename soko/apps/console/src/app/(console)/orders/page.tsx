@@ -1,14 +1,18 @@
 import Link from "next/link";
 import { api, describeError, ksh } from "@/lib/api";
+import { Pager, SearchBar, listQuery, parsePaging, type PagingQuery } from "@/components/pager";
 import { Badge, Notice, PageHeader, Table, buttonClass, rowClass } from "@/components/ui";
 import type { OrderRow } from "@/lib/types";
 
-export default async function OrdersPage() {
+export default async function OrdersPage({ searchParams }: { searchParams: Promise<PagingQuery> }) {
+  const { q, page } = parsePaging(await searchParams);
   let orders: OrderRow[] = [];
+  let total = 0;
+  let hasMore = false;
   let error: string | null = null;
 
   try {
-    orders = await api.get<OrderRow[]>("/v1/orders?limit=100");
+    ({ items: orders, total, hasMore } = await api.page<OrderRow>(`/v1/orders?${listQuery(q, page)}`));
   } catch (caught) {
     error = describeError(caught);
   }
@@ -21,6 +25,7 @@ export default async function OrdersPage() {
     <>
       <PageHeader title="Orders" subtitle="Every order, the buyer it came from and the spread it earned."
         actions={<Link href="/orders/new" className={buttonClass}>New order</Link>} />
+      <SearchBar q={q} placeholder="Search by reference or customer" />
       <Table head={["Reference", "Customer", "County", "Revenue", "Cost", "Margin", "Status"]}>
         {orders.map((order) => (
           <tr key={order.id} className={rowClass}>
@@ -36,6 +41,7 @@ export default async function OrdersPage() {
           </tr>
         ))}
       </Table>
+      <Pager q={q} page={page} shown={orders.length} total={total} hasMore={hasMore} />
     </>
   );
 }

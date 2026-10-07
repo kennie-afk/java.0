@@ -96,11 +96,12 @@ public class UnitService {
     }
 
     @Transactional(readOnly = true)
-    public List<UnitResponse> listByProperty(UUID landlordId, UUID propertyId) {
-        return units.findByPropertyIdOrderByLabelAsc(propertyId).stream()
-                .filter(u -> u.getLandlordId().equals(landlordId))
-                .map(this::toResponse)
-                .toList();
+    public Page<UnitResponse> listByProperty(UUID landlordId, UUID propertyId, Pageable pageable) {
+        // Ownership is part of the query: another landlord's units never leave the database.
+        return units.findByPropertyIdAndLandlordId(propertyId, landlordId,
+                org.springframework.data.domain.PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(),
+                        org.springframework.data.domain.Sort.by("label").and(org.springframework.data.domain.Sort.by("id"))))
+                .map(this::toResponse);
     }
 
     @Transactional(readOnly = true)

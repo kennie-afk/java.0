@@ -101,16 +101,33 @@ public class RevenueController {
     @GetMapping("/callbacks/raw")
     public ResponseEntity<List<MpesaRawCallback>> rawCallbacks(
             @RequestParam(required = false) UUID paymentId,
-            @RequestParam(defaultValue = "100") int limit) {
-        if (paymentId != null) {
-            return ResponseEntity.ok(rawCallbackRepo.findByPaymentIdOrderByReceivedAtAsc(paymentId));
-        }
+            @RequestParam(defaultValue = "100") int limit,
+            @RequestParam(defaultValue = "0") int page) {
         // Capped regardless of what the caller asks for. This table is append-only and
         // never pruned, so an unbounded read here is a slow-motion outage: it works in
-        // testing and takes the service down once the history is large enough.
+        // testing and takes the service down once the history is large enough. The one-payment
+        // form is capped too (a payment retried by Safaricom for a day can collect a lot of rows),
+        // and both forms page, so "the last 500" is no longer the most that can ever be seen.
         int capped = Math.max(1, Math.min(limit, 500));
-        return ResponseEntity.ok(
-                rawCallbackRepo.findAllByOrderByReceivedAtDesc(PageRequest.of(0, capped)));
+        int pageNumber = Math.max(page, 0);
+        if (paymentId != null) {
+            Page<MpesaRawCallback> found = rawCallbackRepo.findByPaymentId(paymentId,
+                    PageRequest.of(pageNumber, capped,
+                            org.springframework.data.domain.Sort.by("receivedAt").ascending()
+                                    .and(org.springframework.data.domain.Sort.by("id"))));
+            return withPaging(found.getContent(), found.getTotalElements(), found.hasNext());
+        }
+        Page<MpesaRawCallback> found = rawCallbackRepo.findAll(PageRequest.of(pageNumber, capped,
+                org.springframework.data.domain.Sort.by("receivedAt").descending()
+                        .and(org.springframework.data.domain.Sort.by("id"))));
+        return withPaging(found.getContent(), found.getTotalElements(), found.hasNext());
+    }
+
+    private static <T> ResponseEntity<List<T>> withPaging(List<T> items, long total, boolean hasMore) {
+        return ResponseEntity.ok()
+                .header("X-Total-Count", Long.toString(total))
+                .header("X-Has-More", Boolean.toString(hasMore))
+                .body(items);
     }
 
     @PostMapping("/mpesa/b2c/callback/{secret}")

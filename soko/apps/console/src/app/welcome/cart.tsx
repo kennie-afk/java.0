@@ -1,15 +1,18 @@
 "use client";
 
+import { newKey } from "@/lib/idempotency";
 import {
   createContext,
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import { requestOtp, verifyOtpAndOrder, type OrderResult } from "@/app/welcome/actions";
 import type { PublicProduct } from "@/app/welcome/storefront";
+import { PayPanel } from "@/components/pay-panel";
 
 const STORAGE_KEY = "freshferm-cart-v1";
 
@@ -167,6 +170,7 @@ export function CartDrawer({ slug }: { slug?: string }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<OrderResult | null>(null);
+  const keyRef = useRef<{ signature: string; key: string } | null>(null);
 
   if (!cart.isOpen) {
     return null;
@@ -207,10 +211,18 @@ export function CartDrawer({ slug }: { slug?: string }) {
       quantity: line.quantity,
     }));
 
+    // One key per distinct basket: resubmitting the same basket returns the first order.
+    const signature = JSON.stringify(lines);
+    if (!keyRef.current || keyRef.current.signature !== signature) {
+      keyRef.current = { signature, key: newKey() };
+    }
+
     setSubmitting(true);
     setError(null);
 
-    const result = await verifyOtpAndOrder({ slug, phone, code, fullName, county, lines });
+    const result = await verifyOtpAndOrder({
+      slug, phone, code, fullName, county, lines, idempotencyKey: keyRef.current.key,
+    });
 
     setSubmitting(false);
     if (result.error || !result.order) {
@@ -260,7 +272,7 @@ export function CartDrawer({ slug }: { slug?: string }) {
             />
           )}
           {step === "code" && <CodeForm code={code} onCode={setCode} phone={phone} error={error} />}
-          {step === "confirmed" && order && <Confirmation order={order} />}
+          {step === "confirmed" && order && <Confirmation order={order} phone={phone} />}
         </div>
 
         {step === "cart" && cart.lines.length > 0 && (
@@ -490,7 +502,7 @@ function CodeForm({
   );
 }
 
-function Confirmation({ order }: { order: OrderResult }) {
+function Confirmation({ order, phone }: { order: OrderResult; phone: string }) {
   return (
     <div className="flex flex-col items-center gap-4 py-8 text-center">
       <div className="flex h-12 w-12 items-center justify-center rounded-sm bg-[var(--color-accent-soft)] text-[var(--color-accent)]">
@@ -516,9 +528,12 @@ function Confirmation({ order }: { order: OrderResult }) {
           <span className="tabular-nums">{ksh(order.totalCents)}</span>
         </div>
       </div>
-      <p className="text-[0.875rem] text-[var(--color-faint)]">
-        We&apos;ll reach out on WhatsApp or by phone to confirm payment and delivery.
-      </p>
+      <div className="w-full text-left">
+        <PayPanel orderId={order.orderId} totalCents={order.totalCents} defaultPhone={phone} />
+      </div>
+      <a href={`/shop/orders/${order.orderId}`} className="text-[0.958rem] text-[var(--color-muted)] underline">
+        View this order
+      </a>
     </div>
   );
 }

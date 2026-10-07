@@ -36,7 +36,10 @@ public class LabService {
     private final AuditService audit;
     private final PatientAccess patients;
 
-    public LabService(JdbcClient jdbc, AuditService audit, PatientAccess patients) {
+    private final com.hms.platform.web.ShortListCap cap;
+
+    public LabService(JdbcClient jdbc, AuditService audit, PatientAccess patients, com.hms.platform.web.ShortListCap cap) {
+        this.cap = cap;
         this.jdbc = jdbc;
         this.audit = audit;
         this.patients = patients;
@@ -93,7 +96,8 @@ public class LabService {
             p.add("%" + q.trim().toLowerCase().replace("%", "").replace("_", "") + "%");
             p.add(q.trim().toUpperCase().replace("%", "") + "%");
         }
-        return jdbc.sql(sql + " ORDER BY name LIMIT 500").params(p.toArray()).query(LabService::testMap).list();
+        // Used to stop silently at 500; now it says so when the catalogue outgrows the cap, and the search box narrows it.
+        return cap.check(jdbc.sql(sql + " ORDER BY name LIMIT " + cap.fetchLimit()).params(p.toArray()).query(LabService::testMap).list(), "lab tests match");
     }
 
     private static final String TEST_SQL = "SELECT id, code, name, loinc_code, specimen_type, result_type, unit, ref_low, ref_high, critical_low, critical_high, price, active FROM lab_tests";

@@ -14,6 +14,11 @@ export const fmt = {
   phone: (p: string) => p.startsWith('254') ? `+${p}` : p,
 }
 
+/** Turns stored codes such as VIEWING_FEE or (FULL_PAYMENT) into plain words for display. */
+export const plainText = (t?: string | null) => (t ?? '')
+  .replace(/\(([A-Z]+(?:_[A-Z]+)*)\)/g, (_m, c: string) => `(${c.toLowerCase().replace(/_/g, ' ')})`)
+  .replace(/\b[A-Z]+(?:_[A-Z]+)+\b/g, (c) => c.toLowerCase().replace(/_/g, ' '))
+
 export const statusVariant = (s: string): 'success'|'warning'|'error'|'info'|'muted' => {
   const map: Record<string, 'success'|'warning'|'error'|'info'|'muted'> = {
     ACTIVE:'success', APPROVED:'success', COMPLETED:'success', CONFIRMED:'success', PAID:'success', PAYOUT_COMPLETED:'success', RESOLVED:'success',

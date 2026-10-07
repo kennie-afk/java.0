@@ -35,10 +35,12 @@ public class StaffService {
     private final JdbcClient jdbc;
     private final AuditService audit;
     private final PasswordEncoder encoder;
+    private final SessionService sessions;
     private final AccessService access;
     private final ObjectMapper json;
 
-    public StaffService(JdbcClient jdbc, AuditService audit, PasswordEncoder encoder, AccessService access, ObjectMapper json) {
+    public StaffService(JdbcClient jdbc, AuditService audit, PasswordEncoder encoder, AccessService access, ObjectMapper json, SessionService sessions) {
+        this.sessions = sessions;
         this.jdbc = jdbc;
         this.audit = audit;
         this.encoder = encoder;
@@ -131,6 +133,8 @@ public class StaffService {
         load(id);
         jdbc.sql("UPDATE practitioners SET password_hash = ?, must_change_password = true, failed_logins = 0, locked_until = NULL, updated_at = now() WHERE org_id = ? AND id = ?")
                 .params(encoder.encode(in.temporaryPassword()), t.orgId(), id).update();
+        // A reset is how an account is taken back: whoever held a session on the old password loses it.
+        sessions.revokeAll(t.orgId(), id);
         audit.record("staff.password.reset", "practitioner", id, null, null, Map.of());
     }
 
@@ -147,6 +151,8 @@ public class StaffService {
         }
         jdbc.sql("UPDATE practitioners SET password_hash = ?, must_change_password = false, password_changed_at = now(), updated_at = now() WHERE org_id = ? AND id = ?")
                 .params(encoder.encode(in.newPassword()), t.orgId(), t.practitionerId()).update();
+        // Every session, this one included: the person signs in again with the new password.
+        sessions.revokeAll(t.orgId(), t.practitionerId());
         audit.record("staff.password.change", "practitioner", t.practitionerId(), null, null, Map.of());
     }
 

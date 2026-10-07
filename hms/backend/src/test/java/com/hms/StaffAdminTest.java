@@ -104,9 +104,11 @@ class StaffAdminTest extends IntegrationTest {
         assertThat(fetch("/v1/staff", b.token()).get("data")).hasSize(1);
         sendJson(post("/v1/auth/me/password", a.token()), Map.of("currentPassword", "not-it-at-all-123", "newPassword", "a-brand-new-password"), 400);
         sendJson(post("/v1/auth/me/password", a.token()), Map.of("currentPassword", a.password(), "newPassword", "a-brand-new-password"), 204);
-        assertThat(login(a.email(), "a-brand-new-password")).isNotBlank();
+        // Changing the password ends every session, the one that changed it included.
+        send(get("/v1/auth/me", a.token()), 401);
+        String fresh = login(a.email(), "a-brand-new-password");
         // Audit trail records the administration actions and still verifies.
-        JsonNode verify = fetch("/v1/audit/verify", a.token());
+        JsonNode verify = fetch("/v1/audit/verify", fresh);
         assertThat(verify.findValuesAsText("intact")).containsOnly("true");
     }
 }

@@ -39,7 +39,14 @@ export default async function MyOrdersPage() {
               {new Date(row.placedAt).toLocaleDateString("en-KE", { dateStyle: "medium" })}
             </td>
             <td className="px-4 py-3 tabular-nums">{ksh(row.totalCents)}</td>
-            <td className="px-4 py-3"><Badge value={row.status} /></td>
+            <td className="px-4 py-3">
+              <span className="flex items-center gap-3">
+                <Badge value={row.status} />
+                {row.status === "ROUTED" ? (
+                  <Link href={`/shop/orders/${row.id}`} className="text-[0.958rem] font-medium hover:underline">Pay now</Link>
+                ) : null}
+              </span>
+            </td>
           </tr>
         ))}
       </Table>

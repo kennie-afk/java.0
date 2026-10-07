@@ -1,0 +1,85 @@
+# Private S3-compatible object store for imaging images: one MinIO, a 20Gi volume, reachable only from the API pods (see
+# 50-network-policy.yaml). The API creates the bucket on start (HMS_STORAGE_S3_CREATE_BUCKET) and serves images itself, so this
+# store has no ingress and no public address.
+#
+# A single instance: no replication, no erasure coding, no failover, and the volume is the only copy. For a real hospital prefer an
+# external S3 service (delete this file and its references, set HMS_STORAGE_S3_ENDPOINT in 01-config.yaml and the two keys in the
+# Secret), or run MinIO in distributed mode. NOT applied to a cluster or run in this form; the image is not the one used in tests.
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  namespace: hms
+  labels: {app.kubernetes.io/name: minio, app.kubernetes.io/part-of: hms}
+spec:
+  clusterIP: None
+  selector: {app.kubernetes.io/name: minio}
+  ports:
+    - {name: s3, port: 9000, targetPort: 9000}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: minio
+  namespace: hms
+  labels: {app.kubernetes.io/name: minio, app.kubernetes.io/part-of: hms}
+spec:
+  serviceName: minio
+  replicas: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: minio}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: minio, app.kubernetes.io/part-of: hms}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10002
+        runAsGroup: 10002
+        fsGroup: 10002
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: minio
+          image: quay.io/minio/minio:RELEASE.2024-10-13T13-34-11Z
+          args: [server, /data, --address, ":9000", --config-dir, /tmp/.minio]
+          ports:
+            - {name: s3, containerPort: 9000}
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom: {secretKeyRef: {name: hms-secrets, key: HMS_STORAGE_S3_ACCESS_KEY}}
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom: {secretKeyRef: {name: hms-secrets, key: HMS_STORAGE_S3_SECRET_KEY}}
+            - {name: MINIO_BROWSER, value: "off"}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          startupProbe:
+            httpGet: {path: /minio/health/ready, port: s3}
+            periodSeconds: 5
+            failureThreshold: 24
+          readinessProbe:
+            httpGet: {path: /minio/health/ready, port: s3}
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet: {path: /minio/health/live, port: s3}
+            periodSeconds: 20
+            timeoutSeconds: 3
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {cpu: "1", memory: 1Gi}
+          volumeMounts:
+            - {name: data, mountPath: /data}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests: {storage: 20Gi}

@@ -82,6 +82,27 @@ export async function requestReset(_previous: AuthState, form: FormData): Promis
   return { error: null, message: "If that email has an account, a reset link is on its way." };
 }
 
+export async function resetPassword(_previous: AuthState, form: FormData): Promise<AuthState> {
+  const token = String(form.get("token") ?? "");
+  const password = String(form.get("password") ?? "");
+  const confirm = String(form.get("confirm") ?? "");
+  if (!token) {
+    return { error: "This link is missing its token. Open the link from the email again.", message: null };
+  }
+  if (password.length < 10) {
+    return { error: "Use a password of at least 10 characters.", message: null };
+  }
+  if (password !== confirm) {
+    return { error: "The two passwords do not match.", message: null };
+  }
+  try {
+    await api.reset(token, password);
+  } catch (caught) {
+    return { error: describeError(caught), message: null };
+  }
+  return { error: null, message: "Your password has been changed. Sign in with the new one." };
+}
+
 export async function signOut(): Promise<void> {
   await clearSession();
   redirect("/login");

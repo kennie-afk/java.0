@@ -56,13 +56,20 @@ public class PaymentCallbackHandler {
     private void settle(MpesaPayment payment) {
         if (payment.getPurpose() == MpesaPayment.Purpose.ORDER) {
             orders.findByIdAndTenantId(payment.getReferenceId(), payment.getTenantId()).ifPresentOrElse(order -> {
+                if ("CANCELLED".equals(order.getStatus())) {
+                    // Stock was restocked and the commission voided at cancellation; marking it
+                    // PAID would resurrect it, so the money is held for a refund instead.
+                    orphan(payment, "ORDER", order.getId(), "order " + order.getReference()
+                            + " was cancelled before the payment arrived");
+                    return;
+                }
                 order.setStatus("PAID");
                 orders.save(order);
                 ledger.append(order.getTenantId(), "PAYMENT_RECEIVED", "ORDER", order.getId(),
                         payment.getDueCents(), "M-Pesa receipt " + payment.getMpesaReceiptNumber());
                 recordRounding(payment, "ORDER", order.getId());
-            }, () -> log.error("M-Pesa payment {} succeeded but order {} was not found for tenant {}",
-                    payment.getId(), payment.getReferenceId(), payment.getTenantId()));
+            }, () -> orphan(payment, "ORDER", payment.getReferenceId(),
+                    "order " + payment.getReferenceId() + " was not found for this tenant"));
         } else {
             invoices.findByIdAndTenantId(payment.getReferenceId(), payment.getTenantId()).ifPresentOrElse(invoice -> {
                 invoice.setStatus(Invoice.Status.PAID);
@@ -71,9 +78,24 @@ public class PaymentCallbackHandler {
                 ledger.append(invoice.getTenantId(), "PAYMENT_RECEIVED", "INVOICE", invoice.getId(),
                         payment.getDueCents(), "M-Pesa receipt " + payment.getMpesaReceiptNumber());
                 recordRounding(payment, "INVOICE", invoice.getId());
-            }, () -> log.error("M-Pesa payment {} succeeded but invoice {} was not found for tenant {}",
-                    payment.getId(), payment.getReferenceId(), payment.getTenantId()));
+            }, () -> orphan(payment, "INVOICE", payment.getReferenceId(),
+                    "invoice " + payment.getReferenceId() + " was not found for this tenant"));
         }
+    }
+
+    /**
+     * Money Safaricom confirmed that cannot be applied to anything. It must not vanish into a log
+     * line: the payment is kept (status ORPHANED, receipt number intact) with the reason, listed
+     * for the owner, and a ledger entry records the amount so the books still sum to the statement.
+     */
+    private void orphan(MpesaPayment payment, String referenceType, java.util.UUID referenceId, String reason) {
+        payment.setStatus(MpesaPayment.Status.ORPHANED);
+        payment.setOrphanReason(reason.length() > 300 ? reason.substring(0, 300) : reason);
+        payments.markOrphaned(payment);
+        ledger.append(payment.getTenantId(), "PAYMENT_ORPHANED", referenceType, referenceId,
+                payment.getAmountCents(), "Unmatched M-Pesa receipt " + payment.getMpesaReceiptNumber());
+        log.error("M-Pesa payment {} (receipt {}) succeeded but cannot be applied: {}",
+                payment.getId(), payment.getMpesaReceiptNumber(), reason);
     }
 
     /** The cents collected beyond what was due, so ledger receipts sum to what Safaricom paid out. */

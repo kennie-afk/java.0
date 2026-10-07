@@ -60,8 +60,12 @@ public class UnitController {
 
     @Operation(summary = "Units on one of your properties")
     @GetMapping("/property/{propertyId}")
-    public ResponseEntity<List<UnitResponse>> byProperty(@PathVariable UUID propertyId, HttpServletRequest r) {
-        return ResponseEntity.ok(units.listByProperty(caller.userId(r), propertyId));
+    public ResponseEntity<List<UnitResponse>> byProperty(
+            @PathVariable UUID propertyId,
+            @RequestParam(defaultValue = "0")   @Min(0)                                   int page,
+            @RequestParam(defaultValue = "200") @Min(1) @Max(PagedResponses.MAX_SIZE)     int size,
+            HttpServletRequest r) {
+        return PagedResponses.of(units.listByProperty(caller.userId(r), propertyId, PageRequest.of(page, size)));
     }
 
     @GetMapping("/{id}")
@@ -71,8 +75,12 @@ public class UnitController {
 
     @Operation(summary = "Every lease this unit has ever had")
     @GetMapping("/{id}/leases")
-    public ResponseEntity<List<LeaseResponse>> history(@PathVariable UUID id, HttpServletRequest r) {
-        return ResponseEntity.ok(leases.historyForUnit(caller.userId(r), id));
+    public ResponseEntity<List<LeaseResponse>> history(
+            @PathVariable UUID id,
+            @RequestParam(defaultValue = "0")   @Min(0)                                   int page,
+            @RequestParam(defaultValue = "200") @Min(1) @Max(PagedResponses.MAX_SIZE)     int size,
+            HttpServletRequest r) {
+        return PagedResponses.of(leases.historyForUnit(caller.userId(r), id, PageRequest.of(page, size)));
     }
 
     @PutMapping("/{id}")

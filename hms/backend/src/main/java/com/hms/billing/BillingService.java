@@ -298,8 +298,8 @@ public class BillingService {
     }
 
     /**
-     * Simulates Safaricom's confirmation callback. Available only while the gateway is the mock: a
-     * real callback needs its own authentication, which has not been designed against Daraja here.
+     * Simulates Safaricom's confirmation callback. Available only while the gateway is the mock. The real
+     * callback is {@link MpesaCallbackController}, which authenticates by a secret in its path and has no staff user.
      */
     @Transactional
     public Payment completeMock(MockCompletion in) {
@@ -335,6 +335,50 @@ public class BillingService {
             audit.record("payment.mpesa.failed", "invoice", inv.id(), inv.facilityId(), null, Map.of("payment", id.toString()));
         }
         return payment(id);
+    }
+
+    /**
+     * Applies Safaricom's verdict to a pending payment. Runs in the payment's organisation (set by the caller) with no staff user.
+     * Returns null when it was applied or had already been applied (a duplicate), otherwise the reason the money could not be
+     * applied, which the caller records in the unclaimed table. Nothing here throws for a business reason: Safaricom is always
+     * answered, and the money is never lost.
+     */
+    @Transactional
+    public String applyMpesaCallback(UUID paymentId, int resultCode, String resultDesc, String receipt, BigDecimal paidAmount) {
+        TenantContext.Tenant t = TenantContext.require();
+        UUID invoiceId = payment(paymentId).invoiceId();
+        Invoice inv = lock(invoiceId);
+        // Re-read under the lock: a duplicate or concurrent callback must not complete twice.
+        Payment p = payment(paymentId);
+        if (!"PENDING".equals(p.status())) {
+            return null;
+        }
+        if (resultCode != 0) {
+            String why = blank(resultDesc) == null ? "Not completed by the customer (code " + resultCode + ")" : resultDesc.trim();
+            jdbc.sql("UPDATE payments SET status = 'FAILED', failure_reason = ?, completed_at = now() WHERE org_id = ? AND id = ?")
+                    .params(why.length() > 200 ? why.substring(0, 200) : why, t.orgId(), paymentId).update();
+            audit.record("payment.mpesa.failed", "invoice", inv.id(), inv.facilityId(), null, Map.of("payment", paymentId.toString(), "code", resultCode));
+            return null;
+        }
+        if (blank(receipt) == null || paidAmount == null) {
+            return "INCOMPLETE_CALLBACK";
+        }
+        if (money(paidAmount).compareTo(p.amount()) != 0) {
+            return "AMOUNT_MISMATCH";
+        }
+        if ("VOID".equals(inv.status())) {
+            return "INVOICE_VOID";
+        }
+        if (p.amount().compareTo(inv.total().subtract(inv.amountPaid())) > 0) {
+            return "OVERPAYMENT";
+        }
+        boolean reused = jdbc.sql("SELECT count(*) FROM payments WHERE org_id = ? AND mpesa_receipt = ?").params(t.orgId(), receipt.trim()).query(Integer.class).single() > 0;
+        if (reused) {
+            return "RECEIPT_REUSED";
+        }
+        jdbc.sql("UPDATE payments SET status = 'COMPLETED', completed_at = now(), mpesa_receipt = ? WHERE org_id = ? AND id = ?").params(receipt.trim(), t.orgId(), paymentId).update();
+        settle(inv, paymentId);
+        return null;
     }
 
     @Transactional

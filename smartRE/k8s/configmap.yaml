@@ -29,6 +29,12 @@ data:
   # correct behaviour, opaque symptom. user-service stays listed for in-cluster fetches
   # that use the service name directly.
   DOCUMENT_URL_ALLOWED_HOSTS: smartre.co.ke,user-service
+  # "production" turns an unconfigured SMS, email, Smile Identity, Ardhisasa or M-Pesa setup into a
+  # startup failure (ProductionGuard in notification, verification and payment). It is "development"
+  # here because the committed example secrets hold no real keys; set it when they do.
+  SMARTRE_ENVIRONMENT: development
+  # Start in production with SMS/email/identity/registry providers off, on purpose. Logged on every start.
+  SMARTRE_ALLOW_UNCONFIGURED_PROVIDERS: "false"
   MAIL_HOST: smtp.gmail.com
   # Alphanumeric sender id, if one has been registered with the provider.
   SMS_SENDER_ID: ""

@@ -5,6 +5,7 @@ resources:
   - 00-namespace.yaml
   - 01-config.yaml
   - 10-postgres.yaml
+  - 15-minio.yaml
   - 20-api.yaml
   - 30-console.yaml
   - 40-ingress.yaml

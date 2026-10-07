@@ -52,6 +52,13 @@ spring:
       properties:
         spring.json.trusted.packages: "com.kenyarealestate.*"
 
+smartre:
+  # production makes unconfigured providers a startup failure (see ProductionGuard); anything else
+  # keeps the log-instead-of-send / manual-review behaviour that local development relies on.
+  environment: ${SMARTRE_ENVIRONMENT:development}
+  # Start in production anyway, with providers off, on purpose. Logged on every start.
+  allow-unconfigured-providers: ${SMARTRE_ALLOW_UNCONFIGURED_PROVIDERS:false}
+
 server:
   port: 8082
 

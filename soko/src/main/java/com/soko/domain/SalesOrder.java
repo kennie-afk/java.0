@@ -22,6 +22,7 @@ public class SalesOrder {
     @Column(name = "placed_by_customer", nullable = false) private boolean placedByCustomer;
     @Column(name = "cancelled_at") private Instant cancelledAt;
     @Column(name = "cancel_reason") private String cancelReason;
+    @Column(name = "idempotency_key") private String idempotencyKey;
 
     @OneToMany(mappedBy = "orderId", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<OrderLine> lines = new ArrayList<>();
@@ -50,6 +51,8 @@ public class SalesOrder {
     public void setLines(List<OrderLine> v) { this.lines = v; }
     public Instant getCancelledAt() { return cancelledAt; }
     public void setCancelledAt(Instant v) { this.cancelledAt = v; }
+    public String getIdempotencyKey() { return idempotencyKey; }
+    public void setIdempotencyKey(String v) { this.idempotencyKey = v; }
     public String getCancelReason() { return cancelReason; }
     public void setCancelReason(String v) { this.cancelReason = v; }
 }

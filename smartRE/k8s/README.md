@@ -160,12 +160,24 @@ you intend to keep.
 kubectl apply -f k8s/namespace.yaml
 kubectl apply -f k8s/configmap.yaml
 
-# Create secrets (edit secret.yaml with real values first)
-kubectl apply -f k8s/secret.yaml
+# Create the Secret. It is generated, never committed: k8s/secret.example.yaml only documents the
+# keys. Random values for what the platform owns; provider credentials (M-Pesa, mail, SMS, Smile
+# Identity, Ardhisasa, Gemini, S3) come from the environment variable of the same name, and an
+# unset one is left empty rather than made up.
+MAIL_USERNAME=... MAIL_PASSWORD=... SMS_USERNAME=... SMS_API_KEY=... \
+  ./scripts/k8s-secret.sh | kubectl apply -f -
+# Run it once per cluster: running it again would replace DB_PASSWORD with one the existing
+# databases do not have.
 
-# Deploy all services
-kubectl apply -f k8s/
+# Deploy all services. Kustomize, not `-f k8s/`, so the example Secret is never applied over the real one.
+kubectl apply -k k8s/
 ```
+
+`scripts/check-k8s-env.py` fails if the generator and `secret.example.yaml` list different keys, or if a
+manifest references a key neither has. Set `SMARTRE_ENVIRONMENT=production` in `configmap.yaml` once
+the real provider credentials are in: notification, verification and payment-service then refuse to
+start on an unset or placeholder SMS, mail, Smile Identity, Ardhisasa or M-Pesa value (or on one you have
+not acknowledged with `SMARTRE_ALLOW_UNCONFIGURED_PROVIDERS=true`).
 
 ## Scale Manually
 

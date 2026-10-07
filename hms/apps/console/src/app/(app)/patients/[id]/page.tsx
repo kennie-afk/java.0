@@ -55,6 +55,7 @@ export default function PatientPage({ params }: { params: Promise<{ id: string }
               router.push(`/encounters/${e.id}`);
             })}>Start outpatient visit</Button>)}
         {can("billing:post") && <Button variant="secondary" href={`/billing/new?patientId=${id}`}>New invoice</Button>}
+        {can("patients:merge") && <Button variant="secondary" href={`/patients/${id}/merge`}>Merge duplicate</Button>}
       </>}>
       <ErrorNote error={start.error} />
       <Grid cols={2}>

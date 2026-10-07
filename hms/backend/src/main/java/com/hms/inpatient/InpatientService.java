@@ -39,7 +39,11 @@ public class InpatientService {
     private final PatientService patientService;
     private final ClinicalService clinical;
 
-    public InpatientService(JdbcClient jdbc, AuditService audit, PatientAccess patients, PatientService patientService, ClinicalService clinical) {
+    private final com.hms.platform.web.ShortListCap cap;
+
+    public InpatientService(JdbcClient jdbc, AuditService audit, PatientAccess patients, PatientService patientService, ClinicalService clinical,
+                            com.hms.platform.web.ShortListCap cap) {
+        this.cap = cap;
         this.jdbc = jdbc;
         this.audit = audit;
         this.patients = patients;
@@ -89,7 +93,8 @@ public class InpatientService {
     public List<Ward> wards(UUID facilityId) {
         TenantContext.Tenant t = TenantContext.require();
         t.requireFacility(facilityId);
-        return jdbc.sql(WARD_SQL + " WHERE w.org_id = ? AND w.facility_id = ? GROUP BY w.id ORDER BY w.name").params(t.orgId(), facilityId).query(InpatientService::wardMap).list();
+        return cap.check(jdbc.sql(WARD_SQL + " WHERE w.org_id = ? AND w.facility_id = ? GROUP BY w.id ORDER BY w.name LIMIT " + cap.fetchLimit()).params(t.orgId(), facilityId)
+                .query(InpatientService::wardMap).list(), "wards");
     }
 
     private Ward ward(UUID id) {
@@ -112,14 +117,14 @@ public class InpatientService {
     public List<Bed> beds(UUID wardId) {
         TenantContext.Tenant t = TenantContext.require();
         t.requireFacility(ward(wardId).facilityId());
-        return jdbc.sql("""
+        return cap.check(jdbc.sql("""
                 SELECT b.id, b.ward_id, w.name AS ward_name, b.label, b.status, a.id AS admission_id, pt.given_name || ' ' || pt.family_name AS patient_name
                   FROM beds b JOIN wards w ON w.org_id = b.org_id AND w.id = b.ward_id
                   LEFT JOIN bed_assignments ba ON ba.org_id = b.org_id AND ba.bed_id = b.id AND ba.released_at IS NULL
                   LEFT JOIN admissions a ON a.org_id = ba.org_id AND a.id = ba.admission_id LEFT JOIN patients pt ON pt.org_id = a.org_id AND pt.id = a.patient_id
-                 WHERE b.org_id = ? AND b.ward_id = ? ORDER BY b.label""").params(t.orgId(), wardId)
+                 WHERE b.org_id = ? AND b.ward_id = ? ORDER BY b.label LIMIT """ + cap.fetchLimit()).params(t.orgId(), wardId)
                 .query((rs, n) -> new Bed(rs.getObject("id", UUID.class), rs.getObject("ward_id", UUID.class), rs.getString("ward_name"), rs.getString("label"), rs.getString("status"),
-                        rs.getObject("admission_id", UUID.class), rs.getString("patient_name"))).list();
+                        rs.getObject("admission_id", UUID.class), rs.getString("patient_name"))).list(), "beds in that ward");
     }
 
     @Transactional

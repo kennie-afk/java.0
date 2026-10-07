@@ -18,7 +18,7 @@ spring:
             allowedMethods: ["GET","POST","PUT","DELETE","PATCH","OPTIONS"]
             allowedHeaders: "*"
             allowCredentials: true
-            exposedHeaders: ["Authorization", "X-Error-Reason"]
+            exposedHeaders: ["Authorization", "X-Error-Reason", "X-Total-Count", "X-Has-More"]
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
         - RemoveRequestHeader=X-Internal-Secret

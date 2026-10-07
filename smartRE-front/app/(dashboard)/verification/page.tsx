@@ -138,7 +138,7 @@ export default function VerificationPage() {
           </div>
           {verif && (
             <div className="text-right text-xs text-muted">
-              <p>Score: <strong className="text-gray-900 dark:text-white">{verif.identityScore}/100</strong></p>
+              {verif.identityScore > 0 && <p>Score: <strong className="text-gray-900 dark:text-white">{verif.identityScore}/100</strong></p>}
               {verif.expiresAt && <p>Expires: {fmt.date(verif.expiresAt)}</p>}
             </div>
           )}
@@ -170,7 +170,7 @@ export default function VerificationPage() {
           <div className="text-center py-4">
             <ShieldCheck size={28} className="mx-auto text-gold-400 mb-4"/>
             <h3 className="font-display font-semibold text-base mb-1">Start verification</h3>
-            <p className="text-xs text-muted mb-3 max-w-sm mx-auto">Upload your National ID, KRA PIN certificate, and a selfie. Our system verifies your identity automatically.</p>
+            <p className="text-xs text-muted mb-3 max-w-sm mx-auto">Upload your National ID, KRA PIN certificate, and a selfie. Our team reviews them and approves your account.</p>
             <Button onClick={start} loading={starting}>Begin verification</Button>
           </div>
         </Card>

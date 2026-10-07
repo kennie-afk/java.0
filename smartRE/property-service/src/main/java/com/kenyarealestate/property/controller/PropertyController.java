@@ -76,8 +76,12 @@ public class PropertyController {
 
     @Operation(summary = "List a seller's active listings")
     @GetMapping("/seller/{sellerId}")
-    public ResponseEntity<List<PropertyResponse>> bySeller(@PathVariable UUID sellerId) {
-        return ResponseEntity.ok(svc.getActiveBySeller(sellerId));
+    public ResponseEntity<List<PropertyResponse>> bySeller(
+            @PathVariable UUID sellerId,
+            @RequestParam(defaultValue = "0")  @Min(0)          int page,
+            @RequestParam(defaultValue = "50") @Min(1) @Max(100) int size) {
+        // A public route, so it is bounded: a prolific seller used to return every listing they ever made.
+        return ResponseEntity.ok(svc.getActiveBySeller(sellerId, page, size));
     }
 
     @Operation(summary = "Public property search", description = "Filters by county/city/type/keyword/price/bedrooms/verification status, with pagination and sorting.")
@@ -115,9 +119,8 @@ public class PropertyController {
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "DESC") String direction) {
-        Sort.Direction dir = direction.equalsIgnoreCase("ASC") ? Sort.Direction.ASC : Sort.Direction.DESC;
         return ResponseEntity.ok(svc.getMyListings(resolveUserId(httpReq),
-                PageRequest.of(page, size, Sort.by(dir, sortBy))));
+                PageRequest.of(page, size, PropertyService.sortFor(sortBy, direction))));
     }
 
     @Operation(summary = "Admin: list all listings", description = "Admin only. Optionally filtered by status.")
@@ -128,8 +131,8 @@ public class PropertyController {
             @RequestParam(defaultValue = "20") @Min(1) @Max(1000) int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "DESC") String direction) {
-        Sort.Direction dir = direction.equalsIgnoreCase("ASC") ? Sort.Direction.ASC : Sort.Direction.DESC;
-        return ResponseEntity.ok(svc.adminGetAll(status, PageRequest.of(page, size, Sort.by(dir, sortBy))));
+        return ResponseEntity.ok(svc.adminGetAll(status,
+                PageRequest.of(page, size, PropertyService.sortFor(sortBy, direction))));
     }
 
     @Operation(summary = "Admin: aggregate listing stats", description = "Counts by status/type/county, average active price, total views.")

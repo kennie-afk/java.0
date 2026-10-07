@@ -82,8 +82,18 @@ public class PropertyOwnershipController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<List<OwnershipVerificationResponse>> getMyVerifications(HttpServletRequest httpReq) {
-        return ResponseEntity.ok(service.getByUserId(resolveUserId(httpReq)));
+    public ResponseEntity<List<OwnershipVerificationResponse>> getMyVerifications(
+            HttpServletRequest httpReq,
+            @RequestParam(defaultValue = "0")   int page,
+            @RequestParam(defaultValue = "100") int size) {
+        // A plain array, as callers already parse it, with the total in headers. Bounded: a seller
+        // with thousands of filings is not a case this endpoint should have to survive unbounded.
+        Page<OwnershipVerificationResponse> found = service.getByUserId(resolveUserId(httpReq),
+                PageRequest.of(Math.max(page, 0), clampSize(size, MAX_PAGE_SIZE)));
+        return ResponseEntity.ok()
+                .header("X-Total-Count", Long.toString(found.getTotalElements()))
+                .header("X-Has-More", Boolean.toString(found.hasNext()))
+                .body(found.getContent());
     }
 
     @PostMapping("/internal/{verificationId}/ai-screening")
@@ -101,8 +111,20 @@ public class PropertyOwnershipController {
             @RequestParam(defaultValue = "ASC") String direction) {
         Sort.Direction dir = "DESC".equalsIgnoreCase(direction)
                 ? Sort.Direction.DESC : Sort.Direction.ASC;
+        // The size is capped and the sort column whitelisted: the caller chose neither a
+        // page that loads the whole table nor an arbitrary property name to sort by.
+        String column = QUEUE_SORT_COLUMNS.contains(sortBy) ? sortBy : "createdAt";
         return ResponseEntity.ok(service.getQueue(status,
-                PageRequest.of(page, size, Sort.by(dir, sortBy))));
+                PageRequest.of(Math.max(page, 0), clampSize(size, MAX_QUEUE_SIZE),
+                        Sort.by(dir, column).and(Sort.by("id")))));
+    }
+
+    static final int MAX_PAGE_SIZE = 200;
+    static final int MAX_QUEUE_SIZE = 500;
+    private static final Set<String> QUEUE_SORT_COLUMNS = Set.of("createdAt", "updatedAt", "status");
+
+    static int clampSize(int requested, int max) {
+        return Math.min(Math.max(requested, 1), max);
     }
 
     @PutMapping("/admin/{verificationId}/ministry-check")

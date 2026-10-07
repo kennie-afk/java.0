@@ -18,17 +18,19 @@ import org.springframework.web.bind.annotation.RestController;
 class ObjectController {
 
     private final ObjectStore store;
+    private final ObjectLinks links;
 
-    ObjectController(ObjectStore store) {
+    ObjectController(ObjectStore store, ObjectLinks links) {
         this.store = store;
+        this.links = links;
     }
 
     @GetMapping("/v1/objects/{org}/{object}")
     ResponseEntity<byte[]> get(@PathVariable String org, @PathVariable String object, @RequestParam long exp, @RequestParam String t, @RequestParam String sig) {
-        if (!(store instanceof LocalObjectStore local) || !local.verify(org + "/" + object, exp, t, sig)) {
+        if (!links.verify(org + "/" + object, exp, t, sig)) {
             return ResponseEntity.status(404).build();
         }
-        Optional<byte[]> bytes = local.read(org + "/" + object);
+        Optional<byte[]> bytes = store.read(org + "/" + object);
         if (bytes.isEmpty()) {
             return ResponseEntity.status(404).build();
         }

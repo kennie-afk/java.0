@@ -142,6 +142,27 @@ public class PaymentService {
         return new CallbackResult(CallbackOutcome.FAILED, payment);
     }
 
+    /** Persists the ORPHANED status and reason the settlement step set on a succeeded payment. */
+    @Transactional
+    public MpesaPayment markOrphaned(MpesaPayment payment) {
+        return payments.save(payment);
+    }
+
+    /** The owner's work list: succeeded payments that matched nothing, newest first. */
+    @Transactional(readOnly = true)
+    public List<MpesaPayment> orphaned(UUID tenantId, int limit) {
+        return payments.findByTenantIdAndStatusOrderByInitiatedAtDesc(
+                tenantId, MpesaPayment.Status.ORPHANED.name(),
+                org.springframework.data.domain.PageRequest.of(0, limit));
+    }
+
+    /** The most recent attempt for an order or invoice, for status polling. */
+    @Transactional(readOnly = true)
+    public Optional<MpesaPayment> latest(MpesaPayment.Purpose purpose, UUID referenceId) {
+        return payments.findByPurposeAndReferenceIdOrderByInitiatedAtDesc(purpose.name(), referenceId)
+                .stream().findFirst();
+    }
+
     public List<MpesaPayment> history(MpesaPayment.Purpose purpose, UUID referenceId) {
         return payments.findByPurposeAndReferenceIdOrderByInitiatedAtDesc(
                 purpose.name(), referenceId);

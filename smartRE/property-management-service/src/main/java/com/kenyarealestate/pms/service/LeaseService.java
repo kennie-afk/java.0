@@ -189,9 +189,13 @@ public class LeaseService {
     }
 
     @Transactional(readOnly = true)
-    public List<LeaseResponse> historyForUnit(UUID landlordId, UUID unitId) {
+    public Page<LeaseResponse> historyForUnit(UUID landlordId, UUID unitId, Pageable pageable) {
         unitService.ownedUnit(landlordId, unitId);
-        return leases.findByUnitIdOrderByStartDateDesc(unitId).stream().map(this::toResponse).toList();
+        return leases.findByUnitId(unitId,
+                org.springframework.data.domain.PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(),
+                        org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Order.desc("startDate"),
+                                org.springframework.data.domain.Sort.Order.asc("id"))))
+                .map(this::toResponse);
     }
 
     private void releaseUnit(UUID unitId) {

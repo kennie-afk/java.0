@@ -55,15 +55,29 @@ soko:
     ttl-minutes: ${SOKO_JWT_TTL_MINUTES:720}
   cors:
     allowed-origins: ${SOKO_ALLOWED_ORIGINS:http://localhost:3500}
+  # Public base URL of the console; password reset links point here.
+  public-url: ${SOKO_PUBLIC_URL:http://localhost:3500}
+  reset:
+    ttl-minutes: ${SOKO_RESET_TTL_MINUTES:30}
+  mail:
+    # false = reset e-mails are only logged (development). true = sent over SMTP using Spring's
+    # standard SPRING_MAIL_HOST / _PORT / _USERNAME / _PASSWORD settings.
+    enabled: ${SOKO_MAIL_ENABLED:false}
+    from: ${SOKO_MAIL_FROM:no-reply@freshferm.local}
   ratelimit:
     # Per client address, on the three unauthenticated endpoints. Per replica, in memory.
     login-per-minute: ${SOKO_RATELIMIT_LOGIN_PER_MINUTE:10}
     register-per-hour: ${SOKO_RATELIMIT_REGISTER_PER_HOUR:10}
     forgot-per-hour: ${SOKO_RATELIMIT_FORGOT_PER_HOUR:5}
+    reset-per-hour: ${SOKO_RATELIMIT_RESET_PER_HOUR:20}
     # Behind a proxy that overwrites X-Forwarded-For only; otherwise a client can choose its address.
     trust-forwarded: ${SOKO_RATELIMIT_TRUST_FORWARDED:false}
 
 management:
+  health:
+    # An unreachable SMTP relay must not take the readiness probe down.
+    mail:
+      enabled: false
   endpoints:
     web:
       exposure:

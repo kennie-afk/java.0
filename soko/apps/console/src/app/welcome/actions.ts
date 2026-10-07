@@ -67,6 +67,8 @@ export async function verifyOtpAndOrder(input: {
   fullName: string;
   county: string;
   lines: CartLineInput[];
+  /** Same key for a retry of the same basket, so one tap-happy buyer cannot place two orders. */
+  idempotencyKey: string;
 }): Promise<OrderOutcome> {
   if (!input.code.trim()) {
     return { order: null, error: "Enter the code we sent you." };
@@ -93,7 +95,11 @@ export async function verifyOtpAndOrder(input: {
   }
 
   try {
-    const order = await api.post<OrderResult>("/v1/shop/orders", { lines: input.lines });
+    const order = await api.postOnce<OrderResult>(
+      "/v1/shop/orders",
+      { lines: input.lines },
+      input.idempotencyKey
+    );
     return { order, error: null };
   } catch (caught) {
     return { order: null, error: describeError(caught) };

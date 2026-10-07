@@ -221,9 +221,14 @@ public class RentPaymentService {
      * see a receipt for money they have already paid.
      */
     @Transactional(readOnly = true)
-    public List<RentPaymentResponse> forInvoice(UUID callerId, UUID invoiceId) {
+    public org.springframework.data.domain.Page<RentPaymentResponse> forInvoice(
+            UUID callerId, UUID invoiceId, org.springframework.data.domain.Pageable pageable) {
         invoiceService.requireVisibleTo(callerId, invoiceId);
-        return payments.findByInvoiceIdOrderByCreatedAtDesc(invoiceId).stream().map(this::toResponse).toList();
+        return payments.findByInvoiceId(invoiceId,
+                org.springframework.data.domain.PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(),
+                        org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Order.desc("createdAt"),
+                                org.springframework.data.domain.Sort.Order.asc("id"))))
+                .map(this::toResponse);
     }
 
     private PaymentMethod parseMethod(String raw) {

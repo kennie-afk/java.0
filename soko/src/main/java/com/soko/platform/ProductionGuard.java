@@ -22,8 +22,10 @@ public class ProductionGuard {
             MpesaProperties mpesa,
             @Value("${soko.environment:development}") String environment,
             @Value("${soko.jwt.secret}") String jwtSecret,
-            @Value("${SOKO_MPESA_MOCK_AUTOCOMPLETE_SECONDS:0}") int mockAutocompleteSeconds) {
-        List<String> problems = violations(environment, mpesa.mode(), jwtSecret, mockAutocompleteSeconds);
+            @Value("${SOKO_MPESA_MOCK_AUTOCOMPLETE_SECONDS:0}") int mockAutocompleteSeconds,
+            @Value("${soko.mail.enabled:false}") boolean mailEnabled) {
+        List<String> problems =
+                violations(environment, mpesa.mode(), jwtSecret, mockAutocompleteSeconds, mailEnabled);
         if (!problems.isEmpty()) {
             throw new IllegalStateException(
                     "Refusing to start in production: " + String.join("; ", problems));
@@ -31,6 +33,16 @@ public class ProductionGuard {
     }
 
     /** Pure so it can be tested without a Spring context. Empty when the configuration is fit. */
+    public static List<String> violations(
+            String environment, String mpesaMode, String jwtSecret, int mockAutocompleteSeconds,
+            boolean mailEnabled) {
+        List<String> problems = violations(environment, mpesaMode, jwtSecret, mockAutocompleteSeconds);
+        if ("production".equalsIgnoreCase(environment == null ? "" : environment.trim()) && !mailEnabled) {
+            problems.add("SOKO_MAIL_ENABLED is not true: password reset links would only be logged, never sent");
+        }
+        return problems;
+    }
+
     public static List<String> violations(
             String environment, String mpesaMode, String jwtSecret, int mockAutocompleteSeconds) {
         List<String> problems = new ArrayList<>();

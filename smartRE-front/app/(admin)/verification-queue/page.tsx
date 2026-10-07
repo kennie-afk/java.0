@@ -196,7 +196,7 @@ function VerifQueuePageInner() {
                     <p className="font-semibold text-gray-900 dark:text-white text-base"><UserName id={item.userId} withEmail/></p>
                     <StatusBadge status={item.status} size="sm"/>
                   </div>
-                  <p className="text-sm text-muted">Score: {item.identityScore}/100 · Docs: {item.documents?.length || 0} uploaded · {fmt.date(item.createdAt)}</p>
+                  <p className="text-sm text-muted">{item.identityScore > 0 ? `Score: ${item.identityScore}/100 · ` : ''}Docs: {item.documents?.length || 0} uploaded · {fmt.date(item.createdAt)}</p>
                   {item.fraudStrikeCount > 0 && <p className="text-sm text-amber-600 mt-1 flex items-center gap-1"><AlertTriangle size={11}/>Fraud strikes: {item.fraudStrikeCount}</p>}
                 </div>
                 <Button size="sm" onClick={() => openIdentity(item)}>Review</Button>
@@ -241,7 +241,7 @@ function VerifQueuePageInner() {
             </div>
             <div className="p-3 bg-gray-50 dark:bg-[#2E2518] rounded-lg text-base space-y-1">
               <p>User: <UserName id={modal.userId} withEmail/></p>
-              <p>AI Score: <strong>{modal.identityScore}/100</strong></p>
+              <p>{modal.identityScore > 0 ? <>AI Score: <strong>{modal.identityScore}/100</strong></> : 'Automated screening: not run for this submission, review the documents yourself'}</p>
               {!!modal.faceMatchSource && modal.faceMatchSource !== 'NONE' && (
                 <p className={modal.faceMatchPassed ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}>
                   Face match ({modal.faceMatchSource}): <strong>{modal.faceMatchPassed ? 'Matched' : 'Did not match'}</strong>

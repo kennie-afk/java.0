@@ -55,6 +55,17 @@ spec:
                 configMapKeyRef:
                   name: smartre-config
                   key: KAFKA_BOOTSTRAP_SERVERS
+            # Production refuses to start with a provider unconfigured: see ProductionGuard.
+            - name: SMARTRE_ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: smartre-config
+                  key: SMARTRE_ENVIRONMENT
+            - name: SMARTRE_ALLOW_UNCONFIGURED_PROVIDERS
+              valueFrom:
+                configMapKeyRef:
+                  name: smartre-config
+                  key: SMARTRE_ALLOW_UNCONFIGURED_PROVIDERS
             - name: GATEWAY_SIGNING_SECRET
               valueFrom:
                 secretKeyRef:

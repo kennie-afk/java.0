@@ -196,6 +196,22 @@ export interface OwnershipVerificationResponse {
   allRequiredDocuments?: DocumentRequirementResponse[]
 }
 
+export interface BulkIntakeItem {
+  documentUrl: string
+  originalFilename: string
+  mimeType?: string
+  fileSizeBytes?: number
+}
+
+/** What the server did with a bulk upload, and what it still needs. */
+export interface BulkIntakeResponse {
+  filed: Record<string, string[]>
+  needsReview: { filename: string; reason: string; message: string }[]
+  stillMissing: string[]
+  filedCount: number
+  fullyAutomatic: boolean
+}
+
 export interface TrustStatusResponse {
   userId: string
   identityVerified: boolean

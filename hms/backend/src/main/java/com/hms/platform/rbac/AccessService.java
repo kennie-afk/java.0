@@ -24,7 +24,17 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 public class AccessService {
 
-    public record Access(boolean active, Set<String> permissions, Set<UUID> facilityIds) {}
+    /** {@code tokensValidAfterMillis}: an access token issued before this moment is dead (sessions were ended). */
+    public record Access(boolean active, Set<String> permissions, Set<UUID> facilityIds, long tokensValidAfterMillis) {
+        public Access(boolean active, Set<String> permissions, Set<UUID> facilityIds) {
+            this(active, permissions, facilityIds, 0L);
+        }
+
+        /** True when a token issued at this moment may still be used. */
+        public boolean accepts(long issuedAtMillis) {
+            return active && issuedAtMillis >= tokensValidAfterMillis;
+        }
+    }
 
     private record Cached(Access access, long loadedAt) {}
 
@@ -60,11 +70,12 @@ public class AccessService {
     }
 
     private Access load(UUID practitionerId) {
-        String state = jdbc.sql("SELECT status FROM practitioners WHERE id = ?").param(practitionerId)
-                .query(String.class).optional().orElse(null);
-        if (!"ACTIVE".equals(state)) {
-            return new Access(false, Set.of(), Set.of());
+        var row = jdbc.sql("SELECT status, floor(extract(epoch FROM tokens_valid_after) * 1000)::bigint AS valid_after FROM practitioners WHERE id = ?").param(practitionerId)
+                .query((rs, n) -> Map.entry(rs.getString("status"), rs.getLong("valid_after"))).optional().orElse(null);
+        if (row == null || !"ACTIVE".equals(row.getKey())) {
+            return new Access(false, Set.of(), Set.of(), 0L);
         }
+        long validAfter = row.getValue();
         Set<String> permissions = new HashSet<>();
         var roles = jdbc.sql("""
                 SELECT r.role_key, r.permissions::text AS permissions
@@ -90,7 +101,7 @@ public class AccessService {
         }
         Set<UUID> facilities = new HashSet<>(jdbc.sql("SELECT facility_id FROM practitioner_facilities WHERE practitioner_id = ?")
                 .param(practitionerId).query(UUID.class).list());
-        return new Access(true, Set.copyOf(permissions), Set.copyOf(facilities));
+        return new Access(true, Set.copyOf(permissions), Set.copyOf(facilities), validAfter);
     }
 
     /** Resolves access for a person we have only just authenticated, inside their tenant scope. */

@@ -5,6 +5,7 @@ import com.soko.inventory.WastageService;
 import com.soko.persistence.*;
 import com.soko.platform.Errors;
 import com.soko.routing.OrderService;
+import com.soko.security.PasswordResetService;
 import com.soko.security.Principal;
 import com.soko.security.tenant.TenantBinding;
 import com.soko.security.TenantContext;
@@ -16,15 +17,13 @@ import java.util.*;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/v1")
 public class ApiController {
-
-    private static final org.slf4j.Logger resetLog =
-            org.slf4j.LoggerFactory.getLogger("com.soko.auth.reset");
 
     private final TenantRepository tenants;
     private final UserRepository users;
@@ -41,6 +40,7 @@ public class ApiController {
     private final Tokens tokens;
     private final TenantContext context;
     private final UserStatusGate statusGate;
+    private final PasswordResetService passwordResets;
 
     public ApiController(
             TenantRepository tenants, UserRepository users, SupplierRepository suppliers,
@@ -48,7 +48,7 @@ public class ApiController {
             OrderRepository orders, OrderLineRepository orderLines, OrderService orderService,
             WastageService wastageService, WastageRecordRepository wastageRecords,
             PasswordEncoder encoder, Tokens tokens, TenantContext context,
-            UserStatusGate statusGate) {
+            UserStatusGate statusGate, PasswordResetService passwordResets) {
         this.tenants = tenants; this.users = users; this.suppliers = suppliers;
         this.products = products; this.offers = offers; this.customers = customers;
         this.orders = orders; this.orderLines = orderLines; this.orderService = orderService;
@@ -56,6 +56,7 @@ public class ApiController {
         this.wastageRecords = wastageRecords;
         this.encoder = encoder; this.tokens = tokens; this.context = context;
         this.statusGate = statusGate;
+        this.passwordResets = passwordResets;
     }
 
     public record RegisterRequest(
@@ -201,12 +202,18 @@ public class ApiController {
     @PostMapping("/auth/forgot")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public Acknowledged forgot(@Valid @RequestBody ForgotRequest request) {
-        TenantBinding.asSystem(() -> users.findByEmailAndStatus(request.email(), "ACTIVE"))
-                .ifPresent(user -> resetLog.info(
-                        "password reset requested for user {} on tenant {}",
-                        user.getId(), user.getTenantId()));
+        TenantBinding.asSystem(() -> passwordResets.issue(request.email()))
+                .ifPresent(passwordResets::deliver);
         return new Acknowledged(
                 "If that email has an account, a reset link is on its way.");
+    }
+
+    public record ResetRequest(@NotBlank String token, @Size(min = 10) String password) {}
+
+    @PostMapping("/auth/reset")
+    public Acknowledged resetPassword(@Valid @RequestBody ResetRequest request) {
+        TenantBinding.asSystem(() -> passwordResets.reset(request.token(), request.password()));
+        return new Acknowledged("Your password has been changed. Sign in with the new one.");
     }
 
     public record SupplierRequest(
@@ -217,16 +224,35 @@ public class ApiController {
             String name, String county, Integer leadTimeHours, Boolean coldChain,
             Double reliability, String status) {}
 
+    @GetMapping("/suppliers/{id}")
+    public Supplier getSupplier(@PathVariable UUID id) {
+        return suppliers.findByIdAndTenantId(id, context.current().tenantId())
+                .orElseThrow(() -> new Errors.NotFound("no such supplier"));
+    }
+
+    private static java.math.BigDecimal reliability(double value) {
+        // numeric(4,3): anything outside 0..1 is a typo (90 instead of 0.9) that would overflow the column.
+        if (Double.isNaN(value) || value < 0 || value > 1) {
+            throw new Errors.BadRequest("reliability must be between 0 and 1");
+        }
+        return java.math.BigDecimal.valueOf(value);
+    }
+
     @PatchMapping("/suppliers/{id}")
     public Supplier updateSupplier(@PathVariable UUID id, @RequestBody SupplierUpdate request) {
         Supplier supplier = suppliers.findByIdAndTenantId(id, context.current().tenantId())
                 .orElseThrow(() -> new Errors.NotFound("no such supplier"));
         if (request.name() != null) supplier.setName(request.name());
         if (request.county() != null) supplier.setCounty(request.county());
-        if (request.leadTimeHours() != null) supplier.setLeadTimeHours(request.leadTimeHours());
+        if (request.leadTimeHours() != null) {
+            if (request.leadTimeHours() < 1) {
+                throw new Errors.BadRequest("lead time must be at least 1 hour");
+            }
+            supplier.setLeadTimeHours(request.leadTimeHours());
+        }
         if (request.coldChain() != null) supplier.setColdChain(request.coldChain());
         if (request.reliability() != null) {
-            supplier.setReliability(java.math.BigDecimal.valueOf(request.reliability()));
+            supplier.setReliability(reliability(request.reliability()));
         }
         if (request.status() != null) {
             String status = request.status().toUpperCase();
@@ -239,9 +265,13 @@ public class ApiController {
     }
 
     @GetMapping("/suppliers")
-    public List<Supplier> listSuppliers(@RequestParam(defaultValue = "50") int limit) {
-        return suppliers.findByTenantIdOrderByNameAsc(
-                context.current().tenantId(), PageRequest.of(0, Math.min(limit, 200)));
+    public ResponseEntity<List<Supplier>> listSuppliers(
+            @RequestParam(defaultValue = "50") int limit,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "") String q) {
+        var found = suppliers.search(context.current().tenantId(), Paging.like(q),
+                Paging.pageable(page, limit));
+        return Paging.respond(found.getContent(), found.getTotalElements(), page, limit);
     }
 
     @PostMapping("/suppliers")
@@ -254,7 +284,7 @@ public class ApiController {
         supplier.setLeadTimeHours(request.leadTimeHours());
         supplier.setColdChain(request.coldChain());
         if (request.reliability() != null) {
-            supplier.setReliability(java.math.BigDecimal.valueOf(request.reliability()));
+            supplier.setReliability(reliability(request.reliability()));
         }
         return suppliers.save(supplier);
     }
@@ -280,15 +310,30 @@ public class ApiController {
             }
             product.setListPriceCents(request.listPriceCents());
         }
-        if (request.shelfLifeHours() != null) product.setShelfLifeHours(request.shelfLifeHours());
+        if (request.shelfLifeHours() != null) {
+            if (request.shelfLifeHours() < 1) {
+                throw new Errors.BadRequest("shelf life must be at least 1 hour");
+            }
+            product.setShelfLifeHours(request.shelfLifeHours());
+        }
         if (request.photoUrl() != null) product.setPhotoUrl(request.photoUrl());
         return products.save(product);
     }
 
+    @GetMapping("/products/{id}")
+    public Product getProduct(@PathVariable UUID id) {
+        return products.findByIdAndTenantId(id, context.current().tenantId())
+                .orElseThrow(() -> new Errors.NotFound("no such product"));
+    }
+
     @GetMapping("/products")
-    public List<Product> listProducts(@RequestParam(defaultValue = "50") int limit) {
-        return products.findByTenantIdOrderByNameAsc(
-                context.current().tenantId(), PageRequest.of(0, Math.min(limit, 200)));
+    public ResponseEntity<List<Product>> listProducts(
+            @RequestParam(defaultValue = "50") int limit,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "") String q) {
+        var found = products.search(context.current().tenantId(), Paging.like(q),
+                Paging.pageable(page, limit));
+        return Paging.respond(found.getContent(), found.getTotalElements(), page, limit);
     }
 
     @PostMapping("/products")
@@ -313,19 +358,22 @@ public class ApiController {
             @Min(1) long costCents, @Min(0) int availableQty) {}
 
     @GetMapping("/offers")
-    public List<Map<String, Object>> listOffers(@RequestParam(defaultValue = "50") int limit) {
+    public ResponseEntity<List<Map<String, Object>>> listOffers(
+            @RequestParam(defaultValue = "50") int limit,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "") String q) {
         UUID tenantId = context.current().tenantId();
-        List<Offer> page = offers.findByTenantIdOrderByCostCentsAsc(
-                tenantId, PageRequest.of(0, Math.min(limit, 200)));
+        var found = offers.search(tenantId, Paging.like(q), Paging.pageable(page, limit));
+        List<Offer> offerPage = found.getContent();
 
         Map<UUID, Supplier> supplierIndex =
-                suppliers.findByIdIn(page.stream().map(Offer::getSupplierId).distinct().toList())
+                suppliers.findByIdIn(offerPage.stream().map(Offer::getSupplierId).distinct().toList())
                         .stream().collect(Collectors.toMap(Supplier::getId, s -> s));
         Map<UUID, Product> productIndex =
-                products.findByIdIn(page.stream().map(Offer::getProductId).distinct().toList())
+                products.findByIdIn(offerPage.stream().map(Offer::getProductId).distinct().toList())
                         .stream().collect(Collectors.toMap(Product::getId, p -> p));
 
-        return page.stream()
+        List<Map<String, Object>> rows = offerPage.stream()
                 .map(o -> {
                     Map<String, Object> row = new LinkedHashMap<>();
                     Supplier s = supplierIndex.get(o.getSupplierId());
@@ -342,6 +390,7 @@ public class ApiController {
                     return row;
                 })
                 .toList();
+        return Paging.respond(rows, found.getTotalElements(), page, limit);
     }
 
     @PostMapping("/offers")
@@ -365,9 +414,13 @@ public class ApiController {
             @NotBlank String name, @NotBlank String phone, @NotBlank String county) {}
 
     @GetMapping("/customers")
-    public List<Customer> listCustomers(@RequestParam(defaultValue = "50") int limit) {
-        return customers.findByTenantIdOrderByNameAsc(
-                context.current().tenantId(), PageRequest.of(0, Math.min(limit, 200)));
+    public ResponseEntity<List<Customer>> listCustomers(
+            @RequestParam(defaultValue = "50") int limit,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "") String q) {
+        var found = customers.search(context.current().tenantId(), Paging.like(q),
+                Paging.pageable(page, limit));
+        return Paging.respond(found.getContent(), found.getTotalElements(), page, limit);
     }
 
     @PostMapping("/customers")
@@ -388,17 +441,26 @@ public class ApiController {
 
     @PostMapping("/orders")
     @ResponseStatus(HttpStatus.CREATED)
-    public OrderService.Placed placeOrder(@Valid @RequestBody OrderRequest request) {
+    public OrderService.Placed placeOrder(
+            @Valid @RequestBody OrderRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
         List<OrderService.LineRequest> lines = request.lines().stream()
                 .map(l -> new OrderService.LineRequest(l.productId(), l.quantity()))
                 .toList();
-        return orderService.place(context.current().tenantId(), request.customerId(), lines);
+        return orderService.place(context.current().tenantId(), request.customerId(), lines, false,
+                idempotencyKey);
     }
 
     @GetMapping("/orders")
-    public List<Map<String, Object>> listOrders(@RequestParam(defaultValue = "50") int limit) {
+    public ResponseEntity<List<Map<String, Object>>> listOrders(
+            @RequestParam(defaultValue = "50") int limit,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "") String q) {
         UUID tenantId = context.current().tenantId();
-        return orders.listWithCustomer(tenantId, Math.min(limit, 200)).stream()
+        int size = Paging.limit(limit);
+        String pattern = Paging.like(q);
+        List<Map<String, Object>> rows = orders
+                .listWithCustomer(tenantId, pattern, size, (long) Paging.page(page) * size).stream()
                 .map(r -> {
                     Map<String, Object> row = new LinkedHashMap<>();
                     row.put("id", r[0]);
@@ -413,6 +475,7 @@ public class ApiController {
                     return row;
                 })
                 .toList();
+        return Paging.respond(rows, orders.countWithCustomer(tenantId, pattern), page, size);
     }
 
     @GetMapping("/orders/{id}")

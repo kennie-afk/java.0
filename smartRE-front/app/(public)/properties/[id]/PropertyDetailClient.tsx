@@ -302,7 +302,7 @@ export default function PropertyDetailClient() {
                     {trust.ownershipVerified ? <Check size={13}/> : <AlertTriangle size={13}/>}{trust.ownershipVerified ? 'Verified' : 'Pending'}
                   </span>
                 </div>
-                {trust.identityScore !== undefined && (
+                {typeof trust.identityScore === 'number' && trust.identityScore > 0 && (
                   <div className="flex items-center justify-between"><span className="text-muted">Trust score</span><span className="font-semibold">{trust.identityScore}/100</span></div>
                 )}
                 {trust.badgeLevel && trust.badgeLevel !== 'NONE' && (

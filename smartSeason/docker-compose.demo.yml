@@ -101,6 +101,10 @@ services:
     image: smartseason-attendance-service:latest
     environment:
       <<: *demo-env
+      # The server now judges every clock-in against the farm's geofence. Production refuses a position
+      # outside every fence; the demo only flags it, so the seeded worker 4.2 km away shows up as a case
+      # for a supervisor to review instead of as a refused clock-in.
+      SMARTSEASON_CLOCKIN_REQUIRE_GEOFENCE: "false"
 
   task-service:
     image: smartseason-task-service:latest

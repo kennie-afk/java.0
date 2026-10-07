@@ -1,6 +1,7 @@
 package com.hms.platform.security;
 
 import com.hms.platform.rbac.AccessService;
+import com.hms.platform.rbac.PortalAccessGate;
 import com.hms.platform.tenancy.TenantContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -27,10 +28,12 @@ class TokenFilter extends OncePerRequestFilter {
 
     private final JwtService jwt;
     private final AccessService access;
+    private final PortalAccessGate portalGate;
 
-    TokenFilter(JwtService jwt, AccessService access) {
+    TokenFilter(JwtService jwt, AccessService access, PortalAccessGate portalGate) {
         this.jwt = jwt;
         this.access = access;
+        this.portalGate = portalGate;
     }
 
     @Override
@@ -42,6 +45,12 @@ class TokenFilter extends OncePerRequestFilter {
             // The portal accepts only portal tokens, and nothing else accepts them: staff paths never see a patient session.
             jwt.parsePortal(header.substring(7).trim()).ifPresent(c -> {
                 TenantContext.set(new TenantContext.Tenant(c.orgId(), c.accountId(), java.util.Set.of(), java.util.Set.of(PORTAL_SELF)));
+                // A valid signature is not enough: a facility that disables an account expects it to stop working now,
+                // not when the token expires.
+                if (!portalGate.active(c.accountId())) {
+                    TenantContext.clear();
+                    return;
+                }
                 PortalSession.set(c.patientId());
                 SecurityContextHolder.getContext().setAuthentication(
                         new UsernamePasswordAuthenticationToken(c.accountId(), null, List.of(new SimpleGrantedAuthority(PORTAL_SELF))));
@@ -50,7 +59,8 @@ class TokenFilter extends OncePerRequestFilter {
             var claims = jwt.parse(header.substring(7).trim());
             if (claims.isPresent()) {
                 var granted = access.resolve(claims.get().orgId(), claims.get().practitionerId());
-                if (granted.active()) {
+                // A signature that checks out is not enough: the person may have been disabled, or their sessions ended, since it was issued.
+                if (granted.accepts(claims.get().issuedAtMillis())) {
                     TenantContext.set(new TenantContext.Tenant(
                             claims.get().orgId(), claims.get().practitionerId(), granted.facilityIds(), granted.permissions()));
                     List<SimpleGrantedAuthority> authorities =

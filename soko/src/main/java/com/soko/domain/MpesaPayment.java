@@ -22,7 +22,7 @@ public class MpesaPayment {
 
     public enum Purpose { ORDER, INVOICE }
 
-    public enum Status { PENDING, SUCCESS, FAILED }
+    public enum Status { PENDING, SUCCESS, FAILED, ORPHANED }
 
     @Id @GeneratedValue private UUID id;
 
@@ -39,6 +39,8 @@ public class MpesaPayment {
     @Column(name = "mpesa_receipt_number") private String mpesaReceiptNumber;
     @Column(nullable = false) private String status = Status.PENDING.name();
     @Column(name = "result_desc") private String resultDesc;
+    /** Why a payment that succeeded could not be applied to anything; set only when ORPHANED. */
+    @Column(name = "orphan_reason") private String orphanReason;
     @Column(name = "initiated_at", nullable = false) private Instant initiatedAt = Instant.now();
     @Column(name = "completed_at") private Instant completedAt;
 
@@ -66,6 +68,8 @@ public class MpesaPayment {
     public void setStatus(Status v) { this.status = v.name(); }
     public String getResultDesc() { return resultDesc; }
     public void setResultDesc(String v) { this.resultDesc = v; }
+    public String getOrphanReason() { return orphanReason; }
+    public void setOrphanReason(String v) { this.orphanReason = v; }
     public Instant getInitiatedAt() { return initiatedAt; }
     public void setInitiatedAt(Instant v) { this.initiatedAt = v; }
     public Instant getCompletedAt() { return completedAt; }

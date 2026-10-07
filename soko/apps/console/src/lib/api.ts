@@ -11,7 +11,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit, token?: string): Promise<T> {
+async function send(path: string, init?: RequestInit, token?: string): Promise<Response> {
   const bearer = token ?? (await readSession())?.token;
 
   const response = await fetch(`${API}${path}`, {
@@ -34,11 +34,33 @@ async function request<T>(path: string, init?: RequestInit, token?: string): Pro
     }
     throw new ApiError(response.status, detail);
   }
+  return response;
+}
 
+async function request<T>(path: string, init?: RequestInit, token?: string): Promise<T> {
+  const response = await send(path, init, token);
   if (response.status === 204) {
     return undefined as T;
   }
   return (await response.json()) as T;
+}
+
+/** A list endpoint's rows plus what the server says about the rest of the list. */
+export interface Page<T> {
+  items: T[];
+  total: number;
+  hasMore: boolean;
+}
+
+async function page<T>(path: string): Promise<Page<T>> {
+  const response = await send(path);
+  const items = (await response.json()) as T[];
+  const total = Number(response.headers.get("X-Total-Count") ?? items.length);
+  return {
+    items,
+    total: Number.isFinite(total) ? total : items.length,
+    hasMore: response.headers.get("X-Has-More") === "true"
+  };
 }
 
 export interface LoginResult {
@@ -56,15 +78,19 @@ export interface RegisterInput {
   password: string;
 }
 
-const json = (body: unknown): RequestInit => ({
+const json = (body: unknown, extra?: Record<string, string>): RequestInit => ({
   method: "POST",
-  headers: { "Content-Type": "application/json" },
+  headers: { "Content-Type": "application/json", ...(extra ?? {}) },
   body: JSON.stringify(body)
 });
 
 export const api = {
   get: <T>(path: string) => request<T>(path),
+  page,
   post: <T>(path: string, body: unknown) => request<T>(path, json(body)),
+  /** A POST that a retry must not repeat: the server answers a repeated key with the first result. */
+  postOnce: <T>(path: string, body: unknown, idempotencyKey: string) =>
+    request<T>(path, json(body, { "Idempotency-Key": idempotencyKey })),
   put: <T>(path: string, body: unknown) =>
     request<T>(path, { ...json(body), method: "PUT" }),
   request: <T>(method: string, path: string, body?: unknown) =>
@@ -73,6 +99,8 @@ export const api = {
     request<LoginResult>("/v1/auth/login", json({ email, password }), ""),
   register: (input: RegisterInput) =>
     request<LoginResult>("/v1/auth/register", json(input), ""),
+  reset: (token: string, password: string) =>
+    request<{ detail: string }>("/v1/auth/reset", json({ token, password }), ""),
   forgot: (email: string) => request<{ detail: string }>("/v1/auth/forgot", json({ email }), "")
 };
 

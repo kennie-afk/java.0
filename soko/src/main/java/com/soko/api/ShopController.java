@@ -57,29 +57,13 @@ public class ShopController {
         return principal;
     }
 
-    private static final int STOREFRONT_LIMIT = 500;
-
     @GetMapping("/products")
-    public List<Map<String, Object>> catalogue() {
+    public org.springframework.http.ResponseEntity<List<Map<String, Object>>> catalogue(
+            @RequestParam(defaultValue = "") String q,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int limit) {
         Principal principal = shopper();
-        return offers.storefront(principal.tenantId(), STOREFRONT_LIMIT).stream()
-                .map(r -> {
-                    Map<String, Object> row = new LinkedHashMap<>();
-                    row.put("id", r[0]);
-                    row.put("sku", r[1]);
-                    row.put("name", r[2]);
-                    row.put("category", r[3]);
-                    row.put("unit", r[4]);
-                    row.put("perishable", r[5]);
-                    row.put("chilled", r[6]);
-                    row.put("shelfLifeHours", r[7]);
-                    row.put("priceCents", r[8]);
-                    row.put("inStock", ((Number) r[9]).longValue());
-                    row.put("photoUrl", r[10]);
-                    return row;
-                })
-                .filter(row -> ((Number) row.get("inStock")).longValue() > 0)
-                .toList();
+        return Paging.storefront(offers, principal.tenantId(), q, page, limit);
     }
 
     public record BasketLine(@NotNull UUID productId, @Min(1) int quantity) {}
@@ -88,7 +72,9 @@ public class ShopController {
 
     @PostMapping("/orders")
     @ResponseStatus(HttpStatus.CREATED)
-    public Map<String, Object> checkout(@Valid @RequestBody Checkout request) {
+    public Map<String, Object> checkout(
+            @Valid @RequestBody Checkout request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
         Principal principal = shopper();
         List<OrderService.LineRequest> lines =
                 request.lines().stream()
@@ -96,7 +82,7 @@ public class ShopController {
                         .toList();
 
         OrderService.Placed placed =
-                orderService.place(principal.tenantId(), principal.customerId(), lines, true);
+                orderService.place(principal.tenantId(), principal.customerId(), lines, true, idempotencyKey);
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("orderId", placed.orderId());
@@ -151,13 +137,36 @@ public class ShopController {
 
         MpesaPayment payment = paymentService.initiate(
                 principal.tenantId(), MpesaPayment.Purpose.ORDER, order.getId(),
-                order.getRevenueCents(), request.msisdn(), order.getReference(),
+                order.getRevenueCents(), com.soko.payment.Msisdn.normalise(request.msisdn()), order.getReference(),
                 "Payment for order " + order.getReference());
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("status", payment.getStatus());
         body.put("checkoutRequestId", payment.getCheckoutRequestId());
         body.put("detail", payment.getResultDesc());
+        return body;
+    }
+
+    /**
+     * Where the payment for this order stands, for the page that is waiting on the phone prompt.
+     * {@code paid} is the order's own status, so it stays true after the payment row is old.
+     */
+    @GetMapping("/orders/{id}/payment")
+    public Map<String, Object> paymentStatus(@PathVariable UUID id) {
+        Principal principal = shopper();
+        SalesOrder order = orders.findByIdAndCustomerId(id, principal.customerId())
+                .orElseThrow(() -> new Errors.NotFound("no such order"));
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("orderStatus", order.getStatus());
+        body.put("paid", "PAID".equals(order.getStatus()));
+        body.put("totalCents", order.getRevenueCents());
+        paymentService.latest(MpesaPayment.Purpose.ORDER, order.getId()).ifPresent(p -> {
+            body.put("status", p.getStatus());
+            body.put("detail", p.getResultDesc());
+            body.put("receipt", p.getMpesaReceiptNumber());
+            body.put("amountCents", p.getAmountCents());
+            body.put("initiatedAt", p.getInitiatedAt());
+        });
         return body;
     }
 
@@ -177,6 +186,7 @@ public class ShopController {
                         .collect(Collectors.toMap(p -> p.getId(), p -> p.getName()));
 
         Map<String, Object> body = new LinkedHashMap<>();
+        body.put("id", order.getId());
         body.put("reference", order.getReference());
         body.put("status", order.getStatus());
         body.put("totalCents", order.getRevenueCents());

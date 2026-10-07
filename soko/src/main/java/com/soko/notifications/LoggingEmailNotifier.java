@@ -2,6 +2,7 @@ package com.soko.notifications;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
@@ -12,13 +13,11 @@ import org.springframework.stereotype.Component;
  * to whom, at INFO level, so every notification event this system fires is
  * visible and provable before a single real email goes out.
  *
- * <p>Swapping this for a real sender later is a one-class change: implement
- * {@link EmailNotifier} against whichever provider is chosen (SMTP via
- * spring-boot-starter-mail, or an HTTP API like SendGrid/Mailgun/SES) and
- * mark it {@code @Primary}, or remove this bean. Nothing that calls
- * {@link EmailNotifier} needs to change.
+ * <p>The SMTP implementation is {@link SmtpEmailNotifier}, switched on with
+ * {@code SOKO_MAIL_ENABLED=true}; this bean is the default only while that is off.
  */
 @Component
+@ConditionalOnProperty(name = "soko.mail.enabled", havingValue = "false", matchIfMissing = true)
 public class LoggingEmailNotifier implements EmailNotifier {
 
     private static final Logger log = LoggerFactory.getLogger(LoggingEmailNotifier.class);

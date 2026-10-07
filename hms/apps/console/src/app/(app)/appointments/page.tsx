@@ -4,9 +4,10 @@ import { useState } from "react";
 import { post, usePaged } from "@/lib/api";
 import { stamp, today, addDays } from "@/lib/format";
 import { useSession } from "@/lib/session";
+import { Reschedule } from "@/components/Reschedule";
 import { Button, Card, ErrorNote, Input, Loading, More, Page, Status, Table, Td, Tr, useAction } from "@/components/ui";
 
-type Appt = { id: string; patientId: string; patientName: string; startsAt: string; status: string; reason?: string };
+type Appt = { id: string; clinicId: string; practitionerId?: string; version: number; patientId: string; patientName: string; startsAt: string; status: string; reason?: string };
 
 export default function Appointments() {
   const { facilityId, can } = useSession();
@@ -30,7 +31,7 @@ export default function Appointments() {
                 <Td>{stamp(a.startsAt)}</Td><Td href={`/patients/${a.patientId}`}>{a.patientName}</Td><Td><Status value={a.status} /></Td><Td>{a.reason}</Td>
                 <Td>
                   {can("scheduling:write") && a.status === "BOOKED" && (
-                    <span className="flex gap-1"><Button variant="secondary" onClick={() => void move(a.id, "check-in")}>Check in</Button><Button variant="secondary" onClick={() => void move(a.id, "no-show")}>No-show</Button></span>
+                    <span className="flex gap-1"><Button variant="secondary" onClick={() => void move(a.id, "check-in")}>Check in</Button><Button variant="secondary" onClick={() => void move(a.id, "no-show")}>No-show</Button><Reschedule id={a.id} clinicId={a.clinicId} practitionerId={a.practitionerId} version={a.version} onDone={list.reload} /></span>
                   )}
                 </Td>
               </Tr>

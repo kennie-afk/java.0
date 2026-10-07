@@ -16,6 +16,7 @@ public interface LeaseRepository extends JpaRepository<Lease, UUID> {
     Page<Lease> findByTenantIdInOrderByCreatedAtDesc(List<UUID> tenantIds, Pageable pageable);
     Optional<Lease> findByUnitIdAndStatus(UUID unitId, LeaseStatus status);
     List<Lease> findByUnitIdOrderByStartDateDesc(UUID unitId);
+    org.springframework.data.domain.Page<Lease> findByUnitId(UUID unitId, org.springframework.data.domain.Pageable pageable);
 
     /**
      * Keyset page of leases in a given status, for {@link com.kenyarealestate.pms.service.RentInvoiceJob}.

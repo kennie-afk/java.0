@@ -22,5 +22,6 @@ public interface PropertyOwnershipVerificationRepository extends JpaRepository<P
     boolean existsByLrNumberAndPropertyIdNotAndStatusNot(
             String lrNumber, UUID propertyId, OwnershipVerificationStatus excludedStatus);
     List<PropertyOwnershipVerification> findBySellerIdentityVerificationUserId(UUID userId);
+    Page<PropertyOwnershipVerification> findBySellerIdentityVerificationUserId(UUID userId, Pageable pageable);
     Page<PropertyOwnershipVerification> findByStatus(OwnershipVerificationStatus status, Pageable pageable);
 }

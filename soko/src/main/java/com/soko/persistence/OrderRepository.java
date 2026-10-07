@@ -9,12 +9,22 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Every query here runs in a transaction, read-only unless a method says otherwise. That is not
+ * only about Spring's defaults: the tenant is handed to the database when a transaction begins
+ * (see TenantAwareDataSource), and a declared query method outside any transaction would run with
+ * no tenant at all and, under row-level security, silently return nothing.
+ */
+@Transactional(readOnly = true)
 public interface OrderRepository extends JpaRepository<SalesOrder, UUID> {
 
     List<SalesOrder> findByTenantIdOrderByPlacedAtDesc(UUID tenantId, Pageable pageable);
 
     Optional<SalesOrder> findByIdAndTenantId(UUID id, UUID tenantId);
+
+    Optional<SalesOrder> findByTenantIdAndIdempotencyKey(UUID tenantId, String idempotencyKey);
 
     long countByTenantId(UUID tenantId);
 
@@ -40,10 +50,19 @@ public interface OrderRepository extends JpaRepository<SalesOrder, UUID> {
               from orders o
               join customers c on c.id = o.customer_id
              where o.tenant_id = :tenantId
-             order by o.placed_at desc
-             limit :max
+               and (lower(o.reference) like :pattern or lower(c.name) like :pattern)
+             order by o.placed_at desc, o.id
+             limit :max offset :offset
             """, nativeQuery = true)
-    List<Object[]> listWithCustomer(@Param("tenantId") UUID tenantId, @Param("max") int max);
+    List<Object[]> listWithCustomer(@Param("tenantId") UUID tenantId, @Param("pattern") String pattern,
+            @Param("max") int max, @Param("offset") long offset);
+
+    @Query(value = """
+            select count(*) from orders o join customers c on c.id = o.customer_id
+             where o.tenant_id = :tenantId
+               and (lower(o.reference) like :pattern or lower(c.name) like :pattern)
+            """, nativeQuery = true)
+    long countWithCustomer(@Param("tenantId") UUID tenantId, @Param("pattern") String pattern);
 
     /** One row per week: live orders, revenue, margin, and how many were cancelled. */
     @Query(value = """

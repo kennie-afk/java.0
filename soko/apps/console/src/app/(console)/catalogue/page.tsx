@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { api, describeError, ksh } from "@/lib/api";
-import { Badge, Notice, PageHeader, Table, rowClass } from "@/components/ui";
+import { Pager, SearchBar, listQuery, parsePaging, type PagingQuery } from "@/components/pager";
+import { Badge, Notice, PageHeader, Table, buttonClass, rowClass } from "@/components/ui";
 import type { ProductRow } from "@/lib/types";
 
 function shelfLife(hours: number): string {
@@ -7,12 +9,15 @@ function shelfLife(hours: number): string {
   return `${Math.round(hours / 24)} days`;
 }
 
-export default async function CataloguePage() {
+export default async function CataloguePage({ searchParams }: { searchParams: Promise<PagingQuery> }) {
+  const { q, page } = parsePaging(await searchParams);
   let products: ProductRow[] = [];
+  let total = 0;
+  let hasMore = false;
   let error: string | null = null;
 
   try {
-    products = await api.get<ProductRow[]>("/v1/products");
+    ({ items: products, total, hasMore } = await api.page<ProductRow>(`/v1/products?${listQuery(q, page)}`));
   } catch (caught) {
     error = describeError(caught);
   }
@@ -24,8 +29,10 @@ export default async function CataloguePage() {
   return (
     <>
       <PageHeader title="Catalogue"
-        subtitle="What is sold, and the handling each item demands. Shelf life and cold chain drive routing." />
-      <Table head={["SKU", "Product", "Category", "Unit", "Shelf life", "Handling", "List price"]}>
+        subtitle="What is sold, and the handling each item demands. Shelf life and cold chain drive routing."
+        actions={<Link href="/catalogue/new" className={buttonClass}>Add product</Link>} />
+      <SearchBar q={q} placeholder="Search by name, SKU or category" />
+      <Table head={["SKU", "Product", "Category", "Unit", "Shelf life", "Handling", "List price", ""]}>
         {products.map((product) => (
           <tr key={product.id} className={rowClass}>
             <td className="px-4 py-3 font-mono text-[0.875rem] text-[var(--color-muted)]">{product.sku}</td>
@@ -40,9 +47,13 @@ export default async function CataloguePage() {
               </span>
             </td>
             <td className="px-4 py-3 tabular-nums">{ksh(product.listPriceCents)}</td>
+            <td className="px-4 py-3 text-right">
+              <Link href={`/catalogue/${product.id}`} className="text-[0.958rem] font-medium hover:underline">Edit</Link>
+            </td>
           </tr>
         ))}
       </Table>
+      <Pager q={q} page={page} shown={products.length} total={total} hasMore={hasMore} />
     </>
   );
 }

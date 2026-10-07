@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { EmptyState, PageLoader, Spinner } from '@/components/ui/Modal'
-import { cn, fmt } from '@/lib/utils'
+import { cn, fmt, plainText } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
 const CATEGORY_LABEL: Record<string,string> = {
@@ -126,7 +126,7 @@ export default function NotificationsPage() {
                         {CATEGORY_LABEL[n.category] ?? n.category}
                       </Badge>
                     </div>
-                    {n.body && <p className="text-sm text-muted mt-1 whitespace-pre-line line-clamp-3">{n.body}</p>}
+                    {n.body && <p className="text-sm text-muted mt-1 whitespace-pre-line line-clamp-3">{plainText(n.body)}</p>}
                     <p className="text-xs text-muted mt-1.5">{fmt.ago(n.createdAt)}</p>
                   </div>
                 </button>

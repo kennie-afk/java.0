@@ -1,13 +1,18 @@
+import Link from "next/link";
 import { api, describeError, ksh } from "@/lib/api";
-import { Badge, Notice, PageHeader, Table, rowClass } from "@/components/ui";
+import { Pager, SearchBar, listQuery, parsePaging, type PagingQuery } from "@/components/pager";
+import { Badge, Notice, PageHeader, Table, buttonClass, rowClass } from "@/components/ui";
 import type { OfferRow } from "@/lib/types";
 
-export default async function OffersPage() {
+export default async function OffersPage({ searchParams }: { searchParams: Promise<PagingQuery> }) {
+  const { q, page } = parsePaging(await searchParams);
   let offers: OfferRow[] = [];
+  let total = 0;
+  let hasMore = false;
   let error: string | null = null;
 
   try {
-    offers = await api.get<OfferRow[]>("/v1/offers");
+    ({ items: offers, total, hasMore } = await api.page<OfferRow>(`/v1/offers?${listQuery(q, page)}`));
   } catch (caught) {
     error = describeError(caught);
   }
@@ -19,7 +24,9 @@ export default async function OffersPage() {
   return (
     <>
       <PageHeader title="Offers"
-        subtitle="What each supplier will sell, at what price, and how much they can cover." />
+        subtitle="What each supplier will sell, at what price, and how much they can cover."
+        actions={<Link href="/offers/new" className={buttonClass}>Add offer</Link>} />
+      <SearchBar q={q} placeholder="Search by product or supplier" />
       <Table head={["Supplier", "Product", "Cost", "List", "Spread", "Available", "Handling"]}>
         {offers.map((offer) => {
           const spread = (offer.listPriceCents ?? 0) - offer.costCents;
@@ -38,6 +45,7 @@ export default async function OffersPage() {
           );
         })}
       </Table>
+      <Pager q={q} page={page} shown={offers.length} total={total} hasMore={hasMore} />
     </>
   );
 }

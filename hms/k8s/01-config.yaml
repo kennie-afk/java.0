@@ -9,13 +9,25 @@ data:
   HMS_DB_APP_USER: hms_app
   # The public address of the console. Set this to the real host before deploying: it is the only browser origin the API accepts.
   HMS_ALLOWED_ORIGINS: https://hms.example.org
-  # Simulated M-Pesa. "live" is not implemented and refuses to start.
+  # "production" makes the API refuse to start with the mock M-Pesa gateway unless HMS_MPESA_ALLOW_MOCK_IN_PRODUCTION says otherwise.
+  HMS_ENVIRONMENT: production
+  # M-Pesa is SIMULATED until credentials exist: set HMS_MPESA_MODE to daraja, fill the HMS_MPESA_* values below and the Secret keys, and
+  # remove the allow-mock line (docs/DEPLOY.md, "M-Pesa"). Daraja support is unverified against Safaricom.
   HMS_MPESA_MODE: mock
+  HMS_MPESA_ALLOW_MOCK_IN_PRODUCTION: "true"
+  # HMS_MPESA_BASE_URL: https://api.safaricom.co.ke
+  # HMS_MPESA_SHORTCODE: "174379"
+  # HMS_MPESA_CALLBACK_BASE_URL: https://hms.example.org
+  # E-mail and SMS: mock logs a masked line and sends nothing. sms-at = Africa's Talking, email = SMTP (docs/DEPLOY.md). Unverified live.
   HMS_NOTIFICATIONS_MODE: mock
-  # Imaging attachments are stored on the pod's own disk, which is neither durable nor shared between replicas. Until an S3-compatible
-  # store exists, uploads are switched off here rather than losing images on the first restart. Set true only for a single replica
-  # with a PersistentVolume mounted at HMS_STORAGE_PATH.
-  HMS_STORAGE_UPLOADS: "false"
+  # Imaging images go to the in-cluster MinIO (15-minio.yaml), shared by every API pod. The API creates the bucket on start. To use an
+  # external S3 service instead, point the endpoint at it, set HMS_STORAGE_S3_CREATE_BUCKET to "false" and delete 15-minio.yaml.
+  HMS_STORAGE_MODE: s3
+  HMS_STORAGE_UPLOADS: "true"
+  HMS_STORAGE_S3_ENDPOINT: http://minio:9000
+  HMS_STORAGE_S3_BUCKET: hms-images
+  HMS_STORAGE_S3_REGION: us-east-1
+  HMS_STORAGE_S3_CREATE_BUCKET: "true"
   HMS_STORAGE_PATH: /tmp/objects
   # The ingress controller sets X-Forwarded-For, so per-address rate limits use the real client address.
   HMS_TRUST_FORWARDED_FOR: "true"

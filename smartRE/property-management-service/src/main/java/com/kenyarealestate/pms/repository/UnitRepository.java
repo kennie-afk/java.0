@@ -15,6 +15,8 @@ public interface UnitRepository extends JpaRepository<Unit, UUID> {
     Page<Unit> findByLandlordIdOrderByCreatedAtDesc(UUID landlordId, Pageable pageable);
     Page<Unit> findByLandlordIdAndStatusOrderByCreatedAtDesc(UUID landlordId, UnitStatus status, Pageable pageable);
     List<Unit> findByPropertyIdOrderByLabelAsc(UUID propertyId);
+    /** One landlord's units on one property, paged; the landlord filter is in SQL, not applied afterwards. */
+    Page<Unit> findByPropertyIdAndLandlordId(UUID propertyId, UUID landlordId, Pageable pageable);
     long countByLandlordId(UUID landlordId);
     long countByLandlordIdAndStatus(UUID landlordId, UnitStatus status);
     boolean existsByPropertyIdAndLabelIgnoreCase(UUID propertyId, String label);

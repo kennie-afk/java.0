@@ -39,23 +39,51 @@ hms:
   jwt:
     # No default: the service refuses to start without a signing secret of at least 32 characters.
     secret: ${HMS_JWT_SECRET}
-    ttl-minutes: ${HMS_JWT_TTL_MINUTES:60}
+    ttl-minutes: ${HMS_JWT_TTL_MINUTES:15}
+    # A refresh token works once and slides: each use issues the next, for this long; the chain ends after refresh-family-max-days.
+    refresh-ttl-hours: ${HMS_REFRESH_TTL_HOURS:168}
+    refresh-family-max-days: ${HMS_REFRESH_FAMILY_MAX_DAYS:30}
+    # Two parallel refreshes with the same token within this many seconds are not treated as theft (two browser tabs).
+    refresh-grace-seconds: ${HMS_REFRESH_GRACE_SECONDS:10}
   cors:
     allowed-origins: ${HMS_ALLOWED_ORIGINS:http://localhost:3600}
+  limits:
+    # Lists returned whole because a catalogue bounds them (wards, beds, clinics, lab tests): past this the caller gets an error, not a slow answer.
+    catalogue-cap: ${HMS_CATALOGUE_CAP:1000}
   roles:
     cache-ttl-ms: ${HMS_ROLE_CACHE_TTL_MS:15000}
+  # "production" turns on start-up refusals for unsafe settings (the mock M-Pesa gateway; see ProductionGuard).
+  environment: ${HMS_ENVIRONMENT:development}
   mpesa:
-    # mock (default) simulates M-Pesa. live is NOT implemented and fails loudly.
+    # mock (default) simulates M-Pesa. daraja talks to Safaricom Daraja (STK push + callback); written from the public documentation,
+    # NOT verified against Safaricom. The remaining keys are read only in daraja mode (HMS_MPESA_BASE_URL, _CONSUMER_KEY, _CONSUMER_SECRET,
+    # _SHORTCODE, _PASSKEY, _CALLBACK_BASE_URL, _CALLBACK_SECRET): see docs/DEPLOY.md.
     mode: ${HMS_MPESA_MODE:mock}
+    allow-mock-in-production: ${HMS_MPESA_ALLOW_MOCK_IN_PRODUCTION:false}
   storage:
-    # local is the only store built: files on this machine's disk. Fine for one node; a cluster needs shared storage.
+    # local: files on this machine's disk (one node). s3: any S3-compatible store (HMS_STORAGE_S3_ENDPOINT, _BUCKET, _ACCESS_KEY, _SECRET_KEY,
+    # optional _REGION, _CREATE_BUCKET, _PUBLIC_ENDPOINT), shared by every API pod.
     mode: ${HMS_STORAGE_MODE:local}
     local-path: ${HMS_STORAGE_PATH:./data/objects}
     # Off where the disk is not durable or shared (see k8s/01-config.yaml).
     uploads: ${HMS_STORAGE_UPLOADS:true}
   notifications:
-    # mock (default) logs a masked line and sends nothing. live is NOT implemented and fails loudly.
+    # mock (default) logs a masked line and sends nothing. live uses Africa's Talking for SMS and SMTP for e-mail, each only where configured
+    # (a channel without settings fails loudly). Both are unverified against the live services.
     mode: ${HMS_NOTIFICATIONS_MODE:mock}
+    sms:
+      at-base-url: ${HMS_SMS_AT_BASE_URL:https://api.africastalking.com}
+      at-username: ${HMS_SMS_AT_USERNAME:}
+      at-api-key: ${HMS_SMS_AT_API_KEY:}
+      sender-id: ${HMS_SMS_SENDER_ID:}
+    smtp:
+      host: ${HMS_SMTP_HOST:}
+      port: ${HMS_SMTP_PORT:587}
+      username: ${HMS_SMTP_USERNAME:}
+      password: ${HMS_SMTP_PASSWORD:}
+      from: ${HMS_SMTP_FROM:}
+      starttls: ${HMS_SMTP_STARTTLS:true}
+      ssl: ${HMS_SMTP_SSL:false}
     # The dispatcher polls the outbox; switch it off on replicas that should not deliver.
     dispatcher: ${HMS_NOTIFICATIONS_DISPATCHER:true}
     poll-ms: ${HMS_NOTIFICATIONS_POLL_MS:5000}

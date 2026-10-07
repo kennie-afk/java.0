@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { api, describeError, ksh } from "@/lib/api";
+import { PayPanel } from "@/components/pay-panel";
 import { Badge, Notice, PageHeader, Table, rowClass, secondaryButtonClass } from "@/components/ui";
 
 interface Line {
@@ -47,6 +48,9 @@ export default async function MyOrderPage({ params }: { params: Promise<{ id: st
           </div>
         }
       />
+      {order.status === "ROUTED" || order.status === "PAID" ? (
+        <div className="mb-6 max-w-xl"><PayPanel orderId={id} totalCents={order.totalCents} /></div>
+      ) : null}
       <Table head={["Item", "Qty", "Unit", "Total", "Progress"]}>
         {order.lines.map((line, index) => (
           <tr key={index} className={rowClass}>

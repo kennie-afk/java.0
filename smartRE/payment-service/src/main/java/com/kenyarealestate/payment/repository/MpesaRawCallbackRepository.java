@@ -1,6 +1,7 @@
 package com.kenyarealestate.payment.repository;
 
 import com.kenyarealestate.payment.entity.MpesaRawCallback;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -12,6 +13,8 @@ import java.util.UUID;
 public interface MpesaRawCallbackRepository extends JpaRepository<MpesaRawCallback, UUID> {
 
     List<MpesaRawCallback> findByPaymentIdOrderByReceivedAtAsc(UUID paymentId);
+
+    Page<MpesaRawCallback> findByPaymentId(UUID paymentId, Pageable pageable);
 
     /**
      * The most recent callbacks, newest first.

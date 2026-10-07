@@ -15,6 +15,11 @@ data:
   # mode additionally needs the Daraja values below and the optional secrets in soko-secrets. None of that has been
   # exercised against Safaricom.
   SOKO_ENVIRONMENT: development
+  # Password reset e-mail. false = the link is only logged; production needs true plus SPRING_MAIL_HOST/_PORT here and
+  # SPRING_MAIL_USERNAME/_PASSWORD in soko-secrets. SOKO_PUBLIC_URL is the console address used in the link.
+  SOKO_MAIL_ENABLED: "false"
+  SOKO_MAIL_FROM: no-reply@soko.example.org
+  SOKO_PUBLIC_URL: https://soko.example.org
   SOKO_MPESA_MODE: mock
   SOKO_MPESA_BASE_URL: ""
   SOKO_MPESA_SHORT_CODE: ""

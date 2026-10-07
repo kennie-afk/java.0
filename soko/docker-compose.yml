@@ -39,6 +39,16 @@ services:
       # Monthly invoice run (Spring cron, UTC). Default: 03:00 on the 1st.
       SOKO_BILLING_CRON: ${SOKO_BILLING_CRON:-0 0 3 1 * *}
       SOKO_ENVIRONMENT: ${SOKO_ENVIRONMENT:-development}
+      # Password reset e-mail. Off = the link is only logged. On needs an SMTP server.
+      SOKO_MAIL_ENABLED: ${SOKO_MAIL_ENABLED:-false}
+      SOKO_MAIL_FROM: ${SOKO_MAIL_FROM:-no-reply@freshferm.local}
+      SOKO_PUBLIC_URL: ${SOKO_PUBLIC_URL:-http://localhost:3500}
+      SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-}
+      SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-587}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: ${SPRING_MAIL_SMTP_AUTH:-true}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: ${SPRING_MAIL_SMTP_STARTTLS:-true}
       SOKO_MPESA_MODE: ${SOKO_MPESA_MODE:-mock}
       SOKO_MPESA_BASE_URL: ${SOKO_MPESA_BASE_URL:-}
       SOKO_MPESA_CONSUMER_KEY: ${SOKO_MPESA_CONSUMER_KEY:-}

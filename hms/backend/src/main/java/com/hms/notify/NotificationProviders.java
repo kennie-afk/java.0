@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * hms.notifications.mode = mock (default) or live. Mock logs a masked line and keeps the last few messages in memory for tests; nothing is sent.
- * Live is intentionally not implemented: no provider's API has been assumed, so it fails loudly instead of pretending to deliver.
+ * Live uses Africa's Talking (SMS) and SMTP (e-mail) where configured; a channel left unconfigured fails loudly instead of pretending to deliver.
  */
 @Configuration
 class NotificationProviders {
@@ -74,19 +74,43 @@ class NotificationProviders {
 
         @Override
         public void send(Outbound m) throws DeliveryException {
-            throw new DeliveryException("Live " + channel + " delivery is not implemented in this build. It needs a provider account and a verified integration; "
-                    + "run with HMS_NOTIFICATIONS_MODE=mock to simulate.", true);
+            throw new DeliveryException("Live " + channel + " delivery is not configured. Set the provider settings (HMS_SMS_AT_USERNAME and HMS_SMS_AT_API_KEY, or HMS_SMTP_HOST and HMS_SMTP_FROM), "
+                    + "or run with HMS_NOTIFICATIONS_MODE=mock to simulate.", true);
         }
     }
 
+    /**
+     * mode=live picks the real providers when they are configured: SMS through Africa's Talking (HMS_SMS_AT_USERNAME and HMS_SMS_AT_API_KEY),
+     * e-mail through SMTP (HMS_SMTP_HOST and HMS_SMTP_FROM). A channel with no configuration keeps failing loudly rather than pretending.
+     * Both are written from public documentation and unverified against the live services.
+     */
     @Bean
-    NotificationProvider emailProvider(@Value("${hms.notifications.mode:mock}") String mode) {
-        return "live".equalsIgnoreCase(mode) ? new UnconfiguredProvider("EMAIL") : new MockProvider("EMAIL");
+    NotificationProvider emailProvider(@Value("${hms.notifications.mode:mock}") String mode,
+                                       @Value("${hms.notifications.smtp.host:}") String host, @Value("${hms.notifications.smtp.port:587}") int port,
+                                       @Value("${hms.notifications.smtp.username:}") String username, @Value("${hms.notifications.smtp.password:}") String password,
+                                       @Value("${hms.notifications.smtp.from:}") String from, @Value("${hms.notifications.smtp.starttls:true}") boolean startTls,
+                                       @Value("${hms.notifications.smtp.ssl:false}") boolean ssl) {
+        if (!"live".equalsIgnoreCase(mode)) {
+            return new MockProvider("EMAIL");
+        }
+        if (host.isBlank() || from.isBlank()) {
+            return new UnconfiguredProvider("EMAIL");
+        }
+        return new SmtpEmailProvider(new SmtpEmailProvider.Config(host, port, username, password, from, startTls, ssl));
     }
 
     @Bean
-    NotificationProvider smsProvider(@Value("${hms.notifications.mode:mock}") String mode) {
-        return "live".equalsIgnoreCase(mode) ? new UnconfiguredProvider("SMS") : new MockProvider("SMS");
+    NotificationProvider smsProvider(@Value("${hms.notifications.mode:mock}") String mode,
+                                     @Value("${hms.notifications.sms.at-base-url:https://api.africastalking.com}") String baseUrl,
+                                     @Value("${hms.notifications.sms.at-username:}") String username, @Value("${hms.notifications.sms.at-api-key:}") String apiKey,
+                                     @Value("${hms.notifications.sms.sender-id:}") String senderId) {
+        if (!"live".equalsIgnoreCase(mode)) {
+            return new MockProvider("SMS");
+        }
+        if (username.isBlank() || apiKey.isBlank()) {
+            return new UnconfiguredProvider("SMS");
+        }
+        return new AfricasTalkingSmsProvider(baseUrl, username, apiKey, senderId);
     }
 
     /** Enough to recognise a number or address without putting it in a log. */

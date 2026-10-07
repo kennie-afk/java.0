@@ -1,0 +1,12 @@
+# SHA-256 of every Flyway migration, recorded the moment it was written.
+# Regenerate with: python3 scripts/check-migrations-frozen.py --update
+
+49cac3f20f74266bf2111c492ff056c090e5fae0679fe7cbd7afd30075a23fb7  src/main/resources/db/migration/V1__init.sql
+930400456ed5703385fd20b3c2409b0c410fdba48ad08bc5ad59e72da9bccf0d  src/main/resources/db/migration/V2__marketplace_roles.sql
+37fe24aff60cf45abaf6ff53251956e3d177ec01e5992b78bfebd739bef509e5  src/main/resources/db/migration/V3__otp_codes.sql
+1eaa94b40155d59cc1858d9abda620c4d35142b389a7be37ccb46dbbbf7febce  src/main/resources/db/migration/V4__mpesa_payments.sql
+a52c443ef4f9fd563a44a18bfd31291f34dccfcee45f269bedd8bcb8c8ec15f1  src/main/resources/db/migration/V5__platform_monetization.sql
+578d698de2c0bdc45a883098b22fa6137b1b0f38dddf6fb1bf13c81629eba340  src/main/resources/db/migration/V6__cancel_photos_wastage.sql
+6a983dd6fce22acfc0527e590eea12e4985e79e0d2d87a4a3e8b2d8ba6e08607  src/main/resources/db/migration/V7__row_level_security.sql
+2203231b3139a4bdb8a6395a80446d5dbfa458e6ca27f2c122a6e9ebe0299672  src/main/resources/db/migration/V8__mpesa_due_amount.sql
+48dce9939ff37dbe3ff1f3291b87a9e1f07903a48ac2c4302e7bcd50be8543aa  src/main/resources/db/migration/V9__idempotency_orphans_password_reset.sql

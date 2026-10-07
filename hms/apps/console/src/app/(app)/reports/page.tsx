@@ -25,7 +25,7 @@ export default function Reports() {
   const [to, setTo] = useState(today());
   const r = useFetch<Overview>(`/v1/reports/overview?facilityId=${facilityId}&from=${from}&to=${to}`);
   return (
-    <Page title="Reports" actions={<Button variant="secondary" href="/reports/custom">Custom reports</Button>} sub="Counts and totals for this facility. No patient is named. These are operational reports, not the official MOH returns.">
+    <Page title="Reports" actions={<><Button variant="secondary" href="/reports/finance">Finance</Button><Button variant="secondary" href="/reports/laboratory">Laboratory</Button><Button variant="secondary" href="/reports/custom">Custom reports</Button></>} sub="Counts and totals for this facility. No patient is named. These are operational reports, not the official MOH returns.">
       <Grid cols={4}><Field label="From"><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></Field><Field label="To"><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></Field></Grid>
       <ErrorNote error={r.error} />
       {r.loading && !r.data ? <Loading /> : r.data && (

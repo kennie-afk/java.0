@@ -47,7 +47,10 @@ public class SchedulingService {
     private final AuditService audit;
     private final PatientAccess patients;
 
-    public SchedulingService(JdbcClient jdbc, AuditService audit, PatientAccess patients) {
+    private final com.hms.platform.web.ShortListCap cap;
+
+    public SchedulingService(JdbcClient jdbc, AuditService audit, PatientAccess patients, com.hms.platform.web.ShortListCap cap) {
+        this.cap = cap;
         this.jdbc = jdbc;
         this.audit = audit;
         this.patients = patients;
@@ -107,8 +110,9 @@ public class SchedulingService {
     public List<Clinic> clinics(UUID facilityId) {
         TenantContext.Tenant t = TenantContext.require();
         List<UUID> ids = facilityId == null
-                ? jdbc.sql("SELECT id FROM clinics WHERE org_id = ? AND facility_id = ANY (?) ORDER BY name").params(t.orgId(), t.facilityIds().toArray(UUID[]::new)).query(UUID.class).list()
-                : jdbc.sql("SELECT id FROM clinics WHERE org_id = ? AND facility_id = ? ORDER BY name").params(t.orgId(), facilityId).query(UUID.class).list();
+                ? jdbc.sql("SELECT id FROM clinics WHERE org_id = ? AND facility_id = ANY (?) ORDER BY name LIMIT " + cap.fetchLimit()).params(t.orgId(), t.facilityIds().toArray(UUID[]::new)).query(UUID.class).list()
+                : jdbc.sql("SELECT id FROM clinics WHERE org_id = ? AND facility_id = ? ORDER BY name LIMIT " + cap.fetchLimit()).params(t.orgId(), facilityId).query(UUID.class).list();
+        cap.check(ids, "clinics");
         return ids.stream().map(this::clinic).toList();
     }
 

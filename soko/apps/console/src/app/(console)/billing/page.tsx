@@ -8,6 +8,7 @@ interface Invoice {
   id: string; reference: string; periodStart: string; periodEnd: string; subscriptionFeeCents: number;
   commissionCents: number; totalCents: number; status: string; dueAt: string; paidAt: string | null;
 }
+interface Orphan { id: string; purpose: string; msisdn: string; amountCents: number; receipt: string | null; reason: string | null; completedAt: string | null }
 interface LedgerRow { type: string; referenceType: string; amountCents: number; description: string | null; createdAt: string }
 
 const PLANS = [
@@ -34,6 +35,13 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
     ]);
   } catch (caught) {
     error = describeError(caught);
+  }
+  // Money M-Pesa confirmed that matched nothing. Its own fetch: a failure here must not hide billing.
+  let orphans: Orphan[] = [];
+  try {
+    orphans = await api.get<Orphan[]>("/v1/payments/orphaned?limit=50");
+  } catch {
+    orphans = [];
   }
   if (error || !subscription) {
     return (<><PageHeader title="Billing" /><Notice tone="danger">{error}</Notice></>);
@@ -116,6 +124,25 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
           </ActionForm>
         </Card>
       </div>
+
+      {orphans.length > 0 ? (
+        <div className="mt-6">
+          <Card title="Unmatched payments" description="M-Pesa confirmed these, but the order or invoice they paid for could not be settled. The money is held: refund it from your M-Pesa portal, quoting the receipt number.">
+            <Table head={["When", "For", "From", "Amount", "Receipt", "Why"]}>
+              {orphans.map((orphan) => (
+                <tr key={orphan.id} className={rowClass}>
+                  <td className="px-3.5 py-2 text-[var(--color-muted)]">{orphan.completedAt ? day(orphan.completedAt) : "—"}</td>
+                  <td className="px-3.5 py-2">{orphan.purpose.toLowerCase()}</td>
+                  <td className="px-3.5 py-2 tabular-nums text-[var(--color-muted)]">{orphan.msisdn}</td>
+                  <td className="px-3.5 py-2 font-medium tabular-nums">{ksh(orphan.amountCents)}</td>
+                  <td className="px-3.5 py-2 font-mono text-[0.875rem]">{orphan.receipt ?? "—"}</td>
+                  <td className="px-3.5 py-2 text-[var(--color-muted)]">{orphan.reason}</td>
+                </tr>
+              ))}
+            </Table>
+          </Card>
+        </div>
+      ) : null}
 
       <div className="mt-6">
         <Card title="Ledger" description="Append-only. A correction is a new offsetting entry, never an edit, so the entries for an invoice sum exactly to its total.">

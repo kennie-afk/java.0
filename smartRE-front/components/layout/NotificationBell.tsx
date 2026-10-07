@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Bell, CheckCheck, Settings } from 'lucide-react'
 import { useUnreadCount, useNotificationFeed } from '@/hooks/useNotifications'
-import { cn, fmt } from '@/lib/utils'
+import { cn, fmt, plainText } from '@/lib/utils'
 import { Spinner } from '@/components/ui/Modal'
 import type { NotificationResponse } from '@/types'
 
@@ -91,7 +91,7 @@ export default function NotificationBell() {
                         n.read ? 'text-gray-600 dark:text-gray-300' : 'font-semibold text-gray-900 dark:text-white')}>
                         {n.subject || n.templateCode}
                       </p>
-                      {n.body && <p className="text-xs text-muted mt-0.5 line-clamp-2">{n.body}</p>}
+                      {n.body && <p className="text-xs text-muted mt-0.5 line-clamp-2">{plainText(n.body)}</p>}
                       <p className="text-2xs text-muted mt-1">{fmt.ago(n.createdAt)}</p>
                     </div>
                   </div>

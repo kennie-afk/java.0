@@ -31,6 +31,21 @@ class PortalTest extends IntegrationTest {
         return sendJson(post("/portal/auth/login", null), Map.of("organisation", slug(org), "login", login, "password", password), 200).get("token").asText();
     }
 
+    @Test
+    void aDisabledAccountStopsWorkingAtOnce_notWhenItsTokenExpires() throws Exception {
+        Org org = newOrg("portal-gate");
+        UUID p = newPatient(org, "Wanjiku", "1990-04-04");
+        String token = activate(org, p, "stops-at-once@example.org", "a-long-password-1");
+        assertThat(portal("/me", token).get("givenName").asText()).isEqualTo("Wanjiku");
+
+        send(post("/v1/portal/accounts/" + p + "/disable", org.token()), 200);
+
+        send(get("/portal/me", token), 401);
+
+        send(post("/v1/portal/accounts/" + p + "/enable", org.token()), 200);
+        assertThat(portal("/me", token).get("givenName").asText()).isEqualTo("Wanjiku");
+    }
+
     private JsonNode portal(String path, String token) throws Exception {
         return fetch("/portal" + path, token);
     }

@@ -14,6 +14,7 @@ import { StatusBadge } from '@/components/ui/Badge'
 import { EmptyState, PageLoader, ConfirmModal } from '@/components/ui/Modal'
 import { InlineError } from '@/components/ui/InlineError'
 import { fmt, cn } from '@/lib/utils'
+import { canReportNoShow } from '@/lib/viewings'
 import toast from 'react-hot-toast'
 
 export default function ViewingsPage() {
@@ -53,6 +54,7 @@ function ViewingsPageInner() {
       if (vars.action === 'confirm-seller') return viewingApi.confirmSeller(vars.id)
       if (vars.action === 'confirm-buyer') return viewingApi.confirmBuyer(vars.id)
       if (vars.action === 'complete') return viewingApi.complete(vars.id)
+      if (vars.action === 'no-show') return viewingApi.noShow(vars.id, vars.reason?.trim() || undefined)
       return viewingApi.cancel(vars.id, vars.reason?.trim() || undefined)
     },
     onSettled: () => qc.invalidateQueries({ queryKey }),
@@ -66,6 +68,7 @@ function ViewingsPageInner() {
     'confirm-buyer': 'Viewing confirmed',
     'complete': 'Viewing marked as completed',
     'cancel': 'Viewing cancelled',
+    'no-show': 'No-show recorded',
   }
 
   const doAction = async (id: string, action: string, reason?: string) => {
@@ -81,6 +84,7 @@ function ViewingsPageInner() {
     'confirm-buyer': { title: 'Confirm viewing', message: 'Confirm you’ll attend this viewing?', label: 'Confirm viewing' },
     'complete': { title: 'Mark as completed', message: 'Mark this viewing as completed?', label: 'Mark completed' },
     'cancel': { title: 'Cancel viewing', message: 'Are you sure you want to cancel this viewing?', label: 'Cancel viewing' },
+    'no-show': { title: 'Report a no-show', message: 'Report that the other party did not turn up? This closes the viewing and cannot be undone.', label: 'Report no-show' },
   }
   const confirmModal = confirm ? ACTION_MODAL[confirm.action] : null
 
@@ -126,13 +130,15 @@ function ViewingsPageInner() {
         title={confirmModal?.title ?? 'Confirm action'}
         message={confirmModal?.message ?? 'Confirm this action?'}
         label={confirmModal?.label ?? 'Confirm'}
-        danger={confirm?.action==='cancel'}
+        danger={confirm?.action==='cancel' || confirm?.action==='no-show'}
         loading={actionMutation.isPending}>
-        {confirm?.action === 'cancel' && (
+        {(confirm?.action === 'cancel' || confirm?.action === 'no-show') && (
           <textarea
             value={cancelReason}
             onChange={e => setCancelReason(e.target.value)}
-            placeholder="Optional: let the other party know why (e.g. schedule conflict, property no longer available)"
+            placeholder={confirm?.action === 'no-show'
+              ? 'Optional: what happened (e.g. waited 30 minutes, no answer on the phone)'
+              : 'Optional: let the other party know why (e.g. schedule conflict, property no longer available)'}
             rows={3}
             className="input-base mt-3 h-auto py-2"
           />
@@ -147,6 +153,8 @@ function ViewingCard({ viewing:v, role, onAction, acting }:{ viewing:ViewingResp
   const canConfirmBuyer  = role==='buyer'  && v.status==='REQUESTED' && !v.buyerConfirmed
   const canComplete      = role==='seller' && v.status==='CONFIRMED'
   const canCancel        = ['PENDING_FEE','REQUESTED'].includes(v.status)
+  // Either party may report the other; offered only once the scheduled time has passed.
+  const canNoShow        = canReportNoShow(v)
 
   return (
     <Card>
@@ -178,6 +186,7 @@ function ViewingCard({ viewing:v, role, onAction, acting }:{ viewing:ViewingResp
           {canConfirmSeller && <Button size="sm" onClick={() => onAction(v.id,'confirm-seller')} loading={acting===v.id+'confirm-seller'} leftIcon={<CheckCircle size={13}/>}>Confirm</Button>}
           {canConfirmBuyer  && <Button size="sm" onClick={() => onAction(v.id,'confirm-buyer')}  loading={acting===v.id+'confirm-buyer'} leftIcon={<CheckCircle size={13}/>}>Confirm</Button>}
           {canComplete      && <Button size="sm" variant="secondary" onClick={() => onAction(v.id,'complete')} loading={acting===v.id+'complete'}>Mark complete</Button>}
+          {canNoShow        && <Button size="sm" variant="ghost" onClick={() => onAction(v.id,'no-show')} loading={acting===v.id+'no-show'}>Report no-show</Button>}
           {canCancel        && <Button size="sm" variant="ghost" onClick={() => onAction(v.id,'cancel')} leftIcon={<XCircle size={13}/>} className="text-red-500 hover:text-red-600">Cancel</Button>}
         </div>
       </div>

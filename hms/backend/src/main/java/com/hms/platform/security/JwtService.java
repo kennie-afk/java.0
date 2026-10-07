@@ -17,7 +17,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class JwtService {
 
-    public record Claims(UUID practitionerId, UUID orgId) {}
+    /** {@code issuedAtMillis} is the database clock at issue, so it compares exactly with practitioners.tokens_valid_after. */
+    public record Claims(UUID practitionerId, UUID orgId, long issuedAtMillis) {}
 
     /** A patient portal session: the account, its organisation and the one patient it belongs to. */
     public record PortalClaims(UUID accountId, UUID orgId, UUID patientId) {}
@@ -34,11 +35,12 @@ public class JwtService {
         return ttl.toSeconds();
     }
 
-    public String issue(UUID practitionerId, UUID orgId) {
-        Instant now = Instant.now();
+    public String issue(UUID practitionerId, UUID orgId, long issuedAtMillis) {
+        Instant now = Instant.ofEpochMilli(issuedAtMillis);
         return Jwts.builder()
                 .subject(practitionerId.toString())
                 .claim("org", orgId.toString())
+                .claim("iam", issuedAtMillis)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plus(ttl)))
                 .signWith(key)
@@ -77,7 +79,10 @@ public class JwtService {
             if (body.get("typ") != null) {
                 return Optional.empty();
             }
-            return Optional.of(new Claims(UUID.fromString(body.getSubject()), UUID.fromString(body.get("org", String.class))));
+            Long millis = body.get("iam", Long.class);
+            // A token from before this claim existed falls back to its issue second.
+            long issued = millis != null ? millis : (body.getIssuedAt() == null ? 0 : body.getIssuedAt().getTime());
+            return Optional.of(new Claims(UUID.fromString(body.getSubject()), UUID.fromString(body.get("org", String.class)), issued));
         } catch (JwtException | IllegalArgumentException e) {
             return Optional.empty();
         }

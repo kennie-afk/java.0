@@ -15,4 +15,6 @@ stringData:
   HMS_DB_OWNER_PASSWORD: $(rand 24)
   HMS_DB_APP_PASSWORD: $(rand 24)
   HMS_JWT_SECRET: $(rand 48)
+  HMS_STORAGE_S3_ACCESS_KEY: hms$(rand 6)
+  HMS_STORAGE_S3_SECRET_KEY: $(rand 24)
 YAML

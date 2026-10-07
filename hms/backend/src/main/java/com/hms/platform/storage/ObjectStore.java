@@ -4,8 +4,8 @@ import java.time.Duration;
 import java.util.Optional;
 
 /**
- * Where uploaded files live. The application talks to this interface only, so a store that is not a local disk (an S3-compatible
- * service) can be added without touching the modules that use it. Only the local-disk store exists today.
+ * Where uploaded files live. The application talks to this interface only: {@link LocalObjectStore} (one machine's disk) and
+ * {@link S3ObjectStore} (any S3-compatible service, shared by every API pod) implement it.
  */
 public interface ObjectStore {
 

@@ -75,6 +75,12 @@ spec:
                 secretKeyRef:
                   name: smartre-secrets
                   key: MPESA_CALLBACK_URL
+            # Production refuses to start with a provider unconfigured: see ProductionGuard.
+            - name: SMARTRE_ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: smartre-config
+                  key: SMARTRE_ENVIRONMENT
             - name: GATEWAY_SIGNING_SECRET
               valueFrom:
                 secretKeyRef:

@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -76,31 +77,15 @@ public class PublicController {
         this.otp = otp;
     }
 
-    private static final int STOREFRONT_LIMIT = 500;
-
     @GetMapping("/{slug}/products")
-    public List<Map<String, Object>> catalogue(@PathVariable String slug) {
+    public org.springframework.http.ResponseEntity<List<Map<String, Object>>> catalogue(
+            @PathVariable String slug,
+            @RequestParam(defaultValue = "") String q,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int limit) {
         Tenant tenant = tenant(slug);
-
-        return TenantBinding.runAs(tenant.getId(), () -> offers.storefront(tenant.getId(), STOREFRONT_LIMIT)).stream()
-                .map(
-                        r -> {
-                            Map<String, Object> row = new LinkedHashMap<>();
-                            row.put("id", r[0]);
-                            row.put("sku", r[1]);
-                            row.put("name", r[2]);
-                            row.put("category", r[3]);
-                            row.put("unit", r[4]);
-                            row.put("perishable", r[5]);
-                            row.put("chilled", r[6]);
-                            row.put("shelfLifeHours", r[7]);
-                            row.put("priceCents", r[8]);
-                            row.put("inStock", ((Number) r[9]).longValue());
-                            row.put("photoUrl", r[10]);
-                            return row;
-                        })
-                .filter(row -> ((Number) row.get("inStock")).longValue() > 0)
-                .toList();
+        return TenantBinding.runAs(tenant.getId(),
+                () -> Paging.storefront(offers, tenant.getId(), q, page, limit));
     }
 
     public record OtpRequest(@NotBlank String phone) {}

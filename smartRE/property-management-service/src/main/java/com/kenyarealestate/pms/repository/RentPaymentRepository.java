@@ -15,6 +15,7 @@ import java.util.UUID;
 public interface RentPaymentRepository extends JpaRepository<RentPayment, UUID> {
     Optional<RentPayment> findByPaymentId(UUID paymentId);
     List<RentPayment> findByInvoiceIdOrderByCreatedAtDesc(UUID invoiceId);
+    org.springframework.data.domain.Page<RentPayment> findByInvoiceId(UUID invoiceId, org.springframework.data.domain.Pageable pageable);
     List<RentPayment> findByInvoiceIdAndStatus(UUID invoiceId, RentPaymentStatus status);
 
     /** Confirmed rent receipts for one landlord whose paid-at falls in [from, to). Landlord comes from the invoice. */

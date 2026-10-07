@@ -56,8 +56,12 @@ public class InvoiceController {
 
     @Operation(summary = "Payments recorded against one invoice")
     @GetMapping("/{id}/payments")
-    public ResponseEntity<List<RentPaymentResponse>> paymentsFor(@PathVariable UUID id, HttpServletRequest r) {
-        return ResponseEntity.ok(payments.forInvoice(caller.userId(r), id));
+    public ResponseEntity<List<RentPaymentResponse>> paymentsFor(
+            @PathVariable UUID id,
+            @RequestParam(defaultValue = "0")   @Min(0)                                   int page,
+            @RequestParam(defaultValue = "200") @Min(1) @Max(PagedResponses.MAX_SIZE)     int size,
+            HttpServletRequest r) {
+        return PagedResponses.of(payments.forInvoice(caller.userId(r), id, PageRequest.of(page, size)));
     }
 
     @Operation(summary = "Start an M-Pesa prompt for this invoice",

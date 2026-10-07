@@ -191,14 +191,63 @@ class PropertyServiceTest {
     }
 
     @Test
-    void getActiveBySeller_returnsOnlyThatSellersActiveListings() {
-        when(repo.findBySellerIdAndStatus(sellerId, ListingStatus.ACTIVE))
-                .thenReturn(List.of(property));
+    void getActiveBySeller_returnsOnlyThatSellersActiveListings_aPageAtATime() {
+        when(repo.findBySellerIdAndStatus(eq(sellerId), eq(ListingStatus.ACTIVE), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(property)));
 
-        var results = propertyService.getActiveBySeller(sellerId);
+        var results = propertyService.getActiveBySeller(sellerId, 0, 50);
 
         assertEquals(1, results.size());
-        verify(repo).findBySellerIdAndStatus(sellerId, ListingStatus.ACTIVE);
+        var captor = org.mockito.ArgumentCaptor.forClass(Pageable.class);
+        verify(repo).findBySellerIdAndStatus(eq(sellerId), eq(ListingStatus.ACTIVE), captor.capture());
+        assertEquals(50, captor.getValue().getPageSize());
+        assertEquals(0, captor.getValue().getPageNumber());
+    }
+
+    @Test
+    void sortFor_refusesAFieldThatIsNotOnTheWhitelist_andNamesTheChoices() {
+        var e = assertThrows(IllegalArgumentException.class, () -> PropertyService.sortFor("sellerId; drop", "ASC"));
+        assertTrue(e.getMessage().contains("Choose one of"));
+        assertTrue(e.getMessage().contains("createdAt"));
+    }
+
+    @Test
+    void sortFor_alwaysEndsWithTheIdSoConsecutivePagesCannotOverlap() {
+        var sort = PropertyService.sortFor("price", "asc");
+
+        var orders = sort.toList();
+        assertEquals("price", orders.get(0).getProperty());
+        assertTrue(orders.get(0).isAscending());
+        assertEquals("id", orders.get(orders.size() - 1).getProperty());
+    }
+
+    @Test
+    void search_passesTheRequestedSortToTheQuery_andDefaultsToNewestFirst() {
+        PropertySearchRequest byPrice = new PropertySearchRequest();
+        byPrice.setSortBy("price");
+        byPrice.setDirection("ASC");
+        when(repo.search(any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean(),
+                anyString(), anyBoolean(), any(Pageable.class))).thenReturn(new PageImpl<>(List.of()));
+
+        propertyService.search(byPrice);
+        propertyService.search(new PropertySearchRequest());
+
+        verify(repo).search(any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean(),
+                eq("price"), eq(true), any(Pageable.class));
+        verify(repo).search(any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean(),
+                eq("createdAt"), eq(false), any(Pageable.class));
+    }
+
+    @Test
+    void search_refusesASortTheQueryDoesNotImplement() {
+        PropertySearchRequest bad = new PropertySearchRequest();
+        bad.setSortBy("sellerId");
+
+        var e = assertThrows(IllegalArgumentException.class, () -> propertyService.search(bad));
+
+        assertTrue(e.getMessage().contains("Cannot sort search results by 'sellerId'"));
+        verify(repo, never()).search(any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean(),
+                any(), anyBoolean(), any(Pageable.class));
     }
 
     @Test
@@ -334,7 +383,7 @@ class PropertyServiceTest {
 
         Page<Property> page = new PageImpl<>(List.of(property));
         when(repo.search(eq("Nairobi"), isNull(), eq("APARTMENT"), eq("SALE"),
-                isNull(), isNull(), isNull(), isNull(), eq(false), any(Pageable.class)))
+                isNull(), isNull(), isNull(), isNull(), eq(false), anyString(), anyBoolean(), any(Pageable.class)))
                 .thenReturn(page);
 
         Page<PropertyResponse> result = propertyService.search(req);
@@ -342,7 +391,7 @@ class PropertyServiceTest {
         assertEquals(1, result.getTotalElements());
         assertEquals(propertyId, result.getContent().get(0).getId());
         verify(repo).search(eq("Nairobi"), isNull(), eq("APARTMENT"), eq("SALE"),
-                isNull(), isNull(), isNull(), isNull(), eq(false), any(Pageable.class));
+                isNull(), isNull(), isNull(), isNull(), eq(false), anyString(), anyBoolean(), any(Pageable.class));
     }
 
     @Test
@@ -356,7 +405,7 @@ class PropertyServiceTest {
 
         when(repo.search(isNull(), isNull(), isNull(), isNull(),
                 eq(BigDecimal.valueOf(1_000_000)), eq(BigDecimal.valueOf(5_000_000)),
-                eq(2), eq("westlands"), eq(true), any(Pageable.class)))
+                eq(2), eq("westlands"), eq(true), anyString(), anyBoolean(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of()));
 
         Page<PropertyResponse> result = propertyService.search(req);
@@ -364,7 +413,7 @@ class PropertyServiceTest {
         assertEquals(0, result.getTotalElements());
         verify(repo).search(isNull(), isNull(), isNull(), isNull(),
                 eq(BigDecimal.valueOf(1_000_000)), eq(BigDecimal.valueOf(5_000_000)),
-                eq(2), eq("westlands"), eq(true), any(Pageable.class));
+                eq(2), eq("westlands"), eq(true), anyString(), anyBoolean(), any(Pageable.class));
     }
 
 

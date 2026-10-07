@@ -295,6 +295,58 @@ def more_data():
             "owner membership") if ME_ID() else None
 
 
+def dairy_data():
+    """A small herd with two weeks of milk, deliveries, one withdrawal and one expected calving."""
+    ts, day, find, seed = sd.ts, sd.day, sd.find, sd.seed
+    farm = find("/api/farm/v1/farms", "name", "Njoro Home Farm")
+    if not farm:
+        return
+    print("Dairy: herd, yields, deliveries, events")
+    herd = [
+        ("KE-001", "Wambui", "Friesian", "MILKING", 21.0), ("KE-002", "Chepkoech", "Ayrshire", "MILKING", 16.5),
+        ("KE-003", "Njeri", "Friesian", "MILKING", 19.0), ("KE-004", "Atieno", "Jersey", "MILKING", 12.0),
+        ("KE-005", "Mueni", "Friesian", "DRY", 0.0), ("KE-006", "Zawadi", "Ayrshire", "HEIFER", 0.0),
+    ]
+    cows = {}
+    for tag, name, breed, status, _ in herd:
+        cows[tag] = seed("/api/farm/v1/cows", "tagNo", {
+            "farmId": farm, "tagNo": tag, "name": name, "breed": breed, "sex": "FEMALE", "status": status,
+            "birthDate": day(365 * 4), "acquiredOn": day(900)}, f"cow {tag}")
+    status, body = sd.call("GET", "/api/farm/v1/milk-yields?size=1")
+    if status == 200 and (body or {}).get("content"):
+        return
+    for back in range(13, -1, -1):
+        for i, (tag, _, _, st, litres) in enumerate(herd):
+            if st != "MILKING" or not cows.get(tag):
+                continue
+            for session, share in (("MORNING", 0.55), ("EVENING", 0.45)):
+                wobble = ((back * 7 + i * 3) % 5 - 2) * 0.3
+                seed("/api/farm/v1/milk-yields", "notes", {
+                    "cowId": cows[tag], "farmId": farm, "recordedOn": day(back), "session": session,
+                    "litres": round(litres * share + wobble, 1), "notes": f"{tag} {day(back)} {session}"},
+                    f"yield {tag} {day(back)} {session}")
+    for back in range(13, -1, -1):
+        total = round(sum(h[4] for h in herd if h[3] == "MILKING") * 0.97, 1)
+        rejected = 6.0 if back == 5 else 0.0
+        seed("/api/farm/v1/milk-deliveries", "receiptNo", {
+            "farmId": farm, "deliveredOn": day(back), "buyerName": "Njoro Dairy Co-operative",
+            "receiptNo": f"NDC-{1000 + 13 - back}", "litresDelivered": total, "litresRejected": rejected,
+            "fatPct": 3.9, "snfPct": 8.6, "temperatureC": 4.5, "alcoholTestPassed": rejected == 0.0,
+            "pricePerLitre": 48.0, "currency": "KES", "status": "PARTIAL" if rejected else "DELIVERED"},
+            f"delivery {day(back)}")
+    seed("/api/farm/v1/cow-health-events", "description", {
+        "cowId": cows["KE-002"], "farmId": farm, "eventDate": day(2), "eventType": "MASTITIS",
+        "description": "Mastitis, left rear quarter; treated, milk held back", "medicine": "Intramammary antibiotic",
+        "withdrawalEndsOn": day(-3), "vetName": "Dr. Kiprop"}, "mastitis treatment")
+    seed("/api/farm/v1/cow-health-events", "description", {
+        "cowId": cows["KE-001"], "farmId": farm, "eventDate": day(20), "eventType": "VACCINATION",
+        "description": "Foot-and-mouth booster"}, "FMD vaccination")
+    seed("/api/farm/v1/breeding-events", "notes", {
+        "cowId": cows["KE-003"], "farmId": farm, "eventDate": day(60), "eventType": "PREGNANCY_CHECK",
+        "method": "AI", "outcome": "Pregnant", "expectedCalvingOn": day(-20), "notes": "KE-003 confirmed"},
+        "KE-003 pregnancy")
+
+
 def main():
     if not sd.sign_in():
         print("Could not sign in. Is the stack running?")
@@ -303,6 +355,7 @@ def main():
     users = ensure_people()
     code = sd.main_body()
     more_data()
+    dairy_data()
     link_workers(users)
     return code
 

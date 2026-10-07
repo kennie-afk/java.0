@@ -159,13 +159,39 @@ python3 tools/roles_check.py                         # role isolation and cost l
 ## Tests
 
 ```bash
+docker run -d --name soko-pg -e POSTGRES_PASSWORD=ownerpw -p 55437:5432 postgres:16
 mvn test
+python3 scripts/check-migrations-frozen.py
 ```
 
-Nine cases over the routing engine, covering each refusal in turn: no cold chain for a
-chilled product, a lead time that outlasts shelf life, a quantity that cannot be covered,
-an inactive supplier, a price tie broken by reliability, and a non-perishable product that
-tolerates a slow supplier.
+99 cases. The routing engine has nine, one per refusal: no cold chain for a chilled product, a lead
+time that outlasts shelf life, a quantity that cannot be covered, an inactive supplier, a price tie
+broken by reliability, and a non-perishable product that tolerates a slow supplier. The rest cover
+billing, M-Pesa, idempotent ordering, unmatched payments, password reset, and four that need the
+Postgres above: tenant isolation as `soko_app`, the repository queries, the idempotency index under
+sixteen racing inserts, and `ApiEndToEndDatabaseTest`, which drives the whole API over HTTP as
+`soko_app` (paging, idempotent ordering, a customer paying, an orphaned payment, password reset).
+Those four skip themselves when no Postgres answers; CI provides one and fails if they skip.
+`SOKO_TEST_ADMIN_URL`, `_USER` and `_PASSWORD` point them elsewhere.
+
+Migrations are never edited once applied. `scripts/check-migrations-frozen.py` fails on any change to
+a recorded one; run it with `--update` only to record a genuinely new migration.
+
+## Lists, paging and idempotency
+
+List endpoints (`/v1/products`, `/suppliers`, `/offers`, `/customers`, `/orders`, `/users`, and the
+storefronts) take `page` (from 0), `limit` (max 200, default 50) and `q`. The body is a plain array;
+`X-Total-Count` and `X-Has-More` say what the page left out. `POST /v1/orders` and
+`POST /v1/shop/orders` accept an `Idempotency-Key` header: a retry with the same key returns the
+original order and reserves stock once.
+
+## Mail
+
+`POST /v1/auth/forgot` e-mails a single-use reset link (30 minutes). By default the message is only
+logged. Set `SOKO_MAIL_ENABLED=true`, `SOKO_MAIL_FROM`, `SOKO_PUBLIC_URL` (the console's address, used in
+the link) and Spring's `SPRING_MAIL_HOST`, `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`,
+`SPRING_MAIL_PASSWORD` (and `SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true`) to send over SMTP.
+`SOKO_ENVIRONMENT=production` refuses to start without it.
 
 ## Three sides, three interfaces
 
@@ -190,10 +216,10 @@ that no field named cost or margin appears in any customer-facing payload.
 ## What is not built
 
 - **No live payments.** M-Pesa STK push is implemented (mock gateway by default, Daraja behind
-  `SOKO_MPESA_MODE=live`) but only the mock has been exercised; no money moves in a demo.
-- **No email.** `POST /v1/auth/forgot` accepts a request and answers identically whether or
-  not the account exists, so it does not leak which addresses are registered, but nothing is
-  actually sent.
+  `SOKO_MPESA_MODE=live`) and the customer can pay from the console, but only the mock has been
+  exercised; no money moves in a demo.
+- **Mail is opt-in.** Password reset and order e-mails are logged until `SOKO_MAIL_ENABLED=true` and an
+  SMTP server are configured (see Mail).
 - **No delivery routing or proof of delivery** beyond the supplier marking a line delivered.
 
 ## Layout
@@ -203,7 +229,7 @@ src/main/java/com/soko/
   domain/       entities
   persistence/  repositories, including the conditional reserve
   routing/      the routing engine and the order service around it
-  api/          one REST controller
+  api/          REST controllers, paging helper
   security/     JWT issue and verify, tenant context
   platform/     problem-document error handling
 apps/console/   Next.js operator console

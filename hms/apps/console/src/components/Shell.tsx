@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { useSession } from "@/lib/session";
+import { permitted } from "@/lib/rules";
 import { SyncStatus } from "@/components/SyncStatus";
 import { clearOfflineCaches, listQueued } from "@/lib/offline";
 
@@ -50,7 +51,7 @@ function Brand() {
 }
 
 function SidebarBody({ path }: { path: string }) {
-  const { me, can, facilityId, setFacility } = useSession();
+  const { me, facilityId, setFacility } = useSession();
   const signOut = async () => {
     const waiting = (await listQueued()).length;
     // Entries that were never sent stay on this device; say so rather than silently keep or lose them.
@@ -64,7 +65,7 @@ function SidebarBody({ path }: { path: string }) {
       <div className="hidden border-b border-line px-4 py-2.5 lg:block"><Brand /></div>
       <nav className="flex-1 space-y-2.5 overflow-y-auto px-2.5 py-2.5" aria-label="Main">
         {NAV.map((g) => {
-          const items = g.items.filter((i) => !i.perm || can(i.perm));
+          const items = g.items.filter((i) => permitted(me.permissions, i.perm));
           if (!items.length) return null;
           return (
             <div key={g.group}>
@@ -98,7 +99,7 @@ function SidebarBody({ path }: { path: string }) {
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold">{me.fullName}</div>
-            <div className="text-xs text-muted">Signed in</div>
+            <Link href="/account" className="text-xs text-muted underline">Change password</Link>
           </div>
           <button onClick={signOut} aria-label="Sign out" title="Sign out" className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted hover:bg-raised hover:text-ink">
             <Icon name="logout" className="h-5 w-5" />

@@ -50,33 +50,78 @@ and invoice generation ran a bulk `@Modifying` update referencing an invoice id 
 that invoice had been flushed to the database. Both are fixed with an explicit
 `saveAndFlush` at the right point — see `SubscriptionService`/`InvoiceService`.
 
-**Not done, and deliberately out of scope for this pass:** a real Daraja sandbox
-account (mock mode is what's wired and tested), a real SMS provider account, and any
-change to CORS/rate limiting/observability/backups (still ranked below, see bottom).
+**Not done in that pass:** a real Daraja sandbox account (mock mode is what's wired and
+tested) and a real SMS provider account. CORS and rate limiting were closed afterwards; see
+"Closed 2026-10-06".
+
+## Closed 2026-10-06
+
+Verified in code first, then fixed with tests (`mvn test`: 99 cases, 0 skipped, against a real
+Postgres as the restricted `soko_app` role).
+
+- **Reads returned nothing under row-level security.** A declared repository query method
+  (`findBy...`, `@Query`) runs outside any transaction, and the tenant is bound only when a
+  transaction begins (`TenantAwareDataSource`), so every list read made straight from a controller
+  ran with no tenant and fail-closed to an empty result: a supplier created a moment earlier was
+  invisible to `GET /v1/suppliers`, and `POST /v1/offers` answered "no such supplier". Reproduced on
+  the previous commit. Every repository interface is now `@Transactional(readOnly = true)` (its
+  `@Modifying` and locking methods read-write). The end-to-end test (`ApiEndToEndDatabaseTest`) is
+  what exposed it; the earlier tests drove SQL or services directly and never crossed it.
+- **Silent truncation.** List endpoints returned the first 50 rows with no way to see the rest.
+  Products, suppliers, offers, customers, orders and users now take `page`, `limit` (max 200) and
+  `q` (case-insensitive, `%` and `_` matched literally) and answer with `X-Total-Count` and
+  `X-Has-More` while the body stays a plain array. The console shows search and pagers on every list
+  and uses search-as-you-type pickers on the order, offer and account forms, so the 51st product is
+  orderable. The public storefront is read page by page rather than cut at the first.
+- **Storefront** filtered out-of-stock rows in Java after fetching 500; the stock filter is now SQL
+  (`having sum(available_qty) > 0`), with a matching count, paging and `q`.
+- **Customer M-Pesa payment has a UI.** The order page and the post-checkout drawer ask for a
+  number (any common Safaricom format, validated server-side as `254[17]XXXXXXXX`), send the prompt
+  and poll `GET /v1/shop/orders/{id}/payment` until the phone is answered, showing paid with the
+  receipt, the failure reason with a retry, or a stop-polling message after two minutes.
+- **Admin screens** for the write endpoints: create and edit suppliers and products, create offers,
+  and an owner-only Team screen (list, add, suspend, reactivate) behind a new `GET /v1/users`.
+  Operators do not see Team or Billing. Validation messages are given per field.
+- **Order placement is idempotent.** `Idempotency-Key` (max 80 characters) on `POST /v1/orders` and
+  `/v1/shop/orders`, backed by a unique index on `(tenant_id, key)`. A retry returns the original
+  order and reserves nothing; the same key for a different customer or basket is refused. The
+  console forms send a key that lives as long as the form or basket.
+- **Stock leak on a failed multi-line order.** `reserve()` commits in its own transaction, so a line
+  that failed after an earlier line had reserved stock left that stock lost. It is now released.
+- **Unmatched payments are visible.** A succeeded M-Pesa payment whose order or invoice is missing
+  (or whose order was cancelled meanwhile) was logged and skipped. It is now kept with status
+  `ORPHANED` and a reason, written to the ledger as `PAYMENT_ORPHANED`, and listed for the owner at
+  `GET /v1/payments/orphaned` and on the Billing screen.
+- **Password reset.** `POST /v1/auth/forgot` now e-mails a single-use link (30 minutes, only the
+  token's SHA-256 stored, a newer request voids older ones) and `POST /v1/auth/reset` sets the new
+  password. The default sender only logs; `SOKO_MAIL_ENABLED=true` plus Spring's `SPRING_MAIL_*`
+  settings send over SMTP (`spring-boot-starter-mail`). Production refuses to start without it.
+  Sessions already issued stay valid until they expire.
+- **Migration freeze check**: `scripts/check-migrations-frozen.py`, run in CI before the build.
+- **CORS** is scoped by `SOKO_ALLOWED_ORIGINS` and **rate limiting** covers login, register, forgot
+  and reset (per address, in memory per replica): both were open items in the 2026-09 text below and
+  are done.
+- CI's database-gated tests now run for real: the workflow's Postgres password did not match the
+  tests' default, so they would have skipped (and failed the "did not skip" check).
+
+## Still open
+
+- A real Daraja account and a real SMS provider; the code paths are built and exercised against mocks.
+  The mock gateway is the only one tried end to end, so no real money has moved.
+- Resetting a password does not revoke a JWT already issued; it expires on its own (12 hours by
+  default). Revocation would need a token version on the user row.
+- The idempotency key is honoured at placement only. A welcome-drawer retry after the one-time code
+  was already consumed cannot re-verify, so it surfaces as a code error rather than replaying.
+- Orphaned payments are listed, not refunded: refunding is done in the M-Pesa portal.
+- The rate limiter is per replica and in memory.
 
 ## Already known and documented (from the project's own README)
 
-- **No email.** `POST /v1/auth/forgot` is correctly non-leaking (answers identically
-  whether the account exists) but sends nothing. No order confirmations, no receipts by
-  email either.
 - **No delivery routing or proof of delivery** beyond a supplier manually marking a line
   dispatched then delivered. No ETA, no driver assignment, no geolocation, no photo/
   signature proof.
 
 ## Found by reading the code
-
-**Wide-open CORS.** `SecurityConfig` allows any origin (`addAllowedOriginPattern("*")`)
-with all methods. Fine for a demo behind a bearer token, but for production this should
-be scoped to the actual console/storefront domains once those are fixed.
-
-**No rate limiting anywhere.** The auth endpoints (`/auth/login`, `/auth/register`,
-`/auth/forgot`) have no throttling. `/auth/forgot`'s careful non-leaking design is
-undermined if an attacker can hammer it to enumerate registered emails via timing, or
-just brute-force login, without any rate limit slowing them down.
-
-**No search or filtering on the storefront.** `GET /v1/shop/products` returns the whole
-catalogue; fine for nine SKUs, will not stay fine once the line grows (new flavours,
-sizes, seasonal products).
 
 **No low-stock alerting.** An offer's `availableQty` only decreases (on order) or gets
 manually reset (supplier restocks via `PUT`). Nothing tells a supplier or the
@@ -102,14 +147,8 @@ a real one before trusting real order/payment data to it.
 
 ## If I had to rank what to build next for a real (not just demo) launch
 
-Everything from the previous ranked list (M-Pesa, order edit/cancel, product photos,
-wastage, SMS) is done — see "Closed 2026-09-29" above. What's left, ranked:
-
-1. A real Daraja sandbox account and a real SMS provider account — both are Kennedy's
-   to supply, not a code gap; the integration points are built and tested against mocks.
-2. Low-stock alerting — an offer only ever finds out it's empty when an order refuses
-   it. Worth building now that wastage recording proves the "surface the number nobody
-   currently sees" pattern works.
-3. Search/filtering on the storefront, once the catalogue is bigger than nine SKUs.
-4. Rate limiting, CORS scoping, structured observability, backup/DR story — real, but
-   matter more at scale than for the first paying client.
+1. A real Daraja account and a real SMS provider account: both are Kennedy's to supply, not a
+   code gap.
+2. Low-stock alerting.
+3. Structured observability and a backup/restore drill.
+4. Token revocation on password reset.

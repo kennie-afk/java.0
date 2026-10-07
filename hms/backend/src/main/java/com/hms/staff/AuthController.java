@@ -1,5 +1,6 @@
 package com.hms.staff;
 
+import com.hms.platform.audit.AuditService;
 import com.hms.platform.rbac.AccessService;
 import com.hms.platform.security.JwtService;
 import com.hms.platform.tenancy.TenantContext;
@@ -7,6 +8,7 @@ import com.hms.platform.web.ApiException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.time.OffsetDateTime;
 import java.util.Comparator;
 import java.util.List;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -32,8 +35,13 @@ class AuthController {
 
     record FacilityRef(UUID id, String name) {}
 
-    record Session(String token, long expiresInSeconds, UUID practitionerId, String fullName, UUID organisationId,
-                   List<FacilityRef> facilities, List<String> permissions) {}
+    record Session(String token, long expiresInSeconds, String refreshToken, long refreshExpiresInSeconds, UUID practitionerId, String fullName,
+                   UUID organisationId, List<FacilityRef> facilities, List<String> permissions) {}
+
+    record RefreshRequest(@NotBlank @Size(max = 200) String refreshToken) {}
+
+    /** {@code refreshToken} is absent when the same refresh token was used a moment ago by a parallel request: keep the one you have. */
+    record Refreshed(String token, long expiresInSeconds, String refreshToken, long refreshExpiresInSeconds) {}
 
     private static final int LOCK_AFTER = 5;
     private static final int LOCK_MINUTES = 15;
@@ -43,10 +51,15 @@ class AuthController {
     private final JwtService jwt;
     private final AccessService access;
     private final TransactionTemplate tx;
+    private final SessionService sessions;
+    private final AuditService audit;
     /** Compared against when the email is unknown, so an unknown email costs the same time as a wrong password. */
     private final String dummyHash;
 
-    AuthController(JdbcClient jdbc, PasswordEncoder encoder, JwtService jwt, AccessService access, PlatformTransactionManager txm) {
+    AuthController(JdbcClient jdbc, PasswordEncoder encoder, JwtService jwt, AccessService access, PlatformTransactionManager txm,
+                   SessionService sessions, AuditService audit) {
+        this.sessions = sessions;
+        this.audit = audit;
         this.tx = new TransactionTemplate(txm);
         this.tx.setReadOnly(true);
         this.jdbc = jdbc;
@@ -92,8 +105,9 @@ class AuthController {
         TenantContext.set(new TenantContext.Tenant(orgId, practitionerId, granted.facilityIds(), granted.permissions()));
         try {
             List<FacilityRef> facilities = tx.execute(status -> facilitiesOf(granted.facilityIds()));
-            return new Session(jwt.issue(practitionerId, orgId), jwt.ttlSeconds(), practitionerId, fullName, orgId, facilities,
-                    granted.permissions().stream().sorted().toList());
+            SessionService.Issued issued = sessions.start(orgId, practitionerId);
+            return new Session(issued.accessToken(), issued.expiresInSeconds(), issued.refreshToken(), issued.refreshExpiresInSeconds(), practitionerId, fullName, orgId,
+                    facilities, granted.permissions().stream().sorted().toList());
         } finally {
             if (previous == null) {
                 TenantContext.clear();
@@ -111,6 +125,40 @@ class AuthController {
         return jdbc.sql("SELECT id, name FROM facilities WHERE id = ANY (?) ORDER BY name").param(ids.toArray(UUID[]::new))
                 .query((rs, n) -> new FacilityRef(rs.getObject("id", UUID.class), rs.getString("name"))).list().stream()
                 .sorted(Comparator.comparing(FacilityRef::name)).toList();
+    }
+
+    /**
+     * Exchanges a refresh token for a new access token and the next refresh token. A refresh token works once: presenting a spent one
+     * again revokes the whole session family, and the person must sign in.
+     */
+    @PostMapping("/refresh")
+    Refreshed refresh(@Valid @RequestBody RefreshRequest in) {
+        SessionService.Rotated r = sessions.rotate(in.refreshToken());
+        if (r.outcome().equals("REUSED")) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "refresh_reused", "This session was used twice and has been ended. Sign in again.");
+        }
+        if (r.tokens() == null) {
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "invalid_refresh", "Sign in again.");
+        }
+        SessionService.Issued t = r.tokens();
+        return new Refreshed(t.accessToken(), t.expiresInSeconds(), t.refreshToken(), t.refreshExpiresInSeconds());
+    }
+
+    /** Signs this device out. Works without a valid access token (it may have expired), and says nothing about whether the token existed. */
+    @PostMapping("/logout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void logout(@Valid @RequestBody RefreshRequest in) {
+        sessions.revokeFamily(in.refreshToken());
+    }
+
+    /** Ends every session of the caller, on every device. */
+    @PostMapping("/logout-all")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Transactional
+    void logoutAll() {
+        TenantContext.Tenant t = TenantContext.require();
+        sessions.revokeAll(t.orgId(), t.practitionerId());
+        audit.record("auth.logout_all", "practitioner", t.practitionerId(), null, null, java.util.Map.of());
     }
 
     record Me(UUID practitionerId, UUID organisationId, List<FacilityRef> facilities, List<String> permissions) {}

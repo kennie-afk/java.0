@@ -54,7 +54,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(a -> a
                         .requestMatchers("/actuator/health/**", "/actuator/info").permitAll()
                         .requestMatchers(HttpMethod.GET, "/v1/objects/*/*").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/v1/auth/login", "/v1/organisations", "/portal/auth/login", "/portal/auth/activate").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/v1/auth/login", "/v1/auth/refresh", "/v1/auth/logout", "/v1/organisations", "/portal/auth/login", "/portal/auth/activate").permitAll()
+                        // Safaricom's callback carries no token; the path's secret is its credential (MpesaCallbackController).
+                        .requestMatchers(HttpMethod.POST, "/v1/billing/mpesa/*/confirmation").permitAll()
                         .requestMatchers("/portal/**").hasAuthority("portal:self")
                         .anyRequest().authenticated())
                 .addFilterBefore(tokenFilter, UsernamePasswordAuthenticationFilter.class)

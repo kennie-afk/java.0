@@ -70,6 +70,32 @@ spec:
                 configMapKeyRef:
                   name: smartre-config
                   key: ARDHISASA_ENABLED
+            # Production refuses to start with a provider unconfigured: see ProductionGuard.
+            - name: SMARTRE_ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: smartre-config
+                  key: SMARTRE_ENVIRONMENT
+            - name: SMARTRE_ALLOW_UNCONFIGURED_PROVIDERS
+              valueFrom:
+                configMapKeyRef:
+                  name: smartre-config
+                  key: SMARTRE_ALLOW_UNCONFIGURED_PROVIDERS
+            - name: SMILE_IDENTITY_PARTNER_ID
+              valueFrom:
+                secretKeyRef:
+                  name: smartre-secrets
+                  key: SMILE_IDENTITY_PARTNER_ID
+            - name: SMILE_IDENTITY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: smartre-secrets
+                  key: SMILE_IDENTITY_API_KEY
+            - name: ARDHISASA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: smartre-secrets
+                  key: ARDHISASA_API_KEY
             - name: GATEWAY_SIGNING_SECRET
               valueFrom:
                 secretKeyRef:
