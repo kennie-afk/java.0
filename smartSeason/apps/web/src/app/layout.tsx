@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
-import { DemoBanner } from "@/components/demo-banner";
 
 // Read DEMO_MODE per request, not at build, so the same image runs either way.
 export const dynamic = "force-dynamic";
@@ -26,7 +25,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="min-h-screen antialiased">{children}
-        <DemoBanner />
       </body>
     </html>
   );

@@ -11,6 +11,16 @@ import { loadCollection } from "@/lib/load";
 import { loadRecord } from "@/lib/record";
 import { crop, kg, progressOf, type Season } from "@/lib/season";
 
+/** Columns by card count so the last row is never a lone card. */
+function statGrid(n: number): string {
+  if (n <= 1) return "sm:grid-cols-1";
+  if (n === 2) return "sm:grid-cols-2";
+  if (n === 3) return "sm:grid-cols-3";
+  if (n === 4) return "sm:grid-cols-4";
+  if (n === 5) return "sm:grid-cols-5";
+  return "sm:grid-cols-3 lg:grid-cols-6";
+}
+
 async function count(path: string, token: string | null): Promise<number | null> {
   try {
     return (await api.get<PageResponse<unknown>>(`${path}?size=1`, token)).totalElements;
@@ -152,7 +162,7 @@ export default async function OverviewPage() {
     <>
       <PageHeader eyebrow={today} title={`${ROLE_LABELS[role]} overview`} subtitle={SUBTITLE[role]} />
 
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-[repeat(auto-fit,minmax(190px,1fr))]">
+      <section className={`grid grid-cols-2 gap-3 max-sm:[&>*:last-child:nth-child(odd)]:col-span-2 ${statGrid(headlines.length + (myTaskCount !== null ? 1 : 0))}`}>
         {myTaskCount !== null ? (
           <Link href="/my-work" className="block">
             <Stat label="My open tasks" value={String(myTaskCount)} hint="Assigned to you" icon={<Icon name="tasks" className="h-4 w-4" />} />

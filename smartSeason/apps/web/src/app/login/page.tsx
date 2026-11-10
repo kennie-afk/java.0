@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { DemoBanner } from "@/components/demo-banner";
 import { AuthPanel } from "@/components/auth-panel";
 import { switchableAccounts } from "@/lib/switch-actions";
 import { readToken } from "@/lib/session";
@@ -22,6 +23,7 @@ export default async function LoginPage() {
           </span>
         </div>
         <AuthPanel accounts={accounts} />
+        <DemoBanner />
       </div>
     </main>
   );
