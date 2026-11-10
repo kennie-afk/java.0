@@ -74,11 +74,11 @@ export default async function RecordPage({
         {entity.formFields.filter((field) => !isUuid(record[field.name])).map((field) => {
           const value = record[field.name];
           return (
-            <div key={field.name}>
+            <div key={field.name} className="min-w-0">
               <dt className="text-2xs font-semibold uppercase tracking-widest text-gray-400">
                 {field.label}
               </dt>
-              <dd className="mt-0.5 break-words text-sm">
+              <dd className="mt-0.5 min-w-0 text-sm [overflow-wrap:anywhere]">
                 {field.options && value ? (
                   <Badge value={String(value)} />
                 ) : (
