@@ -10691,11 +10691,6 @@ export const GROUPS: GroupSpec[] = [
             "path": "/api/media/v1/media-assets",
             "columns": [
               {
-                "name": "storageKey",
-                "label": "Storage key",
-                "kind": "string"
-              },
-              {
                 "name": "originalFilename",
                 "label": "Original filename",
                 "kind": "string"
@@ -10714,6 +10709,11 @@ export const GROUPS: GroupSpec[] = [
               {
                 "name": "checksum",
                 "label": "Checksum",
+                "kind": "string"
+              },
+              {
+                "name": "context",
+                "label": "Context",
                 "kind": "string"
               },
               {
@@ -10850,11 +10850,6 @@ export const GROUPS: GroupSpec[] = [
             "path": "/api/media/v1/upload-tickets",
             "columns": [
               {
-                "name": "storageKey",
-                "label": "Storage key",
-                "kind": "string"
-              },
-              {
                 "name": "method",
                 "label": "Method",
                 "kind": "string"
@@ -10873,6 +10868,11 @@ export const GROUPS: GroupSpec[] = [
               {
                 "name": "expiresAt",
                 "label": "Expires at",
+                "kind": "ts"
+              },
+              {
+                "name": "consumedAt",
+                "label": "Consumed at",
                 "kind": "ts"
               },
               {
@@ -10950,11 +10950,6 @@ export const GROUPS: GroupSpec[] = [
                 "kind": "string"
               },
               {
-                "name": "storageKey",
-                "label": "Storage key",
-                "kind": "string"
-              },
-              {
                 "name": "width",
                 "label": "Width",
                 "kind": "int",
@@ -10975,6 +10970,11 @@ export const GROUPS: GroupSpec[] = [
               {
                 "name": "contentType",
                 "label": "Content type",
+                "kind": "string"
+              },
+              {
+                "name": "publicUrl",
+                "label": "Public url",
                 "kind": "string"
               }
             ],

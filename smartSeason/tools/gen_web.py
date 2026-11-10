@@ -44,7 +44,7 @@ GROUP_META = [
 # order; the first one an entity has becomes its lead column.
 LABEL_FIELDS = [
     "name", "title", "fullName", "commonName", "caseNumber", "code",
-    "email", "reference", "stageName", "templateName", "plateNumber",
+    "email", "reference", "stageName", "templateName", "plateNumber", "originalFilename",
 ]
 
 MAX_COLUMNS = 6
@@ -99,6 +99,7 @@ def pick_columns(fields):
     usable = [
         f for f in fields
         if not is_secret(f) and f.kind not in ("text", "json", "uuid")
+        and f.name not in ("storageKey", "objectKey")
     ]
     if not usable:
         # Everything worth showing was filtered out (a pure join table, say), so

@@ -8,7 +8,7 @@ import { useState } from "react";
 type Mode = "signin" | "register";
 
 const FIELD =
-  "w-full rounded-lg border border-[var(--color-line-strong)] bg-[var(--color-surface)] min-h-9 px-3 py-1.5 text-base outline-none focus:border-[var(--color-accent)]";
+  "input-base";
 
 export function AuthPanel({
   accounts = []
@@ -75,8 +75,8 @@ export function AuthPanel({
   }
 
   return (
-    <div className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-4">
-      <div className="mb-5 flex gap-1 rounded-md bg-[var(--color-raised)] p-1">
+    <>
+      <div className="mb-4 flex rounded-lg bg-gray-100 p-1 dark:bg-white/5">
         {(["signin", "register"] as Mode[]).map((value) => (
           <button
             key={value}
@@ -85,10 +85,10 @@ export function AuthPanel({
               setMode(value);
               setError(null);
             }}
-            className={`flex-1 rounded-md px-3 py-2 text-sm font-semibold transition-colors ${
+            className={`flex-1 cursor-pointer rounded-lg py-2 text-center text-sm font-semibold ${
               mode === value
-                ? "bg-[var(--color-surface)] text-[var(--color-ink)]"
-                : "text-[var(--color-muted)]"
+                ? "bg-white text-gray-900 dark:bg-[#121b16] dark:text-white"
+                : "text-muted hover:text-gray-700 dark:hover:text-gray-200"
             }`}
           >
             {value === "signin" ? "Sign in" : "Create account"}
@@ -96,23 +96,24 @@ export function AuthPanel({
         ))}
       </div>
 
+      <div className="card p-4">
       <form onSubmit={onSubmit} className="space-y-3">
         {mode === "register" ? (
           <>
             <label className="block">
-              <span className="mb-1.5 block text-sm font-semibold text-[var(--color-ink)]">
+              <span className="mb-1 block text-xs font-semibold text-[var(--color-muted)]">
                 Organisation
               </span>
               <input name="organisationName" required maxLength={255} className={FIELD} />
             </label>
             <label className="block">
-              <span className="mb-1.5 block text-sm font-semibold text-[var(--color-ink)]">
+              <span className="mb-1 block text-xs font-semibold text-[var(--color-muted)]">
                 Your name
               </span>
               <input name="fullName" required maxLength={255} className={FIELD} />
             </label>
             <label className="block">
-              <span className="mb-1.5 block text-sm font-semibold text-[var(--color-ink)]">Type</span>
+              <span className="mb-1 block text-xs font-semibold text-[var(--color-muted)]">Type</span>
               <select name="orgType" className={FIELD} defaultValue="FARM">
                 <option value="FARM">Farm</option>
                 <option value="COOPERATIVE">Cooperative</option>
@@ -124,12 +125,12 @@ export function AuthPanel({
         ) : null}
 
         <label className="block">
-          <span className="mb-1.5 block text-sm font-semibold text-[var(--color-ink)]">Email</span>
+          <span className="mb-1 block text-xs font-semibold text-[var(--color-muted)]">Email</span>
           <input name="email" type="email" required autoComplete="email" className={FIELD} />
         </label>
 
         <label className="block">
-          <span className="mb-1.5 block text-sm font-semibold text-[var(--color-ink)]">Password</span>
+          <span className="mb-1 block text-xs font-semibold text-[var(--color-muted)]">Password</span>
           <input
             name="password"
             type="password"
@@ -147,7 +148,7 @@ export function AuthPanel({
 
         {mode === "register" ? (
           <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold text-[var(--color-ink)]">
+            <span className="mb-1 block text-xs font-semibold text-[var(--color-muted)]">
               Confirm password
             </span>
             <input
@@ -181,7 +182,7 @@ export function AuthPanel({
         <button
           type="submit"
           disabled={busy}
-          className="w-full rounded-lg bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:bg-[var(--color-good)] disabled:opacity-50"
+          className="btn-primary w-full"
         >
           {busy ? "Working…" : mode === "signin" ? "Sign in" : "Create account"}
         </button>
@@ -191,6 +192,7 @@ export function AuthPanel({
           registering a new organisation; switching to an existing one mid-way
           would throw away what they were doing. */}
       {mode === "signin" ? <AccountSwitcher accounts={accounts} /> : null}
-    </div>
+      </div>
+    </>
   );
 }

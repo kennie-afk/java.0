@@ -81,7 +81,7 @@ export default async function EntityListPage({
           Search
         </button>
         {Object.keys(active).length > 0 ? (
-          <Link href={base} className="text-sm font-semibold text-[var(--color-accent)] hover:underline">
+          <Link href={base} className="text-xs font-medium text-brand-500 hover:text-brand-600">
             Clear {Object.keys(active).length === 1 ? "filter" : "filters"}
           </Link>
         ) : null}
@@ -104,7 +104,7 @@ export default async function EntityListPage({
           }
         />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)]">
+        <div className="overflow-hidden panel">
           <Table
             head={entity.columns.map((column) => ({
               key: column.name,
@@ -128,14 +128,12 @@ export default async function EntityListPage({
                   return (
                     <td
                       key={column.name}
-                      className={`px-3 py-1.5 ${
-                        column.numeric ? "tabular-nums text-right" : ""
-                      }`}
+                      className={column.numeric ? "text-right" : ""}
                     >
                       {index === 0 ? (
                         <Link
                           href={`${base}/${String(row.id)}`}
-                          className="font-medium text-[var(--color-ink)] underline-offset-2 hover:underline"
+                          className="font-medium text-gray-900 hover:text-brand-600 dark:text-white"
                         >
                           {display(value, column.kind)}
                         </Link>

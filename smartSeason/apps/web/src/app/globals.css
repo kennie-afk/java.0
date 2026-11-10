@@ -1,99 +1,199 @@
 @import "tailwindcss";
 
 /*
- * SmartSeason design tokens. See ../../DESIGN.md for the reasoning.
- * Surfaces are tinted a barely-there green so white cards have something to sit on;
- * the accent is the farm green and is the only saturated colour on the page chrome.
+ * SmartSeason design system.
+ *
+ * This is SmartRE's design system (java.0/smartRE-front/app/globals.css and
+ * tailwind.config.ts) ported 1:1: Fraunces headings, Manrope body, the same type scale,
+ * radii, component classes (.card, .input-base, .btn-*, .badge, .sidebar-link), hairline
+ * borders, no shadows, colour-only hover. The ONLY difference is colour: SmartRE's gold
+ * scale is replaced by a green scale under the same step names (brand-50 ... brand-900),
+ * and the warm-brown dark surfaces by green-tinted ones.
  */
-@theme {
-  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Manrope", sans-serif;
+  --font-display: "Fraunces", serif;
+
+  /* SmartRE's "gold" scale, in farm green. 500 carries white text at 5.0:1. */
+  --color-brand: #15803d;
+  --color-brand-50: #f1f8f3;
+  --color-brand-100: #dff0e4;
+  --color-brand-200: #bfe0c9;
+  --color-brand-300: #8fc7a1;
+  --color-brand-400: #4fa36b;
+  --color-brand-500: #15803d;
+  --color-brand-600: #136b34;
+  --color-brand-700: #115a2d;
+  --color-brand-800: #0e4524;
+  --color-brand-900: #0a2f19;
+
+  /* SmartRE's type scale, verbatim. */
+  --text-2xs: 10px;    --text-2xs--line-height: 14px;
+  --text-xs: 11px;     --text-xs--line-height: 15px;
+  --text-sm: 12px;     --text-sm--line-height: 17px;
+  --text-base: 13px;   --text-base--line-height: 19px;
+  --text-lg: 14.5px;   --text-lg--line-height: 20px;
+  --text-xl: 16px;     --text-xl--line-height: 22px;
+  --text-2xl: 19px;    --text-2xl--line-height: 25px;
+  --text-3xl: 23px;    --text-3xl--line-height: 29px;
+  --text-4xl: 28px;    --text-4xl--line-height: 34px;
+
+  --animate-fade-in: fadeIn .25s ease forwards;
+  --animate-slide-up: slideUp .3s ease forwards;
+  --animate-shimmer: shimmer 1.5s infinite;
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+}
+
+/*
+ * Semantic tokens read by pages written against var(--color-*). Values are SmartRE's
+ * neutrals (white / gray-50 / gray-200 / gray-900); the dark set is SmartRE's dark mode
+ * with the brown undertone swapped for green.
+ */
+:root {
+  --topbar-h: 64px;
   --color-canvas: #ffffff;
   --color-surface: #ffffff;
-  --color-raised: #eef3ef;
-  --color-rail: #ffffff;
-  --color-ink: #12201a;
-  --color-muted: #4f5b53;
-  --color-faint: #6a766e;
-  --color-line: #e1e6e0;
-  --color-line-strong: #cdd5cc;
-  --color-accent: #15803d;
-  --color-accent-deep: #14532d;
-  --color-accent-soft: #e6f3ea;
-  --color-violet: #a16207;
-  --color-violet-soft: #fdf6e6;
-  --color-good: #166534;
-  --color-good-soft: #e4f3e8;
-  --color-warn: #a34a06;
-  --color-warn-soft: #fdf1e1;
-  --color-danger: #c42626;
-  --color-danger-soft: #fdecec;
-  --color-info: #1d5fa8;
-  --color-info-soft: #e8f0fa;
-
-  /* Radius: 8px for cards and controls, 6px for chips. Overriding the theme tokens means
-     rounded-lg/xl can never drift above 8px. */
-  --radius-sm: 0.25rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.5rem;
-  --radius-2xl: 0.75rem;
-  --radius-3xl: 0.75rem;
-
-  /* The type scale, deliberately small (SmartRE Command Center): 13px working text, 14px body,
-     11.5px captions. Nothing is below 11px. Each step carries its own line height. */
-  --text-2xs: 11px;   --text-2xs--line-height: 15px;
-  --text-xs: 11.5px;  --text-xs--line-height: 16px;
-  --text-sm: 13px;    --text-sm--line-height: 18px;
-  --text-base: 14px;  --text-base--line-height: 20px;
-  --text-lg: 15.5px;  --text-lg--line-height: 22px;
-  --text-xl: 17px;    --text-xl--line-height: 24px;
-  --text-2xl: 20px;   --text-2xl--line-height: 26px;
-  --text-3xl: 22px;   --text-3xl--line-height: 28px;
-  --text-4xl: 30px;   --text-4xl--line-height: 36px;
-
-  --shadow-card: 0 1px 2px rgba(18, 32, 26, 0.04);
-  --shadow-lift: 0 8px 28px -12px rgba(18, 32, 26, 0.22);
+  --color-rail: #f9fafb;
+  --color-raised: #f3f4f6;
+  --color-ink: #111827;
+  --color-muted: #6b7280;
+  --color-faint: #6b7280;
+  --color-line: #e5e7eb;
+  --color-line-strong: #d1d5db;
+  --color-accent: var(--color-brand-500);
+  --color-accent-deep: var(--color-brand-700);
+  --color-accent-soft: var(--color-brand-50);
+  --color-violet: #7c3aed;
+  --color-violet-soft: #f5f3ff;
+  --color-good: #047857;
+  --color-good-soft: #ecfdf5;
+  --color-warn: #b45309;
+  --color-warn-soft: #fffbeb;
+  --color-danger: #dc2626;
+  --color-danger-soft: #fef2f2;
+  --color-info: #2563eb;
+  --color-info-soft: #eff6ff;
 }
 
-html,
-body {
-  background: var(--color-canvas);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
-  font-size: 14px;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
+.dark {
+  color-scheme: dark;
+  --color-canvas: #0f1612;
+  --color-surface: #121b16;
+  --color-rail: #151f19;
+  --color-raised: #1c2922;
+  --color-ink: #f9fafb;
+  --color-muted: #9ca3af;
+  --color-faint: #9ca3af;
+  --color-line: #26332b;
+  --color-line-strong: #34443a;
+  --color-accent: var(--color-brand-400);
+  --color-accent-deep: var(--color-brand-300);
+  --color-accent-soft: rgba(79, 163, 107, 0.12);
+  --color-violet: #c4b5fd;
+  --color-violet-soft: rgba(124, 58, 237, 0.14);
+  --color-good: #34d399;
+  --color-good-soft: rgba(16, 185, 129, 0.12);
+  --color-warn: #fbbf24;
+  --color-warn-soft: rgba(245, 158, 11, 0.12);
+  --color-danger: #f87171;
+  --color-danger-soft: rgba(239, 68, 68, 0.12);
+  --color-info: #60a5fa;
+  --color-info-soft: rgba(59, 130, 246, 0.12);
 }
 
-h1,
-h2,
-h3 {
-  font-family: var(--font-display);
-  letter-spacing: -0.012em;
+@layer base {
+  * { box-sizing: border-box; }
+  html { font-size: 16px; scroll-behavior: smooth; }
+  body {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-size: 13px;
+    line-height: 19px;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    @apply font-semibold leading-tight;
+  }
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-gray-300 dark:bg-[#34443a] rounded-full; }
+  ::selection { background: rgba(21, 128, 61, 0.22); color: #115a2d; }
+  :focus-visible { outline: 2px solid var(--color-brand-500); outline-offset: 2px; }
 }
 
-*:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-}
+@utility no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; &::-webkit-scrollbar { display: none; } }
+@utility font-display { font-family: var(--font-display); }
+@utility text-muted { @apply text-gray-500 dark:text-gray-400; }
+@utility bg-surface { @apply bg-white dark:bg-[#121b16]; }
+@utility bg-surface-2 { @apply bg-gray-50 dark:bg-[#151f19]; }
+@utility bg-surface-3 { @apply bg-gray-100 dark:bg-[#1c2922]; }
+@utility border-base { @apply border-gray-200 dark:border-[#26332b]; }
+@utility card { @apply bg-white dark:bg-[#121b16] border border-gray-200 dark:border-[#26332b] rounded-lg shadow-none; }
+@utility panel { @apply card; }
+@utility card-hover { @apply card cursor-pointer hover:border-brand-300 dark:hover:border-brand-500/40; }
+@utility input-base {
+    @apply w-full h-8 px-2.5 rounded-md border border-gray-200 dark:border-[#26332b]
+           bg-white dark:bg-[#121b16] text-gray-900 dark:text-gray-100
+           text-[13px] placeholder:text-gray-400 dark:placeholder:text-gray-600
+           focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500;
+  }
+@utility btn-primary {
+    @apply inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md
+           bg-brand-500 hover:bg-brand-600 active:bg-brand-700
+           text-white text-[13px] font-medium shadow-none cursor-pointer
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+@utility btn-secondary {
+    @apply inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md
+           bg-gray-100 dark:bg-[#1c2922] hover:bg-gray-200 dark:hover:bg-[#26332b]
+           text-gray-700 dark:text-gray-200 text-[13px] font-medium
+           border border-gray-200 dark:border-[#26332b] cursor-pointer
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+@utility btn-ghost {
+    @apply inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md
+           text-gray-600 dark:text-gray-300 text-[13px] font-medium cursor-pointer
+           hover:bg-gray-100 dark:hover:bg-[#1c2922];
+  }
+@utility btn-danger {
+    @apply inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md
+           bg-red-500 hover:bg-red-600 text-white text-[13px] font-medium cursor-pointer
+           disabled:opacity-50;
+  }
+@utility badge {
+    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide;
+  }
+@utility skeleton {
+    @apply bg-gray-200 dark:bg-gray-800 rounded animate-shimmer;
+    background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.05) 50%, transparent 75%);
+    background-size: 200% 100%;
+  }
+@utility sidebar-link {
+    @apply flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[12px] font-normal
+           text-gray-600 dark:text-gray-400
+           hover:bg-gray-100 dark:hover:bg-[#1c2922]
+           hover:text-gray-900 dark:hover:text-white;
+  }
+@utility sidebar-link-active {
+    @apply sidebar-link bg-brand-50 dark:bg-brand-500/10
+           font-medium text-brand-700 dark:text-brand-400
+           hover:bg-brand-50 dark:hover:bg-brand-500/10
+           hover:text-brand-700 dark:hover:text-brand-400;
+  }
 
-::selection {
-  background: rgba(21, 128, 61, 0.2);
-}
-
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--color-line-strong);
-  border-radius: 999px;
-}
-
-/* No motion on hover anywhere: colour only. */
-* {
-  transition: none !important;
+/* Dense data table. SmartRE lists rows inside a card; a catalogue of 100+ entities needs
+   real columns, so the same tokens are applied to a table. */
+@utility data-table {
+  @apply w-full text-xs tabular-nums;
+  & th { @apply px-3 py-2 text-left text-2xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 whitespace-nowrap border-b border-base; }
+  & td { @apply px-3 py-2 border-b border-base; }
+  & tbody tr:last-child td { @apply border-b-0; }
+  & tbody tr:hover { @apply bg-gray-50 dark:bg-white/5; }
 }

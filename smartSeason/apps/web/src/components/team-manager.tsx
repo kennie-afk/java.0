@@ -13,7 +13,7 @@ import {
   Table
 } from "@/components/ui";
 
-const LABEL = "mb-1 block text-xs font-medium uppercase tracking-[0.06em] text-[var(--color-faint)]";
+const LABEL = "mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400";
 
 /** Checkboxes rather than a select: most people hold one role, some hold two. */
 function RoleChoice({ name, checked }: { name: Role; checked: boolean }) {
@@ -44,7 +44,7 @@ function AddMemberForm() {
   return (
     <form
       action={action}
-      className="mb-4 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-4"
+      className="mb-4 panel p-4"
     >
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold">Add someone</h2>
@@ -202,7 +202,7 @@ export function TeamManager({
     <>
       {canManage ? <AddMemberForm /> : null}
 
-      <div className="overflow-hidden rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)]">
+      <div className="overflow-hidden panel">
         <Table
           head={[
             { key: "name", label: "Name" },

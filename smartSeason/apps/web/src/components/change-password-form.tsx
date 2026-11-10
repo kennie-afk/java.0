@@ -49,12 +49,12 @@ export function ChangePasswordForm() {
     }
   }
 
-  const label = "mb-1 block text-xs font-medium uppercase tracking-[0.06em] text-[var(--color-faint)]";
+  const label = "mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400";
 
   return (
     <form
       onSubmit={onSubmit}
-      className="max-w-md space-y-3 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-4"
+      className="max-w-md space-y-3 panel p-4"
     >
       <label className="block">
         <span className={label}>Current password</span>

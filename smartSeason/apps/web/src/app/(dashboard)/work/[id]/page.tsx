@@ -22,6 +22,9 @@ function stamp(value: string | null): string {
   return `${moment.toISOString().slice(0, 10)} ${clockTime(value)}`;
 }
 
+/** NORMAL -> Normal, IN_PROGRESS -> In progress. */
+const words = (value?: string | null) => (value ? value.replaceAll("_", " ").toLowerCase().replace(/^./, (c) => c.toUpperCase()) : "—");
+
 export default async function TaskDetailPage({
   params
 }: {
@@ -70,8 +73,8 @@ export default async function TaskDetailPage({
       />
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <section className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-4 lg:col-span-2">
-          <h2 className="mb-2 text-xs font-medium uppercase tracking-[0.07em] text-[var(--color-faint)]">
+        <section className="panel p-4 lg:col-span-2">
+          <h2 className="mb-2 text-2xs font-semibold uppercase tracking-widest text-gray-400">
             The task
           </h2>
           <p className="text-sm leading-relaxed">
@@ -79,15 +82,15 @@ export default async function TaskDetailPage({
           </p>
           <dl className="mt-3 grid gap-x-8 gap-y-2 sm:grid-cols-3">
             {([
-              ["Priority", order?.priority ?? "—"],
+              ["Priority", words(order?.priority)],
               ["Due", order?.dueDate ?? "—"],
               ["Estimated", order?.estimatedHours ? `${order.estimatedHours}h` : "—"],
-              ["Work order", order?.status ?? "—"],
-              ["Assignment", card.assignment.status],
+              ["Work order", words(order?.status)],
+              ["Assignment", words(card.assignment.status)],
               ["Worked", formatDuration(card.elapsedMinutes)]
             ] as [string, string][]).map(([label, value]) => (
               <div key={label}>
-                <dt className="text-xs uppercase tracking-[0.06em] text-[var(--color-faint)]">
+                <dt className="text-2xs uppercase tracking-widest text-gray-400">
                   {label}
                 </dt>
                 <dd className="mt-0.5 text-sm">{value}</dd>
@@ -96,8 +99,8 @@ export default async function TaskDetailPage({
           </dl>
         </section>
 
-        <section className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-3">
-          <h2 className="mb-2 text-xs font-medium uppercase tracking-[0.07em] text-[var(--color-faint)]">
+        <section className="panel p-3">
+          <h2 className="mb-2 text-2xs font-semibold uppercase tracking-widest text-gray-400">
             Timeline
           </h2>
           <ol className="space-y-1.5">
@@ -120,8 +123,8 @@ export default async function TaskDetailPage({
         </section>
       </div>
 
-      <section className="mt-4 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-3">
-        <h2 className="mb-2 text-xs font-medium uppercase tracking-[0.07em] text-[var(--color-faint)]">
+      <section className="mt-4 panel p-3">
+        <h2 className="mb-2 text-2xs font-semibold uppercase tracking-widest text-gray-400">
           Objectives
         </h2>
         {checklist.length === 0 ? (
@@ -157,8 +160,8 @@ export default async function TaskDetailPage({
         )}
       </section>
 
-      <section className="mt-4 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-3">
-        <h2 className="mb-2 text-xs font-medium uppercase tracking-[0.07em] text-[var(--color-faint)]">
+      <section className="mt-4 panel p-3">
+        <h2 className="mb-2 text-2xs font-semibold uppercase tracking-widest text-gray-400">
           Evidence
         </h2>
         {evidence.length === 0 ? (
@@ -181,9 +184,9 @@ export default async function TaskDetailPage({
         )}
       </section>
 
-      <section className="mt-4 overflow-hidden rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)]">
+      <section className="mt-4 overflow-hidden panel">
         <div className="px-3 pt-3">
-          <h2 className="text-xs font-medium uppercase tracking-[0.07em] text-[var(--color-faint)]">
+          <h2 className="text-2xs font-semibold uppercase tracking-widest text-gray-400">
             Audit log
           </h2>
           <p className="mt-1 text-xs text-[var(--color-muted)]">

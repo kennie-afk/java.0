@@ -43,7 +43,7 @@ export function EntityForm({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-lg bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-good)]"
+        className="btn-primary"
       >
         {title}
       </button>
@@ -54,7 +54,7 @@ export function EntityForm({
     <form
       ref={formRef}
       action={formAction}
-      className="mb-4 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-4"
+      className="mb-4 panel p-4"
     >
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-sm font-semibold">{title}</h2>
@@ -111,7 +111,7 @@ export function EntityForm({
       <button
         type="submit"
         disabled={pending}
-        className="mt-4 rounded-lg bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:bg-[var(--color-good)] disabled:opacity-50"
+        className="btn-primary mt-4"
       >
         {pending ? "Saving…" : submitLabel}
       </button>

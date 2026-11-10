@@ -16,7 +16,7 @@ export function AccountSwitcher({ accounts }: { accounts: { email: string; label
 
   return (
     <div className="mt-4 border-t border-[var(--color-line)] pt-3">
-      <p className="mb-2 text-xs font-medium uppercase tracking-[0.06em] text-[var(--color-faint)]">
+      <p className="mb-2 text-2xs font-semibold uppercase tracking-widest text-gray-400">
         Sign in as
       </p>
       <form action={action} className="flex items-center gap-2">

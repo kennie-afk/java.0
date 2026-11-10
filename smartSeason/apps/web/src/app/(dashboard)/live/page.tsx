@@ -60,7 +60,7 @@ export default async function LiveBoardPage() {
           />
         </div>
       ) : (
-        <div className="mt-4 overflow-hidden rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)]">
+        <div className="mt-4 overflow-hidden panel">
           <Table
             head={[
               { key: "worker", label: "Worker" },

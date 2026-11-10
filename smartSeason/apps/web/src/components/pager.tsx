@@ -38,7 +38,7 @@ export function Pager({
   };
 
   const link =
-    "rounded-md border border-[var(--color-line)] px-2.5 py-1 text-[var(--color-ink)] hover:border-[var(--color-muted)]";
+    "rounded-md border border-base px-2.5 py-1 text-gray-600 hover:border-brand-300 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white";
   const disabled =
     "rounded-md border border-[var(--color-line)] px-2.5 py-1 text-[var(--color-muted)] opacity-50";
 

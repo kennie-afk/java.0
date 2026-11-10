@@ -70,12 +70,12 @@ export default async function RecordPage({
         }
       />
 
-      <dl className="grid gap-x-8 gap-y-3 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-4 sm:grid-cols-2">
+      <dl className="grid gap-x-8 gap-y-3 panel p-4 sm:grid-cols-2">
         {entity.formFields.filter((field) => !isUuid(record[field.name])).map((field) => {
           const value = record[field.name];
           return (
             <div key={field.name}>
-              <dt className="text-xs font-medium uppercase tracking-[0.06em] text-[var(--color-faint)]">
+              <dt className="text-2xs font-semibold uppercase tracking-widest text-gray-400">
                 {field.label}
               </dt>
               <dd className="mt-0.5 break-words text-sm">

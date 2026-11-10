@@ -173,10 +173,11 @@ export default async function OverviewPage() {
       {crops && !crops.failed && shownCrops.length > 0 ? (
         <section className="mt-6">
           <Card
+            icon={<Icon name="seasons" className="h-3.5 w-3.5" />}
             title="Crops in the ground"
             description={`${crops.totalElements} active season${crops.totalElements === 1 ? "" : "s"}, soonest harvest first. Progress is calendar time against the expected harvest date.`}
             actions={
-              <Link href="/season/seasons?status=ACTIVE" className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--color-accent)] hover:underline">
+              <Link href="/season/seasons?status=ACTIVE" className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-500 hover:text-brand-600">
                 All seasons <Icon name="arrow" className="h-4 w-4" />
               </Link>
             }
@@ -233,10 +234,11 @@ export default async function OverviewPage() {
       {inProgress.length > 0 ? (
         <section className="mt-6">
           <Card
+            icon={<Icon name="pulse" className="h-3.5 w-3.5" />}
             title="Work in progress"
             description="Tasks workers have started or been given. Times are the ones the platform recorded."
             actions={
-              <Link href="/live" className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--color-accent)] hover:underline">
+              <Link href="/live" className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-500 hover:text-brand-600">
                 Open live board <Icon name="arrow" className="h-4 w-4" />
               </Link>
             }
@@ -249,7 +251,7 @@ export default async function OverviewPage() {
                     href={`/work/${card.assignment.id}`}
                     className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 hover:bg-[var(--color-raised)]"
                   >
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent-soft)] text-sm font-bold text-[var(--color-accent-deep)]">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-500 text-2xs font-bold text-white">
                       {(card.worker?.fullName ?? "?").charAt(0)}
                     </span>
                     <span className="min-w-[200px] flex-1">
@@ -278,42 +280,29 @@ export default async function OverviewPage() {
 
       {visibleGroups.length > 1 ? (
         <section className="mt-6">
-          <h2 className="mb-3 text-[15px] font-semibold">Workspaces</h2>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {visibleGroups.map((group) => (
-              <div
-                key={group.slug}
-                className="overflow-hidden rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)]"
-              >
-                <div className="flex items-center gap-3 border-b border-[var(--color-line)] px-4 py-2.5">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-accent-soft)] text-[var(--color-accent)]">
-                    <Icon name={group.icon as IconName} className="h-4 w-4" />
-                  </span>
-                  <div className="flex-1">
-                    <h3 className="text-[15px] font-semibold leading-tight">{group.label}</h3>
-                    <p className="text-xs text-[var(--color-muted)]">
-                      {group.services.length} service{group.services.length === 1 ? "" : "s"}
-                    </p>
-                  </div>
+          <Card icon={<Icon name="platform" className="h-3.5 w-3.5" />} title="Workspaces" flush>
+            <div className="grid divide-y divide-[var(--color-line)] md:grid-cols-2 md:divide-y-0 xl:grid-cols-3">
+              {visibleGroups.map((group) => (
+                <div key={group.slug} className="px-4 py-3">
+                  <h3 className="mb-1 text-2xs font-semibold uppercase tracking-[0.07em] text-[var(--color-muted)]">
+                    {group.label}
+                  </h3>
+                  <ul>
+                    {group.services.map((service) => (
+                      <li key={service.slug}>
+                        <Link
+                          href={`/${service.slug}`}
+                          className="block rounded px-1 py-1 text-sm font-medium hover:bg-[var(--color-raised)] hover:text-[var(--color-accent-deep)]"
+                        >
+                          {service.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <ul className="py-1">
-                  {group.services.map((service) => (
-                    <li key={service.slug}>
-                      <Link
-                        href={`/${service.slug}`}
-                        className="flex items-center justify-between gap-3 px-4 py-1.5 text-sm hover:bg-[var(--color-raised)]"
-                      >
-                        <span className="truncate font-medium">{service.label}</span>
-                        <span className="shrink-0 rounded-full bg-[var(--color-raised)] px-2 py-0.5 text-xs font-semibold uppercase tracking-[0.04em] text-[var(--color-muted)]">
-                          {service.access[role] ?? "full"}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </Card>
         </section>
       ) : null}
     </>

@@ -63,11 +63,11 @@ export function RecordForm({
 
   return (
     <form action={formAction} className="max-w-3xl">
-      <div className="grid gap-5 rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-4 sm:grid-cols-2">
+      <div className="grid gap-5 panel p-4 sm:grid-cols-2">
         {fields.map((field) => {
           const error = state.fieldErrors[field.name];
           const label = (
-            <span className="mb-1 block text-xs font-medium uppercase tracking-[0.06em] text-[var(--color-faint)]">
+            <span className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
               {field.label}
               {field.required ? " *" : ""}
             </span>

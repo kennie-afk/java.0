@@ -11,11 +11,11 @@ export function AdvisorForm() {
   const [state, action, pending] = useActionState(diagnose, emptyDiagnosis);
   const [previews, setPreviews] = useState<string[]>([]);
 
-  const label = "mb-1 block text-xs font-medium uppercase tracking-[0.06em] text-[var(--color-faint)]";
+  const label = "mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400";
 
   return (
     <div className="grid gap-2.5 lg:grid-cols-2">
-      <form action={action} className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-4">
+      <form action={action} className="panel p-4">
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block">
             <span className={label}>Crop</span>
@@ -89,7 +89,7 @@ export function AdvisorForm() {
         </button>
       </form>
 
-      <section className="rounded-xl border border-[var(--color-line)] bg-[var(--color-surface)] shadow-[var(--shadow-card)] p-4">
+      <section className="panel p-4">
         {!state.result ? (
           <p className="text-xs text-[var(--color-muted)]">
             Describe the problem or attach a photograph, and the diagnosis appears here.
@@ -140,7 +140,7 @@ export function AdvisorForm() {
 
             {state.result.management ? (
               <>
-                <h3 className="mt-3 text-xs font-medium uppercase tracking-[0.06em] text-[var(--color-faint)]">
+                <h3 className="mt-3 text-2xs font-semibold uppercase tracking-widest text-gray-400">
                   What to do
                 </h3>
                 <p className="mt-1 text-sm leading-relaxed">{state.result.management}</p>

@@ -140,7 +140,7 @@ export default async function FarmPage({ params }: { params: Promise<{ id: strin
           description="Each plot with its current season. Progress is calendar time against the expected harvest date."
           actions={
             mayEdit ? (
-              <Link href="/farm/plots/new" className="text-sm font-semibold text-[var(--color-accent)] hover:underline">
+              <Link href="/farm/plots/new" className="text-xs font-medium text-brand-500 hover:text-brand-600">
                 Add a plot
               </Link>
             ) : undefined
@@ -239,7 +239,7 @@ export default async function FarmPage({ params }: { params: Promise<{ id: strin
             Showing {plots.rows.length} of {plots.totalElements} plots.{" "}
             <Link
               href={`/farm/plots?farmId=${id}`}
-              className="font-semibold text-[var(--color-accent)] hover:underline"
+              className="font-medium text-brand-500 hover:text-brand-600"
             >
               See all plots
             </Link>
