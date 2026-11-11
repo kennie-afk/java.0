@@ -76,7 +76,7 @@ export default async function LiveBoardPage() {
               const flag = concern(card);
               return (
                 <tr key={card.assignment.id} className={rowClass}>
-                  <td className="px-4 py-2.5">
+                  <td className="px-2.5 py-1.5">
                     <Link
                       href={`/work/${card.assignment.id}`}
                       className="font-medium underline-offset-2 hover:underline"
@@ -87,22 +87,22 @@ export default async function LiveBoardPage() {
                       <span className="ml-2 text-xs text-[var(--color-warn)]">{flag}</span>
                     ) : null}
                   </td>
-                  <td className="px-4 py-3 text-[var(--color-muted)]">
+                  <td className="px-2.5 py-1.5 text-[var(--color-muted)]">
                     {card.order?.title ?? "—"}
                   </td>
-                  <td className="px-4 py-3 tabular-nums">
+                  <td className="px-2.5 py-1.5 tabular-nums">
                     {clockTime(card.assignment.startedAt)}
                   </td>
-                  <td className="px-4 py-3 tabular-nums">
+                  <td className="px-2.5 py-1.5 tabular-nums">
                     {clockTime(card.assignment.completedAt)}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums">
+                  <td className="px-2.5 py-1.5 text-right tabular-nums">
                     {formatDuration(card.elapsedMinutes)}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-[var(--color-muted)]">
+                  <td className="px-2.5 py-1.5 text-right tabular-nums text-[var(--color-muted)]">
                     {card.order?.estimatedHours ? `${card.order.estimatedHours}h` : "—"}
                   </td>
-                  <td className="px-4 py-2.5">
+                  <td className="px-2.5 py-1.5">
                     <Badge value={card.assignment.status} />
                   </td>
                 </tr>

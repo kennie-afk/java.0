@@ -200,7 +200,7 @@ export default async function OverviewPage() {
                   <li key={season.id}>
                     <Link
                       href={`/farm/farms/${season.farmId}`}
-                      className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 hover:bg-[var(--color-raised)]"
+                      className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-1.5 hover:bg-[var(--color-raised)]"
                     >
                       <span className="min-w-[180px] flex-1">
                         <span className="block text-sm font-semibold leading-snug">
@@ -259,7 +259,7 @@ export default async function OverviewPage() {
                 <li key={card.assignment.id}>
                   <Link
                     href={`/work/${card.assignment.id}`}
-                    className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 hover:bg-[var(--color-raised)]"
+                    className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-1.5 hover:bg-[var(--color-raised)]"
                   >
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-500 text-2xs font-bold text-white">
                       {(card.worker?.fullName ?? "?").charAt(0)}
@@ -293,7 +293,7 @@ export default async function OverviewPage() {
           <Card icon={<Icon name="platform" className="h-3.5 w-3.5" />} title="Workspaces" flush>
             <div className="grid divide-y divide-[var(--color-line)] md:grid-cols-2 md:divide-y-0 xl:grid-cols-3">
               {visibleGroups.map((group) => (
-                <div key={group.slug} className="px-4 py-3">
+                <div key={group.slug} className="px-3 py-2">
                   <h3 className="mb-1 text-2xs font-semibold uppercase tracking-[0.07em] text-[var(--color-muted)]">
                     {group.label}
                   </h3>

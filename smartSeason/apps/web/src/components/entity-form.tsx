@@ -14,7 +14,7 @@ export interface Field {
 }
 
 const INPUT =
-  "w-full rounded-lg border border-[var(--color-line-strong)] bg-[var(--color-surface)] min-h-9 px-3 py-1.5 text-base outline-none focus:border-[var(--color-accent)]";
+  "w-full rounded-lg border border-[var(--color-line-strong)] bg-[var(--color-surface)] min-h-7 px-3 py-1 text-base outline-none focus:border-[var(--color-accent)]";
 
 export function EntityForm({
   action,
@@ -54,7 +54,7 @@ export function EntityForm({
     <form
       ref={formRef}
       action={formAction}
-      className="mb-4 panel p-4"
+      className="mb-4 panel p-3"
     >
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-sm font-semibold">{title}</h2>

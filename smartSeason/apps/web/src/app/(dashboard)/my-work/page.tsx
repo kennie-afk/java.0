@@ -29,7 +29,7 @@ export default async function MyWorkPage() {
           {open.map((card) => (
             <li
               key={card.assignment.id}
-              className="panel p-4 transition-colors hover:border-[var(--color-faint)]"
+              className="panel p-3 transition-colors hover:border-[var(--color-faint)]"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -80,7 +80,7 @@ export default async function MyWorkPage() {
             {done.map((card) => (
               <li
                 key={card.assignment.id}
-                className="flex flex-wrap items-center justify-between gap-3 panel px-4 py-3  hover:border-[var(--color-faint)]"
+                className="flex flex-wrap items-center justify-between gap-3 panel px-2.5 py-1.5  hover:border-[var(--color-faint)]"
               >
                 <Link
                   href={`/work/${card.assignment.id}`}

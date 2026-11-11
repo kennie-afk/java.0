@@ -25,8 +25,8 @@ import {
  * What appears in the menu is decided by the same generated catalogue and role matrix the
  * controllers are annotated from, so the menu cannot offer what the service refuses.
  */
-const SIDEBAR_WIDTH = 260;
-const SIDEBAR_WIDTH_COLLAPSED = 76;
+const SIDEBAR_WIDTH = 240;
+const SIDEBAR_WIDTH_COLLAPSED = 64;
 
 type Child = { label: string; href: string; depth?: number };
 type Item = { key: string; label: string; href: string; icon: IconName; children?: Child[]; match: (path: string) => boolean };
@@ -84,10 +84,10 @@ export function Shell({
       />
       <Topbar roles={roles} onMenu={() => setDrawer(true)} collapsed={collapsed} pathname={pathname} />
       <main
-        className="min-h-screen pt-16 lg:pl-[var(--ss-sidebar)]"
+        className="min-h-screen pt-14 lg:pl-[var(--ss-sidebar)]"
         style={{ "--ss-sidebar": `${collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH}px` } as React.CSSProperties}
       >
-        <div className="mx-auto max-w-7xl p-3 sm:p-4">{children}</div>
+        <div className="mx-auto max-w-7xl p-4 sm:p-5">{children}</div>
       </main>
     </div>
   );
@@ -97,7 +97,7 @@ function Brand({ rail }: { rail?: boolean }) {
   return (
     <Link href="/" aria-label="SmartSeason overview" className="flex min-w-0 items-center gap-2.5">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/logo-icon.flat.svg" alt="" className="h-[30px] w-[30px] shrink-0" />
+      <img src="/logo-icon.flat.svg" alt="" className="h-[26px] w-[26px] shrink-0" />
       {rail ? null : (
         <span className="truncate font-display text-lg font-bold leading-none">
           <span className="text-gray-900 dark:text-white">Smart</span>
@@ -145,20 +145,20 @@ function Topbar({ roles, onMenu, collapsed, pathname }: { roles: string[]; onMen
   };
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-30 flex h-16 items-center gap-3 border-b border-base bg-white px-4 dark:bg-[#0f1612]">
-      <button onClick={onMenu} className="btn-ghost !h-9 !w-9 !px-0 lg:hidden" aria-label="Open menu">
+    <header className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center gap-3 border-b border-base bg-white px-3 dark:bg-[#0f1612]">
+      <button onClick={onMenu} className="btn-ghost !h-7 !w-7 !px-0 lg:hidden max-lg:!h-8 max-lg:!w-8" aria-label="Open menu">
         <Icon name="menu" className="h-[18px] w-[18px]" />
       </button>
       <div className="hidden shrink-0 lg:block" style={{ width: collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH }} />
       <div className="hidden truncate font-display text-lg font-semibold text-gray-900 dark:text-white sm:block">{pageTitle(pathname)}</div>
       <div className="flex-1" />
-      <button onClick={toggleTheme} className="btn-ghost !h-9 !w-9 !px-0" title="Toggle theme" aria-label="Toggle theme">
-        <Icon name={dark ? "sun" : "moon"} className="h-[17px] w-[17px]" />
+      <button onClick={toggleTheme} className="btn-ghost !h-7 !w-7 !px-0" title="Toggle theme" aria-label="Toggle theme">
+        <Icon name={dark ? "sun" : "moon"} className="h-[15px] w-[15px]" />
       </button>
       <div className="relative">
         <button
           onClick={() => setMenu((value) => !value)}
-          className="flex h-9 cursor-pointer items-center gap-2 rounded-lg px-2.5 hover:bg-gray-100 dark:hover:bg-white/5"
+          className="flex h-8 cursor-pointer items-center gap-2 rounded-md px-2 hover:bg-gray-100 dark:hover:bg-white/5"
         >
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-500 text-xs font-bold text-white">
             {ROLE_LABELS[role].charAt(0)}
@@ -170,14 +170,14 @@ function Topbar({ roles, onMenu, collapsed, pathname }: { roles: string[]; onMen
           <>
             <div className="fixed inset-0 z-40" onClick={() => setMenu(false)} />
             <div className="card absolute right-0 top-[calc(100%+8px)] z-50 w-52 py-1">
-              <div className="border-b border-base px-4 py-2.5">
+              <div className="border-b border-base px-3 py-2">
                 <p className="text-base font-semibold text-gray-900 dark:text-white">{ROLE_LABELS[role]}</p>
                 <p className="text-xs text-muted">SmartSeason</p>
               </div>
               <Link
                 href="/account"
                 onClick={() => setMenu(false)}
-                className="flex items-center gap-2.5 px-4 py-2 text-base text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5"
+                className="flex items-center gap-2 px-3 py-1 text-base text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5"
               >
                 <Icon name="user" className="h-3.5 w-3.5" />
                 Account and password
@@ -279,9 +279,9 @@ function Sidebar({
             href={item.href}
             onClick={onClose}
             title={rail ? item.label : undefined}
-            className={`flex min-w-0 flex-1 items-center gap-3 px-3 py-2 ${rail ? "justify-center !gap-0 !px-0" : ""}`}
+            className={`flex min-w-0 flex-1 items-center gap-2.5 px-2 py-1 ${rail ? "justify-center !gap-0 !px-0" : ""}`}
           >
-            <Icon name={item.icon} className="h-[17px] w-[17px] shrink-0" />
+            <Icon name={item.icon} className="h-[15px] w-[15px] shrink-0" />
             {rail ? null : <span className="truncate">{item.label}</span>}
           </Link>
           {hasChildren ? (
@@ -297,7 +297,7 @@ function Sidebar({
           ) : null}
         </div>
         {hasChildren && isOpen ? (
-          <div className="my-0.5 ml-[26px] space-y-0.5 border-l border-base pl-3">
+          <div className="my-0.5 ml-[22px] space-y-0 border-l border-base pl-2.5">
             {children.map((child) => {
               const on =
                 child.depth === 1
@@ -309,7 +309,7 @@ function Sidebar({
                   href={child.href}
                   onClick={onClose}
                   aria-current={on ? "page" : undefined}
-                  className={`flex items-center truncate rounded-md px-2.5 py-1 text-xs ${child.depth === 1 ? "ml-3" : ""} ${
+                  className={`flex items-center truncate rounded-md px-2 py-0.5 text-xs ${child.depth === 1 ? "ml-3" : ""} ${
                     on
                       ? "bg-brand-50 font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-400"
                       : "text-muted hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-white/5 dark:hover:text-white"
@@ -335,12 +335,12 @@ function Sidebar({
         style={{ width: collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH }}
         data-rail={rail ? "true" : "false"}
       >
-        <div className={`flex h-16 shrink-0 items-center border-b border-base px-4 ${rail ? "justify-center !px-2" : "justify-between"}`}>
+        <div className={`flex h-14 shrink-0 items-center border-b border-base px-3 ${rail ? "justify-center !px-2" : "justify-between"}`}>
           <Brand rail={rail} />
           {rail ? null : (
             <button
               onClick={onClose}
-              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 lg:hidden"
+              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 lg:hidden"
               aria-label="Close menu"
             >
               <Icon name="close" className="h-4 w-4" />
@@ -348,10 +348,10 @@ function Sidebar({
           )}
         </div>
 
-        <nav className="flex-1 space-y-px overflow-y-auto overflow-x-hidden px-2.5 py-2" aria-label="Main">
+        <nav className="flex-1 space-y-px overflow-y-auto overflow-x-hidden px-2 py-1.5" aria-label="Main">
           {top.map(row)}
           {grouped.length > 0 ? (
-            <div className={`pb-1 pt-4 ${rail ? "flex justify-center" : "px-3"}`}>
+            <div className={`pb-0.5 pt-3 ${rail ? "flex justify-center" : "px-3"}`}>
               {rail ? (
                 <div className="w-6 border-t border-base" />
               ) : (
@@ -364,8 +364,8 @@ function Sidebar({
 
         <button
           onClick={onToggle}
-          className={`hidden h-10 shrink-0 cursor-pointer items-center border-t border-base text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-white/5 dark:hover:text-gray-200 lg:flex ${
-            rail ? "justify-center" : "justify-start gap-2 px-4 text-xs font-medium"
+          className={`hidden h-7 shrink-0 cursor-pointer items-center border-t border-base text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-white/5 dark:hover:text-gray-200 lg:flex ${
+            rail ? "justify-center" : "justify-start gap-2 px-3 text-xs font-medium"
           }`}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
@@ -379,14 +379,14 @@ function Sidebar({
           )}
         </button>
 
-        <div className="shrink-0 border-t border-base p-3">
+        <div className="shrink-0 border-t border-base p-2">
           <Link
             href="/account"
             onClick={onClose}
             title={rail ? "Account and password" : undefined}
-            className={`flex items-center gap-3 rounded-lg p-2.5 hover:bg-gray-100 dark:hover:bg-white/5 ${rail ? "justify-center !p-2" : ""}`}
+            className={`flex items-center gap-3 rounded-md p-1.5 hover:bg-gray-100 dark:hover:bg-white/5 ${rail ? "justify-center !p-2" : ""}`}
           >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-500 text-2xs font-bold text-white">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-500 text-2xs font-bold text-white">
               {ROLE_LABELS[role].charAt(0)}
             </span>
             {rail ? null : (

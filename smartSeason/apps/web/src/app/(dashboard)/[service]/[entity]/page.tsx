@@ -63,7 +63,7 @@ export default async function EntityListPage({
         }
       />
 
-      <form action={base} className="mb-3 flex flex-wrap items-center gap-2">
+      <form action={base} className="mb-4 flex flex-wrap items-center gap-2">
         {Object.entries(active)
           .filter(([key]) => key !== "q")
           .map(([key, value]) => (

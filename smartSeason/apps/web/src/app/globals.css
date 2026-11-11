@@ -31,15 +31,21 @@
   --color-brand-900: #0a2f19;
 
   /* SmartRE's type scale, verbatim. */
-  --text-2xs: 10px;    --text-2xs--line-height: 14px;
-  --text-xs: 11px;     --text-xs--line-height: 15px;
-  --text-sm: 12px;     --text-sm--line-height: 17px;
-  --text-base: 13px;   --text-base--line-height: 19px;
-  --text-lg: 14.5px;   --text-lg--line-height: 20px;
-  --text-xl: 16px;     --text-xl--line-height: 22px;
-  --text-2xl: 19px;    --text-2xl--line-height: 25px;
-  --text-3xl: 23px;    --text-3xl--line-height: 29px;
-  --text-4xl: 28px;    --text-4xl--line-height: 34px;
+  /* Compact scale (shared with the Church CMS): nothing on screen is larger than the 13px page title. */
+  --text-2xs: 9.5px;   --text-2xs--line-height: 13px;
+  --text-xs: 10.5px;   --text-xs--line-height: 14px;
+  --text-sm: 11.5px;   --text-sm--line-height: 16px;
+  --text-base: 12px;   --text-base--line-height: 17px;
+  --text-lg: 13px;     --text-lg--line-height: 18px;
+  --text-xl: 13px;     --text-xl--line-height: 18px;
+  --text-2xl: 13px;    --text-2xl--line-height: 18px;
+  --text-3xl: 13px;    --text-3xl--line-height: 18px;
+  --text-4xl: 13px;    --text-4xl--line-height: 18px;
+
+  /* 6px is the largest radius anywhere. */
+  --radius-lg: 0.375rem;
+  --radius-xl: 0.375rem;
+  --radius-2xl: 0.375rem;
 
   --animate-fade-in: fadeIn .25s ease forwards;
   --animate-slide-up: slideUp .3s ease forwards;
@@ -114,8 +120,8 @@
     -webkit-font-smoothing: antialiased;
     background: var(--color-canvas);
     color: var(--color-ink);
-    font-size: 13px;
-    line-height: 19px;
+    font-size: 12px;
+    line-height: 17px;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
@@ -139,36 +145,36 @@
 @utility panel { @apply card; }
 @utility card-hover { @apply card cursor-pointer hover:border-brand-300 dark:hover:border-brand-500/40; }
 @utility input-base {
-    @apply w-full h-8 px-2.5 rounded-md border border-gray-200 dark:border-[#26332b]
+    @apply w-full h-7 px-2 rounded-md border border-gray-200 dark:border-[#26332b]
            bg-white dark:bg-[#121b16] text-gray-900 dark:text-gray-100
-           text-[13px] placeholder:text-gray-400 dark:placeholder:text-gray-600
+           text-[12px] placeholder:text-gray-400 dark:placeholder:text-gray-600
            focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500;
   }
 @utility btn-primary {
-    @apply inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md
+    @apply inline-flex items-center justify-center gap-1.5 h-7 px-2.5 rounded-md
            bg-brand-500 hover:bg-brand-600 active:bg-brand-700
-           text-white text-[13px] font-medium shadow-none cursor-pointer
+           text-white text-[12px] font-medium shadow-none cursor-pointer
            disabled:opacity-50 disabled:cursor-not-allowed;
   }
 @utility btn-secondary {
-    @apply inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md
+    @apply inline-flex items-center justify-center gap-1.5 h-7 px-2.5 rounded-md
            bg-gray-100 dark:bg-[#1c2922] hover:bg-gray-200 dark:hover:bg-[#26332b]
-           text-gray-700 dark:text-gray-200 text-[13px] font-medium
+           text-gray-700 dark:text-gray-200 text-[12px] font-medium
            border border-gray-200 dark:border-[#26332b] cursor-pointer
            disabled:opacity-50 disabled:cursor-not-allowed;
   }
 @utility btn-ghost {
-    @apply inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md
-           text-gray-600 dark:text-gray-300 text-[13px] font-medium cursor-pointer
+    @apply inline-flex items-center justify-center gap-1.5 h-7 px-2.5 rounded-md
+           text-gray-600 dark:text-gray-300 text-[12px] font-medium cursor-pointer
            hover:bg-gray-100 dark:hover:bg-[#1c2922];
   }
 @utility btn-danger {
-    @apply inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md
-           bg-red-500 hover:bg-red-600 text-white text-[13px] font-medium cursor-pointer
+    @apply inline-flex items-center justify-center gap-1.5 h-7 px-2.5 rounded-md
+           bg-red-500 hover:bg-red-600 text-white text-[12px] font-medium cursor-pointer
            disabled:opacity-50;
   }
 @utility badge {
-    @apply inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide;
+    @apply inline-flex items-center gap-1 px-1.5 py-px rounded text-[9.5px] font-semibold tracking-wide;
   }
 @utility skeleton {
     @apply bg-gray-200 dark:bg-gray-800 rounded animate-shimmer;
@@ -176,7 +182,7 @@
     background-size: 200% 100%;
   }
 @utility sidebar-link {
-    @apply flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[12px] font-normal
+    @apply flex items-center gap-2 px-2 py-1 rounded-md text-[11.5px] font-normal
            text-gray-600 dark:text-gray-400
            hover:bg-gray-100 dark:hover:bg-[#1c2922]
            hover:text-gray-900 dark:hover:text-white;
@@ -191,9 +197,9 @@
 /* Dense data table. SmartRE lists rows inside a card; a catalogue of 100+ entities needs
    real columns, so the same tokens are applied to a table. */
 @utility data-table {
-  @apply w-full text-xs tabular-nums;
-  & th { @apply px-3 py-2 text-left text-2xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 whitespace-nowrap border-b border-base; }
-  & td { @apply px-3 py-2 border-b border-base; }
+  @apply w-full text-[11px] tabular-nums;
+  & th { @apply px-2.5 py-1.5 text-left text-2xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 whitespace-nowrap border-b border-base; }
+  & td { @apply px-2.5 py-1.5 border-b border-base; }
   & tbody tr:last-child td { @apply border-b-0; }
   & tbody tr:hover { @apply bg-gray-50 dark:bg-white/5; }
 }

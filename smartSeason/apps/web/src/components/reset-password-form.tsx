@@ -53,7 +53,7 @@ export function ResetPasswordForm() {
 
   if (done) {
     return (
-      <div className="panel p-4">
+      <div className="panel p-3">
         <p className="text-sm leading-relaxed">
           Your password has been reset, and every other session has been signed out. Sign in
           with the new password.
@@ -72,7 +72,7 @@ export function ResetPasswordForm() {
   return (
     <form
       onSubmit={onSubmit}
-      className="space-y-3 panel p-4"
+      className="space-y-3 panel p-3"
     >
       <label className="block">
         <span className="mb-1 block text-sm font-medium text-[var(--color-muted)]">Email</span>

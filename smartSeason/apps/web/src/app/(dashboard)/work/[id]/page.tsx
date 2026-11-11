@@ -73,7 +73,7 @@ export default async function TaskDetailPage({
       />
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <section className="panel p-4 lg:col-span-2">
+        <section className="panel p-3 lg:col-span-2">
           <h2 className="mb-2 text-2xs font-semibold uppercase tracking-widest text-gray-400">
             The task
           </h2>
@@ -210,11 +210,11 @@ export default async function TaskDetailPage({
             >
               {trail.map((row) => (
                 <tr key={row.id} className={rowClass}>
-                  <td className="px-4 py-3 text-right tabular-nums">{row.sequence}</td>
-                  <td className="px-4 py-3 font-medium">{row.action}</td>
-                  <td className="px-4 py-3 text-[var(--color-muted)]">{row.actorRole ?? "—"}</td>
-                  <td className="px-4 py-3 tabular-nums">{stamp(row.occurredAt)}</td>
-                  <td className="px-4 py-2.5">
+                  <td className="px-2.5 py-1.5 text-right tabular-nums">{row.sequence}</td>
+                  <td className="px-2.5 py-1.5 font-medium">{row.action}</td>
+                  <td className="px-2.5 py-1.5 text-[var(--color-muted)]">{row.actorRole ?? "—"}</td>
+                  <td className="px-2.5 py-1.5 tabular-nums">{stamp(row.occurredAt)}</td>
+                  <td className="px-2.5 py-1.5">
                     <Badge value={row.outcome} />
                   </td>
                   <td

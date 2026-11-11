@@ -44,7 +44,7 @@ function AddMemberForm() {
   return (
     <form
       action={action}
-      className="mb-4 panel p-4"
+      className="mb-4 panel p-3"
     >
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold">Add someone</h2>
@@ -214,10 +214,10 @@ export function TeamManager({
         >
           {members.map((member) => (
             <tr key={member.id} className={rowClass}>
-              <td className="px-4 py-3 font-medium">{member.fullName}</td>
-              <td className="px-4 py-3 text-[var(--color-muted)]">{member.email}</td>
-              <td className="px-4 py-3 text-[var(--color-muted)]">{member.phone ?? "—"}</td>
-              <td className="px-4 py-2.5">
+              <td className="px-2.5 py-1.5 font-medium">{member.fullName}</td>
+              <td className="px-2.5 py-1.5 text-[var(--color-muted)]">{member.email}</td>
+              <td className="px-2.5 py-1.5 text-[var(--color-muted)]">{member.phone ?? "—"}</td>
+              <td className="px-2.5 py-1.5">
                 {canManage ? (
                   <RoleEditor member={member} />
                 ) : (
@@ -228,7 +228,7 @@ export function TeamManager({
                   </span>
                 )}
               </td>
-              <td className="px-4 py-2.5">
+              <td className="px-2.5 py-1.5">
                 <Badge value={member.status} />
               </td>
             </tr>

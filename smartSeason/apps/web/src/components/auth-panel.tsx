@@ -96,7 +96,7 @@ export function AuthPanel({
         ))}
       </div>
 
-      <div className="card p-4">
+      <div className="card p-3">
       <form onSubmit={onSubmit} className="space-y-3">
         {mode === "register" ? (
           <>

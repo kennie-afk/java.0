@@ -4,7 +4,7 @@ import { litres, loadDairySummary, loadFarms } from "@/lib/dairy";
 
 export const dynamic = "force-dynamic";
 
-const cell = "px-4 py-2.5";
+const cell = "px-2.5 py-1.5";
 
 export default async function DairyPage({
   searchParams
@@ -103,7 +103,7 @@ export default async function DairyPage({
 
           <Card title="Cows under withdrawal" description="Do not deliver milk from these cows until the date shown." flush>
             {summary.underWithdrawal.length === 0 ? (
-              <p className="px-4 py-3 text-sm text-[var(--color-muted)]">None.</p>
+              <p className="px-2.5 py-1.5 text-sm text-[var(--color-muted)]">None.</p>
             ) : (
               <Table head={[{ key: "t", label: "Tag" }, { key: "m", label: "Medicine" }, { key: "e", label: "Last day" }]}>
                 {summary.underWithdrawal.map((w) => (
@@ -140,7 +140,7 @@ export default async function DairyPage({
 
           <Card title="By cow" description="Litres recorded in the period." flush>
             {summary.cows.length === 0 ? (
-              <p className="px-4 py-3 text-sm text-[var(--color-muted)]">No milk recorded in this period.</p>
+              <p className="px-2.5 py-1.5 text-sm text-[var(--color-muted)]">No milk recorded in this period.</p>
             ) : (
               <Table
                 head={[
@@ -163,7 +163,7 @@ export default async function DairyPage({
 
           <Card title="Expected calvings" description="From the latest breeding record with an expected date, for cows that have not calved since." flush>
             {summary.expectedCalvings.length === 0 ? (
-              <p className="px-4 py-3 text-sm text-[var(--color-muted)]">None recorded.</p>
+              <p className="px-2.5 py-1.5 text-sm text-[var(--color-muted)]">None recorded.</p>
             ) : (
               <Table head={[{ key: "t", label: "Tag" }, { key: "e", label: "Expected" }]}>
                 {summary.expectedCalvings.map((c) => (

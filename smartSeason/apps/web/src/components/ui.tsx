@@ -12,10 +12,10 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
+    <header className="mb-5 flex flex-wrap items-start justify-between gap-2">
       <div className="min-w-0">
         <h1 className="font-display text-lg font-semibold text-gray-900 dark:text-white">{title}</h1>
-        {subtitle ? <p className="mt-1 text-sm text-muted">{subtitle}</p> : null}
+        {subtitle ? <p className="mt-0.5 text-xs text-muted">{subtitle}</p> : null}
       </div>
       {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
     </header>
@@ -63,18 +63,18 @@ export function Card({
   return (
     <section className="card overflow-hidden">
       {title ? (
-        <div className="flex flex-wrap items-start justify-between gap-2 border-b border-base px-3 py-2.5">
+        <div className="flex flex-wrap items-start justify-between gap-2 border-b border-base px-2.5 py-1.5">
           <div>
             <h2 className="flex items-center gap-2 font-display text-base font-semibold text-gray-900 dark:text-white">
               {icon ? <span className="flex h-3.5 w-3.5 items-center text-muted">{icon}</span> : null}
               {title}
             </h2>
-            {description ? <p className="mt-0.5 text-xs text-muted">{description}</p> : null}
+            {description ? <p className="mt-0 text-2xs text-muted">{description}</p> : null}
           </div>
           {actions}
         </div>
       ) : null}
-      <div className={flush ? "" : "p-3"}>{children}</div>
+      <div className={flush ? "" : "p-2.5"}>{children}</div>
     </section>
   );
 }
@@ -108,19 +108,13 @@ export function Stat({
 }) {
   const t = tone ?? "good";
   return (
-    <div className={`card h-full p-3 ${STAT_EDGE[t]}`}>
-      <div className="flex items-start justify-between gap-2.5">
-        <div className="min-w-0">
-          <p className="mb-1 truncate text-2xs font-medium uppercase tracking-[0.06em] text-muted">{label}</p>
-          <p className="truncate text-base font-semibold leading-tight tracking-[-0.01em] tabular-nums text-gray-900 dark:text-white">
-            {value}
-          </p>
-          {hint ? <p className="mt-1.5 truncate text-2xs text-muted">{hint}</p> : null}
-        </div>
-        {icon ? (
-          <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${STAT_ICON[t]}`}>{icon}</div>
-        ) : null}
-      </div>
+    <div className={`card relative h-full px-[7px] py-[5px] ${STAT_EDGE[t]}`}>
+      <p className="truncate pr-5 text-[9px] font-medium uppercase leading-3 tracking-[0.05em] text-muted">{label}</p>
+      <p className="truncate text-[10.5px] font-medium leading-[14px] tabular-nums text-gray-900 dark:text-white">{value}</p>
+      {hint ? <p className="mt-px truncate text-[8.5px] leading-[11px] text-muted">{hint}</p> : null}
+      {icon ? (
+        <div className={`absolute right-1.5 top-[5px] flex h-[15px] w-[15px] items-center justify-center rounded ${STAT_ICON[t]} [&>svg]:h-[9px] [&>svg]:w-[9px]`}>{icon}</div>
+      ) : null}
     </div>
   );
 }
@@ -204,7 +198,7 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="card flex flex-col items-center justify-center px-4 py-9 text-center">
+    <div className="card flex flex-col items-center justify-center px-4 py-6 text-center">
       <h3 className="mb-1 font-display text-base font-semibold">{message}</h3>
       {detail ? <p className="mb-3 max-w-sm text-xs text-muted">{detail}</p> : null}
       {action}
