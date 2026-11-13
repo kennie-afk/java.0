@@ -64,8 +64,7 @@ First run writes `.env.demo` with freshly generated throwaway secrets (gitignore
 image one at a time, waits for health, then `scripts/demo_seed.py` creates one account per role,
 and a coherent dataset through the API. Web is on http://localhost:13000, gateway on
 http://localhost:18080, both bound to 127.0.0.1; the sign-in page has a "Sign in as" picker.
-The web shows a "Demo mode, sample data, M-Pesa is simulated" banner (`DEMO_MODE=true`, read at
-request time), and payment-service runs its mock M-Pesa gateway. Measured: about 7.4 GiB across the
+payment-service runs its mock M-Pesa gateway (`DEMO_MODE=true`). Measured: about 7.4 GiB across the
 27 containers, 6 minutes from empty to seeded. `scripts/demo.sh check` opens every screen as every
 role and lists the ones with no data. Run one platform at a time;
 the test accounts are in `docs/TEST-ACCOUNTS.md`.

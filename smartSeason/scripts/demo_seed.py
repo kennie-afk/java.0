@@ -347,6 +347,90 @@ def dairy_data():
         "KE-003 pregnancy")
 
 
+def fill_gaps():
+    """Records for screens a first-time viewer opens and finds empty: market carts, returns, disputes,
+    stock reservations, input use, delivery proof, cold chain, crop vigour, crew membership, fraud
+    evidence, product variants, certifications and KYC. Technical tables (OTP challenges, saga states,
+    provider callbacks, upload tickets, anchors, balances) stay empty on purpose: the system fills them."""
+    ts, day, find, seed = sd.ts, sd.day, sd.find, sd.seed
+    farm = find("/api/farm/v1/farms", "name", "Njoro Home Farm")
+    plot1 = find("/api/farm/v1/plots", "name", "Plot A1")
+    plot2 = find("/api/farm/v1/plots", "name", "Plot A2")
+    season = find("/api/season/v1/seasons", "plotId", plot1)
+    order = find("/api/order/v1/orders", "orderNumber", "PO-2026-0001")
+    batch = find("/api/inventory/v1/batches", "batchCode", "BATCH-MZ-0001")
+    item = find("/api/inventory/v1/stock-items", "batchId", batch) if batch else None
+    product = find("/api/catalog/v1/products", "name", "Njoro Grade 1 maize, 90 kg bag")
+    gang = find("/api/workforce/v1/gangs", "name", "Top-dressing crew")
+    job = find("/api/logistics/v1/transport-jobs", "jobNumber", "TJ-2026-0001")
+    case = find("/api/fraud/v1/fraud-cases", "caseNumber", "FR-2026-0001")
+    org = find("/api/identity/v1/organisations", "name", "Green Acres Cooperative")
+    workers = {w: find("/api/workforce/v1/workers", "fullName", w) for w in ("Amina Wanjiru", "Joseph Kiptoo", "Grace Nyambura")}
+    amina, joseph, grace = workers.values()
+    store = find("/api/identity/v1/users", "email", "store@smartseason.local")
+    farmer = find("/api/identity/v1/users", "email", "farmer@smartseason.local")
+
+    print("Fill: catalogue, market and orders")
+    seed("/api/catalog/v1/certifications", "code", {"code": "GLOBALGAP", "name": "GLOBALG.A.P.", "issuingBody": "FoodPLUS GmbH",
+        "description": "Good agricultural practice for export produce.", "validityMonths": 12}, "GLOBALG.A.P.")
+    seed("/api/catalog/v1/certifications", "code", {"code": "KEBS", "name": "KEBS Standardisation Mark", "issuingBody": "Kenya Bureau of Standards",
+        "description": "Product quality mark for the local market.", "validityMonths": 12}, "KEBS mark")
+    if product:
+        for sku, name, size, grade in [("MZ-90-G1", "90 kg bag, Grade 1", 90, "GRADE_1"), ("MZ-50-G1", "50 kg bag, Grade 1", 50, "GRADE_1"), ("MZ-90-G2", "90 kg bag, Grade 2", 90, "GRADE_2")]:
+            seed("/api/catalog/v1/product-variants", "sku", {"productId": product, "sku": sku, "variantName": name,
+                "packSize": size, "packUnit": "kg", "grade": grade, "active": True}, f"variant {sku}")
+    if org and product:
+        cart = seed("/api/order/v1/carts", "buyerOrgId", {"buyerOrgId": org, "currency": "KES", "status": "OPEN", "expiresAt": ts(-24)}, "open cart")
+        if cart:
+            seed("/api/order/v1/cart-items", "cartId", {"cartId": cart, "listingId": product, "commodityCode": "MAIZE",
+                "quantity": 2000, "unit": "kg", "unitPrice": 48.5, "sellerOrgId": org}, "cart line: maize 2,000 kg")
+    if order:
+        seed("/api/order/v1/order-returns", "orderId", {"orderId": order, "quantity": 90, "reason": "One bag arrived wet and was refused at the mill.",
+            "requestedAt": ts(1), "refundAmount": 4365.0, "status": "REQUESTED"}, "return request")
+        if org:
+            seed("/api/order/v1/disputes", "orderId", {"orderId": order, "raisedByOrgId": org, "category": "QUALITY",
+                "description": "Moisture reading at the mill was 14.2%, above the agreed 13%.", "raisedAt": ts(1), "status": "UNDER_REVIEW"}, "quality dispute")
+
+    print("Fill: inventory and logistics")
+    if item:
+        seed("/api/inventory/v1/reservations", "stockItemId", {"stockItemId": item, "orderId": order, "quantity": 2000,
+            "reservedAt": ts(1), "expiresAt": ts(-48), "status": "HELD"}, "stock held for the order")
+    if farm and plot1:
+        issue = seed("/api/inventory/v1/input-issues", "inputCode", {"farmId": farm, "plotId": plot1, "seasonId": season, "inputCode": "CAN-50",
+            "inputName": "CAN fertiliser, 50 kg bag", "quantity": 12, "unit": "bag", "issuedTo": farmer, "issuedBy": store,
+            "issuedAt": ts(2, 7), "unitCost": 3400.0, "expectedRatePerHa": 3.0, "status": "ISSUED"}, "CAN issued for Plot A1")
+        if issue:
+            seed("/api/inventory/v1/input-consumptions", "inputIssueId", {"inputIssueId": issue, "farmId": farm, "plotId": plot1, "seasonId": season,
+                "inputCode": "CAN-50", "quantity": 10, "unit": "bag", "appliedAt": ts(1, 11), "appliedBy": farmer, "areaCoveredHa": 3.2,
+                "varianceKg": -4.0}, "CAN applied on Plot A1")
+    if job:
+        seed("/api/logistics/v1/proofs-of-delivery", "transportJobId", {"transportJobId": job, "receivedBy": "Wanjiru, Kabete Mills",
+            "receivedAt": ts(0, 14), "latitude": -1.2634, "longitude": 36.7378, "deliveredWeightKg": 7940.0, "varianceKg": -60.0,
+            "notes": "Gate weighbridge ticket 20457.", "disputed": False}, "proof of delivery")
+        for hours, temp, breach in [(6, 4.2, False), (5, 4.6, False), (4, 5.1, False), (3, 8.9, True), (2, 4.8, False)]:
+            seed("/api/logistics/v1/cold-chain-readings", "recordedAt", {"transportJobId": job, "recordedAt": ts(0, 14 - hours),
+                "temperatureC": temp, "humidityPct": 78, "deviceId": "COLD-0007", "breach": breach}, f"cold chain {temp} C")
+
+    print("Fill: crops, crews, fraud, traceability, identity")
+    for plot, back, ndvi in [(plot1, 14, 0.58), (plot1, 7, 0.69), (plot1, 0, 0.74), (plot2, 7, 0.51), (plot2, 0, 0.55)]:
+        if plot:
+            seed("/api/weather/v1/ndvi-readings", "tileUrl", {"plotId": plot, "geoCell": "NJORO-0.33S-35.94E", "capturedOn": day(back),
+                "ndvi": ndvi, "cloudCoverPct": 8.0, "satellite": "Sentinel-2", "tileUrl": f"s2://njoro/{plot}/{day(back)}"}, f"NDVI {ndvi} {day(back)}")
+    if gang:
+        for who, role, name in [(amina, "LEAD", "Amina"), (joseph, "MEMBER", "Joseph"), (grace, "MEMBER", "Grace")]:
+            if who:
+                seed("/api/workforce/v1/gang-memberships", "workerId", {"gangId": gang, "workerId": who, "joinedAt": ts(10), "role": role}, f"{name} in crew")
+    if case:
+        seed("/api/fraud/v1/fraud-evidence", "label", {"caseId": case, "label": "Clock-ins from one device", "evidenceType": "DEVICE_REUSE",
+            "payload": '{"deviceId": "AND-77F1", "workers": 3, "days": 4}', "weight": 0.35, "collectedAt": ts(1)}, "device reuse evidence")
+    seed("/api/traceability/v1/cert-evidence", "certificateNo", {"batchCode": "BATCH-MZ-0001", "farmId": farm, "certificationCode": "KEBS",
+        "certificateNo": "KEBS-2026-04417", "issuedBy": "Kenya Bureau of Standards", "issuedOn": day(60), "expiresOn": day(-300), "verified": True,
+        "verifiedAt": ts(30)}, "KEBS certificate") if farm else None
+    if farmer:
+        seed("/api/identity/v1/kyc-records", "subjectId", {"subjectId": farmer, "subjectType": "USER", "idNumber": "29****418", "status": "VERIFIED",
+            "reviewedBy": ME_ID(), "reviewNotes": "ID matched to the registry extract."}, "farmer KYC")
+
+
 def main():
     if not sd.sign_in():
         print("Could not sign in. Is the stack running?")
@@ -356,6 +440,7 @@ def main():
     code = sd.main_body()
     more_data()
     dairy_data()
+    fill_gaps()
     link_workers(users)
     return code
 

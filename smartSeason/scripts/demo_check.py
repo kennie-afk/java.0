@@ -86,8 +86,7 @@ def main():
             seen.append(f"{path}={status}")
             if status not in (200, 404, 307, 308):
                 bad += 1
-        banner = "Demo mode" in fetch(opener, "/")[1]
-        print(f"{role:12} {' '.join(seen)}  banner={'yes' if banner else 'NO'}")
+        print(f"{role:12} {' '.join(seen)}")
     return 1 if broken or bad else 0
 
 
