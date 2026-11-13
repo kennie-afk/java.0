@@ -140,10 +140,39 @@ A(f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>SmartSea
 <p class="contact">Prepared by Kennedy Mwanzia &nbsp;&middot;&nbsp; github.com/kennie-afk &nbsp;&middot;&nbsp; kennedy-portfolio-rouge.vercel.app &nbsp;&middot;&nbsp; 13 November 2026</p>
 """)
 
-A(h2("Summary", first=True).replace("<h2", '<h2 style="margin-top:36pt"', 1))
-A(p(f"""SmartSeason is one platform for the whole working life of a farm business in Kenya. It follows a crop from the plot and the season calendar, through the people hired to work it and the proof that they worked, to the produce, its sale, its delivery and the M-Pesa payment, and finally to the farmer's settlement and the ledger entry behind it. Every step records who did what and when, and no one organisation can see another's data.""", "lead"))
-A(p(f"""It is built as {N_SERVICES} Spring Boot microservices ({N_AGG} persisted aggregates) behind one Spring Cloud Gateway, with a Next.js web application. Each service owns its own PostgreSQL database and talks to the others only through events on Kafka. Eight roles (owner, manager, agronomist, storekeeper, finance, buyer, worker and administrator) each see a different platform, and the same role table decides both what the menu shows and what each service will accept."""))
-A(p("""It is a complete, working platform in demonstration form. It has not had a customer, has not been load-tested at national scale, and its live M-Pesa link has not been switched on. Section 10 lists exactly what is proven and what is not, and sections 11 and 12 set out how it earns money and how it should be taken to market."""))
+A(h2("What SmartSeason is", first=True).replace("<h2", '<h2 style="margin-top:34pt"', 1))
+A(p("""SmartSeason is software that helps a farm business in Kenya run itself and get paid. It puts everything that happens on a farm in one place: the land and the crops, the people hired to work, the produce harvested, the buyers who order it, the delivery, and the M-Pesa money that pays for it. Every action is recorded with who did it and when, and the records cannot be quietly changed.""", "lead"))
+
+A("<h3>The problem it solves</h3>")
+A(p("""A farm that hires labour and sells produce loses money and time in the same few places, and mostly cannot see where."""))
+A(ul([
+    "<b>Pay for work that was not done.</b> Workers who do not exist, hours that are padded, someone clocking in for a friend. The owner cannot be on every plot, so the loss goes unseen.",
+    "<b>Records on paper or in memory.</b> Which crop is where, what fertiliser went on which plot, how much milk each cow gave. When something goes wrong nobody can say what happened.",
+    "<b>Selling and getting paid is slow and uncertain.</b> Orders agreed by phone, produce delivered with no proof of weight, payment chased for weeks, disputes with no evidence either way.",
+    "<b>No proof of where produce came from.</b> Buyers, especially exporters, increasingly want to know which farm, which batch and which certificate.",
+]))
+
+A("<h3>What it does about each one</h3>")
+A(table(["On the farm", "What SmartSeason does"], [
+    ["Land and crops", "Records farms, plots and the season for each crop, with the calendar of stages and a warning when a crop is running late. Gives advice on pests and diseases from a description or a photograph."],
+    ["Workers and pay", "A worker is given a task on their phone and presses Start and Stop. The <b>time is recorded by the system, not the phone</b>, so it cannot be changed. Clock-in only works at the farm. Suspicious patterns are flagged for the owner to review, and payments can be held until they are cleared."],
+    ["Produce and sales", "Records each harvest batch and its grade, lists produce for buyers, takes their orders, holds the stock for the order and tracks delivery to the door with proof of what was received."],
+    ["Money", "Collects payment through M-Pesa, records every shilling in a proper double-entry ledger, and pays farmers and workers out, with checks that stop a payment going to the wrong place."],
+    ["Dairy", "Records each cow's milk, what was delivered and what was rejected, and warns when milk is from a cow still under a medicine withdrawal and must not be sold."],
+    ["Proof and trust", "Keeps a tamper-evident log of important actions, and traces a batch back to its farm and certificates with a QR code."],
+], ["nw", ""], long=True))
+
+A("<h3>Who uses it</h3>")
+A(p("""Eight kinds of people, and each sees a different system. The <b>farm owner</b> sees everything and the money. A <b>manager</b> assigns and checks work but cannot change anyone's pay. A <b>worker</b> sees only their own tasks. An <b>agronomist</b> sees crops, a <b>storekeeper</b> sees stock, <b>finance</b> is the only role that can move money, and a <b>buyer</b> sees only the produce side. This separation is deliberate: it is what makes the fraud controls trustworthy."""))
+
+A("<h3>A day on a farm</h3>")
+A(p("""At seven a worker opens SmartSeason, sees <i>Top-dress nitrogen on Plot A1</i>, and presses Start. The owner, in town, sees on the live board that it started at 07:02. A photograph and the plot's location are attached when it is done, and the manager marks it verified. At the cooler, the dairy clerk records that 6 litres were rejected. When the maize is sold, the buyer's order reserves the stock, the truck is dispatched, the buyer's M-Pesa payment arrives, and the ledger shows the sale, the fee and what the farmer is owed. Nobody had to phone anybody, and every step has a time and a name against it."""))
+
+A("<h3>Where it stands</h3>")
+A(p("""It is a complete, working system in demonstration form, and it has not yet had a real customer. Live M-Pesa is not switched on, and some parts are built fully while others hold the data correctly but do not yet act on it. Section 10 lists exactly what is proven and what is not. Sections 11 and 12 explain how it can earn money and how to take it to market."""))
+
+A("<h3>In technical terms</h3>")
+A(p(f"""SmartSeason is built as {N_SERVICES} Spring Boot microservices ({N_AGG} persisted aggregates) behind one Spring Cloud Gateway, with a Next.js web application. Each service owns its own PostgreSQL database and talks to the others only through events on Kafka. Eight roles each see a different platform, and one role table decides both what the menu shows and what each service will accept. No organisation can see another's data, enforced in the code and again in the database.""", "keep"))
 
 A("<h3>Contents</h3>")
 toc = ["Status at a glance", "Who uses it", "How it works, end to end", "Architecture", "The services in detail", "The web application",

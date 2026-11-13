@@ -77,3 +77,5 @@ figcaption b{color:#0c7989}
 code{font-family:"DejaVu Sans Mono",monospace;font-size:8.6pt;background:#eef5f7;padding:0 3pt}
 
 p:has(+ table){break-after:avoid}
+
+.keep{break-inside:avoid}
