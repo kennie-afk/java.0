@@ -1,0 +1,79 @@
+/* SmartSeason documentation. Same fonts, colours and rules as the CV, with generous spacing. */
+@font-face{font-family:Carlito;src:url(fonts/Carlito-Regular.ttf);font-weight:400}
+@font-face{font-family:Carlito;src:url(fonts/Carlito-Bold.ttf);font-weight:700}
+@font-face{font-family:Carlito;src:url(fonts/Carlito-Italic.ttf);font-weight:400;font-style:italic}
+@font-face{font-family:Carlito;src:url(fonts/Carlito-BoldItalic.ttf);font-weight:700;font-style:italic}
+
+@page{
+  size:A4;margin:58pt 54pt 62pt 54pt;
+  @bottom-center{content:counter(page);font-family:Carlito;font-size:9pt;color:#434343}
+  @bottom-left{content:"SmartSeason documentation";font-family:Carlito;font-size:8.5pt;color:#7a7a7a}
+}
+@page:first{@bottom-center{content:none}@bottom-left{content:none}}
+
+*{box-sizing:border-box}
+html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:Carlito,Calibri,sans-serif;font-size:10.5pt;line-height:16.5pt;color:#000;margin:0;font-kerning:normal}
+
+h1{font-size:25pt;line-height:30pt;color:#1a4e71;text-align:center;margin:0;font-weight:700;letter-spacing:.2pt}
+.tag{text-align:center;color:#434343;font-size:11pt;line-height:17pt;margin:14pt 0 0}
+.contact{text-align:center;font-size:9.5pt;line-height:15pt;margin:18pt 0 0;padding-bottom:12pt;border-bottom:1px solid #1a4e71;color:#262626}
+
+h2{font-size:12.5pt;line-height:17pt;color:#0c7989;text-transform:uppercase;font-weight:700;margin:42pt 0 20pt;padding-bottom:4pt;border-bottom:1px solid #0c7989;break-after:avoid;letter-spacing:.3pt}
+h2.first{margin-top:0}
+h3{font-size:10pt;line-height:14pt;color:#0c7989;text-transform:uppercase;font-weight:700;margin:26pt 0 10pt;padding-bottom:2pt;border-bottom:1px solid #0c7989;break-after:avoid;letter-spacing:.2pt}
+h4{font-size:11pt;line-height:15pt;color:#1a4e71;font-weight:700;margin:20pt 0 4pt;break-after:avoid}
+
+p{margin:0 0 12pt;text-align:justify}
+p.lead{font-size:11.5pt;line-height:18.5pt;color:#1a1a1a}
+.muted{color:#434343}
+.small{font-size:9.5pt;line-height:14pt;color:#434343}
+b{font-weight:700}
+
+ul{list-style:none;margin:0 0 14pt;padding:0}
+li{padding-left:14pt;margin-top:8pt;text-align:justify;break-inside:avoid;position:relative}
+li::before{content:"\25B8";position:absolute;left:0;top:0;font-family:"DejaVu Sans";font-size:8pt;line-height:16.5pt;color:#1a4e71}
+ol{margin:0 0 14pt;padding-left:20pt}
+ol li{padding-left:6pt}
+ol li::before{content:none}
+ol li{list-style:decimal;margin-top:9pt}
+ol li::marker{color:#0c7989;font-weight:700}
+
+table{width:100%;border-collapse:collapse;margin:6pt 0 20pt;font-size:9.5pt;line-height:14pt}
+th{text-align:left;color:#0c7989;text-transform:uppercase;font-size:8pt;letter-spacing:.3pt;padding:8pt 10pt;border-bottom:1.2px solid #0c7989;vertical-align:bottom}
+td{padding:9pt 10pt;border-bottom:1px solid #d6e3e8;vertical-align:top;text-align:left}
+tr{break-inside:avoid}
+table{break-inside:avoid}
+table.long{break-inside:auto}
+td.n,th.n{text-align:right;white-space:nowrap}
+td.nw{white-space:nowrap}
+tbody tr:nth-child(even) td{background:#f6fafb}
+
+.card{margin:0 0 22pt;padding:12pt 16pt 4pt;border:1px solid #cfe0e6;border-left:3px solid #0c7989;break-inside:avoid;background:#fbfdfd}
+.card .name{font-size:11pt;color:#1a4e71;font-weight:700}
+.card .meta{color:#434343;font-size:9pt;margin-left:6pt}
+.card p{margin:6pt 0 8pt;font-size:10pt;line-height:15.5pt}
+.card .lab{color:#0c7989;font-weight:700;font-size:8.5pt;text-transform:uppercase;letter-spacing:.3pt;margin-right:4pt}
+
+.box{margin:18pt 0 22pt;padding:14pt 18pt 6pt;border:1px solid #cfe0e6;border-left:3px solid #1a4e71;background:#f6fafb;break-inside:avoid}
+.box .bt{font-weight:700;color:#1a4e71;margin:0 0 8pt}
+.box.warn{border-left-color:#b26a00;background:#fffaf0}
+.box.warn .bt{color:#8a5200}
+
+.diagram{margin:14pt 0 24pt;padding:16pt 18pt;border:1px solid #cfe0e6;background:#fbfdfd;font-family:"DejaVu Sans Mono",monospace;font-size:7.8pt;line-height:12pt;white-space:pre;color:#1a1a1a;break-inside:avoid}
+
+figure{margin:20pt 0 28pt;break-inside:avoid}
+figure img{width:100%;display:block;border:1px solid #cfe0e6}
+figcaption{margin-top:9pt;font-size:9.5pt;line-height:14pt;color:#434343;text-align:left}
+figcaption b{color:#0c7989}
+
+.kv{display:grid;grid-template-columns:150pt 1fr;gap:0}
+.pb{break-before:page}
+.toc{columns:2;column-gap:40pt;margin:10pt 0 0}
+.toc div{padding:5pt 0;break-inside:avoid;border-bottom:1px dotted #b9cdd3}
+.toc b{color:#0c7989;margin-right:8pt}
+.pill{display:inline-block;padding:0 6pt;border:1px solid #0c7989;color:#0c7989;font-size:8pt;line-height:12pt;border-radius:2pt;margin-left:4pt;text-transform:uppercase;letter-spacing:.3pt}
+.pill.no{border-color:#8a5200;color:#8a5200}
+code{font-family:"DejaVu Sans Mono",monospace;font-size:8.6pt;background:#eef5f7;padding:0 3pt}
+
+p:has(+ table){break-after:avoid}
