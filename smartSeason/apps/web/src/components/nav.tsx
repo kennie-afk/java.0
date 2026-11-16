@@ -28,7 +28,18 @@ import {
 const SIDEBAR_WIDTH = 240;
 const SIDEBAR_WIDTH_COLLAPSED = 64;
 
-type Child = { label: string; href: string; depth?: number };
+type Child = { label: string; href: string; depth?: number; icon: IconName };
+
+/** One icon per service, so the sub-menu can be scanned by shape as well as by word. */
+const SERVICE_ICONS: Record<string, IconName> = {
+  farm: "farms", season: "seasons", agronomy: "leaf", weather: "cloud",
+  "device-registry": "devices", "telemetry-ingest": "pulse", automation: "bolt",
+  workforce: "workforce", attendance: "clock", task: "tasks", fraud: "fraud",
+  catalog: "grid", pricing: "tag", order: "receipt", inventory: "box", logistics: "truck",
+  payment: "card", ledger: "book", payout: "send", traceability: "link",
+  notification: "bell", media: "image", search: "search", analytics: "chart",
+  audit: "scroll", identity: "identity"
+};
 type Item = { key: string; label: string; href: string; icon: IconName; children?: Child[]; match: (path: string) => boolean };
 
 export function Shell({
@@ -241,10 +252,12 @@ function Sidebar({
     icon: group.icon as IconName,
     match: () => group.services.some((service) => service.slug === serviceSlug),
     children: group.services.flatMap((service) => {
-      const list: Child[] = [{ label: service.label, href: `/${service.slug}` }];
+      const list: Child[] = [
+        { label: service.label, href: `/${service.slug}`, icon: SERVICE_ICONS[service.slug] ?? group.icon as IconName }
+      ];
       if (service.slug === serviceSlug && service.entities.length > 1) {
         for (const entity of service.entities) {
-          list.push({ label: entity.label, href: `/${service.slug}/${entity.slug}`, depth: 1 });
+          list.push({ label: entity.label, href: `/${service.slug}/${entity.slug}`, depth: 1, icon: "list" });
         }
       }
       return list;
@@ -309,12 +322,13 @@ function Sidebar({
                   href={child.href}
                   onClick={onClose}
                   aria-current={on ? "page" : undefined}
-                  className={`flex items-center truncate rounded-md px-2 py-0.5 text-xs ${child.depth === 1 ? "ml-3" : ""} ${
+                  className={`flex items-center gap-2 truncate rounded-md px-2 py-0.5 text-xs ${child.depth === 1 ? "ml-3" : ""} ${
                     on
                       ? "bg-brand-50 font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-400"
                       : "text-muted hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-white/5 dark:hover:text-white"
                   }`}
                 >
+                  <Icon name={child.icon} className="h-[13px] w-[13px] shrink-0" />
                   <span className="truncate">{child.label}</span>
                 </Link>
               );

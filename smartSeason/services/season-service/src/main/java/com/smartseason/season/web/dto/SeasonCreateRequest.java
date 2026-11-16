@@ -19,5 +19,5 @@ public record SeasonCreateRequest(
         BigDecimal expectedYieldKg,
         BigDecimal actualYieldKg,
         @Size(max = 255) String currentStage,
-        @NotNull Season.Status status) {
+        Season.Status status) {
 }

@@ -33,7 +33,26 @@ export type IconName =
   | "moon"
   | "collapse"
   | "expand"
-  | "user";
+  | "user"
+  | "leaf"
+  | "cloud"
+  | "bolt"
+  | "clock"
+  | "grid"
+  | "tag"
+  | "receipt"
+  | "box"
+  | "truck"
+  | "card"
+  | "book"
+  | "send"
+  | "link"
+  | "bell"
+  | "image"
+  | "search"
+  | "chart"
+  | "scroll"
+  | "list";
 
 export function Icon({ name, className }: { name: IconName; className?: string }) {
   const paths: Record<IconName, ReactNode> = {
@@ -104,6 +123,57 @@ export function Icon({ name, className }: { name: IconName; className?: string }
         <circle cx="12" cy="8.5" r="3.5" />
         <path d="M5 20a7 7 0 0 1 14 0" />
       </>
+    ),
+    leaf: (
+      <><path d="M5 19c0-8 5-13 14-14 0 9-5 14-13 14" /><path d="M5 19c3-4 6-6 9-8" /></>
+    ),
+    cloud: <path d="M7 18a4 4 0 0 1-.6-7.95A5.5 5.5 0 0 1 17 9.5a4.2 4.2 0 0 1 0 8.5z" />,
+    bolt: <path d="M13 3.5 6 13h5l-1 7.5L18 11h-5z" />,
+    clock: (
+      <><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></>
+    ),
+    grid: (
+      <><rect x="4" y="4" width="6.5" height="6.5" rx="1.2" /><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.2" /><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.2" /><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.2" /></>
+    ),
+    tag: (
+      <><path d="M3.5 12.5V4.5h8l9 9-8 8z" /><path d="M8 8.5h.01" /></>
+    ),
+    receipt: (
+      <><path d="M6 3.5h12v17l-2.2-1.5L13.6 20.5 12 19l-1.6 1.5L8.2 19 6 20.5z" /><path d="M9 8h6M9 12h6" /></>
+    ),
+    box: (
+      <><path d="M4 7.5 12 3.5l8 4v9l-8 4-8-4z" /><path d="M4 7.5 12 11.5l8-4M12 11.5v9" /></>
+    ),
+    truck: (
+      <><path d="M3 6.5h11v10H3zM14 10h4l3 3v3.5h-7" /><circle cx="7" cy="18" r="1.7" /><circle cx="17" cy="18" r="1.7" /></>
+    ),
+    card: (
+      <><rect x="3" y="5.5" width="18" height="13" rx="2" /><path d="M3 10h18M7 15h4" /></>
+    ),
+    book: (
+      <><path d="M5 4.5h11a3 3 0 0 1 3 3v12H8a3 3 0 0 1-3-3z" /><path d="M5 16.5a3 3 0 0 1 3-3h11" /></>
+    ),
+    send: <path d="M20.5 3.5 10 14M20.5 3.5 14 20.5l-4-6.5-6.5-4z" />,
+    link: (
+      <><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" /><path d="M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.700l1-1" /></>
+    ),
+    bell: (
+      <><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15z" /><path d="M10 20.5h4" /></>
+    ),
+    image: (
+      <><rect x="3.5" y="5" width="17" height="14" rx="2" /><circle cx="9" cy="10" r="1.5" /><path d="m4 17 5-4.5 4 3.5 3-2.5 4 3.5" /></>
+    ),
+    search: (
+      <><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4.5 4.5" /></>
+    ),
+    chart: (
+      <><path d="M4 20V5M4 20h16" /><path d="M8 16v-4M12.5 16V8M17 16v-6" /></>
+    ),
+    scroll: (
+      <><path d="M7 4.5h11v12a3 3 0 0 1-3 3H6.500" /><path d="M7 4.500v12a3 3 0 0 1-3 3" /><path d="M10.500 9h4.500M10.500 13h4.500" /></>
+    ),
+    list: (
+      <><path d="M8.500 7h11M8.500 12h11M8.500 17h11" /><path d="M4.500 7h.5M4.500 12h.5M4.500 17h.5" /></>
     ),
     pulse: <path d="M3 12h4l2.5-6 4 12 2.5-6H21" />,
     sparkle: (
