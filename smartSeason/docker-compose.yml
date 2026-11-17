@@ -321,6 +321,17 @@ services:
     environment:
       <<: *service-env
       SPRING_DATASOURCE_URL: jdbc:postgresql://pgbouncer:6432/agronomy_db?prepareThreshold=0
+      # Case notifications. With SPRING_MAIL_HOST blank nothing is emailed; the in-app badge
+      # still works. SMARTSEASON_WEB_URL is the address printed in the email's link.
+      SMARTSEASON_IDENTITY_URL: http://identity-service:8081
+      SMARTSEASON_WEB_URL: ${PUBLIC_WEB_URL:-http://localhost:13000}
+      SMARTSEASON_MAIL_FROM: ${MAIL_FROM:-no-reply@smartseason.local}
+      SPRING_MAIL_HOST: ${SMTP_HOST:-}
+      SPRING_MAIL_PORT: ${SMTP_PORT:-587}
+      SPRING_MAIL_USERNAME: ${SMTP_USER:-}
+      SPRING_MAIL_PASSWORD: ${SMTP_PASSWORD:-}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: ${SMTP_AUTH:-false}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: ${SMTP_STARTTLS:-false}
     depends_on:
       pgbouncer:
         condition: service_healthy

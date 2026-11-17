@@ -2,20 +2,37 @@
 
 import { useActionState, useState } from "react";
 import { Badge, bareInputClass, bareSelectClass, buttonClass } from "@/components/ui";
+import { AskAgronomist, type Asked } from "@/components/ask-agronomist";
 import { diagnose } from "@/lib/advisor";
 import { emptyDiagnosis } from "@/lib/advisor-types";
 
 const CROPS = ["MAIZE", "POTATO", "BEANS", "TOMATO", "AVOCADO"];
 
-export function AdvisorForm() {
+export function AdvisorForm({ canAsk = false }: { canAsk?: boolean }) {
   const [state, action, pending] = useActionState(diagnose, emptyDiagnosis);
   const [previews, setPreviews] = useState<string[]>([]);
+  // Held here because the form clears its photo field after it submits, and an agronomist
+  // needs the same photographs the model looked at.
+  const [files, setFiles] = useState<File[]>([]);
+  const [asked, setAsked] = useState<Asked | null>(null);
 
   const label = "mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400";
 
   return (
     <div className="grid gap-2.5 lg:grid-cols-2">
-      <form action={action} className="panel p-3">
+      <form
+        action={action}
+        onSubmit={(event) => {
+          const data = new FormData(event.currentTarget);
+          setAsked({
+            crop: String(data.get("cropCode") ?? ""),
+            county: String(data.get("county") ?? "").trim(),
+            symptoms: String(data.get("symptoms") ?? "").trim(),
+            files
+          });
+        }}
+        className="panel p-3"
+      >
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block">
             <span className={label}>Crop</span>
@@ -53,8 +70,9 @@ export function AdvisorForm() {
               accept="image/*"
               multiple
               onChange={(event) => {
-                const files = Array.from(event.target.files ?? []);
-                setPreviews(files.map((file) => URL.createObjectURL(file)));
+                const picked = Array.from(event.target.files ?? []);
+                setFiles(picked);
+                setPreviews(picked.map((file) => URL.createObjectURL(file)));
               }}
               className="block w-full text-xs file:mr-3 file:cursor-pointer file:rounded-md file:border file:border-[var(--color-line)] file:bg-[var(--color-raised)] file:px-2.5 file:py-1.5 file:text-xs file:font-medium"
             />
@@ -156,6 +174,8 @@ export function AdvisorForm() {
                 ))}
               </ul>
             ) : null}
+
+            {canAsk && asked ? <AskAgronomist diagnosis={state.result} asked={asked} /> : null}
           </>
         )}
       </section>

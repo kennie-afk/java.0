@@ -109,6 +109,10 @@ FEATURES = {
     # instead - see "report-observation" below.
     "advisor":           ["ADMIN", "FARMER", "MANAGER", "AGRONOMIST"],
     "report-observation": ["ADMIN", "FARMER", "MANAGER", "AGRONOMIST", "WORKER"],
+    # Asking an agronomist, and following the answer. Anyone who can photograph a problem may ask;
+    # the agronomist's own queue is a separate screen.
+    "cases":             ["ADMIN", "FARMER", "MANAGER", "WORKER"],
+    "case-queue":        ["ADMIN", "AGRONOMIST"],
     "my-work":           ["ADMIN", "MANAGER", "WORKER"],
     "live-board":        ["ADMIN", "FARMER", "MANAGER"],
     # Herd production and milk-withdrawal warnings; the same roles that may read farm-service.

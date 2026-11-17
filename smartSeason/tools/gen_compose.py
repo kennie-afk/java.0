@@ -272,6 +272,19 @@ SERVICE_TEMPLATE = """
 # Only the services that need something the other 26 do not. Object-store credentials in
 # all 27 would hand every service a bucket key it has no use for.
 EXTRA_ENV = {
+    "agronomy-service": (
+        # Case notifications. With SPRING_MAIL_HOST blank nothing is emailed; the in-app badge
+        # still works. SMARTSEASON_WEB_URL is the address printed in the email's link.
+        "      SMARTSEASON_IDENTITY_URL: http://identity-service:8081\n"
+        "      SMARTSEASON_WEB_URL: ${PUBLIC_WEB_URL:-http://localhost:13000}\n"
+        "      SMARTSEASON_MAIL_FROM: ${MAIL_FROM:-no-reply@smartseason.local}\n"
+        "      SPRING_MAIL_HOST: ${SMTP_HOST:-}\n"
+        "      SPRING_MAIL_PORT: ${SMTP_PORT:-587}\n"
+        "      SPRING_MAIL_USERNAME: ${SMTP_USER:-}\n"
+        "      SPRING_MAIL_PASSWORD: ${SMTP_PASSWORD:-}\n"
+        "      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: ${SMTP_AUTH:-false}\n"
+        "      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: ${SMTP_STARTTLS:-false}\n"
+    ),
     "media-service": (
         "      S3_ENDPOINT: http://objectstore:9000\n"
         "      S3_BUCKET: ${S3_BUCKET:-smartseason-media}\n"

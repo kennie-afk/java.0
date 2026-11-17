@@ -40,7 +40,9 @@ const SERVICE_ICONS: Record<string, IconName> = {
   notification: "bell", media: "image", search: "search", analytics: "chart",
   audit: "scroll", identity: "identity"
 };
-type Item = { key: string; label: string; href: string; icon: IconName; children?: Child[]; match: (path: string) => boolean };
+type Item = { key: string; label: string; href: string; icon: IconName; badge?: number; children?: Child[]; match: (path: string) => boolean };
+
+type CaseCounts = { unassigned: number; mine: number; overdue: number; attention: number };
 
 export function Shell({
   roles,
@@ -126,12 +128,15 @@ const TITLES: Record<string, string> = {
   "/dairy": "Dairy",
   "/team": "Team",
   "/advisor": "Crop advisor",
+  "/cases": "My questions",
+  "/queue": "Case queue",
   "/account": "Account"
 };
 
 function pageTitle(pathname: string): string {
   if (TITLES[pathname]) return TITLES[pathname];
   if (pathname.startsWith("/work/")) return "Task";
+  if (pathname.startsWith("/cases/")) return "Question";
   const [serviceSlug, entitySlug] = pathname.split("/").filter(Boolean);
   for (const group of GROUPS) {
     const service = group.services.find((candidate) => candidate.slug === serviceSlug);
@@ -235,6 +240,28 @@ function Sidebar({
     }))
     .filter((group) => group.services.length > 0);
 
+  // New replies and waiting cases. Polled lightly: the answer to "is anything new?" changes in
+  // minutes, not seconds, and the endpoint is four indexed counts.
+  const [counts, setCounts] = useState<CaseCounts | null>(null);
+  const wantsCounts = canUse(roles, "cases") || canUse(roles, "case-queue");
+  useEffect(() => {
+    if (!wantsCounts) return;
+    let live = true;
+    const load = () =>
+      fetch("/api/case-summary", { cache: "no-store" })
+        .then((response) => (response.ok ? response.json() : null))
+        .then((data) => {
+          if (live && data) setCounts(data as CaseCounts);
+        })
+        .catch(() => {});
+    load();
+    const timer = setInterval(load, 60_000);
+    return () => {
+      live = false;
+      clearInterval(timer);
+    };
+  }, [wantsCounts, pathname]);
+
   const top: Item[] = [
     { key: "overview", label: "Overview", href: "/", icon: "home", match: (p) => p === "/" }
   ];
@@ -244,6 +271,18 @@ function Sidebar({
   if (canSeeDairy(roles)) top.push({ key: "dairy", label: "Dairy", href: "/dairy", icon: "farms", match: (p) => p === "/dairy" });
   if (canUse(roles, "team")) top.push({ key: "team", label: "Team", href: "/team", icon: "workforce", match: (p) => p === "/team" });
   if (canSeeAdvisor(roles)) top.push({ key: "advisor", label: "Crop advisor", href: "/advisor", icon: "sparkle", match: (p) => p === "/advisor" });
+  const asker = canUse(roles, "cases");
+  if (asker)
+    top.push({
+      key: "cases", label: "My questions", href: "/cases", icon: "chat", badge: counts?.attention,
+      match: (p) => p === "/cases" || p.startsWith("/cases/")
+    });
+  if (canUse(roles, "case-queue"))
+    top.push({
+      key: "queue", label: "Case queue", href: "/queue", icon: "chat",
+      badge: counts ? counts.unassigned + counts.attention : undefined,
+      match: (p) => p === "/queue" || (!asker && p.startsWith("/cases/"))
+    });
 
   const grouped: Item[] = groups.map((group) => ({
     key: group.slug,
@@ -296,6 +335,11 @@ function Sidebar({
           >
             <Icon name={item.icon} className="h-[15px] w-[15px] shrink-0" />
             {rail ? null : <span className="truncate">{item.label}</span>}
+            {!rail && item.badge ? (
+              <span className="ml-auto shrink-0 rounded-full bg-brand-500 px-1.5 text-2xs font-semibold leading-4 text-white">
+                {item.badge > 99 ? "99+" : item.badge}
+              </span>
+            ) : null}
           </Link>
           {hasChildren ? (
             <button

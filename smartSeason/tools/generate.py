@@ -38,6 +38,9 @@ PUBLIC_MATCHERS = {
 _S3_VERSION = "2.28.29"
 
 EXTRA_DEPS = {
+    # Case emails to farmers and agronomists. Sending is off until a mail server is configured.
+    "agronomy-service": "    <dependency><groupId>org.springframework.boot</groupId>"
+                        "<artifactId>spring-boot-starter-mail</artifactId></dependency>\n",
     "identity-service": "    <dependency><groupId>org.springframework.boot</groupId>"
                         "<artifactId>spring-boot-starter-mail</artifactId></dependency>\n",
     # media-service tracked MediaAsset, UploadTicket and MediaVariant rows and advertised

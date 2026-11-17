@@ -52,7 +52,8 @@ export type IconName =
   | "search"
   | "chart"
   | "scroll"
-  | "list";
+  | "list"
+  | "chat";
 
 export function Icon({ name, className }: { name: IconName; className?: string }) {
   const paths: Record<IconName, ReactNode> = {
@@ -175,6 +176,7 @@ export function Icon({ name, className }: { name: IconName; className?: string }
     list: (
       <><path d="M8.500 7h11M8.500 12h11M8.500 17h11" /><path d="M4.500 7h.5M4.500 12h.5M4.500 17h.5" /></>
     ),
+    chat: <path d="M4 5.5h16v10H12l-4.5 3.5v-3.5H4z" />,
     pulse: <path d="M3 12h4l2.5-6 4 12 2.5-6H21" />,
     sparkle: (
       <>
