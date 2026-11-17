@@ -103,8 +103,6 @@ export const FEATURE_ROLES: Record<string, Role[]> = {
     "AGRONOMIST"
   ],
   "my-work": [
-    "ADMIN",
-    "MANAGER",
     "WORKER"
   ],
   "live-board": [

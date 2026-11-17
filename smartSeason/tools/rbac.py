@@ -113,7 +113,7 @@ FEATURES = {
     # the agronomist's own queue is a separate screen.
     "cases":             ["ADMIN", "FARMER", "MANAGER", "WORKER"],
     "case-queue":        ["ADMIN", "AGRONOMIST"],
-    "my-work":           ["ADMIN", "MANAGER", "WORKER"],
+    "my-work":           ["WORKER"],
     "live-board":        ["ADMIN", "FARMER", "MANAGER"],
     # Herd production and milk-withdrawal warnings; the same roles that may read farm-service.
     "dairy":             ["ADMIN", "FARMER", "MANAGER", "AGRONOMIST"],
