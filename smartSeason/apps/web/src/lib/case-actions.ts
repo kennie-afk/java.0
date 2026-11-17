@@ -7,12 +7,7 @@ import { readToken } from "@/lib/session";
 
 const BASE = "/api/agronomy/v1/cases";
 
-export interface CaseActionState {
-  error: string | null;
-  done?: boolean;
-}
-
-export const idleCase: CaseActionState = { error: null };
+import type { CaseActionState } from "@/lib/case-state";
 
 function fail(error: unknown): CaseActionState {
   if (error instanceof ApiError) return { error: error.problem?.detail ?? error.message };

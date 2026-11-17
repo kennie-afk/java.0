@@ -2,7 +2,8 @@
 
 import { startTransition, useActionState, useState } from "react";
 import { bareInputClass, buttonClass, secondaryButtonClass } from "@/components/ui";
-import { idleCase, raiseCase } from "@/lib/case-actions";
+import { raiseCase } from "@/lib/case-actions";
+import { idleCase } from "@/lib/case-state";
 import type { Diagnosis } from "@/lib/advisor-types";
 
 /** Shrinks a photograph in the browser so it is quick to send and small to store. */

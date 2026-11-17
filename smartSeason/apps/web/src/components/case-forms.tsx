@@ -2,15 +2,8 @@
 
 import { useActionState, useEffect, useRef } from "react";
 import { bareInputClass, bareSelectClass, buttonClass, secondaryButtonClass } from "@/components/ui";
-import {
-  claimCase,
-  closeCase,
-  idleCase,
-  replyToCase,
-  resolveCase,
-  saveCoverage,
-  type CaseActionState
-} from "@/lib/case-actions";
+import { claimCase, closeCase, replyToCase, resolveCase, saveCoverage } from "@/lib/case-actions";
+import { idleCase, type CaseActionState } from "@/lib/case-state";
 
 const label = "mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400";
 
