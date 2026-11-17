@@ -63,7 +63,7 @@ export function RecordForm({
 
   return (
     <form action={formAction} className="max-w-3xl">
-      <div className="grid gap-5 panel p-3 sm:grid-cols-2">
+      <div className="grid gap-5 panel p-2.5 sm:grid-cols-2">
         {fields.map((field) => {
           const error = state.fieldErrors[field.name];
           const label = (

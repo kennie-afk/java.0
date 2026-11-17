@@ -29,7 +29,7 @@ export default async function MyWorkPage() {
           {open.map((card) => (
             <li
               key={card.assignment.id}
-              className="panel p-3 transition-colors hover:border-[var(--color-faint)]"
+              className="panel p-2.5 transition-colors hover:border-[var(--color-faint)]"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">

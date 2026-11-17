@@ -7,17 +7,10 @@ import com.smartseason.agronomy.intelligence.AdvisoryDtos.SeasonForecastResponse
 import com.smartseason.agronomy.intelligence.AdvisoryDtos.WeatherOutlookRequest;
 import com.smartseason.agronomy.intelligence.AdvisoryDtos.WeatherOutlookResponse;
 
-/**
- * Anything that can answer an agronomic question.
- *
- * Two implementations exist: one calls a vision model, the other applies
- * deterministic agronomic rules. The rules implementation is not a stub - it is
- * the answer when no model is configured, and it is what the model's output is
- * checked against.
- */
+/** Anything that can answer an agronomic question. The only real implementation calls Claude. */
 public interface AdvisoryModel {
 
-    /** MODEL or RULES; carried into every response so nobody has to guess. */
+    /** MODEL, or NONE when unconfigured; carried into every response so nobody has to guess. */
     String source();
 
     DiagnosisResponse diagnose(DiagnosisRequest request);

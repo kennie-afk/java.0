@@ -110,7 +110,7 @@ export default async function QueuePage({
 
         <aside className="space-y-2.5">
           {me ? (
-            <div className="panel p-3">
+            <div className="panel p-2.5">
               <h2 className="mb-2 text-sm font-semibold">My coverage</h2>
               <CoverageForm counties={me.counties} maxOpen={me.maxOpen} active={me.active} />
               <p className="mt-2 text-xs text-[var(--color-muted)]">
@@ -119,7 +119,7 @@ export default async function QueuePage({
             </div>
           ) : null}
           {everyone.length > 0 ? (
-            <div className="panel p-3">
+            <div className="panel p-2.5">
               <h2 className="mb-2 text-sm font-semibold">Agronomists</h2>
               <ul className="space-y-1.5 text-xs">
                 {everyone.map((p) => (

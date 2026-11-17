@@ -42,7 +42,7 @@ public final class AdvisoryDtos {
             String severity,
             String management,
             String immediateAction,
-            /** MODEL when a vision model answered, RULES when the fallback did. */
+            /** MODEL when the vision model answered. */
             String source,
             List<String> caveats) {
     }

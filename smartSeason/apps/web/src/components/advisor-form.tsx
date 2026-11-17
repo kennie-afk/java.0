@@ -31,7 +31,7 @@ export function AdvisorForm({ canAsk = false }: { canAsk?: boolean }) {
             files
           });
         }}
-        className="panel p-3"
+        className="panel p-2.5"
       >
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block">
@@ -101,13 +101,14 @@ export function AdvisorForm({ canAsk = false }: { canAsk?: boolean }) {
             {state.error}
           </p>
         ) : null}
+        {state.error && canAsk && asked ? <AskAgronomist diagnosis={null} asked={asked} /> : null}
 
         <button type="submit" disabled={pending} className={`${buttonClass} mt-4`}>
           {pending ? "Examining…" : "Diagnose"}
         </button>
       </form>
 
-      <section className="panel p-3">
+      <section className="panel p-2.5">
         {!state.result ? (
           <p className="text-xs text-[var(--color-muted)]">
             Describe the problem or attach a photograph, and the diagnosis appears here.
@@ -119,7 +120,7 @@ export function AdvisorForm({ canAsk = false }: { canAsk?: boolean }) {
               <span className="flex items-center gap-2">
                 <Badge value={state.result.severity} />
                 <span className="text-xs text-[var(--color-faint)]">
-                  {state.result.source === "MODEL" ? "vision model" : "built-in rules"}
+                  vision model
                 </span>
               </span>
             </div>

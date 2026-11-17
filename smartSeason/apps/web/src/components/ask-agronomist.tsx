@@ -34,15 +34,16 @@ export interface Asked {
  * Sends the case to a person. The AI answer stays attached so the agronomist starts from it
  * rather than from nothing, and a low-confidence or serious diagnosis is flagged as such.
  */
-export function AskAgronomist({ diagnosis, asked }: { diagnosis: Diagnosis; asked: Asked }) {
+export function AskAgronomist({ diagnosis, asked }: { diagnosis: Diagnosis | null; asked: Asked }) {
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState(asked.symptoms);
   const [preparing, setPreparing] = useState(false);
   const [state, action, pending] = useActionState(raiseCase, idleCase);
 
-  const top = diagnosis.candidates[0];
-  const unsure = !top || top.confidence < 0.6;
-  const serious = diagnosis.severity === "HIGH" || diagnosis.severity === "CRITICAL";
+  // With no diagnosis (the AI could not answer) the case goes to a person on its own.
+  const top = diagnosis?.candidates[0];
+  const unsure = diagnosis !== null && (!top || top.confidence < 0.6);
+  const serious = diagnosis?.severity === "HIGH" || diagnosis?.severity === "CRITICAL";
   const reason = serious ? "HIGH_SEVERITY" : unsure ? "LOW_CONFIDENCE" : "REQUESTED";
 
   async function send() {
@@ -52,9 +53,11 @@ export function AskAgronomist({ diagnosis, asked }: { diagnosis: Diagnosis; aske
     form.set("county", asked.county);
     form.set("question", note);
     form.set("reason", reason);
-    form.set("aiSource", diagnosis.source);
-    form.set("aiSeverity", diagnosis.severity);
-    if (top) {
+    if (diagnosis) {
+      form.set("aiSource", diagnosis.source);
+      form.set("aiSeverity", diagnosis.severity);
+    }
+    if (diagnosis && top) {
       form.set("aiSummary", `${top.commonName ?? "Unknown"} (${Math.round(top.confidence * 100)}% sure). ${diagnosis.management}`.slice(0, 3900));
       form.set("aiConfidence", String(top.confidence));
     }
@@ -91,7 +94,13 @@ export function AskAgronomist({ diagnosis, asked }: { diagnosis: Diagnosis; aske
             />
           </label>
           <p className="mt-1 text-xs text-[var(--color-muted)]">
-            Sent with the diagnosis above{asked.files.length > 0 ? ` and ${Math.min(3, asked.files.length)} photograph${asked.files.length > 1 ? "s" : ""}` : ""}
+            Sent{(() => {
+              const parts = [
+                diagnosis ? "the diagnosis above" : "",
+                asked.files.length > 0 ? `${Math.min(3, asked.files.length)} photograph${asked.files.length > 1 ? "s" : ""}` : ""
+              ].filter(Boolean);
+              return parts.length ? ` with ${parts.join(" and ")}` : "";
+            })()}
             {asked.county ? `, to an agronomist covering ${asked.county}` : ""}.
           </p>
           {state.error ? (

@@ -49,7 +49,7 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
 
       <div className="grid gap-2.5 lg:grid-cols-[1fr_20rem]">
         <section>
-          <div className="panel p-3">
+          <div className="panel p-2.5">
             <h2 className="text-2xs font-semibold uppercase tracking-widest text-gray-400">The question</h2>
             <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{c.fullQuestion}</p>
             {c.photos.length > 0 ? (
@@ -71,7 +71,7 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
           {c.messages.length > 0 ? (
             <ul className="mt-2.5 space-y-2">
               {c.messages.map((m) => (
-                <li key={m.id} className="panel p-3">
+                <li key={m.id} className="panel p-2.5">
                   <div className="flex items-baseline justify-between gap-3">
                     <span className="text-xs font-medium">
                       {m.authorName ?? ROLE_LABEL[m.authorRole] ?? "Someone"}
@@ -97,9 +97,9 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
 
         <aside className="space-y-2.5">
           {c.aiSummary ? (
-            <div className="panel p-3">
+            <div className="panel p-2.5">
               <h2 className="text-2xs font-semibold uppercase tracking-widest text-gray-400">
-                What the {s.aiSource === "MODEL" ? "vision model" : "built-in rules"} said
+                What the vision model said
               </h2>
               <p className="mt-1 text-sm leading-relaxed">{c.aiSummary}</p>
               {s.aiConfidence !== null ? (

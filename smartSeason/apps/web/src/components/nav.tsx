@@ -25,8 +25,8 @@ import {
  * What appears in the menu is decided by the same generated catalogue and role matrix the
  * controllers are annotated from, so the menu cannot offer what the service refuses.
  */
-const SIDEBAR_WIDTH = 240;
-const SIDEBAR_WIDTH_COLLAPSED = 64;
+const SIDEBAR_WIDTH = 200;
+const SIDEBAR_WIDTH_COLLAPSED = 48;
 
 type Child = { label: string; href: string; depth?: number; icon: IconName };
 
@@ -97,10 +97,10 @@ export function Shell({
       />
       <Topbar roles={roles} onMenu={() => setDrawer(true)} collapsed={collapsed} pathname={pathname} />
       <main
-        className="min-h-screen pt-14 lg:pl-[var(--ss-sidebar)]"
+        className="min-h-screen pt-11 lg:pl-[var(--ss-sidebar)]"
         style={{ "--ss-sidebar": `${collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH}px` } as React.CSSProperties}
       >
-        <div className="mx-auto max-w-7xl p-4 sm:p-5">{children}</div>
+        <div className="mx-auto max-w-6xl p-3 sm:p-4">{children}</div>
       </main>
     </div>
   );
@@ -161,7 +161,7 @@ function Topbar({ roles, onMenu, collapsed, pathname }: { roles: string[]; onMen
   };
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center gap-3 border-b border-base bg-white px-3 dark:bg-[#0f1612]">
+    <header className="fixed left-0 right-0 top-0 z-30 flex h-11 items-center gap-3 border-b border-base bg-white px-3 dark:bg-[#0f1612]">
       <button onClick={onMenu} className="btn-ghost !h-7 !w-7 !px-0 lg:hidden max-lg:!h-8 max-lg:!w-8" aria-label="Open menu">
         <Icon name="menu" className="h-[18px] w-[18px]" />
       </button>
@@ -393,7 +393,7 @@ function Sidebar({
         style={{ width: collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH }}
         data-rail={rail ? "true" : "false"}
       >
-        <div className={`flex h-14 shrink-0 items-center border-b border-base px-3 ${rail ? "justify-center !px-2" : "justify-between"}`}>
+        <div className={`flex h-11 shrink-0 items-center border-b border-base px-3 ${rail ? "justify-center !px-2" : "justify-between"}`}>
           <Brand rail={rail} />
           {rail ? null : (
             <button

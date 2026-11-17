@@ -45,7 +45,7 @@ export function ForgotPasswordForm() {
 
   if (sent) {
     return (
-      <div className="panel p-3">
+      <div className="panel p-2.5">
         <p className="text-sm leading-relaxed">
           If that address has an account, a reset code has been sent to it. The code is good
           for 15 minutes.
@@ -70,7 +70,7 @@ export function ForgotPasswordForm() {
   return (
     <form
       onSubmit={onSubmit}
-      className="space-y-3 panel p-3"
+      className="space-y-3 panel p-2.5"
     >
       <label className="block">
         <span className="mb-1 block text-sm font-medium text-[var(--color-muted)]">Email</span>

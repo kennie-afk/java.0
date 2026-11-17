@@ -73,7 +73,7 @@ export default async function TaskDetailPage({
       />
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <section className="panel p-3 lg:col-span-2">
+        <section className="panel p-2.5 lg:col-span-2">
           <h2 className="mb-2 text-2xs font-semibold uppercase tracking-widest text-gray-400">
             The task
           </h2>
@@ -99,7 +99,7 @@ export default async function TaskDetailPage({
           </dl>
         </section>
 
-        <section className="panel p-3">
+        <section className="panel p-2.5">
           <h2 className="mb-2 text-2xs font-semibold uppercase tracking-widest text-gray-400">
             Timeline
           </h2>
@@ -123,7 +123,7 @@ export default async function TaskDetailPage({
         </section>
       </div>
 
-      <section className="mt-4 panel p-3">
+      <section className="mt-4 panel p-2.5">
         <h2 className="mb-2 text-2xs font-semibold uppercase tracking-widest text-gray-400">
           Objectives
         </h2>
@@ -160,7 +160,7 @@ export default async function TaskDetailPage({
         )}
       </section>
 
-      <section className="mt-4 panel p-3">
+      <section className="mt-4 panel p-2.5">
         <h2 className="mb-2 text-2xs font-semibold uppercase tracking-widest text-gray-400">
           Evidence
         </h2>

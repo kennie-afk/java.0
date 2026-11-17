@@ -44,7 +44,7 @@ function AddMemberForm() {
   return (
     <form
       action={action}
-      className="mb-4 panel p-3"
+      className="mb-4 panel p-2.5"
     >
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold">Add someone</h2>

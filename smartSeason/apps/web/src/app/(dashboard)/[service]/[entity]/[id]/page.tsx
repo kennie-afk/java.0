@@ -70,7 +70,7 @@ export default async function RecordPage({
         }
       />
 
-      <dl className="grid gap-x-8 gap-y-3 panel p-3 sm:grid-cols-2">
+      <dl className="grid gap-x-8 gap-y-3 panel p-2.5 sm:grid-cols-2">
         {entity.formFields.filter((field) => !isUuid(record[field.name])).map((field) => {
           const value = record[field.name];
           return (

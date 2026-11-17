@@ -54,7 +54,7 @@ export function ChangePasswordForm() {
   return (
     <form
       onSubmit={onSubmit}
-      className="max-w-md space-y-3 panel p-3"
+      className="max-w-md space-y-3 panel p-2.5"
     >
       <label className="block">
         <span className={label}>Current password</span>

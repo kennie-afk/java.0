@@ -9,7 +9,7 @@ export default async function AdvisorPage() {
     <>
       <PageHeader
         title="Crop advisor"
-        subtitle="Identify a pest or disease from a description, a photograph, or both. Every answer says whether it came from a vision model or the built-in rules."
+        subtitle="Identify a pest or disease from a description, a photograph, or both. The answer comes from a vision model; if it cannot answer, you can ask an agronomist."
       />
       <AdvisorForm canAsk={canUse(roles, "cases")} />
     </>

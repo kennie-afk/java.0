@@ -23,11 +23,9 @@ import org.springframework.web.client.RestClient;
 /**
  * Agronomic advice from a Claude model, including photographs.
  *
- * Every answer is asked for as JSON and parsed strictly. If the call fails, the
- * response is malformed, or the model declines, the caller falls back to the
- * rules model rather than surfacing an error - a farmer standing in a field
- * with a diseased plant is better served by an honest rule of thumb than by a
- * stack trace.
+ * Every answer is asked for as JSON and parsed strictly. There is no fallback to hand-written
+ * rules: if the call fails or the reply cannot be read, the caller gets a 503 that says so, and the
+ * farmer is pointed at a human agronomist instead of a guess.
  */
 public class ClaudeAdvisoryModel implements AdvisoryModel {
 
@@ -37,12 +35,10 @@ public class ClaudeAdvisoryModel implements AdvisoryModel {
     private final RestClient client;
     private final ObjectMapper mapper = new ObjectMapper();
     private final String model;
-    private final AdvisoryModel fallback;
 
-    public ClaudeAdvisoryModel(RestClient client, String model, AdvisoryModel fallback) {
+    public ClaudeAdvisoryModel(RestClient client, String model) {
         this.client = client;
         this.model = model;
-        this.fallback = fallback;
     }
 
     @Override
@@ -81,10 +77,6 @@ public class ClaudeAdvisoryModel implements AdvisoryModel {
                 """);
 
         JsonNode json = ask(prompt.toString(), request.images());
-        if (json == null) {
-            return fallback.diagnose(request);
-        }
-
         try {
             List<Candidate> candidates = new ArrayList<>();
             for (JsonNode node : json.path("candidates")) {
@@ -106,8 +98,8 @@ public class ClaudeAdvisoryModel implements AdvisoryModel {
                     source(),
                     caveats);
         } catch (RuntimeException ex) {
-            log.warn("Could not read the model's diagnosis; using rules instead", ex);
-            return fallback.diagnose(request);
+            log.warn("Could not read the model\'s diagnosis", ex);
+            throw AdvisoryUnavailable.unreadable();
         }
     }
 
@@ -134,10 +126,6 @@ public class ClaudeAdvisoryModel implements AdvisoryModel {
                 nullSafe(request.averageTempC()), nullSafe(request.expectedYieldKg()));
 
         JsonNode json = ask(prompt, null);
-        if (json == null) {
-            return fallback.forecastSeason(request);
-        }
-
         try {
             List<StageOutlook> stages = new ArrayList<>();
             for (JsonNode node : json.path("stages")) {
@@ -156,8 +144,8 @@ public class ClaudeAdvisoryModel implements AdvisoryModel {
                     json.path("confidence").asDouble(),
                     stages, risks, json.path("summary").asText(""), source());
         } catch (RuntimeException ex) {
-            log.warn("Could not read the model's forecast; using rules instead", ex);
-            return fallback.forecastSeason(request);
+            log.warn("Could not read the model\'s forecast", ex);
+            throw AdvisoryUnavailable.unreadable();
         }
     }
 
@@ -178,10 +166,6 @@ public class ClaudeAdvisoryModel implements AdvisoryModel {
                 nullSafe(request.soilMoisturePct()));
 
         JsonNode json = ask(prompt, null);
-        if (json == null) {
-            return fallback.weatherOutlook(request);
-        }
-
         try {
             List<String> advisories = new ArrayList<>();
             json.path("advisories").forEach(node -> advisories.add(node.asText()));
@@ -190,12 +174,12 @@ public class ClaudeAdvisoryModel implements AdvisoryModel {
                     json.path("irrigationAdvice").asText(""),
                     json.path("sprayWindow").asText(""), source());
         } catch (RuntimeException ex) {
-            log.warn("Could not read the model's outlook; using rules instead", ex);
-            return fallback.weatherOutlook(request);
+            log.warn("Could not read the model\'s outlook", ex);
+            throw AdvisoryUnavailable.unreadable();
         }
     }
 
-    /** Sends one message and returns the parsed JSON object, or null on any failure. */
+    /** Sends one message and returns the parsed JSON object; any failure is a 503. */
     private JsonNode ask(String prompt, List<ImagePayload> images) {
         try {
             ObjectNode body = mapper.createObjectNode();
@@ -239,8 +223,8 @@ public class ClaudeAdvisoryModel implements AdvisoryModel {
             }
             return mapper.readTree(extractJson(text.toString()));
         } catch (Exception ex) {
-            log.warn("The advisory model did not answer; falling back to rules: {}", ex.getMessage());
-            return null;
+            log.warn("The advisory model did not answer: {}", ex.getMessage());
+            throw AdvisoryUnavailable.noAnswer();
         }
     }
 

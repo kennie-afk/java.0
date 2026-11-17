@@ -12,8 +12,8 @@ import org.springframework.web.client.RestClient;
 /**
  * Chooses which advisory model the service uses.
  *
- * With no API key the rules model is used, and every response says so. The key
- * is read from the environment and never logged.
+ * With no API key every advisory call answers 503; there are no built-in rules to fall back on.
+ * The key is read from the environment and never logged.
  */
 @Configuration
 public class AdvisoryConfig {
@@ -27,17 +27,14 @@ public class AdvisoryConfig {
             @Value("${smartseason.ai.model:claude-fable-5-2}") String model,
             @Value("${smartseason.ai.timeout-seconds:45}") long timeoutSeconds) {
 
-        HeuristicAdvisoryModel rules = new HeuristicAdvisoryModel();
-
         if (apiKey == null || apiKey.isBlank()) {
-            log.info("No advisory model key configured; agronomic advice will come from the "
-                    + "built-in rules and every response will say so.");
-            return rules;
+            log.warn("No advisory model key configured; AI diagnosis will answer 503 until "
+                    + "ANTHROPIC_API_KEY is set.");
+            return new UnconfiguredAdvisoryModel();
         }
 
         // A model call is slow by nature, so the read timeout is generous while
-        // the connect timeout stays short: an unreachable endpoint should fail
-        // fast and drop through to the rules.
+        // the connect timeout stays short: an unreachable endpoint should fail fast.
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(Duration.ofSeconds(10));
         factory.setReadTimeout(Duration.ofSeconds(timeoutSeconds));
@@ -51,6 +48,6 @@ public class AdvisoryConfig {
                 .build();
 
         log.info("Advisory model enabled: {}", model);
-        return new ClaudeAdvisoryModel(client, model, rules);
+        return new ClaudeAdvisoryModel(client, model);
     }
 }

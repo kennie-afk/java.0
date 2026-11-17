@@ -54,7 +54,7 @@ export function EntityForm({
     <form
       ref={formRef}
       action={formAction}
-      className="mb-4 panel p-3"
+      className="mb-4 panel p-2.5"
     >
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-sm font-semibold">{title}</h2>

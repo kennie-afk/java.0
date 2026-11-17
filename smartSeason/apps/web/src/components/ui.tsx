@@ -12,7 +12,7 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <header className="mb-5 flex flex-wrap items-start justify-between gap-2">
+    <header className="mb-3 flex flex-wrap items-start justify-between gap-2">
       <div className="min-w-0">
         <h1 className="font-display text-lg font-semibold text-gray-900 dark:text-white">{title}</h1>
         {subtitle ? <p className="mt-0.5 text-xs text-muted">{subtitle}</p> : null}
@@ -30,7 +30,7 @@ export function Tabs({
   active: string;
 }) {
   return (
-    <nav className="mb-4 flex flex-wrap items-center gap-1">
+    <nav className="mb-3 flex flex-wrap items-center gap-1">
       {items.map((item) => (
         <a
           key={item.href}
