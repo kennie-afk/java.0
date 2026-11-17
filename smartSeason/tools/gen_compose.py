@@ -51,7 +51,7 @@ x-service-env: &service-env
   # rules and says so; with one it reads photographs. Set it in .env or, in a
   # real deployment, from a secret - never in this file.
   ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-  SMARTSEASON_AI_MODEL: ${SMARTSEASON_AI_MODEL:-claude-sonnet-5}
+  SMARTSEASON_AI_MODEL: ${SMARTSEASON_AI_MODEL:-claude-fable-5-2}
 
 services:
   postgres:

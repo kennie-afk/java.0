@@ -120,7 +120,7 @@ public class HeuristicAdvisoryModel implements AdvisoryModel {
         List<String> caveats = new ArrayList<>();
         caveats.add("Produced by keyword rules, not a trained model. Treat it as a starting point.");
         if (request.images() != null && !request.images().isEmpty()) {
-            caveats.add("Photographs were not examined: no vision model is configured.");
+            caveats.add("Photographs were not examined: the vision model is not configured or did not answer. Do not rely on this result; ask an agronomist.");
         }
         if (ranked.isEmpty()) {
             caveats.add("Nothing matched the description. Have an agronomist look at the crop.");

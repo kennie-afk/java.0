@@ -24,7 +24,7 @@ public class AdvisoryConfig {
     public AdvisoryModel advisoryModel(
             @Value("${smartseason.ai.api-key:${ANTHROPIC_API_KEY:}}") String apiKey,
             @Value("${smartseason.ai.base-url:https://api.anthropic.com}") String baseUrl,
-            @Value("${smartseason.ai.model:claude-sonnet-5}") String model,
+            @Value("${smartseason.ai.model:claude-fable-5-2}") String model,
             @Value("${smartseason.ai.timeout-seconds:45}") long timeoutSeconds) {
 
         HeuristicAdvisoryModel rules = new HeuristicAdvisoryModel();
