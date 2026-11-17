@@ -13,7 +13,8 @@ import org.springframework.web.server.ResponseStatusException;
  * The platform's catch-all turns every ResponseStatusException into a 500. For the climate
  * endpoint a bad location is the caller's fault (400) and an upstream outage is a 503.
  */
-@RestControllerAdvice(assignableTypes = ClimateController.class)
+@RestControllerAdvice(assignableTypes = {ClimateController.class,
+        com.smartseason.weather.cropmodel.SeasonForecastController.class})
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class ClimateErrors {
 
